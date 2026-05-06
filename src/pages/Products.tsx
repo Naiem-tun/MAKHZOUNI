@@ -1,0 +1,350 @@
+import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useAppContext } from '../AppContext';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { Product, OperationType } from '../types';
+import { handleFirestoreError } from '../lib/utils';
+import { 
+  Plus, 
+  Search, 
+  Filter, 
+  QrCode,
+  Boxes
+} from 'lucide-react';
+import { Html5Qrcode } from 'html5-qrcode';
+import { ProductCard } from '../components/products/ProductCard';
+import { ProductPagination } from '../components/products/ProductPagination';
+import { DeleteConfirmationModal } from '../components/products/DeleteConfirmationModal';
+import { AddQuantityModal } from '../components/products/AddQuantityModal';
+import { ProductEditModal } from '../components/products/ProductEditModal';
+
+import { BarcodeScanner } from '../components/common/BarcodeScanner';
+
+export default function Products() {
+  const { t } = useTranslation();
+  const { user, settings } = useAppContext();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [stockFilter, setStockFilter] = useState('all'); // 'all', 'available', 'low', 'out'
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isQuantityModalOpen, setIsQuantityModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [scannerTarget, setScannerTarget] = useState<'search' | 'barcode-field'>('search');
+  const [scannedBarcode, setScannedBarcode] = useState('');
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [quantityProduct, setQuantityProduct] = useState<Product | null>(null);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
+
+  useEffect(() => {
+    if (!user) return;
+    const path = `users/${user.uid}/products`;
+    const q = collection(db, path);
+    return onSnapshot(q, (snap) => {
+      setProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
+      setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, path);
+      setLoading(false);
+    });
+  }, [user]);
+
+  // Reset to first page on search
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const handleDelete = async () => {
+    if (!user || !productToDelete) return;
+    
+    try {
+      await deleteDoc(doc(db, `users/${user.uid}/products/${productToDelete.id}`));
+      setIsDeleteModalOpen(false);
+      setProductToDelete(null);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/products/${productToDelete.id}`);
+    }
+  };
+
+  const performQuantitySave = async (numBoxes: number, extraPieces: number, boxPrice: number, piecePrice: number) => {
+    if (!user || !quantityProduct) return;
+
+    const addedQty = (numBoxes * (quantityProduct.piecesPerBox || 1)) + extraPieces;
+    const newQty = (quantityProduct.quantity || 0) + addedQty;
+
+    try {
+      const batch = writeBatch(db);
+      const productRef = doc(db, `users/${user.uid}/products/${quantityProduct.id}`);
+      const purchasesPath = `users/${user.uid}/purchases`;
+      const purchaseRef = doc(collection(db, purchasesPath));
+      
+      const purchaseAmount = (numBoxes * boxPrice) + (extraPieces * piecePrice);
+
+      // Record the purchase transaction
+      batch.set(purchaseRef, {
+        productId: quantityProduct.id,
+        productName: quantityProduct.name,
+        qtyAdded: addedQty,
+        amount: purchaseAmount,
+        date: serverTimestamp(),
+      });
+
+      // Update product stock
+      batch.update(productRef, {
+        quantity: newQty,
+        purchasePrice: piecePrice,
+        boxPurchasePrice: boxPrice,
+        updatedAt: serverTimestamp(),
+      });
+
+      await batch.commit();
+      
+      setIsQuantityModalOpen(false);
+      setQuantityProduct(null);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/products`);
+    }
+  };
+
+  const handleSaveProduct = async (productData: any) => {
+    if (!user) return;
+    
+    try {
+      const batch = writeBatch(db);
+      
+      if (editingProduct) {
+        const path = `users/${user.uid}/products/${editingProduct.id}`;
+        await updateDoc(doc(db, path), {
+          ...productData,
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        const path = `users/${user.uid}/products`;
+        const purchasesPath = `users/${user.uid}/purchases`;
+        
+        const productRef = doc(collection(db, path));
+        batch.set(productRef, {
+          ...productData,
+          updatedAt: serverTimestamp(),
+        });
+
+        // Record initial stock as a purchase
+        if (productData.quantity > 0) {
+          const purchaseAmount = productData.quantity * (productData.purchasePrice || 0);
+          const purchaseRef = doc(collection(db, purchasesPath));
+          batch.set(purchaseRef, {
+            productId: productRef.id,
+            productName: productData.name,
+            qtyAdded: productData.quantity,
+            amount: purchaseAmount,
+            date: serverTimestamp(),
+          });
+        }
+        
+        await batch.commit();
+      }
+      setIsModalOpen(false);
+      setEditingProduct(null);
+      setScannedBarcode('');
+    } catch (err) {
+      handleFirestoreError(err, editingProduct ? OperationType.UPDATE : OperationType.CREATE, `users/${user.uid}/products`);
+    }
+  };
+
+  const handleScan = (decodedText: string) => {
+    if (scannerTarget === 'search') {
+      const foundProduct = products.find(p => p.barcode === decodedText);
+      if (foundProduct) {
+        setQuantityProduct(foundProduct);
+        setIsQuantityModalOpen(true);
+      } else {
+        if (window.confirm(`المنتج "${decodedText}" غير موجود. هل تريد تسجيله كمنتج جديد؟`)) {
+          setScannedBarcode(decodedText);
+          setEditingProduct(null);
+          setIsModalOpen(true);
+        }
+      }
+    } else {
+      setScannedBarcode(decodedText);
+      // If modal is already open, the defaultValue will catch it if we re-render
+      // or we can use a more reactive way. The scannedBarcode state is passed to EditModal.
+    }
+  };
+
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         p.barcode?.includes(searchTerm);
+    
+    let matchesStock = true;
+    if (stockFilter === 'available') {
+      matchesStock = (p.quantity || 0) > (p.minQuantity || 0);
+    } else if (stockFilter === 'low') {
+      matchesStock = (p.quantity || 0) <= (p.minQuantity || 0) && (p.quantity || 0) > 0;
+    } else if (stockFilter === 'out') {
+      matchesStock = (p.quantity || 0) <= 0;
+    }
+
+    return matchesSearch && matchesStock;
+  });
+
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  useEffect(() => {
+    const productHandler = () => {
+      setEditingProduct(null);
+      setIsModalOpen(true);
+    };
+    const scannerHandler = () => {
+      setScannerTarget('search');
+      setIsScannerOpen(true);
+    };
+    window.addEventListener('open-product-modal', productHandler);
+    window.addEventListener('open-barcode-scanner', scannerHandler);
+    return () => {
+      window.removeEventListener('open-product-modal', productHandler);
+      window.removeEventListener('open-barcode-scanner', scannerHandler);
+    };
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t('products')}</h1>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">إدارة قائمة السلع والأسعار والمخزون</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => {
+              setEditingProduct(null);
+              setIsModalOpen(true);
+            }}
+            className="flex items-center gap-2 rounded-2xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-brand-700 shadow-lg shadow-brand-500/20 active:scale-95"
+          >
+            <Plus size={18} strokeWidth={3} />
+            {t('add_product')}
+          </button>
+        </div>
+      </header>
+
+      {/* Search & Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1 group">
+          <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-brand-500 transition-colors">
+            <Search size={20} />
+          </div>
+          <input 
+            type="text" 
+            placeholder="بحث عن منتج بالاسم أو الباركود..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full rounded-2xl border border-zinc-200 bg-white py-3 pr-12 pl-12 outline-none focus:ring-2 focus:ring-brand-500 transition-all dark:bg-zinc-900 dark:border-zinc-800 dark:text-white"
+          />
+          <div className="absolute inset-y-0 left-2 flex items-center pr-2">
+            <button 
+              type="button"
+              onClick={() => {
+                setScannerTarget('search');
+                setIsScannerOpen(true);
+              }}
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-all active:scale-90 dark:text-zinc-500 dark:hover:bg-zinc-800"
+            >
+              <QrCode size={20} />
+            </button>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <div className="relative group">
+            <select 
+              value={stockFilter}
+              onChange={(e) => setStockFilter(e.target.value)}
+              className="appearance-none flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white pr-10 pl-4 py-3 font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 cursor-pointer min-w-[130px]"
+            >
+              <option value="all">كل المخزون</option>
+              <option value="available">المتوفر</option>
+              <option value="low">النواقص</option>
+              <option value="out">نفذ</option>
+            </select>
+            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-zinc-400">
+              <Boxes size={20} />
+            </div>
+          </div>
+
+          <button className="flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-3 font-bold text-zinc-600 transition-all hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400">
+            <Filter size={20} />
+            {t('all_categories')}
+          </button>
+        </div>
+      </div>
+
+      {/* Products List */}
+      <div className="grid grid-cols-1 gap-4">
+        {paginatedProducts.map((p, idx) => (
+          <ProductCard
+            key={p.id}
+            product={p}
+            index={idx}
+            onEdit={(product) => {
+              setEditingProduct(product);
+              setIsModalOpen(true);
+            }}
+            onDelete={(product) => {
+              setProductToDelete(product);
+              setIsDeleteModalOpen(true);
+            }}
+            onAddQuantity={(product) => {
+              setQuantityProduct(product);
+              setIsQuantityModalOpen(true);
+            }}
+          />
+        ))}
+      </div>
+
+      <ProductPagination 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+      />
+
+      <AddQuantityModal
+        product={quantityProduct}
+        isOpen={isQuantityModalOpen}
+        onClose={() => setIsQuantityModalOpen(false)}
+        onConfirm={performQuantitySave}
+      />
+
+      <ProductEditModal
+        product={editingProduct}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveProduct}
+        scannedBarcode={scannedBarcode}
+        onScan={() => {
+          setScannerTarget('barcode-field');
+          setIsScannerOpen(true);
+        }}
+      />
+
+      <BarcodeScanner 
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScan={handleScan}
+      />
+    </div>
+  );
+}

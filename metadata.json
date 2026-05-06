@@ -1,0 +1,6 @@
+{
+  "name": "H.STORE",
+  "description": "نظام احترافي لإدارة المخازن وتجارة التجزئة مع دعم كامل للجرد والديون والتقارير المالية.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": []
+}

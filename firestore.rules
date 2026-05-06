@@ -1,0 +1,118 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // -- HELPERS --
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // -- VALIDATION HELPERS --
+    function isValidProduct(data) {
+      return data.keys().hasAll(['name', 'purchasePrice', 'sellingPrice', 'quantity', 'minQuantity']) &&
+             data.name is string && data.name.size() <= 200 &&
+             data.purchasePrice is number && data.purchasePrice >= 0 &&
+             data.sellingPrice is number && data.sellingPrice >= 0 &&
+             data.quantity is number &&
+             data.minQuantity is number &&
+             (data.get('barcode', '') is string);
+    }
+
+    function isValidSupplier(data) {
+      return data.keys().hasAll(['name', 'phone']) &&
+             data.name is string && data.name.size() <= 200 &&
+             data.phone is string && data.phone.size() <= 50;
+    }
+
+    function isValidDebt(data) {
+      return data.keys().hasAll(['customerName', 'totalAmount', 'status']) &&
+             data.customerName is string && data.customerName.size() <= 200 &&
+             data.totalAmount is number &&
+             data.status in ['paid', 'unpaid'];
+    }
+
+    function isValidTransaction(data) {
+       return data.keys().hasAll(['productId', 'type', 'quantityChange', 'date']) &&
+              data.productId is string &&
+              data.type in ['purchase', 'sale', 'jard', 'adjustment'] &&
+              data.quantityChange is number &&
+              data.date is string;
+    }
+
+    // -- PATHS --
+    match /users/{userId} {
+      // User settings
+      match /settings/config {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+
+      // Products
+      match /products/{productId} {
+        allow get: if isOwner(userId) && isValidId(productId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(productId) && isValidProduct(incoming());
+        allow update: if isOwner(userId) && isValidId(productId) && isValidProduct(incoming());
+        allow delete: if isOwner(userId) && isValidId(productId);
+      }
+
+      // Suppliers
+      match /suppliers/{supplierId} {
+        allow get: if isOwner(userId) && isValidId(supplierId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(supplierId) && isValidSupplier(incoming());
+        allow update: if isOwner(userId) && isValidId(supplierId) && isValidSupplier(incoming());
+        allow delete: if isOwner(userId) && isValidId(supplierId);
+      }
+
+      // Debts
+      match /debts/{debtId} {
+        allow get: if isOwner(userId) && isValidId(debtId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(debtId) && isValidDebt(incoming());
+        allow update: if isOwner(userId) && isValidId(debtId) && isValidDebt(incoming());
+        allow delete: if isOwner(userId) && isValidId(debtId);
+      }
+
+      // Categories
+      match /categories/{categoryId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+
+      // Transactions
+      match /transactions/{transactionId} {
+        allow get: if isOwner(userId) && isValidId(transactionId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(transactionId) && isValidTransaction(incoming());
+        allow update: if isOwner(userId) && isValidId(transactionId) && isValidTransaction(incoming());
+        allow delete: if isOwner(userId) && isValidId(transactionId);
+      }
+
+      // Catch-all for subcollections not explicitly defined yet but in blueprint
+      match /{allSubcollections=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+  }
+}

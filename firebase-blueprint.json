@@ -1,0 +1,137 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile and Settings",
+      "description": "Stores user-specific settings and shop configuration.",
+      "type": "object",
+      "properties": {
+        "currency": { "type": "string", "description": "The currency symbol (e.g., د.ت)" },
+        "language": { "type": "string", "description": "Preferred language (ar/en)", "enum": ["ar", "en"] },
+        "darkMode": { "type": "boolean" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" }
+      },
+      "required": ["currency", "language", "darkMode"]
+    },
+    "Product": {
+      "title": "Store Product",
+      "description": "Details of a product in the inventory.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "purchasePrice": { "type": "number" },
+        "sellingPrice": { "type": "number" },
+        "quantity": { "type": "number" },
+        "minQuantity": { "type": "number" },
+        "barcode": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "purchasePrice", "sellingPrice", "quantity", "minQuantity"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "Details of a supplier.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "typeOfGoods": { "type": "string" },
+        "transactionCount": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "phone"]
+    },
+    "Debt": {
+      "title": "Customer Debt",
+      "description": "Record of a customer's debt.",
+      "type": "object",
+      "properties": {
+        "customerName": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["paid", "unpaid"] },
+        "payments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "amount": { "type": "number" },
+              "date": { "type": "string", "format": "date-time" }
+            }
+          }
+        },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["customerName", "totalAmount", "status"]
+    },
+    "Category": {
+      "title": "Product Category",
+      "description": "Grouping for products.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "Transaction": {
+      "title": "Inventory Transaction",
+      "description": "Record of stock changes (purchases/sales/jard).",
+      "type": "object",
+      "properties": {
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "type": { "type": "string", "enum": ["purchase", "sale", "jard", "adjustment"] },
+        "quantityChange": { "type": "number" },
+        "price": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" }
+      },
+      "required": ["productId", "type", "quantityChange", "date"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/settings": {
+      "schema": "User",
+      "description": "User specific settings singleton"
+    },
+    "/users/{userId}/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of products"
+    },
+    "/users/{userId}/suppliers/{supplierId}": {
+      "schema": "Supplier",
+      "description": "Collection of suppliers"
+    },
+    "/users/{userId}/debts/{debtId}": {
+      "schema": "Debt",
+      "description": "Collection of debts"
+    },
+    "/users/{userId}/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Collection of categories"
+    },
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "Audit log of all changes"
+    },
+    "/users/{userId}/supplierTransactions/{id}": {
+      "schema": "object",
+      "description": "Transactions with suppliers"
+    },
+    "/users/{userId}/purchases/{id}": {
+      "schema": "object",
+      "description": "Purchase records"
+    },
+    "/users/{userId}/inventories/{id}": {
+      "schema": "object",
+      "description": "Inventory/Stock count records"
+    },
+    "/users/{userId}/reports/{id}": {
+      "schema": "object",
+      "description": "Daily or periodic reports"
+    },
+    "/users/{userId}/expenses/{id}": {
+      "schema": "object",
+      "description": "Expense records"
+    }
+  }
+}
