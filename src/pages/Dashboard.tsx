@@ -24,11 +24,11 @@ const Dashboard = memo(() => {
     if (!user) return;
 
     const productsPath = `users/${user.uid}/products`;
-    const transactionsPath = `users/${user.uid}/transactions`;
+    const purchasesPath = `users/${user.uid}/purchases`;
     
     const productsQuery = collection(db, productsPath);
-    const transactionsQuery = query(
-      collection(db, transactionsPath),
+    const purchasesQuery = query(
+      collection(db, purchasesPath),
       orderBy('date', 'desc'),
       limit(50)
     );
@@ -39,15 +39,24 @@ const Dashboard = memo(() => {
       handleFirestoreError(error, OperationType.LIST, productsPath);
     });
 
-    const unsubTransactions = onSnapshot(transactionsQuery, (snap) => {
-      setAllPurchases(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction)));
+    const unsubPurchases = onSnapshot(purchasesQuery, (snap) => {
+      setAllPurchases(snap.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          id: doc.id, 
+          productName: data.productName,
+          quantityChange: data.qtyAdded,
+          price: data.qtyAdded > 0 ? (data.amount / data.qtyAdded) : 0,
+          date: data.date?.toDate ? data.date.toDate() : (data.date || new Date())
+        } as any;
+      }));
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, transactionsPath);
+      handleFirestoreError(error, OperationType.LIST, purchasesPath);
     });
 
     return () => {
       unsubProducts();
-      unsubTransactions();
+      unsubPurchases();
     };
   }, [user]);
 
@@ -124,7 +133,6 @@ const Dashboard = memo(() => {
           ) : (
             allPurchases?.map((p: any) => (
               <div key={p.id} className="flex justify-between items-center py-3 border-b border-neutral-50 dark:border-neutral-800">
-                <span className="text-[10px] font-mono text-neutral-300">{new Date(p.date).toLocaleDateString('en-GB')}</span>
                 <div className="flex flex-col text-right">
                   <span className="text-sm font-bold text-black dark:text-white">{p.productName}</span>
                   <div className="flex flex-row-reverse items-center gap-1 text-[10px] text-neutral-400 font-mono">
@@ -133,6 +141,7 @@ const Dashboard = memo(() => {
                     <span>{p.quantityChange}</span>
                   </div>
                 </div>
+                <span className="text-[10px] font-mono text-neutral-300">{new Date(p.date).toLocaleDateString('en-GB')}</span>
               </div>
             ))
           )}

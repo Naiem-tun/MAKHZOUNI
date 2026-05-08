@@ -3,17 +3,26 @@ import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../AppContext';
 import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Debt } from '../types';
+import { Debt, OperationType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { BookOpen, UserPlus, Trash2, Eye, Plus, Minus, X, CheckCircle2, History } from 'lucide-react';
-import { formatCurrency, cn } from '../lib/utils';
+import { BookOpen, UserPlus, Trash2, Eye, Plus, Minus, X, CheckCircle2, History, Edit2, ArrowRightLeft } from 'lucide-react';
+import { formatCurrency, cn, handleFirestoreError } from '../lib/utils';
 
 export default function Debts() {
   const { t } = useTranslation();
-  const { user, settings } = useAppContext();
+  const { user, settings, showToast } = useAppContext();
   const [debts, setDebts] = useState<Debt[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingDebt, setEditingDebt] = useState<Debt | null>(null);
   const [activeDebt, setActiveDebt] = useState<Debt | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteConfirmName, setDeleteConfirmName] = useState<string>('');
+  
+  // New action modal states
+  const [actionDebt, setActionDebt] = useState<Debt | null>(null);
+  const [actionType, setActionType] = useState<'debt' | 'payment' | 'select'>('select');
+  const [actionAmount, setActionAmount] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -23,33 +32,96 @@ export default function Debts() {
     });
   }, [user]);
 
-  const handleAddDebt = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveDebt = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || isSaving) return;
+    setIsSaving(true);
     const formData = new FormData(e.currentTarget);
     const data = {
       customerName: formData.get('customerName') as string,
-      totalAmount: parseFloat(formData.get('amount') as string),
-      status: 'unpaid' as const,
-      payments: [],
+      phone: formData.get('phone') as string,
+      totalAmount: editingDebt ? editingDebt.totalAmount : 0,
+      status: editingDebt ? editingDebt.status : 'paid' as const,
+      payments: editingDebt ? editingDebt.payments : [],
+      history: editingDebt ? editingDebt.history : [],
       updatedAt: serverTimestamp(),
     };
-    await addDoc(collection(db, `users/${user.uid}/debts`), data);
-    setIsModalOpen(false);
+
+    try {
+      if (editingDebt) {
+        await updateDoc(doc(db, `users/${user.uid}/debts`, editingDebt.id!), data);
+        showToast('تم تحديث بيانات الدين');
+      } else {
+        await addDoc(collection(db, `users/${user.uid}/debts`), data);
+        showToast('تمت إضافة الدين');
+      }
+      setIsModalOpen(false);
+      setEditingDebt(null);
+    } catch (err) {
+      console.error("Failed to save debt:", err);
+      handleFirestoreError(err, editingDebt ? OperationType.UPDATE : OperationType.CREATE, `users/${user.uid}/debts`);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const addPayment = async (debt: Debt, amount: number) => {
+  const addPayment = (debt: Debt, amount: number) => {
     if (!user) return;
     const newTotal = debt.totalAmount - amount;
     const newStatus = newTotal <= 0 ? 'paid' : 'unpaid';
-    const newPayments = [...(debt.payments || []), { amount, date: new Date().toISOString() }];
+    const timestamp = new Date().toISOString();
+    const newPayments = [...(debt.payments || []), { amount, date: timestamp }];
+    const newHistory = [...(debt.history || []), { type: 'payment' as const, amount, date: timestamp }];
     
-    await updateDoc(doc(db, `users/${user.uid}/debts`, debt.id!), {
+    // UI Feedback
+    showToast('تم تسجيل الدفعة');
+
+    updateDoc(doc(db, `users/${user.uid}/debts`, debt.id!), {
       totalAmount: newTotal,
       status: newStatus,
       payments: newPayments,
+      history: newHistory,
       updatedAt: serverTimestamp(),
+    }).catch(err => {
+      console.error("Async payment update failed:", err);
     });
+  };
+
+  const addDebtAmount = (debt: Debt, amount: number) => {
+    if (!user) return;
+    const newTotal = debt.totalAmount + amount;
+    const timestamp = new Date().toISOString();
+    const newHistory = [...(debt.history || []), { type: 'debt' as const, amount, date: timestamp }];
+    
+    showToast('تمت إضافة مبلغ للدين');
+
+    updateDoc(doc(db, `users/${user.uid}/debts`, debt.id!), {
+      totalAmount: newTotal,
+      status: 'unpaid',
+      history: newHistory,
+      updatedAt: serverTimestamp(),
+    }).catch(err => {
+      console.error("Async debt update failed:", err);
+    });
+  };
+
+  const handleDeleteDebt = async () => {
+    if (!user || !deleteConfirmId) return;
+    setIsSaving(true);
+    try {
+      await deleteDoc(doc(db, `users/${user.uid}/debts`, deleteConfirmId));
+      showToast('تم حذف السجل بنجاح');
+      setDeleteConfirmId(null);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/debts/${deleteConfirmId}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingDebt(null);
   };
 
   useEffect(() => {
@@ -65,7 +137,7 @@ export default function Debts() {
           <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">دفتر الديون</h1>
           <p className="text-zinc-500 dark:text-zinc-400">إدارة الكريدي والديون</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 rounded-2xl bg-brand-600 px-6 py-3 font-semibold text-white shadow-lg shadow-brand-500/20">
+        <button onClick={() => { setEditingDebt(null); setIsModalOpen(true); }} className="flex items-center gap-2 rounded-2xl bg-brand-600 px-6 py-3 font-semibold text-white shadow-lg shadow-brand-500/20">
           <UserPlus size={20} />
           إضافة شخص
         </button>
@@ -73,60 +145,152 @@ export default function Debts() {
 
       <div className="grid grid-cols-1 gap-4">
         {debts.map((d) => (
-          <motion.div key={d.id} className="flex items-center justify-between rounded-2xl bg-white p-3 shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 h-18">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 shrink-0">
-                <BookOpen size={20} />
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-base font-bold text-zinc-900 dark:text-white truncate">{d.customerName}</h3>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className={`h-1.5 w-1.5 rounded-full ${d.status === 'paid' ? 'bg-brand-500' : 'bg-rose-500'}`} />
-                  <span className={d.status === 'paid' ? 'text-brand-600' : 'text-rose-600'}>
-                    {d.status === 'paid' ? t('paid') : t('over_due')}
-                  </span>
-                  <span className="text-zinc-300">•</span>
-                  <span className="font-bold text-zinc-900 dark:text-white">{formatCurrency(d.totalAmount, settings.currency, settings.language)}</span>
+          <div key={d.id} className="relative group overflow-hidden rounded-2xl">
+            {/* Hidden Actions Layer */}
+            <div className="absolute inset-y-0 right-0 flex items-center pr-1 gap-1 z-0">
+              <button 
+                onClick={() => { setEditingDebt(d); setIsModalOpen(true); }}
+                className="h-[calc(100%-8px)] w-16 bg-edit-bg border border-edit-border rounded-2xl flex flex-col items-center justify-center gap-1 text-edit-text"
+              >
+                <Edit2 size={18} />
+                <span className="text-[10px] font-bold">تعديل</span>
+              </button>
+              <button 
+                onClick={() => { setDeleteConfirmId(d.id!); setDeleteConfirmName(d.customerName || ''); }}
+                className="h-[calc(100%-8px)] w-16 bg-delete-bg border border-delete-border flex flex-col items-center justify-center gap-1 text-delete-text rounded-2xl"
+              >
+                <Trash2 size={18} />
+                <span className="text-[10px] font-bold">حذف</span>
+              </button>
+            </div>
+
+            {/* Swipable Front Layer */}
+            <motion.div 
+              drag="x"
+              dragConstraints={{ left: -140, right: 0 }}
+              dragElastic={0.1}
+              onClick={() => setActiveDebt(d)}
+              className="relative z-10 flex cursor-pointer items-center justify-between rounded-2xl bg-white p-3 shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800"
+            >
+              <div className="flex items-center gap-3">
+                <div className={`h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 shrink-0`}>
+                  <BookOpen size={20} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-zinc-900 dark:text-white truncate">{d.customerName}</h3>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className={`h-1.5 w-1.5 rounded-full ${d.status === 'paid' ? 'bg-brand-500' : 'bg-rose-500'}`} />
+                    <span className={d.status === 'paid' ? 'text-brand-600' : 'text-rose-600'}>
+                      {d.status === 'paid' ? t('paid') : t('over_due')}
+                    </span>
+                    <span className="text-zinc-300">•</span>
+                    <span className="font-bold text-zinc-900 dark:text-white">{formatCurrency(d.totalAmount, settings.currency, settings.language)}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              {d.status === 'unpaid' && (
-                  <button 
-                    onClick={() => {
-                      const amount = parseFloat(prompt('أدخل المبلغ المدفوع:') || '0');
-                      if (amount > 0) addPayment(d, amount);
-                    }}
-                    className="p-2 rounded-lg bg-brand-50 text-brand-600 hover:bg-brand-100"
-                  >
-                    <Plus size={16}/>
-                  </button>
-              )}
-              <button onClick={() => setActiveDebt(d)} className="p-2 rounded-lg bg-brand-50 text-brand-600 hover:bg-brand-100">
-                <Eye size={16}/>
-              </button>
-              <button onClick={() => deleteDoc(doc(db, `users/${user!.uid}/debts`, d.id!))} className="p-2 rounded-lg text-zinc-300 hover:text-rose-500">
-                <Trash2 size={16}/>
-              </button>
-            </div>
-          </motion.div>
+              <div className="flex items-center gap-1.5 shrink-0 pl-1">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActionDebt(d);
+                    setActionType('select');
+                    setActionAmount('');
+                  }}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-50 text-brand-600 border border-zinc-100 hover:bg-zinc-100 dark:bg-zinc-800 dark:border-zinc-700 dark:text-brand-400 dark:hover:bg-zinc-700 transition-colors"
+                >
+                  <ArrowRightLeft size={18}/>
+                </button>
+              </div>
+            </motion.div>
+          </div>
         ))}
       </div>
 
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-3xl bg-white p-8 dark:bg-zinc-900 text-right">
-              <h2 className="mb-6 text-2xl font-bold text-zinc-900 dark:text-white">إضافة دين جديد</h2>
-              <form onSubmit={handleAddDebt} className="space-y-4">
-                <input name="customerName" placeholder="اسم العميل" required className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800" />
-                <input name="amount" type="number" step="0.001" placeholder="إجمالي المبلغ" required className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
+            <motion.div key={editingDebt?.id || 'new'} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-3xl bg-white p-8 dark:bg-zinc-900 text-right">
+              <h2 className="mb-6 text-2xl font-bold text-zinc-900 dark:text-white">
+                {editingDebt ? 'تعديل بيانات الدين' : 'إضافة دين جديد'}
+              </h2>
+              <form onSubmit={handleSaveDebt} className="space-y-4">
+                <input name="customerName" placeholder="اسم العميل" defaultValue={editingDebt?.customerName} required className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800" />
+                <input name="phone" type="tel" placeholder="رقم الهاتف (اختياري)" defaultValue={editingDebt?.phone} className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 text-left dir-ltr" style={{ direction: 'ltr' }} />
                 <div className="flex gap-3 pt-4">
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 rounded-2xl bg-zinc-100 py-3 font-semibold text-zinc-600">إلغاء</button>
-                  <button type="submit" className="flex-1 rounded-2xl bg-brand-600 py-3 font-semibold text-white">إضافة</button>
+                  <button type="button" onClick={closeModal} className="flex-1 rounded-2xl bg-zinc-100 py-3 font-semibold text-zinc-600 border border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700">إلغاء</button>
+                  <button type="submit" disabled={isSaving} className="flex-1 rounded-2xl bg-brand-600 py-3 font-semibold text-white disabled:opacity-50">
+                    {isSaving ? 'جاري الحفظ...' : (editingDebt ? 'تحديث' : 'إضافة')}
+                  </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Action selection / Amount input Modal */}
+      <AnimatePresence>
+        {actionDebt && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:items-end">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActionDebt(null)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }} className="relative w-full max-w-md rounded-3xl bg-white p-6 dark:bg-zinc-900 text-right">
+              <div className="flex items-center justify-between mb-6">
+                <button onClick={() => setActionDebt(null)} className="p-2 -ml-2 text-zinc-500 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800"><X size={20} /></button>
+                <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
+                  {actionType === 'select' ? 'اختيار عملية' : (actionType === 'debt' ? 'تسجيل دين جديد' : 'تسجيل سداد')}
+                </h2>
+              </div>
+              
+              {actionType === 'select' && (
+                <div className="space-y-3">
+                  <button 
+                    onClick={() => setActionType('payment')}
+                    className="w-full flex items-center justify-between p-4 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/30 transition-colors"
+                  >
+                    <Plus size={24} />
+                    <span className="font-bold text-lg">تسجيل سداد</span>
+                  </button>
+                  <button 
+                    onClick={() => setActionType('debt')}
+                    className="w-full flex items-center justify-between p-4 rounded-2xl bg-rose-50 text-rose-500 border border-rose-100 dark:bg-rose-950/20 dark:border-rose-900/30 transition-colors"
+                  >
+                    <Minus size={24} />
+                    <span className="font-bold text-lg">تسجيل دين</span>
+                  </button>
+                </div>
+              )}
+
+              {(actionType === 'debt' || actionType === 'payment') && (
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  const amount = parseFloat(actionAmount);
+                  if (amount > 0) {
+                    if (actionType === 'payment') addPayment(actionDebt, amount);
+                    else addDebtAmount(actionDebt, amount);
+                  }
+                  setActionDebt(null);
+                  setActionAmount('');
+                  setActionType('select');
+                }} className="space-y-4">
+                  <input 
+                    type="number" 
+                    step="0.001" 
+                    value={actionAmount}
+                    onChange={(e) => setActionAmount(e.target.value)}
+                    placeholder="أدخل المبلغ..." 
+                    autoFocus
+                    required 
+                    className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-right text-xl font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white" 
+                  />
+                  <div className="flex gap-3 pt-2">
+                    <button type="submit" disabled={!actionAmount || isSaving} className={`flex-1 rounded-2xl py-3 font-semibold text-white transition-opacity ${actionType === 'payment' ? 'bg-emerald-500' : 'bg-rose-500'} disabled:opacity-50`}>
+                      تأكيد
+                    </button>
+                    <button type="button" onClick={() => setActionType('select')} className="flex-1 rounded-2xl bg-zinc-100 py-3 font-semibold text-zinc-600 border border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700">رجوع</button>
+                  </div>
+                </form>
+              )}
             </motion.div>
           </div>
         )}
@@ -140,27 +304,64 @@ export default function Debts() {
             <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }} className="relative w-full max-w-xl rounded-3xl bg-white p-8 dark:bg-zinc-900 max-h-[80vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-8">
                 <button onClick={() => setActiveDebt(null)}><X size={24} className="text-zinc-500" /></button>
-                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">سجل دفعات {activeDebt.customerName}</h2>
+                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">سجل العمليات لـ {activeDebt.customerName}</h2>
               </div>
               <div className="space-y-4">
-                {(activeDebt.payments || []).length === 0 ? (
-                  <p className="text-center text-zinc-500 py-8">لا توجد دفعات مسجلة بعد</p>
-                ) : (
-                  activeDebt.payments.map((p, i) => (
+                {(() => {
+                  const displayHistory = activeDebt.history || (activeDebt.payments || []).map(p => ({ type: 'payment' as const, amount: p.amount, date: p.date }));
+                  const sortedHistory = [...displayHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                  
+                  if (sortedHistory.length === 0) {
+                    return <p className="text-center text-zinc-500 py-8">لا توجد عمليات مسجلة بعد</p>;
+                  }
+                  
+                  return sortedHistory.map((item, i) => (
                     <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-brand-50 flex items-center justify-center text-brand-600">
-                          <CheckCircle2 size={20} />
+                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${item.type === 'payment' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30' : 'bg-rose-50 text-rose-500 dark:bg-rose-950/30'}`}>
+                          {item.type === 'payment' ? <Plus size={20} /> : <Minus size={20} />}
                         </div>
                         <div>
-                          <p className="font-bold text-brand-600">+{formatCurrency(p.amount, settings.currency, settings.language)}</p>
-                          <p className="text-xs text-zinc-500">{new Date(p.date).toLocaleString()}</p>
+                          <p className={`font-bold ${item.type === 'payment' ? 'text-emerald-600' : 'text-rose-500'}`}>
+                            {item.type === 'payment' ? '+' : '-'}{formatCurrency(item.amount, settings.currency, settings.language)}
+                          </p>
+                          <p className="text-xs text-zinc-500">{new Date(item.date).toLocaleString()}</p>
                         </div>
                       </div>
-                      <span className="text-xs text-zinc-400">دفعة رقم {i+1}</span>
+                      <span className="text-xs font-bold text-zinc-400">{item.type === 'payment' ? 'تسديد' : 'دين'}</span>
                     </div>
-                  ))
-                )}
+                  ));
+                })()}
+              </div>
+            </motion.div>
+          </div>
+        )}
+        {/* Delete Confirmation Modal */}
+        {deleteConfirmId && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setDeleteConfirmId(null)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-sm rounded-[32px] bg-white p-8 dark:bg-zinc-900 text-center">
+              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-rose-50 text-rose-500 dark:bg-rose-950/30">
+                <Trash2 size={40} />
+              </div>
+              <h3 className="mb-2 text-xl font-black text-zinc-900 dark:text-white">هل أنت متأكد؟</h3>
+              <p className="mb-8 text-sm font-medium text-zinc-500">
+                سيتم حذف سجل الدين الخاص بـ <span className="font-bold text-zinc-900 dark:text-zinc-200">"{deleteConfirmName}"</span> نهائياً.
+              </p>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setDeleteConfirmId(null)}
+                  className="flex-1 rounded-2xl bg-zinc-100 py-4 font-bold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+                >
+                  إلغاء
+                </button>
+                <button 
+                  onClick={handleDeleteDebt}
+                  disabled={isSaving}
+                  className="flex-1 rounded-2xl bg-rose-500 py-4 font-bold text-white shadow-lg shadow-rose-500/20 disabled:opacity-50"
+                >
+                  {isSaving ? 'جاري...' : 'تأكيد الحذف'}
+                </button>
               </div>
             </motion.div>
           </div>

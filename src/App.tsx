@@ -8,7 +8,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AppProvider, useAppContext } from './AppContext';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
@@ -57,16 +57,27 @@ import Inventory from './pages/Inventory';
 import SettingsPage from './pages/SettingsPage';
 import Analytics from './pages/Analytics';
 import Expenses from './pages/Expenses';
+import ShoppingList from './pages/ShoppingList';
 
 function AppContent() {
-  const { user, loading, isOffline, settings, toggleDarkMode, setLanguage, updateSettings } = useAppContext();
+  const { user, loading, isOffline, isDataLoaded, settings, toggleDarkMode, setLanguage, updateSettings } = useAppContext();
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('products');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Dark mode effect
+  useEffect(() => {
+    if (settings.darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [settings.darkMode]);
 
   // Global Modal States
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [globalScannedBarcode, setGlobalScannedBarcode] = useState('');
 
   const handleSaveProduct = async (productData: any) => {
     if (!user) return;
@@ -78,6 +89,7 @@ function AppContent() {
         updatedAt: serverTimestamp(),
       });
       setIsProductModalOpen(false);
+      setGlobalScannedBarcode('');
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}/products`);
     }
@@ -85,25 +97,11 @@ function AppContent() {
 
   const handleScannerResult = (barcode: string) => {
     setIsScannerOpen(false);
-    // Open product modal with the result (this is just one behavior, we could search instead)
-    safeDispatchEvent('global-scan-result', barcode);
+    setGlobalScannedBarcode(barcode);
+    setIsProductModalOpen(true);
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-white dark:bg-zinc-950">
-        <motion.div 
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-          className="h-12 w-12 border-4 border-brand-500 border-t-transparent rounded-full"
-        />
-      </div>
-    );
-  }
 
-  if (!user) {
-    return <Login />;
-  }
 
   const allTabs = [
     { id: 'dashboard', label: t('dashboard'), icon: LayoutDashboard },
@@ -113,6 +111,7 @@ function AppContent() {
     { id: 'inventory', label: t('inventory'), icon: ClipboardCheck },
     { id: 'reports', label: t('reports'), icon: BarChart3 },
     { id: 'expenses', label: 'المصاريف', icon: Wallet },
+    { id: 'shopping-list', label: 'قائمة المشتريات', icon: ShoppingCart },
     { id: 'settings', label: t('settings'), icon: Settings },
   ];
 
@@ -133,27 +132,62 @@ function AppContent() {
   };
 
   const handleScannerClick = () => {
-    setIsScannerOpen(true);
+    if (activeTab === 'products') {
+      safeDispatchEvent('open-barcode-scanner');
+    } else {
+      setIsScannerOpen(true);
+    }
   };
 
+  const showSplash = loading || (user && !isDataLoaded);
+
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 font-sans transition-colors duration-300">
-      {/* Offline Banner */}
+    <>
       <AnimatePresence>
-        {isOffline && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="bg-amber-500 text-white text-[10px] font-black text-center py-1 overflow-hidden uppercase tracking-widest"
+        {showSplash && (
+          <motion.div 
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-950"
           >
-            <div className="flex items-center justify-center gap-2">
-              <WifiOff size={12} />
-              {t('you_are_offline_using_cached_data', 'أنت غير متصل - تتصفح البيانات المسجلة')}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+            <div className="relative z-10 flex flex-col items-center gap-8">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="flex flex-col items-center gap-6"
+              >
+                <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-brand-600 text-white shadow-2xl shadow-brand-500/20">
+                  <Package size={48} />
+                </div>
+                <h1 className="text-3xl font-black tracking-tighter text-zinc-900 dark:text-white sm:text-4xl text-center">
+                  {settings?.storeName || 'SMART.STORE | مخزوني الذكي'}
+                </h1>
+              </motion.div>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="flex flex-col items-center gap-3"
+              >
+                <motion.div 
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                  className="h-8 w-8 rounded-full border-4 border-zinc-200 border-t-brand-600 dark:border-zinc-800 dark:border-t-brand-500"
+                />
+                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">جاري التحميل...</span>
+              </motion.div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {!loading && !user && <Login />}
+
+      {!loading && user && (
+        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 font-sans transition-colors duration-300">
       {/* Navbar to match screenshot */}
       <header className="sticky top-0 z-40 bg-white shadow-sm dark:bg-zinc-900">
         <div className="mx-auto max-w-7xl px-4">
@@ -186,7 +220,11 @@ function AppContent() {
               >
                 {settings.showFinancials ? <EyeOff size={22} /> : <Eye size={22} />}
               </button>
-              <button className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+              <button 
+                onClick={() => setActiveTab('shopping-list')}
+                className={`transition-colors ${activeTab === 'shopping-list' ? 'text-brand-600' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}
+                title={t('قائمة المشتريات')}
+              >
                 <ShoppingCart size={22} />
               </button>
               <button 
@@ -315,6 +353,7 @@ function AppContent() {
             {activeTab === 'inventory' && <Inventory />}
             {activeTab === 'reports' && <Analytics />}
             {activeTab === 'expenses' && <Expenses />}
+            {activeTab === 'shopping-list' && <ShoppingList />}
             {activeTab === 'settings' && <SettingsPage />}
           </motion.div>
         </AnimatePresence>
@@ -356,7 +395,7 @@ function AppContent() {
         product={null}
         onClose={() => setIsProductModalOpen(false)}
         onSave={handleSaveProduct}
-        scannedBarcode=""
+        scannedBarcode={globalScannedBarcode}
         onScan={() => {
           setIsProductModalOpen(false);
           setIsScannerOpen(true);
@@ -369,6 +408,8 @@ function AppContent() {
         onScan={handleScannerResult}
       />
     </div>
+      )}
+    </>
   );
 }
 

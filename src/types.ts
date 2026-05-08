@@ -27,6 +27,7 @@ export interface UserSettings {
   showFinancials?: boolean;
   email?: string;
   displayName?: string;
+  deletedCategories?: string[];
 }
 
 export interface Product {
@@ -38,6 +39,7 @@ export interface Product {
   quantity: number;
   minQuantity: number;
   barcode?: string;
+  barcode2?: string;
   piecesPerBox?: number;
   boxPurchasePrice?: number;
   updatedAt: any;
@@ -49,6 +51,17 @@ export interface Supplier {
   phone: string;
   typeOfGoods: string;
   transactionCount: number;
+  visitDays?: number[];
+  totalPaid?: number;
+  updatedAt: any;
+}
+
+export interface SupplierTransaction {
+  id?: string;
+  supplierId: string;
+  amount: number;
+  date: any;
+  note: string;
   updatedAt: any;
 }
 
@@ -57,12 +70,20 @@ export interface Payment {
   date: any;
 }
 
+export interface DebtHistory {
+  type: 'debt' | 'payment';
+  amount: number;
+  date: any;
+}
+
 export interface Debt {
   id?: string;
   customerName: string;
+  phone?: string;
   totalAmount: number;
   status: 'paid' | 'unpaid';
-  payments: Payment[];
+  payments?: Payment[];
+  history?: DebtHistory[];
   updatedAt: any;
 }
 

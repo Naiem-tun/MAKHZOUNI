@@ -12,9 +12,13 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
+        includeAssets: ['index.html'],
         workbox: {
-          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+          cleanupOutdatedCaches: true,
+          maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10MB
           navigateFallback: 'index.html',
+          navigateFallbackAllowlist: [/^(?!\/__).*/], // Ensure all routes are handled by index.html for SPA
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -31,19 +35,35 @@ export default defineConfig(({mode}) => {
               }
             },
             {
+              urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'gstatic-fonts-cache',
+                expiration: {
+                  maxEntries: 20,
+                  maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
+            },
+            {
               urlPattern: /^https:\/\/cdn-icons-png\.flaticon\.com\/.*/i,
-              handler: 'StaleWhileRevalidate',
+              handler: 'CacheFirst', // Changed to CacheFirst for better offline performance
               options: {
                 cacheName: 'icons-cache',
                 expiration: {
                   maxEntries: 50,
                   maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
                 }
               }
             }
           ]
         },
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
         manifest: {
           name: 'H.STORE | مخزوني الذكي',
           short_name: 'H.STORE',

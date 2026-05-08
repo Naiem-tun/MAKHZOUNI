@@ -17,14 +17,125 @@ import {
   AlertCircle,
   CheckCircle2,
   FileJson,
-  ArrowRight
+  ArrowRight,
+  Plus,
+  Trash2,
+  Package
 } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
-import { collection, getDocs, doc, setDoc, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, writeBatch, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { handleFirestoreError } from '../lib/utils';
 import { OperationType } from '../types';
 
 type View = 'main' | 'data' | 'guide' | 'categories';
+
+import { useCategories } from '../hooks/useCategories';
+
+function CategoriesManager({ onBack }: { onBack: () => void }) {
+  const { user, settings, updateSettings } = useAppContext();
+  const { customCategories: categories, categories: allCategories } = useCategories();
+  const [newCatName, setNewCatName] = React.useState('');
+  const [isAdding, setIsAdding] = React.useState(false);
+
+  const handleAddCategory = async () => {
+    if (!user || !newCatName.trim()) return;
+    setIsAdding(true);
+    try {
+      await addDoc(collection(db, `users/${user.uid}/categories`), {
+        name: newCatName.trim(),
+        createdAt: serverTimestamp()
+      });
+      setNewCatName('');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}/categories`);
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!user) return;
+    try {
+      if (id.startsWith('default_')) {
+        await updateSettings({ deletedCategories: [...(settings.deletedCategories || []), id] });
+      } else {
+        await deleteDoc(doc(db, `users/${user.uid}/categories`, id));
+      }
+    } catch (err) {
+      if (!id.startsWith('default_')) {
+        handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/categories/${id}`);
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <header className="flex items-center gap-4 border-b border-zinc-100 dark:border-zinc-800 pb-4">
+        <button onClick={onBack} className="h-10 w-10 rounded-xl bg-white border border-zinc-100 flex items-center justify-center text-zinc-600 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400">
+          <ChevronLeft size={20} />
+        </button>
+        <div className="flex-1 text-right">
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">إدارة الفئات</h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">إضافة أو حذف فئات المنتجات</p>
+        </div>
+        <div className="h-12 w-12 rounded-2xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
+          <LayoutList size={24} />
+        </div>
+      </header>
+
+      {/* Add New Category */}
+      <div className="flex gap-3">
+        <input 
+          type="text"
+          value={newCatName}
+          onChange={(e) => setNewCatName(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+          placeholder="اسم الفئة الجديدة..."
+          className="flex-1 h-14 px-5 text-right rounded-2xl bg-white border border-zinc-200 outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 transition-all dark:bg-zinc-900 dark:border-zinc-800 dark:text-white shadow-sm"
+        />
+        <button 
+          onClick={handleAddCategory}
+          disabled={isAdding || !newCatName.trim()}
+          className="h-14 px-6 min-w-[120px] rounded-2xl bg-emerald-50 text-emerald-700 font-bold flex items-center justify-center gap-2 transition-all hover:bg-emerald-100 disabled:opacity-50 dark:bg-emerald-900/20 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/30 shadow-sm"
+        >
+          <Plus size={20} strokeWidth={2.5} />
+          <span>إضافة</span>
+        </button>
+      </div>
+
+      {/* Categories List */}
+      <div className="space-y-3">
+        <AnimatePresence>
+          {allCategories.map((cat) => (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              key={cat.id}
+              className="flex items-center justify-between p-3 pl-4 rounded-2xl bg-white border border-zinc-100 shadow-sm dark:bg-zinc-900 dark:border-zinc-800"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center text-zinc-600 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-400">
+                  <Package size={18} />
+                </div>
+                <span className="font-bold text-zinc-900 dark:text-white text-base leading-none pt-1">{cat.name}</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => handleDeleteCategory(cat.id)}
+                  className="p-2 rounded-xl text-rose-500 hover:bg-rose-50 transition-colors dark:hover:bg-rose-900/20"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const { t } = useTranslation();
@@ -187,6 +298,10 @@ export default function SettingsPage() {
       setTimeout(() => setStatus(null), 3000);
     }
   };
+
+  if (activeView === 'categories') {
+    return <CategoriesManager onBack={() => setActiveView('main')} />;
+  }
 
   if (activeView === 'data') {
     return (

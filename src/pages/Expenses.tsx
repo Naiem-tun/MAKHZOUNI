@@ -10,7 +10,7 @@ import { formatCurrency, cn } from '../lib/utils';
 
 export default function Expenses() {
   const { t } = useTranslation();
-  const { user, settings } = useAppContext();
+  const { user, settings, showToast } = useAppContext();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -30,7 +30,7 @@ export default function Expenses() {
     });
   }, [user]);
 
-  const handleAddExpense = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddExpense = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) return;
     const formData = new FormData(e.currentTarget);
@@ -40,15 +40,20 @@ export default function Expenses() {
 
     if (isNaN(amount) || amount <= 0) return;
 
+    // UI Feedback
+    showToast('تمت إضافة المصروف');
+    setIsModalOpen(false);
+
     try {
-      await addDoc(collection(db, `users/${user.uid}/expenses`), {
+      addDoc(collection(db, `users/${user.uid}/expenses`), {
         description,
         amount,
         category,
         date: serverTimestamp(),
         audited: false
+      }).catch(err => {
+        console.error("Async expense add failed:", err);
       });
-      setIsModalOpen(false);
     } catch (err) {
       console.error("Failed to add expense:", err);
     }

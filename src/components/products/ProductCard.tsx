@@ -10,7 +10,6 @@ interface ProductCardProps {
   product: Product;
   index: number;
   onEdit: (product: Product) => void;
-  onDelete: (product: Product) => void;
   onAddQuantity: (product: Product) => void;
 }
 
@@ -22,7 +21,7 @@ const ProductIcon = ({ category, className }: { category?: string, className?: s
   );
 };
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, index, onEdit, onDelete, onAddQuantity }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({ product, index, onEdit, onAddQuantity }) => {
   const { t, i18n } = useTranslation();
   const { settings } = useAppContext();
   const language = i18n.language;
@@ -32,7 +31,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, onEdit
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.02 }}
-      className="flex items-center justify-between gap-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 py-2 px-3 rounded-2xl group shadow-sm"
+      onClick={() => onEdit(product)}
+      className="flex items-center justify-between gap-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 py-2 px-3 rounded-2xl group shadow-sm cursor-pointer active:scale-[0.98] transition-transform"
     >
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <ProductIcon category={product.category} className="w-8 h-8 shrink-0" />
@@ -54,24 +54,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, onEdit
         </div>
       </div>
 
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-1.5 shrink-0">
         <button 
-          onClick={() => onDelete(product)}
-          className="w-[30px] h-[30px] flex items-center justify-center bg-delete-bg text-delete-text border border-delete-border rounded-lg hover:opacity-80 transition-all dark:bg-neutral-950 dark:border-red-900/30"
-          title={t("delete")}
-        >
-          <Trash2 size={14} />
-        </button>
-        <button 
-          onClick={() => onEdit(product)}
-          className="w-[30px] h-[30px] flex items-center justify-center bg-edit-bg text-edit-text border border-edit-border rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-all dark:bg-neutral-950 dark:border-neutral-800"
-          title={t("edit")}
-        >
-          <Edit size={14} />
-        </button>
-        <button 
-          onClick={() => onAddQuantity(product)}
-          className="flex items-center gap-1 px-3 py-1.5 bg-add-bg text-add-text border border-add-border rounded-full text-[10px] font-bold hover:opacity-80 transition-all dark:bg-neutral-950 dark:border-emerald-900/30"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddQuantity(product);
+          }}
+          className="flex items-center gap-1 px-4 py-2 bg-[#018ABE] text-[#FFFFFF] rounded-full text-[11px] font-bold transition-all hover:opacity-90 shrink-0 h-9"
         >
           <Plus size={12} />
           <span>إضافة كمية</span>

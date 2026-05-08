@@ -14,13 +14,15 @@ import {
   serverTimestamp,
   query,
   where,
-  getDocs
+  getDocs,
+  writeBatch
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
 import { cn, safeParseFloat, handleFirestoreError, formatCurrency } from '../lib/utils';
 import { OperationType } from '../types';
 import { ProductPagination } from '../components/products/ProductPagination';
+import { useCategories } from '../hooks/useCategories';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -35,8 +37,10 @@ const ProductIcon = ({ className }: { className?: string }) => (
 );
 
 export default function Inventory() {
-  const { settings } = useAppContext();
+  const { settings, showToast } = useAppContext();
+  const { categories } = useCategories();
   const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [inventoryData, setInventoryData] = useState<Record<string, number>>(() => {
     const saved = localStorage.getItem('current_inventory_data');
     return saved ? JSON.parse(saved) : {};
@@ -155,11 +159,12 @@ export default function Inventory() {
   const filteredProducts = useMemo(() => {
     if (!products) return [];
     const s = searchTerm.toLowerCase();
-    return products.filter(p => 
-      p.name?.toLowerCase().includes(s) || 
-      p.barcode?.includes(s)
-    );
-  }, [products, searchTerm]);
+    return products.filter(p => {
+      const matchSearch = p.name?.toLowerCase().includes(s) || p.barcode?.includes(s) || p.barcode2?.includes(s);
+      const matchCat = categoryFilter === 'all' || p.category === categoryFilter;
+      return matchSearch && matchCat;
+    });
+  }, [products, searchTerm, categoryFilter]);
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
   const paginatedProducts = filteredProducts.slice(
@@ -191,6 +196,10 @@ export default function Inventory() {
     if (!window.confirm("هل تريد حفظ الجرد وتحديث المخزون؟")) return;
 
     try {
+      const batch = writeBatch(db);
+      const auditTime = serverTimestamp();
+      const localNow = new Date();
+      
       let totalRevenue = 0;
       let totalProfit = 0;
       const items: any[] = [];
@@ -213,17 +222,16 @@ export default function Inventory() {
             });
           }
           
-          // Update product quantity in Firebase
           const productRef = doc(db, `users/${user.uid}/products`, pid);
-          await updateDoc(productRef, {
+          batch.update(productRef, {
             quantity: Number(actualQty),
-            updatedAt: serverTimestamp(),
-            lastInventoryDate: serverTimestamp()
+            updatedAt: auditTime,
+            lastInventoryDate: auditTime
           });
         }
       }
 
-      // 1. Fetch expenses that will be audited - Authoritative fetch at save time
+      // Fetch expenses (cached if offline)
       const expensesPath = `users/${user.uid}/expenses`;
       const expensesQuery = query(
         collection(db, expensesPath),
@@ -231,58 +239,69 @@ export default function Inventory() {
       );
       const expensesSnapshot = await getDocs(expensesQuery);
       const actualExpensesAmount = expensesSnapshot.docs.reduce((acc, doc) => acc + (doc.data().amount || 0), 0);
+      const finalExpensesAmount = shouldDeductExpenses ? actualExpensesAmount : 0;
+      const netProfit = totalProfit - finalExpensesAmount;
 
-      // Add Report to Firebase
+      // Prepare Report
       const reportsPath = `users/${user.uid}/reports`;
-      const netProfit = shouldDeductExpenses ? (totalProfit - actualExpensesAmount) : totalProfit;
-      const auditTime = serverTimestamp();
-
-      const reportRef = await addDoc(collection(db, reportsPath), {
+      const reportRef = doc(collection(db, reportsPath));
+      batch.set(reportRef, {
         date: auditTime,
         totalRevenue,
         totalProfit,
-        totalExpenses: actualExpensesAmount, 
+        totalExpenses: finalExpensesAmount, 
         netProfit: netProfit,
         items,
         type: 'inventory',
         expensesDeducted: shouldDeductExpenses
       });
 
-      // 2. Mark these expenses as audited
-      const batch_updates = expensesSnapshot.docs.map(expenseDoc => 
-        updateDoc(doc(db, expensesPath, expenseDoc.id), {
-          audited: true,
-          reportId: reportRef.id,
-          auditedAt: auditTime
-        })
-      );
-      await Promise.all(batch_updates);
+      // Mark expenses as audited
+      if (shouldDeductExpenses) {
+        expensesSnapshot.docs.forEach(expenseDoc => {
+          batch.update(doc(db, expensesPath, expenseDoc.id), {
+            audited: true,
+            reportId: reportRef.id,
+            auditedAt: auditTime
+          });
+        });
+      }
 
-      // Update meta for last inventory/audit
+      // Update meta
       const profilePath = `users/${user.uid}/profile`;
       const finalMetaDocs = await getDocs(query(collection(db, profilePath), where("type", "==", "inventory_metadata")));
       if (finalMetaDocs.empty) {
-        await addDoc(collection(db, profilePath), { type: 'inventory_metadata', lastAuditDate: auditTime });
+        batch.set(doc(collection(db, profilePath)), { type: 'inventory_metadata', lastAuditDate: auditTime });
       } else {
-        await updateDoc(doc(db, profilePath, finalMetaDocs.docs[0].id), { lastAuditDate: auditTime });
+        batch.update(doc(db, profilePath, finalMetaDocs.docs[0].id), { lastAuditDate: auditTime });
       }
 
-      setInventoryData({});
-      setExpensesAmount(0);
-      
+      // Commit in the background
+      batch.commit().catch(err => {
+        console.error("Inventory background sync failed:", err);
+      });
+
+      // UI SUCCESS: Show report immediately
       const newReport = {
         id: reportRef.id,
-        date: new Date(),
+        date: localNow,
         totalRevenue,
         totalProfit,
-        totalExpenses: actualExpensesAmount,
+        totalExpenses: finalExpensesAmount,
         netProfit,
         items,
         expensesDeducted: shouldDeductExpenses
       };
       
+      setInventoryData({});
+      setExpensesAmount(0);
       setCurrentReport(newReport);
       setShowReportView(true);
+      showToast('تم حفظ الجرد بنجاح');
+      
+      // Clear localStorage
+      localStorage.removeItem('current_inventory_data');
+      
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}/inventory`);
     }
@@ -680,9 +699,21 @@ export default function Inventory() {
             />
           </div>
         </div>
-        <button className="w-full py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl text-[11px] font-bold text-zinc-500 text-center shadow-sm active:bg-zinc-50">
-          كل الفئات للبحث
-        </button>
+        <div className="relative group/filter">
+          <select 
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="w-full appearance-none py-2.5 px-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[13px] font-bold text-zinc-600 dark:text-zinc-400 text-center outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors shadow-sm focus:border-brand-500/50"
+          >
+            <option value="all">كل الفئات للبحث</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.name}>{c.name}</option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-4 text-zinc-400">
+            <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+          </div>
+        </div>
       </div>
 
       {/* Product List */}

@@ -25,6 +25,8 @@ export function BarcodeScanner({ isOpen, onClose, onScan, title = "امسح ال
           const minSide = Math.min(width, height);
           const qrBoxSize = Math.floor(minSide * 0.7);
 
+          let hasScanned = false;
+
           await html5QrCode.start(
             { facingMode: "environment" },
             { 
@@ -33,6 +35,8 @@ export function BarcodeScanner({ isOpen, onClose, onScan, title = "امسح ال
               aspectRatio: height / width, // Match device aspect ratio
             },
             (decodedText) => {
+              if (hasScanned) return;
+              hasScanned = true;
               onScan(decodedText);
               onClose();
             },

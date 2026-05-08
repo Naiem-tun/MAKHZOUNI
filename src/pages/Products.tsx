@@ -18,22 +18,26 @@ import { ProductPagination } from '../components/products/ProductPagination';
 import { DeleteConfirmationModal } from '../components/products/DeleteConfirmationModal';
 import { AddQuantityModal } from '../components/products/AddQuantityModal';
 import { ProductEditModal } from '../components/products/ProductEditModal';
+import { useCategories } from '../hooks/useCategories';
 
 import { BarcodeScanner } from '../components/common/BarcodeScanner';
 
 export default function Products() {
   const { t } = useTranslation();
-  const { user, settings } = useAppContext();
+  const { user, settings, showToast, setIsDataLoaded } = useAppContext();
+  const { categories } = useCategories();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [stockFilter, setStockFilter] = useState('all'); // 'all', 'available', 'low', 'out'
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQuantityModalOpen, setIsQuantityModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [scannerTarget, setScannerTarget] = useState<'search' | 'barcode-field'>('search');
+  const [scannerTarget, setScannerTarget] = useState<'search' | 'barcode-field' | 'barcode2-field'>('search');
   const [scannedBarcode, setScannedBarcode] = useState('');
+  const [scannedBarcode2, setScannedBarcode2] = useState('');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [quantityProduct, setQuantityProduct] = useState<Product | null>(null);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
@@ -48,27 +52,33 @@ export default function Products() {
     return onSnapshot(q, (snap) => {
       setProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
       setLoading(false);
+      setIsDataLoaded(true);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, path);
       setLoading(false);
+      setIsDataLoaded(true);
     });
-  }, [user]);
+  }, [user, setIsDataLoaded]);
 
   // Reset to first page on search
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!user || !productToDelete) return;
     
-    try {
-      await deleteDoc(doc(db, `users/${user.uid}/products/${productToDelete.id}`));
-      setIsDeleteModalOpen(false);
-      setProductToDelete(null);
-    } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/products/${productToDelete.id}`);
-    }
+    // UI feedback: close modal immediately
+    setIsDeleteModalOpen(false);
+    const path = `users/${user.uid}/products/${productToDelete.id}`;
+    
+    deleteDoc(doc(db, path))
+      .then(() => {
+        setProductToDelete(null);
+      })
+      .catch(err => {
+        handleFirestoreError(err, OperationType.DELETE, path);
+      });
   };
 
   const performQuantitySave = async (numBoxes: number, extraPieces: number, boxPrice: number, piecePrice: number) => {
@@ -76,6 +86,11 @@ export default function Products() {
 
     const addedQty = (numBoxes * (quantityProduct.piecesPerBox || 1)) + extraPieces;
     const newQty = (quantityProduct.quantity || 0) + addedQty;
+
+    // UI feedback: close modal immediately
+    setIsQuantityModalOpen(false);
+    setQuantityProduct(null);
+    showToast('تم تحديث المخزون بنجاح');
 
     try {
       const batch = writeBatch(db);
@@ -102,10 +117,10 @@ export default function Products() {
         updatedAt: serverTimestamp(),
       });
 
-      await batch.commit();
-      
-      setIsQuantityModalOpen(false);
-      setQuantityProduct(null);
+      // Commit in the background
+      batch.commit().catch(err => {
+        handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/products`);
+      });
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/products`);
     }
@@ -114,14 +129,22 @@ export default function Products() {
   const handleSaveProduct = async (productData: any) => {
     if (!user) return;
     
+    // UI feedback: close modal immediately
+    setIsModalOpen(false);
+    setEditingProduct(null);
+    setScannedBarcode('');
+    showToast('تم حفظ المنتج بنجاح');
+
     try {
       const batch = writeBatch(db);
       
       if (editingProduct) {
         const path = `users/${user.uid}/products/${editingProduct.id}`;
-        await updateDoc(doc(db, path), {
+        updateDoc(doc(db, path), {
           ...productData,
           updatedAt: serverTimestamp(),
+        }).catch(err => {
+          handleFirestoreError(err, OperationType.UPDATE, path);
         });
       } else {
         const path = `users/${user.uid}/products`;
@@ -146,39 +169,41 @@ export default function Products() {
           });
         }
         
-        await batch.commit();
+        batch.commit().catch(err => {
+          handleFirestoreError(err, OperationType.CREATE, path);
+        });
       }
-      setIsModalOpen(false);
-      setEditingProduct(null);
-      setScannedBarcode('');
     } catch (err) {
       handleFirestoreError(err, editingProduct ? OperationType.UPDATE : OperationType.CREATE, `users/${user.uid}/products`);
     }
   };
 
   const handleScan = (decodedText: string) => {
+    setIsScannerOpen(false);
     if (scannerTarget === 'search') {
-      const foundProduct = products.find(p => p.barcode === decodedText);
+      const foundProduct = products.find(p => p.barcode === decodedText || p.barcode2 === decodedText);
       if (foundProduct) {
+        setSearchTerm(decodedText);
         setQuantityProduct(foundProduct);
         setIsQuantityModalOpen(true);
       } else {
-        if (window.confirm(`المنتج "${decodedText}" غير موجود. هل تريد تسجيله كمنتج جديد؟`)) {
+        if (window.confirm(`المنتج "${decodedText}" غير موجود. هل تريد إضافته كمنتج جديد؟`)) {
           setScannedBarcode(decodedText);
           setEditingProduct(null);
           setIsModalOpen(true);
         }
       }
-    } else {
+    } else if (scannerTarget === 'barcode-field') {
       setScannedBarcode(decodedText);
-      // If modal is already open, the defaultValue will catch it if we re-render
-      // or we can use a more reactive way. The scannedBarcode state is passed to EditModal.
+    } else if (scannerTarget === 'barcode2-field') {
+      setScannedBarcode2(decodedText);
     }
   };
 
   const filteredProducts = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         p.barcode?.includes(searchTerm);
+                         p.barcode?.includes(searchTerm) ||
+                         p.barcode2?.includes(searchTerm);
     
     let matchesStock = true;
     if (stockFilter === 'available') {
@@ -189,7 +214,18 @@ export default function Products() {
       matchesStock = (p.quantity || 0) <= 0;
     }
 
-    return matchesSearch && matchesStock;
+    const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
+
+    return matchesSearch && matchesStock && matchesCategory;
+  }).sort((a, b) => {
+    const catA = a.category || '';
+    const catB = b.category || '';
+    if (catA !== catB) {
+      return catA.localeCompare(catB, 'ar');
+    }
+    const nameA = a.name || '';
+    const nameB = b.name || '';
+    return nameA.localeCompare(nameB, 'ar');
   });
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
@@ -279,10 +315,21 @@ export default function Products() {
             </div>
           </div>
 
-          <button className="flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-3 font-bold text-zinc-600 transition-all hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400">
-            <Filter size={20} />
-            {t('all_categories')}
-          </button>
+          <div className="relative group">
+            <select 
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="appearance-none flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white pr-10 pl-4 py-3 font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 cursor-pointer min-w-[150px]"
+            >
+              <option value="all">{t('all_categories')}</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.name}>{c.name}</option>
+              ))}
+            </select>
+            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-zinc-400">
+              <Filter size={20} />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -296,10 +343,6 @@ export default function Products() {
             onEdit={(product) => {
               setEditingProduct(product);
               setIsModalOpen(true);
-            }}
-            onDelete={(product) => {
-              setProductToDelete(product);
-              setIsDeleteModalOpen(true);
             }}
             onAddQuantity={(product) => {
               setQuantityProduct(product);
@@ -333,9 +376,15 @@ export default function Products() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveProduct}
+        onDelete={(product) => {
+          setIsModalOpen(false);
+          setProductToDelete(product);
+          setIsDeleteModalOpen(true);
+        }}
         scannedBarcode={scannedBarcode}
-        onScan={() => {
-          setScannerTarget('barcode-field');
+        scannedBarcode2={scannedBarcode2}
+        onScan={(target) => {
+          setScannerTarget(target === 'barcode2' ? 'barcode2-field' : 'barcode-field');
           setIsScannerOpen(true);
         }}
       />
