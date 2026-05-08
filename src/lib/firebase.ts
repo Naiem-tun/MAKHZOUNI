@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithRedirect, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import { 
   initializeFirestore, 
   doc, 
@@ -32,7 +32,7 @@ export async function testConnection() {
   }
 }
 
-export const signInWithGoogle = () => signInWithRedirect(auth, googleProvider);
+export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
 
 export const setupRecaptcha = (containerId: string) => {
   return new RecaptchaVerifier(auth, containerId, {
