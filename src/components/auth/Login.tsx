@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, setupRecaptcha, signInWithGoogle } from '../../lib/firebase';
-import { signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
+import { signInWithPhoneNumber, ConfirmationResult, getRedirectResult } from 'firebase/auth';
 import { useTranslation } from 'react-i18next';
 import { Phone, ArrowRight, Package, Globe, ShieldCheck } from 'lucide-react';
 
@@ -15,6 +15,12 @@ export function Login() {
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
 
   useEffect(() => {
+    // Check for redirect errors from Google Sign In
+    getRedirectResult(auth).catch((error) => {
+      console.error('Redirect result error:', error);
+      setError(error.message || t('login_failed'));
+    });
+    
     // Only initialized once
     window.recaptchaVerifier = setupRecaptcha('recaptcha-container');
     return () => {
