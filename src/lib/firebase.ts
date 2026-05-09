@@ -6,7 +6,9 @@ import {
   getRedirectResult,
   RecaptchaVerifier,
   Auth,
-  signInWithPopup
+  signInWithPopup,
+  browserLocalPersistence,
+  setPersistence
 } from 'firebase/auth';
 import { 
   initializeFirestore, 
@@ -28,6 +30,8 @@ export const db: Firestore = initializeFirestore(app, {
 }, firebaseConfig.firestoreDatabaseId);
 
 export const auth: Auth = getAuth(app);
+setPersistence(auth, browserLocalPersistence).catch(console.error);
+
 auth.useDeviceLanguage();
 
 export const googleProvider = new GoogleAuthProvider();
