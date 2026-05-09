@@ -62,4 +62,4 @@ export const setupRecaptcha = (container: string | HTMLElement) => {
 };
 
 export const getGoogleRedirectResult = () => getRedirectResult(auth);
-export const signInWithGoogle = () => signInWithRedirect(auth, googleProvider);
+export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);

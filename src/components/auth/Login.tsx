@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { auth, setupRecaptcha, signInWithGoogle, getGoogleRedirectResult } from '../../lib/firebase';
+import { auth, setupRecaptcha, signInWithGoogle } from '../../lib/firebase';
 import { signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
 import { useTranslation } from 'react-i18next';
 import { Phone, ArrowRight, Package, Globe, ShieldCheck } from 'lucide-react';
@@ -13,36 +13,9 @@ export function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
-  const [isRedirecting, setIsRedirecting] = useState(true);
   const recaptchaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Check for redirect result from Google Sign In
-    const checkRedirect = async () => {
-      if (!auth) {
-        setIsRedirecting(false);
-        return;
-      }
-
-      try {
-        const result = await getGoogleRedirectResult();
-        // If result exists, onAuthStateChanged in AppContext will handle the user update
-        // We stay in redirecting state until that happens or until we confirm no result
-        if (!result) {
-          setIsRedirecting(false);
-        }
-      } catch (error: any) {
-        console.error('Redirect result error:', error);
-        // Don't show technical auth/argument-error to user if possible
-        if (error.code !== 'auth/argument-error') {
-          setError(error.message || t('login_failed'));
-        }
-        setIsRedirecting(false);
-      }
-    };
-    
-    checkRedirect();
-    
     // Initialize reCAPTCHA once mounted
     const initRecaptcha = () => {
       if (recaptchaRef.current && !window.recaptchaVerifier) {
@@ -50,35 +23,16 @@ export function Login() {
       }
     };
 
-    // If we're not redirecting, we can init immediately
-    if (!isRedirecting) {
-      initRecaptcha();
-    } else {
-      // Otherwise wait a bit to ensure DOM is ready or redirect checked
-      const timer = setTimeout(initRecaptcha, 500);
-      return () => clearTimeout(timer);
-    }
+    const timer = setTimeout(initRecaptcha, 100);
 
     return () => {
+      clearTimeout(timer);
       if (window.recaptchaVerifier) {
         window.recaptchaVerifier.clear();
         window.recaptchaVerifier = null;
       }
     };
-  }, [isRedirecting, t]);
-
-  if (isRedirecting && !error) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-950">
-        <motion.div 
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-          className="h-12 w-12 rounded-full border-4 border-zinc-200 border-t-brand-600 dark:border-zinc-800 dark:border-t-brand-500"
-        />
-        <p className="mt-4 text-zinc-500 font-bold">جاري التحقق من الحساب...</p>
-      </div>
-    );
-  }
+  }, [t]);
 
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,7 +136,24 @@ export function Login() {
 
               <button
                 type="button"
-                onClick={() => signInWithGoogle()}
+                onClick={async () => {
+                  try {
+                    setLoading(true);
+                    setError(null);
+                    await signInWithGoogle();
+                  } catch (err: any) {
+                    console.error("Google Sign-in Error:", err);
+                    if (err.code === 'auth/unauthorized-domain') {
+                      setError("عذراً، هذا النطاق (h-store-pied.vercel.app) غير مصرح له بتسجيل الدخول. يجب إضافته في إعدادات Firebase -> Authentication -> Settings -> Authorized domains");
+                    } else if (err.code === 'auth/popup-closed-by-user') {
+                      setError("تم إغلاق نافذة تسجيل الدخول. إذا كنت تستخدم متصفح داخل تطبيق (مثل فيسبوك أو انستغرام)، يرجى فتح الرابط في متصفح خارجي مثل Chrome.");
+                    } else {
+                      setError(err.message || t('login_failed'));
+                    }
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
                 className="flex w-full items-center justify-center gap-3 rounded-2xl border border-zinc-200 bg-white px-6 py-4 font-bold text-zinc-700 transition-all hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
                 <Globe size={20} />
