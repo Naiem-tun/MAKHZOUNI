@@ -262,14 +262,14 @@ export default function Analytics() {
                 { label: 'قيمة المخزون (سعر البيع)', value: totalSalesValue, icon: Package, color: 'text-brand-600', bg: 'bg-brand-50 dark:bg-brand-950/20' },
                 { label: 'الربح المتوقع', value: expectedProfit, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/20' },
               ].map((stat, i) => (
-                <div key={i} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-5 rounded-[24px] shadow-sm">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className={`h-10 w-10 rounded-xl ${stat.bg} flex items-center justify-center ${stat.color}`}>
-                      <stat.icon size={20} />
+                <div key={i} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-4 rounded-xl shadow-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className={`h-8 w-8 rounded-lg ${stat.bg} flex items-center justify-center ${stat.color}`}>
+                      <stat.icon size={16} />
                     </div>
-                    <span className="text-xs font-bold text-zinc-500">{stat.label}</span>
+                    <span className="text-[10px] font-bold text-zinc-500">{stat.label}</span>
                   </div>
-                  <div className="text-xl font-black text-zinc-900 dark:text-white">
+                  <div className="text-lg font-black text-zinc-900 dark:text-white">
                     {!showFinancials ? '••••••' : formatCurrency(stat.value, settings.currency, language)}
                   </div>
                 </div>
