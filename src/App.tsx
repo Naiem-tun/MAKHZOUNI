@@ -31,8 +31,6 @@ import {
   BarChart3,
   Search,
   ShoppingCart,
-  EyeOff,
-  Eye,
   Home,
   QrCode,
   ScanBarcode,
@@ -213,13 +211,6 @@ function AppContent() {
 
             {/* Left Icons Group */}
             <div className="flex items-center gap-4">
-              <button 
-                onClick={() => updateSettings({ showFinancials: !settings.showFinancials })}
-                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
-                title={settings.showFinancials ? t('إخفاء الإحصائيات المالية') : t('إظهار الإحصائيات المالية')}
-              >
-                {settings.showFinancials ? <EyeOff size={22} /> : <Eye size={22} />}
-              </button>
               <button 
                 onClick={() => setActiveTab('shopping-list')}
                 className={`transition-colors ${activeTab === 'shopping-list' ? 'text-brand-600' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}

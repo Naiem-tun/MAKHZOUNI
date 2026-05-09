@@ -32,21 +32,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, onEdit
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.02 }}
       onClick={() => onEdit(product)}
-      className="flex items-center justify-between gap-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 py-2 px-3 rounded-2xl group shadow-sm cursor-pointer active:scale-[0.98] transition-transform"
+      className="flex items-center justify-between gap-3 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-neutral-800 py-2 px-3 rounded-2xl group cursor-pointer active:scale-[0.98] transition-transform"
     >
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <ProductIcon category={product.category} className="w-8 h-8 shrink-0" />
         <div className="min-w-0 flex-1 flex flex-col">
-          <h3 className="text-[13px] font-bold text-black dark:text-white leading-tight mb-0.5 truncate">{product.name}</h3>
-          <div className="flex flex-col gap-0.5 text-[10px] text-neutral-500 font-medium">
+          <h3 className="text-sm font-medium text-black dark:text-white leading-tight mb-0.5 truncate">{product.name}</h3>
+          <div className="flex flex-col gap-0.5 text-[11px] text-neutral-500 font-medium">
             <div className="flex items-center gap-1">
               <span className="opacity-70">المخزون:</span>
               <span className={cn((product.quantity || 0) < 10 ? "text-delete-text font-bold" : "")}>
-                {product.quantity || 0} <span className="text-[9px] opacity-50 font-normal">{t('piece')}</span>
+                {product.quantity || 0} <span className="text-[10px] opacity-50 font-normal">{t('piece')}</span>
               </span>
             </div>
-            <div className="flex items-center gap-1 font-mono font-bold text-neutral-700 dark:text-neutral-300">
-              <span>{formatCurrency(product.purchasePrice || 0, settings.currency, language)}</span>
+            <div className="flex items-center gap-1 font-mono font-bold text-[11px] text-neutral-700 dark:text-neutral-300">
+              <span>{!(settings.showFinancials ?? true) ? '••••••' : formatCurrency(product.purchasePrice || 0, settings.currency, language)}</span>
               <span className="opacity-30">.</span>
               <span>{formatCurrency(product.sellingPrice || 0, settings.currency, language)}</span>
             </div>

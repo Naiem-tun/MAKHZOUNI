@@ -58,7 +58,8 @@ const resources = {
       "enter_actual_quantity": "أدخل الكمية الفعلية المتبقية في المخزن",
       "overall_progress": "التقدم الإجمالي",
       "current_stock": "المخزون الحالي",
-      "you_are_offline_using_cached_data": "أنت غير متصل - تتصفح البيانات المسجلة"
+      "you_are_offline_using_cached_data": "أنت غير متصل - تتصفح البيانات المسجلة",
+      "piece": "قطعة"
     }
   },
   en: {
@@ -108,7 +109,8 @@ const resources = {
       "enter_actual_quantity": "Enter actual quantity left in stock",
       "overall_progress": "Overall Progress",
       "current_stock": "Current Stock",
-      "you_are_offline_using_cached_data": "You are offline - Using cached data"
+      "you_are_offline_using_cached_data": "You are offline - Using cached data",
+      "piece": "piece"
     }
   }
 };

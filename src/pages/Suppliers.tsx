@@ -331,7 +331,7 @@ export default function Suppliers() {
           
           <div className="flex items-center justify-center gap-2">
             <span className="text-xl font-black text-brand-900 dark:text-white tracking-tight">
-              {grandTotal.toLocaleString(settings.language === 'ar' ? 'ar-TN' : 'en-US', { 
+              {!(settings.showFinancials ?? true) ? '••••••' : grandTotal.toLocaleString(settings.language === 'ar' ? 'ar-TN' : 'en-US', { 
                 minimumFractionDigits: settings.currency === 'TND' || settings.currency === 'د.ت' ? 3 : 2, 
                 maximumFractionDigits: settings.currency === 'TND' || settings.currency === 'د.ت' ? 3 : 2 
               })}

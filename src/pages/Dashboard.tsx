@@ -120,7 +120,7 @@ const Dashboard = memo(() => {
             <Wallet size={14} className="text-rose-500" />
             <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">{t('المصاريف', 'Expenses')}</span>
           </div>
-          <span className="text-sm font-mono font-bold">0.000 {settings.currency}</span>
+          <span className="text-sm font-mono font-bold">{formatPrivateValue(0)}</span>
         </Card>
       </div>
 

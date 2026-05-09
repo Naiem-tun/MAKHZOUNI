@@ -55,67 +55,59 @@ export default function Reports() {
         <p className="text-zinc-500 dark:text-zinc-400">تحليل معمق لأداء المتجر والمخزون</p>
       </header>
 
-      {!showFinancials ? (
-        <div className="p-12 text-center rounded-3xl bg-white border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
-          <Wallet size={48} className="mx-auto text-zinc-300 mb-4" />
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-white">الإحصائيات المالية مخفية</h2>
-          <p className="text-sm text-zinc-500 mt-1">قم بتفعيل "إحصائيات المال" من القائمة لرؤية البيانات</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {/* Category Share Chart */}
-          <section className="rounded-3xl bg-white p-6 shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="h-10 w-10 rounded-xl bg-brand-50 flex items-center justify-center text-brand-600 dark:bg-brand-950/20">
-                <PieChartIcon size={20} />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Category Share Chart */}
+        <section className="rounded-3xl bg-white p-6 shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="h-10 w-10 rounded-xl bg-brand-50 flex items-center justify-center text-brand-600 dark:bg-brand-950/20">
+              <PieChartIcon size={20} />
+            </div>
+            <h2 className="text-xl font-bold text-zinc-900 dark:text-white">قيمة المخزون حسب الفئة</h2>
+          </div>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={categoryData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                  {categoryData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="rgba(255,255,255,0)" />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value: number) => !showFinancials ? '••••••' : formatCurrency(value, settings.currency, settings.language)} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {categoryData.map((item, index) => (
+              <div key={item.name} className="flex items-center gap-2 text-xs text-zinc-500">
+                <div className="h-2 w-2 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                <span>{item.name}: {!showFinancials ? '••••••' : formatCurrency(item.value, settings.currency, settings.language)}</span>
               </div>
-              <h2 className="text-xl font-bold text-zinc-900 dark:text-white">قيمة المخزون حسب الفئة</h2>
-            </div>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={categoryData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                    {categoryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="rgba(255,255,255,0)" />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {categoryData.map((item, index) => (
-                <div key={item.name} className="flex items-center gap-2 text-xs text-zinc-500">
-                  <div className="h-2 w-2 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
-                  <span>{item.name}: {formatCurrency(item.value, settings.currency, settings.language)}</span>
-                </div>
-              ))}
-            </div>
-          </section>
+            ))}
+          </div>
+        </section>
 
-          {/* Profit Analysis */}
-          <section className="rounded-3xl bg-white p-6 shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="h-10 w-10 rounded-xl bg-brand-50 flex items-center justify-center text-brand-600 dark:bg-brand-950/20">
-                <TrendingUp size={20} />
-              </div>
-              <h2 className="text-xl font-bold text-zinc-900 dark:text-white">تحليل الربح (أمثلة)</h2>
+        {/* Profit Analysis */}
+        <section className="rounded-3xl bg-white p-6 shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="h-10 w-10 rounded-xl bg-brand-50 flex items-center justify-center text-brand-600 dark:bg-brand-950/20">
+              <TrendingUp size={20} />
             </div>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={profitData}>
-                  <XAxis dataKey="name" fontSize={10} hide />
-                  <YAxis fontSize={10} />
-                  <Tooltip />
-                  <Bar dataKey="profit" fill="#004eff" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="buying" fill="#021024" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <p className="text-xs text-center text-zinc-400">مقارنة بين تكلفة الشراء وصافي الربح للمنتجات الأعلى قيمة</p>
-          </section>
-        </div>
-      )}
+            <h2 className="text-xl font-bold text-zinc-900 dark:text-white">تحليل الربح (أمثلة)</h2>
+          </div>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={profitData}>
+                <XAxis dataKey="name" fontSize={10} hide />
+                <YAxis fontSize={10} tickFormatter={(val) => !showFinancials ? '•••' : val.toString()} />
+                <Tooltip formatter={(value: number) => !showFinancials ? '••••••' : formatCurrency(value, settings.currency, settings.language)} />
+                <Bar dataKey="profit" fill="#004eff" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="buying" fill="#021024" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="text-xs text-center text-zinc-400">مقارنة بين تكلفة الشراء وصافي الربح للمنتجات الأعلى قيمة</p>
+        </section>
+      </div>
 
       {/* Report Menu list */}
       <div className="space-y-4">

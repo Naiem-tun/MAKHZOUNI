@@ -11,13 +11,14 @@ import {
   Tooltip, ResponsiveContainer, BarChart, Bar, 
   Cell, PieChart, Pie, Legend
 } from 'recharts';
-import { collection, query, getDocs, orderBy, limit, where } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy, limit, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
 import { formatCurrency } from '../lib/utils';
 
 export default function Analytics() {
-  const { settings, products, user } = useAppContext();
+  const { settings, user } = useAppContext();
+  const [products, setProducts] = useState<any[]>([]);
   const [inventoryReports, setInventoryReports] = useState<any[]>([]);
   const [purchases, setPurchases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,32 +29,45 @@ export default function Analytics() {
   const showFinancials = settings.showFinancials ?? true;
 
   useEffect(() => {
-    if (user) fetchData();
-  }, [user]);
+    const uid = user?.uid;
+    if (!uid) return;
 
-  const fetchData = async () => {
+    let unsubProducts: any;
+    let unsubReports: any;
+    let unsubPurchases: any;
+
     try {
-      const uid = user?.uid;
-      if (!uid) return;
+      // Products Listener
+      const productsPath = `users/${uid}/products`;
+      unsubProducts = onSnapshot(collection(db, productsPath), (snap) => {
+        setProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      });
 
-      // Fetch Inventory Reports
+      // Reports Listener
       const reportsPath = `users/${uid}/reports`;
-      const reportsSnap = await getDocs(query(collection(db, reportsPath), where('type', '==', 'inventory'), orderBy('date', 'desc'), limit(15)));
-      const reports = reportsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setInventoryReports(reports);
+      const reportsQuery = query(collection(db, reportsPath), where('type', '==', 'inventory'), orderBy('date', 'desc'), limit(15));
+      unsubReports = onSnapshot(reportsQuery, (snap) => {
+        setInventoryReports(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      });
 
-      // Fetch Purchases
+      // Purchases Listener
       const purchasesPath = `users/${uid}/purchases`;
-      const purchasesSnap = await getDocs(query(collection(db, purchasesPath), orderBy('date', 'desc'), limit(100)));
-      const purchaseList = purchasesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setPurchases(purchaseList);
-
-      setLoading(false);
-    } catch (error) {
-      console.error("Error fetching analytics data:", error);
+      const purchasesQuery = query(collection(db, purchasesPath), orderBy('date', 'desc'), limit(100));
+      unsubPurchases = onSnapshot(purchasesQuery, (snap) => {
+        setPurchases(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setLoading(false);
+      });
+    } catch(err) {
+      console.error(err);
       setLoading(false);
     }
-  };
+
+    return () => {
+      if (unsubProducts) unsubProducts();
+      if (unsubReports) unsubReports();
+      if (unsubPurchases) unsubPurchases();
+    };
+  }, [user]);
 
   // Group purchases by Day
   const dailyPurchases = useMemo(() => {
