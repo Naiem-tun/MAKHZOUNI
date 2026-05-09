@@ -340,28 +340,29 @@ export default function Debts() {
         {deleteConfirmId && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setDeleteConfirmId(null)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-sm rounded-[32px] bg-white p-8 dark:bg-zinc-900 text-center">
-              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#B34C36]/10 text-[#B34C36] dark:bg-[#B34C36]/20">
-                <Trash2 size={40} />
-              </div>
-              <h3 className="mb-2 text-xl font-black text-zinc-900 dark:text-white">هل أنت متأكد؟</h3>
-              <p className="mb-8 text-sm font-medium text-zinc-500">
-                سيتم حذف سجل الدين الخاص بـ <span className="font-bold text-zinc-900 dark:text-zinc-200">"{deleteConfirmName}"</span> نهائياً.
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.95, y: 10 }} 
+              className="relative w-full max-w-[280px] rounded-3xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
+            >
+              <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
+                هل أنت متأكد من حذف سجل الدين الخاص بـ <span className="text-[#B34C36]">"{deleteConfirmName}"</span>؟
               </p>
-              <div className="flex gap-3">
-                <button 
-                  onClick={() => setDeleteConfirmId(null)}
-                  className="flex-1 rounded-2xl bg-zinc-100 py-4 font-bold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
-                >
-                  إلغاء
-                </button>
+              <div className="flex gap-2">
                 <button 
                   onClick={handleDeleteDebt}
                   disabled={isSaving}
-                  className="flex-1 rounded-2xl py-4 font-bold text-white shadow-lg shadow-[#B34C36]/20 disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
                   style={{ backgroundColor: '#B34C36' }}
                 >
-                  {isSaving ? 'جاري...' : 'تأكيد الحذف'}
+                  تأكيد
+                </button>
+                <button 
+                  onClick={() => setDeleteConfirmId(null)}
+                  className="flex-1 py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-xl text-[12px] font-bold active:scale-95 transition-all"
+                >
+                  إلغاء
                 </button>
               </div>
             </motion.div>

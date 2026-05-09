@@ -21,39 +21,26 @@ export function DeleteConfirmationModal({ isOpen, onClose, onConfirm }: DeleteCo
             className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm"
           />
           <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-sm rounded-[32px] bg-white p-8 shadow-2xl dark:bg-zinc-900"
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            className="relative w-full max-w-[280px] rounded-3xl bg-white p-6 shadow-2xl dark:bg-zinc-900 text-center border border-zinc-100 dark:border-zinc-800"
           >
-            <button 
-              onClick={onClose}
-              className="absolute top-6 left-6 text-zinc-400 hover:text-zinc-600"
-            >
-              <X size={20} />
-            </button>
-            
-            <h2 className="mb-8 text-center text-xl font-black text-zinc-900 dark:text-white">
-              تأكيد العملية
-            </h2>
+            <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
+              هل أنت متأكد من حذف هذا المنتج؟
+            </p>
 
-            <div className="mb-8 rounded-3xl border border-zinc-100 bg-zinc-50/50 p-10 text-center dark:border-zinc-800 dark:bg-zinc-800/50">
-              <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-relaxed">
-                هل أنت متأكد من حذف هذا المنتج؟
-              </p>
-            </div>
-
-            <div className="space-y-3">
+            <div className="flex gap-2">
               <button 
                 onClick={onConfirm}
-                className="w-full rounded-2xl py-5 font-bold text-white shadow-xl transition-all active:scale-95 text-lg shadow-[#B34C36]/20"
+                className="flex-1 py-2.5 rounded-xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px]"
                 style={{ backgroundColor: '#B34C36' }}
               >
                 تأكيد
               </button>
               <button 
                 onClick={onClose}
-                className="w-full rounded-2xl border border-zinc-100 bg-white py-5 font-bold text-zinc-900 transition-all hover:bg-zinc-50 active:scale-95 text-lg dark:bg-zinc-800 dark:border-zinc-700 dark:text-white dark:hover:bg-zinc-700"
+                className="flex-1 rounded-xl bg-zinc-100 py-2.5 font-bold text-zinc-500 transition-all active:scale-95 text-[12px] dark:bg-zinc-800 dark:text-zinc-400"
               >
                 إلغاء
               </button>

@@ -639,29 +639,29 @@ export default function SettingsPage() {
         {isClearDataModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsClearDataModalOpen(false)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-sm rounded-[32px] bg-white p-8 dark:bg-zinc-900 text-center shadow-2xl">
-              <div className="h-20 w-20 rounded-full bg-[#B34C36]/10 flex items-center justify-center text-[#B34C36] mx-auto mb-6">
-                <Trash2 size={40} className="drop-shadow-sm" />
-              </div>
-              <h2 className="text-2xl font-black text-zinc-900 dark:text-white mb-2">تحذير هام!</h2>
-              <p className="text-sm font-bold text-zinc-500 dark:text-zinc-400 mb-8 leading-relaxed">
-                هل أنت متأكد من مسح جميع البيانات؟ <br/>
-                <span className="text-[#B34C36]">هذا الإجراء لا يمكن التراجع عنه.</span>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.95, y: 10 }} 
+              className="relative w-full max-w-[280px] rounded-3xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
+            >
+              <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
+                هل أنت متأكد من مسح جميع بيانات المتجر نهائياً؟ <span className="text-[#B34C36]">لا يمكن التراجع عن هذا.</span>
               </p>
               
-              <div className="flex flex-col gap-3">
+              <div className="flex gap-2">
                 <button 
                   onClick={handleClearAllData}
                   disabled={isClearing}
-                  className="w-full rounded-2xl py-4 font-black text-white shadow-lg shadow-[#B34C36]/20 active:scale-95 transition-all disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
                   style={{ backgroundColor: '#B34C36' }}
                 >
-                  {isClearing ? 'جاري المسح...' : 'نعم، قم بالمسح النهائي'}
+                  تأكيد
                 </button>
                 <button 
                   onClick={() => setIsClearDataModalOpen(false)}
                   disabled={isClearing}
-                  className="w-full rounded-2xl bg-zinc-100 py-4 font-bold text-zinc-600 active:scale-95 transition-all dark:bg-zinc-800 dark:text-zinc-400 disabled:opacity-50"
+                  className="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-xl text-[12px] font-bold active:scale-95 transition-all text-[12px]"
                 >
                   إلغاء
                 </button>

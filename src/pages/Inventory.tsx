@@ -51,6 +51,21 @@ export default function Inventory() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
 
+  const [modalConfig, setModalConfig] = useState<{
+    show: boolean;
+    message: string;
+    type: 'alert' | 'confirm';
+    onConfirm?: () => void;
+  }>({ show: false, message: '', type: 'alert' });
+
+  const showAlert = (message: string) => {
+    setModalConfig({ show: true, message, type: 'alert' });
+  };
+
+  const showConfirm = (message: string, onConfirm: () => void) => {
+    setModalConfig({ show: true, message, type: 'confirm', onConfirm });
+  };
+
   const [showExpensesModal, setShowExpensesModal] = useState(false);
   const [expensesAmount, setExpensesAmount] = useState(0);
   const [loadingExpenses, setLoadingExpenses] = useState(false);
@@ -70,10 +85,10 @@ export default function Inventory() {
 
   const handleClearInventory = () => {
     if (Object.keys(inventoryData).length === 0) return;
-    if (window.confirm("هل أنت متأكد من مسح جميع الكميات المدرجة؟")) {
+    showConfirm("هل أنت متأكد من مسح جميع الكميات المدرجة؟", () => {
       setInventoryData({});
       localStorage.removeItem('current_inventory_data');
-    }
+    });
   };
 
   const user = auth.currentUser;
@@ -189,122 +204,122 @@ export default function Inventory() {
   const handleCompleteInventory = async () => {
     if (!user) return;
     if (Object.keys(inventoryData).length === 0) {
-      alert('أدخل بيانات الجرد أولاً');
+      showAlert('أدخل بيانات الجرد أولاً');
       return;
     }
     
-    if (!window.confirm("هل تريد حفظ الجرد وتحديث المخزون؟")) return;
+    showConfirm("هل تريد حفظ الجرد وتحديث المخزون؟", async () => {
+      try {
+        const batch = writeBatch(db);
+        const auditTime = serverTimestamp();
+        const localNow = new Date();
+        
+        let totalRevenue = 0;
+        let totalProfit = 0;
+        const items: any[] = [];
 
-    try {
-      const batch = writeBatch(db);
-      const auditTime = serverTimestamp();
-      const localNow = new Date();
-      
-      let totalRevenue = 0;
-      let totalProfit = 0;
-      const items: any[] = [];
-
-      for (const [pid, actualQty] of Object.entries(inventoryData)) {
-        const p = products.find(prod => prod.id === pid);
-        if (p) {
-          const sold = Number(p.quantity || 0) - Number(actualQty);
-          if (sold > 0) {
-            const revenue = sold * Number(p.sellingPrice || 0);
-            const profit = revenue - (sold * (Number(p.purchasePrice || p.costPrice) || 0));
-            totalRevenue += revenue;
-            totalProfit += profit;
-            items.push({ 
-              productName: p.name, 
-              quantityBefore: p.quantity, 
-              quantityAfter: actualQty, 
-              salesCalculated: sold, 
-              profit 
+        for (const [pid, actualQty] of Object.entries(inventoryData)) {
+          const p = products.find(prod => prod.id === pid);
+          if (p) {
+            const sold = Number(p.quantity || 0) - Number(actualQty);
+            if (sold > 0) {
+              const revenue = sold * Number(p.sellingPrice || 0);
+              const profit = revenue - (sold * (Number(p.purchasePrice || p.costPrice) || 0));
+              totalRevenue += revenue;
+              totalProfit += profit;
+              items.push({ 
+                productName: p.name, 
+                quantityBefore: p.quantity, 
+                quantityAfter: actualQty, 
+                salesCalculated: sold, 
+                profit 
+              });
+            }
+            
+            const productRef = doc(db, `users/${user.uid}/products`, pid);
+            batch.update(productRef, {
+              quantity: Number(actualQty),
+              updatedAt: auditTime,
+              lastInventoryDate: auditTime
             });
           }
-          
-          const productRef = doc(db, `users/${user.uid}/products`, pid);
-          batch.update(productRef, {
-            quantity: Number(actualQty),
-            updatedAt: auditTime,
-            lastInventoryDate: auditTime
+        }
+
+        // Fetch expenses (cached if offline)
+        const expensesPath = `users/${user.uid}/expenses`;
+        const expensesQuery = query(
+          collection(db, expensesPath),
+          where("audited", "==", false)
+        );
+        const expensesSnapshot = await getDocs(expensesQuery);
+        const actualExpensesAmount = expensesSnapshot.docs.reduce((acc, doc) => acc + (doc.data().amount || 0), 0);
+        const finalExpensesAmount = shouldDeductExpenses ? actualExpensesAmount : 0;
+        const netProfit = totalProfit - finalExpensesAmount;
+
+        // Prepare Report
+        const reportsPath = `users/${user.uid}/reports`;
+        const reportRef = doc(collection(db, reportsPath));
+        batch.set(reportRef, {
+          date: auditTime,
+          totalRevenue,
+          totalProfit,
+          totalExpenses: finalExpensesAmount, 
+          netProfit: netProfit,
+          items,
+          type: 'inventory',
+          expensesDeducted: shouldDeductExpenses
+        });
+
+        // Mark expenses as audited
+        if (shouldDeductExpenses) {
+          expensesSnapshot.docs.forEach(expenseDoc => {
+            batch.update(doc(db, expensesPath, expenseDoc.id), {
+              audited: true,
+              reportId: reportRef.id,
+              auditedAt: auditTime
+            });
           });
         }
-      }
 
-      // Fetch expenses (cached if offline)
-      const expensesPath = `users/${user.uid}/expenses`;
-      const expensesQuery = query(
-        collection(db, expensesPath),
-        where("audited", "==", false)
-      );
-      const expensesSnapshot = await getDocs(expensesQuery);
-      const actualExpensesAmount = expensesSnapshot.docs.reduce((acc, doc) => acc + (doc.data().amount || 0), 0);
-      const finalExpensesAmount = shouldDeductExpenses ? actualExpensesAmount : 0;
-      const netProfit = totalProfit - finalExpensesAmount;
+        // Update meta
+        const profilePath = `users/${user.uid}/profile`;
+        const finalMetaDocs = await getDocs(query(collection(db, profilePath), where("type", "==", "inventory_metadata")));
+        if (finalMetaDocs.empty) {
+          batch.set(doc(collection(db, profilePath)), { type: 'inventory_metadata', lastAuditDate: auditTime });
+        } else {
+          batch.update(doc(db, profilePath, finalMetaDocs.docs[0].id), { lastAuditDate: auditTime });
+        }
 
-      // Prepare Report
-      const reportsPath = `users/${user.uid}/reports`;
-      const reportRef = doc(collection(db, reportsPath));
-      batch.set(reportRef, {
-        date: auditTime,
-        totalRevenue,
-        totalProfit,
-        totalExpenses: finalExpensesAmount, 
-        netProfit: netProfit,
-        items,
-        type: 'inventory',
-        expensesDeducted: shouldDeductExpenses
-      });
-
-      // Mark expenses as audited
-      if (shouldDeductExpenses) {
-        expensesSnapshot.docs.forEach(expenseDoc => {
-          batch.update(doc(db, expensesPath, expenseDoc.id), {
-            audited: true,
-            reportId: reportRef.id,
-            auditedAt: auditTime
-          });
+        // Commit in the background
+        batch.commit().catch(err => {
+          console.error("Inventory background sync failed:", err);
         });
+
+        // UI SUCCESS: Show report immediately
+        const newReport = {
+          id: reportRef.id,
+          date: localNow,
+          totalRevenue,
+          totalProfit,
+          totalExpenses: finalExpensesAmount,
+          netProfit,
+          items,
+          expensesDeducted: shouldDeductExpenses
+        };
+        
+        setInventoryData({});
+        setExpensesAmount(0);
+        setCurrentReport(newReport);
+        setShowReportView(true);
+        showToast('تم حفظ الجرد بنجاح');
+        
+        // Clear localStorage
+        localStorage.removeItem('current_inventory_data');
+        
+      } catch (err) {
+        handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}/inventory`);
       }
-
-      // Update meta
-      const profilePath = `users/${user.uid}/profile`;
-      const finalMetaDocs = await getDocs(query(collection(db, profilePath), where("type", "==", "inventory_metadata")));
-      if (finalMetaDocs.empty) {
-        batch.set(doc(collection(db, profilePath)), { type: 'inventory_metadata', lastAuditDate: auditTime });
-      } else {
-        batch.update(doc(db, profilePath, finalMetaDocs.docs[0].id), { lastAuditDate: auditTime });
-      }
-
-      // Commit in the background
-      batch.commit().catch(err => {
-        console.error("Inventory background sync failed:", err);
-      });
-
-      // UI SUCCESS: Show report immediately
-      const newReport = {
-        id: reportRef.id,
-        date: localNow,
-        totalRevenue,
-        totalProfit,
-        totalExpenses: finalExpensesAmount,
-        netProfit,
-        items,
-        expensesDeducted: shouldDeductExpenses
-      };
-      
-      setInventoryData({});
-      setExpensesAmount(0);
-      setCurrentReport(newReport);
-      setShowReportView(true);
-      showToast('تم حفظ الجرد بنجاح');
-      
-      // Clear localStorage
-      localStorage.removeItem('current_inventory_data');
-      
-    } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}/inventory`);
-    }
+    });
   };
 
   const generatePDF = (report: any) => {
@@ -725,8 +740,8 @@ export default function Inventory() {
               layout
               key={p.id} 
               className={cn(
-                "flex items-center justify-between gap-3 py-2.5 px-3.5 bg-white dark:bg-zinc-900 border rounded-2xl shadow-sm min-h-[70px] transition-all",
-                inventoryData[p.id] !== undefined ? "border-brand-500/20 bg-brand-50/5" : "border-neutral-100 dark:border-neutral-800"
+                "flex items-center justify-between gap-3 py-2.5 px-3.5 bg-white dark:bg-zinc-900 border rounded-2xl min-h-[70px] transition-all",
+                inventoryData[p.id] !== undefined ? "border-brand-500/20 bg-brand-50/5 shadow-sm" : "border-neutral-100 dark:border-neutral-800"
               )}
             >
               {/* Product Info (Right) */}
@@ -784,6 +799,60 @@ export default function Inventory() {
         totalPages={totalPages}
         onPageChange={setCurrentPage}
       />
+
+      {/* Custom Alert/Confirm Modal */}
+      <AnimatePresence>
+        {modalConfig.show && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
+              className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-[280px] bg-white dark:bg-zinc-900 rounded-3xl p-6 shadow-2xl border border-zinc-100 dark:border-zinc-800 text-center"
+            >
+              <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
+                {modalConfig.message}
+              </p>
+              
+              <div className="flex gap-2">
+                {modalConfig.type === 'confirm' ? (
+                  <>
+                    <button 
+                      onClick={() => {
+                        setModalConfig(prev => ({ ...prev, show: false }));
+                        modalConfig.onConfirm?.();
+                      }}
+                      className="flex-1 py-2.5 bg-brand-600 text-white rounded-xl text-[12px] font-black active:scale-95 transition-all"
+                    >
+                      تأكيد
+                    </button>
+                    <button 
+                      onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
+                      className="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-xl text-[12px] font-bold active:scale-95 transition-all"
+                    >
+                      إلغاء
+                    </button>
+                  </>
+                ) : (
+                  <button 
+                    onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
+                    className="w-full py-2.5 bg-brand-600 text-white rounded-xl text-[12px] font-black active:scale-95 transition-all"
+                  >
+                    حسناً
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Save Button */}
       <div className="fixed bottom-6 left-6 right-6 z-40 flex justify-center">
