@@ -13,13 +13,26 @@ export function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [isRedirecting, setIsRedirecting] = useState(true);
 
   useEffect(() => {
-    // Check for redirect errors from Google Sign In
-    getRedirectResult(auth).catch((error) => {
-      console.error('Redirect result error:', error);
-      setError(error.message || t('login_failed'));
-    });
+    // Check for redirect result from Google Sign In
+    const checkRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        // If result exists, onAuthStateChanged in AppContext will handle the user update
+        // We stay in redirecting state until that happens or until we confirm no result
+        if (!result) {
+          setIsRedirecting(false);
+        }
+      } catch (error: any) {
+        console.error('Redirect result error:', error);
+        setError(error.message || t('login_failed'));
+        setIsRedirecting(false);
+      }
+    };
+    
+    checkRedirect();
     
     // Only initialized once
     window.recaptchaVerifier = setupRecaptcha('recaptcha-container');
@@ -27,6 +40,19 @@ export function Login() {
       window.recaptchaVerifier?.clear();
     };
   }, []);
+
+  if (isRedirecting && !error) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-950">
+        <motion.div 
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+          className="h-12 w-12 rounded-full border-4 border-zinc-200 border-t-brand-600 dark:border-zinc-800 dark:border-t-brand-500"
+        />
+        <p className="mt-4 text-zinc-500 font-bold">جاري التحقق من الحساب...</p>
+      </div>
+    );
+  }
 
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();

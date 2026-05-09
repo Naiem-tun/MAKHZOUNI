@@ -82,8 +82,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         localStorage.removeItem('has_session');
         localStorage.removeItem('user_session');
         localStorage.removeItem('user_settings');
+        // If we are not logged in, we are definitely done loading the auth state
+        setLoading(false);
       }
-      setLoading(false); 
     });
 
     return () => {
