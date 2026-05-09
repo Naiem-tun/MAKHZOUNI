@@ -10,7 +10,8 @@ import {
   Search, 
   Filter, 
   QrCode,
-  Boxes
+  Boxes,
+  Barcode
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { ProductCard } from '../components/products/ProductCard';
@@ -253,20 +254,20 @@ export default function Products() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="flex items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t('products')}</h1>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">إدارة قائمة السلع والأسعار والمخزون</p>
+          <p className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400">إدارة قائمة السلع والأسعار والمخزون</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div>
           <button 
             onClick={() => {
               setEditingProduct(null);
               setIsModalOpen(true);
             }}
-            className="flex items-center gap-2 rounded-2xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-brand-700 shadow-lg shadow-brand-500/20 active:scale-95"
+            className="flex items-center gap-1.5 rounded-xl bg-brand-600 px-3 py-2 sm:px-4 sm:py-2 text-sm font-bold text-white transition-all hover:bg-brand-700 shadow-lg shadow-brand-500/20 active:scale-95 whitespace-nowrap"
           >
-            <Plus size={18} strokeWidth={3} />
+            <Plus size={16} strokeWidth={3} />
             {t('add_product')}
           </button>
         </div>
@@ -294,7 +295,7 @@ export default function Products() {
               }}
               className="flex h-9 w-9 items-center justify-center rounded-xl text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-all active:scale-90 dark:text-zinc-500 dark:hover:bg-zinc-800"
             >
-              <QrCode size={20} />
+              <Barcode size={20} />
             </button>
           </div>
         </div>
@@ -303,15 +304,15 @@ export default function Products() {
             <select 
               value={stockFilter}
               onChange={(e) => setStockFilter(e.target.value)}
-              className="appearance-none flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white pr-10 pl-4 py-3 font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 cursor-pointer min-w-[130px]"
+              className="appearance-none flex items-center gap-2 rounded-xl border border-zinc-200 bg-white pr-8 pl-3 py-2 text-sm font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 cursor-pointer min-w-[110px]"
             >
               <option value="all">كل المخزون</option>
               <option value="available">المتوفر</option>
               <option value="low">النواقص</option>
               <option value="out">نفذ</option>
             </select>
-            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-zinc-400">
-              <Boxes size={20} />
+            <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-zinc-400">
+              <Boxes size={16} />
             </div>
           </div>
 
@@ -319,15 +320,15 @@ export default function Products() {
             <select 
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="appearance-none flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white pr-10 pl-4 py-3 font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 cursor-pointer min-w-[150px]"
+              className="appearance-none flex items-center gap-2 rounded-xl border border-zinc-200 bg-white pr-8 pl-3 py-2 text-sm font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 cursor-pointer min-w-[130px]"
             >
               <option value="all">{t('all_categories')}</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.name}>{c.name}</option>
               ))}
             </select>
-            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-zinc-400">
-              <Filter size={20} />
+            <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-zinc-400">
+              <Filter size={16} />
             </div>
           </div>
         </div>

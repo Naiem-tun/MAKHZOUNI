@@ -5,7 +5,7 @@ import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, serverTimest
 import { db } from '../lib/firebase';
 import { Supplier, SupplierTransaction, OperationType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Truck, Plus, Phone, Trash2, Edit2, X, RotateCcw, UserPlus, Eye, Receipt, History, CirclePlus } from 'lucide-react';
+import { Truck, Plus, Phone, Trash2, Edit2, X, RotateCcw, UserPlus, Eye, Receipt, History, CirclePlus, Calendar } from 'lucide-react';
 import { formatCurrency, handleFirestoreError } from '../lib/utils';
 
 export default function Suppliers() {
@@ -442,7 +442,7 @@ export default function Suppliers() {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-lg rounded-3xl bg-white p-8 dark:bg-zinc-900">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-2xl bg-amber-50 dark:bg-amber-950/20 flex items-center justify-center text-amber-600">
+                  <div className="h-12 w-12 rounded-2xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-500">
                     <History size={24} />
                   </div>
                   <div>
@@ -472,7 +472,7 @@ export default function Suppliers() {
                     <div key={tx.id} className="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-xl bg-white dark:bg-zinc-800 flex items-center justify-center text-brand-600 shadow-sm">
-                          <Receipt size={18} />
+                          <Calendar size={18} />
                         </div>
                         <div>
                           <div className="font-bold text-zinc-900 dark:text-white">{formatCurrency(tx.amount, settings.currency, settings.language)}</div>
@@ -499,7 +499,7 @@ export default function Suppliers() {
 
               <div className="mt-8 pt-6 border-t border-zinc-100 dark:border-zinc-800 flex justify-between items-center">
                 <span className="text-base font-bold text-zinc-500">إجمالي المدفوعات</span>
-                <span className="text-3xl font-black text-emerald-600">
+                <span className="text-xl font-black text-zinc-900 dark:text-white">
                   {formatCurrency(
                     transactions.filter(t => t.supplierId === selectedSupplier.id).reduce((acc, t) => acc + (t.amount || 0), 0),
                     settings.currency, settings.language
