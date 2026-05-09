@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { auth, setupRecaptcha, signInWithGoogle } from '../../lib/firebase';
-import { signInWithPhoneNumber, ConfirmationResult, getRedirectResult } from 'firebase/auth';
+import { auth, setupRecaptcha, signInWithGoogle, getRedirectResult } from '../../lib/firebase';
+import { signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
 import { useTranslation } from 'react-i18next';
 import { Phone, ArrowRight, Package, Globe, ShieldCheck } from 'lucide-react';
 
