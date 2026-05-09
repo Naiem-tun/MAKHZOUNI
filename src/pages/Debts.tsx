@@ -179,8 +179,8 @@ export default function Debts() {
                 <div className="min-w-0">
                   <h3 className="text-base font-bold text-zinc-900 dark:text-white truncate">{d.customerName}</h3>
                   <div className="flex items-center gap-2 text-xs">
-                    <span className={`h-1.5 w-1.5 rounded-full ${d.status === 'paid' ? 'bg-brand-500' : 'bg-rose-500'}`} />
-                    <span className={d.status === 'paid' ? 'text-brand-600' : 'text-rose-600'}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${d.status === 'paid' ? 'bg-brand-500' : 'bg-[#B34C36]'}`} />
+                    <span className={d.status === 'paid' ? 'text-brand-600' : 'text-[#B34C36]'}>
                       {d.status === 'paid' ? t('paid') : t('over_due')}
                     </span>
                     <span className="text-zinc-300">•</span>
@@ -253,7 +253,7 @@ export default function Debts() {
                   </button>
                   <button 
                     onClick={() => setActionType('debt')}
-                    className="w-full flex items-center justify-between p-4 rounded-2xl bg-rose-50 text-rose-500 border border-rose-100 dark:bg-rose-950/20 dark:border-rose-900/30 transition-colors"
+                    className="w-full flex items-center justify-between p-4 rounded-2xl bg-[#B34C36]/5 text-[#B34C36] border border-[#B34C36]/10 dark:bg-[#B34C36]/10 dark:border-[#B34C36]/20 transition-colors"
                   >
                     <Minus size={24} />
                     <span className="font-bold text-lg">تسجيل دين</span>
@@ -284,7 +284,7 @@ export default function Debts() {
                     className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-right text-xl font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white" 
                   />
                   <div className="flex gap-3 pt-2">
-                    <button type="submit" disabled={!actionAmount || isSaving} className={`flex-1 rounded-2xl py-3 font-semibold text-white transition-opacity ${actionType === 'payment' ? 'bg-emerald-500' : 'bg-rose-500'} disabled:opacity-50`}>
+                    <button type="submit" disabled={!actionAmount || isSaving} className={`flex-1 rounded-2xl py-3 font-semibold text-white transition-opacity ${actionType === 'payment' ? 'bg-emerald-500' : 'bg-[#B34C36]'} disabled:opacity-50`}>
                       تأكيد
                     </button>
                     <button type="button" onClick={() => setActionType('select')} className="flex-1 rounded-2xl bg-zinc-100 py-3 font-semibold text-zinc-600 border border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700">رجوع</button>
@@ -318,11 +318,11 @@ export default function Debts() {
                   return sortedHistory.map((item, i) => (
                     <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800">
                       <div className="flex items-center gap-3">
-                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${item.type === 'payment' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30' : 'bg-rose-50 text-rose-500 dark:bg-rose-950/30'}`}>
+                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${item.type === 'payment' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30' : 'bg-[#B34C36]/10 text-[#B34C36] dark:bg-[#B34C36]/20'}`}>
                           {item.type === 'payment' ? <Plus size={20} /> : <Minus size={20} />}
                         </div>
                         <div>
-                          <p className={`font-bold ${item.type === 'payment' ? 'text-emerald-600' : 'text-rose-500'}`}>
+                          <p className={`font-bold ${item.type === 'payment' ? 'text-emerald-600' : 'text-[#B34C36]'}`}>
                             {item.type === 'payment' ? '+' : '-'}{formatCurrency(item.amount, settings.currency, settings.language)}
                           </p>
                           <p className="text-xs text-zinc-500">{new Date(item.date).toLocaleString()}</p>
@@ -341,7 +341,7 @@ export default function Debts() {
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setDeleteConfirmId(null)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-sm rounded-[32px] bg-white p-8 dark:bg-zinc-900 text-center">
-              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-rose-50 text-rose-500 dark:bg-rose-950/30">
+              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#B34C36]/10 text-[#B34C36] dark:bg-[#B34C36]/20">
                 <Trash2 size={40} />
               </div>
               <h3 className="mb-2 text-xl font-black text-zinc-900 dark:text-white">هل أنت متأكد؟</h3>
@@ -358,7 +358,8 @@ export default function Debts() {
                 <button 
                   onClick={handleDeleteDebt}
                   disabled={isSaving}
-                  className="flex-1 rounded-2xl bg-rose-500 py-4 font-bold text-white shadow-lg shadow-rose-500/20 disabled:opacity-50"
+                  className="flex-1 rounded-2xl py-4 font-bold text-white shadow-lg shadow-[#B34C36]/20 disabled:opacity-50"
+                  style={{ backgroundColor: '#B34C36' }}
                 >
                   {isSaving ? 'جاري...' : 'تأكيد الحذف'}
                 </button>

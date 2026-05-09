@@ -4,7 +4,7 @@ import { useAppContext } from '../AppContext';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Product, OperationType } from '../types';
-import { handleFirestoreError } from '../lib/utils';
+import { handleFirestoreError, cn } from '../lib/utils';
 import { 
   Plus, 
   Search, 
@@ -32,6 +32,7 @@ export default function Products() {
   const [searchTerm, setSearchTerm] = useState('');
   const [stockFilter, setStockFilter] = useState('all'); // 'all', 'available', 'low', 'out'
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [showBoxInfo, setShowBoxInfo] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQuantityModalOpen, setIsQuantityModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -331,6 +332,19 @@ export default function Products() {
               <Filter size={16} />
             </div>
           </div>
+
+          <button
+            onClick={() => setShowBoxInfo(!showBoxInfo)}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-xl border transition-all text-sm font-bold",
+              showBoxInfo 
+                ? "bg-brand-50 border-brand-200 text-brand-600" 
+                : "bg-white border-zinc-200 text-zinc-500 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-500"
+            )}
+          >
+            <Boxes size={18} className={showBoxInfo ? "text-brand-500" : ""} />
+            <span>كرتونة</span>
+          </button>
         </div>
       </div>
 
@@ -341,6 +355,7 @@ export default function Products() {
             key={p.id}
             product={p}
             index={idx}
+            showBoxInfo={showBoxInfo}
             onEdit={(product) => {
               setEditingProduct(product);
               setIsModalOpen(true);

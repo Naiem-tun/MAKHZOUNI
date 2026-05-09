@@ -77,14 +77,14 @@ export function Login() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 p-6 dark:bg-zinc-950 font-sans" dir="rtl">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-brand-100 p-6 dark:bg-zinc-950 font-sans" dir="rtl">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md rounded-3xl bg-white p-8 text-right shadow-2xl dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800"
       >
         <div className="mb-8 flex justify-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-lg shadow-brand-500/20">
+          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-brand-800 text-white shadow-lg shadow-brand-800/20">
             <Package size={40} />
           </div>
         </div>
@@ -115,7 +115,7 @@ export function Login() {
                   placeholder={t('phone_number') + ' (مثال: 55123456)'}
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 py-4 pr-12 pl-4 text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:ring-2 focus:ring-brand-500 dark:border-zinc-800 dark:bg-zinc-800/50 dark:text-white"
+                  className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 py-4 pr-12 pl-4 text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:ring-2 focus:ring-brand-800 dark:border-zinc-800 dark:bg-zinc-800/50 dark:text-white"
                   required
                 />
               </div>
@@ -123,7 +123,7 @@ export function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-zinc-900 px-6 py-4 font-bold text-white transition-all hover:bg-zinc-800 disabled:opacity-50 dark:bg-brand-600 dark:hover:bg-brand-700"
+                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-brand-800 px-6 py-4 font-bold text-white transition-all hover:bg-brand-900 disabled:opacity-50"
               >
                 {loading ? t('loading') : t('send_code')}
                 {!loading && <ArrowRight size={20} className="rotate-180" />}
@@ -178,7 +178,7 @@ export function Login() {
                   placeholder={t('verification_code')}
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value)}
-                  className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 py-4 pr-12 pl-4 text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:ring-2 focus:ring-brand-500 dark:border-zinc-800 dark:bg-zinc-800/50 dark:text-white"
+                  className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 py-4 pr-12 pl-4 text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:ring-2 focus:ring-brand-800 dark:border-zinc-800 dark:bg-zinc-800/50 dark:text-white"
                   required
                 />
               </div>
@@ -186,7 +186,7 @@ export function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-zinc-900 px-6 py-4 font-bold text-white transition-all hover:bg-zinc-800 disabled:opacity-50 dark:bg-brand-600 dark:hover:bg-brand-700"
+                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-brand-800 px-6 py-4 font-bold text-white transition-all hover:bg-brand-900 disabled:opacity-50"
               >
                 {loading ? t('loading') : t('verify_code')}
               </button>

@@ -85,7 +85,8 @@ export default function Expenses() {
         </div>
         <button 
           onClick={() => setIsModalOpen(true)} 
-          className="flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-[13px] font-black text-white shadow-lg shadow-amber-500/20 active:scale-95 transition-transform"
+          className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-[13px] font-black text-white shadow-lg shadow-[#B34C36]/20 active:scale-95 transition-transform"
+          style={{ backgroundColor: '#B34C36' }}
         >
           <Plus size={16} />
           إضافة مصروف
@@ -196,13 +197,13 @@ export default function Expenses() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className={cn("text-[15px] font-black", expense.audited ? "text-zinc-300" : "text-rose-600")}>
+                  <div className={cn("text-[15px] font-black", expense.audited ? "text-zinc-300" : "text-[#B34C36]")}>
                     -{formatCurrency(expense.amount, settings.currency, settings.language)}
                   </div>
                   {!expense.audited && (
                     <button 
                       onClick={() => deleteDoc(doc(db, `users/${user!.uid}/expenses`, expense.id!))} 
-                      className="p-1.5 rounded-lg text-zinc-300 hover:text-rose-500 transition-colors"
+                      className="p-1.5 rounded-lg text-zinc-300 hover:text-[#B34C36] transition-colors"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -278,7 +279,7 @@ export default function Expenses() {
                 </div>
 
                 <div className="flex flex-col gap-2 pt-4">
-                  <button type="submit" className="w-full rounded-xl bg-amber-600 py-3.5 font-black text-white shadow-lg shadow-amber-500/20 active:scale-95 transition-all text-sm">
+                  <button type="submit" className="w-full rounded-xl py-3.5 font-black text-white shadow-lg shadow-[#B34C36]/20 active:scale-95 transition-all text-sm" style={{ backgroundColor: '#B34C36' }}>
                     تأكيد المصروف
                   </button>
                   <button type="button" onClick={() => setIsModalOpen(false)} className="w-full rounded-xl bg-zinc-50 dark:bg-zinc-800 py-3 text-xs font-bold text-zinc-500 active:scale-95 transition-all">

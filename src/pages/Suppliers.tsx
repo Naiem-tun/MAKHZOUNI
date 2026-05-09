@@ -226,7 +226,7 @@ export default function Suppliers() {
           </button>
           <button 
             onClick={() => setIsClearAllConfirmOpen(true)}
-            className="p-3 rounded-2xl bg-zinc-100 text-zinc-500 hover:bg-rose-50 hover:text-rose-500 transition-all dark:bg-zinc-800"
+            className="p-3 rounded-2xl bg-zinc-100 text-zinc-500 hover:bg-[#B34C36]/5 hover:text-[#B34C36] transition-all dark:bg-zinc-800"
             title="مسح جميع العمليات"
           >
             <RotateCcw size={20}/>
@@ -267,7 +267,7 @@ export default function Suppliers() {
                   isToday 
                     ? 'border-brand-500 ring-4 ring-brand-500/5 dark:bg-zinc-900' 
                     : s.isMissed
-                    ? 'border-rose-500 ring-4 ring-rose-500/5 dark:bg-zinc-900'
+                    ? 'border-[#B34C36] ring-4 ring-[#B34C36]/5 dark:bg-zinc-900'
                     : 'border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800'
                 }`}
               >
@@ -308,9 +308,9 @@ export default function Suppliers() {
                   )}
                   <button 
                     onClick={(e) => { e.stopPropagation(); setSelectedSupplier(s); setIsAddTxModalOpen(true); }} 
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/30 dark:hover:bg-emerald-900/40 transition-colors"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-brand-600 text-white hover:opacity-90 transition-all font-bold shadow-sm"
                   >
-                    <Plus size={18}/>
+                    <Plus size={18} />
                   </button>
                 </div>
               </motion.div>
@@ -427,7 +427,7 @@ export default function Suppliers() {
                 </div>
                 <div className="flex gap-3 pt-4">
                   <button type="button" onClick={() => setIsAddTxModalOpen(false)} className="flex-1 rounded-2xl bg-zinc-100 py-3 font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">إلغاء</button>
-                  <button type="submit" disabled={isSaving} className="flex-1 rounded-2xl bg-emerald-600 py-3 font-semibold text-white shadow-lg shadow-emerald-500/20 disabled:opacity-50">
+                  <button type="submit" disabled={isSaving} className="flex-1 rounded-2xl py-3 font-semibold text-white shadow-lg shadow-[#B34C36]/20 disabled:opacity-50" style={{ backgroundColor: '#B34C36' }}>
                     {isSaving ? 'جاري الحفظ...' : 'تأكيد الدفع'}
                   </button>
                 </div>
@@ -484,7 +484,7 @@ export default function Suppliers() {
                       </div>
                       <button 
                         onClick={() => setDeleteTxConfirmId(tx.id!)}
-                        className="p-2 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20"
+                        className="p-2 rounded-lg text-[#B34C36] hover:bg-[#B34C36]/5 transition-colors"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -531,7 +531,8 @@ export default function Suppliers() {
                 <button 
                   onClick={handleDeleteSupplier}
                   disabled={isSaving}
-                  className="flex-1 rounded-2xl bg-rose-500 py-4 font-bold text-white shadow-lg shadow-rose-500/20 disabled:opacity-50"
+                  className="flex-1 rounded-2xl py-4 font-bold text-white shadow-lg shadow-[#B34C36]/20 disabled:opacity-50"
+                  style={{ backgroundColor: '#B34C36' }}
                 >
                   {isSaving ? 'جاري الحذف...' : 'تأكيد الحذف'}
                 </button>
@@ -560,7 +561,8 @@ export default function Suppliers() {
                 </button>
                 <button 
                   onClick={handleDeleteTransaction}
-                  className="flex-1 rounded-2xl bg-rose-500 py-4 font-bold text-white shadow-lg shadow-rose-500/20"
+                  className="flex-1 rounded-2xl py-4 font-bold text-white shadow-lg shadow-[#B34C36]/20"
+                  style={{ backgroundColor: '#B34C36' }}
                 >
                   تأكيد الحذف
                 </button>
@@ -573,7 +575,7 @@ export default function Suppliers() {
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsClearAllConfirmOpen(false)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-sm rounded-[32px] bg-white p-8 dark:bg-zinc-900 text-center">
-              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-rose-50 text-rose-500 dark:bg-rose-950/30">
+              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#B34C36]/10 text-[#B34C36] dark:bg-[#B34C36]/20">
                 <RotateCcw size={40} />
               </div>
               <h3 className="mb-2 text-xl font-black text-zinc-900 dark:text-white">مسح السجل بالكامل؟</h3>
@@ -590,7 +592,8 @@ export default function Suppliers() {
                 <button 
                   onClick={handleClearAllTransactions}
                   disabled={isSaving}
-                  className="flex-1 rounded-2xl bg-rose-500 py-4 font-bold text-white shadow-lg shadow-rose-500/20 disabled:opacity-50"
+                  className="flex-1 rounded-2xl py-4 font-bold text-white shadow-lg shadow-[#B34C36]/20 disabled:opacity-50"
+                  style={{ backgroundColor: '#B34C36' }}
                 >
                   {isSaving ? 'جاري المسح...' : 'تأكيد المسح'}
                 </button>

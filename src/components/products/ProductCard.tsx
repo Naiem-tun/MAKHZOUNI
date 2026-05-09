@@ -9,19 +9,20 @@ import { cn, formatCurrency } from '../../lib/utils';
 interface ProductCardProps {
   product: Product;
   index: number;
+  showBoxInfo?: boolean;
   onEdit: (product: Product) => void;
   onAddQuantity: (product: Product) => void;
 }
 
 const ProductIcon = ({ category, className }: { category?: string, className?: string }) => {
   return (
-    <div className={cn("flex items-center justify-center rounded-xl bg-neutral-100 dark:bg-neutral-800 text-neutral-400", className)}>
+    <div className={cn("flex items-center justify-center rounded-xl bg-brand-50 text-brand-600", className)}>
       <Package size={16} />
     </div>
   );
 };
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, index, onEdit, onAddQuantity }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBoxInfo, onEdit, onAddQuantity }) => {
   const { t, i18n } = useTranslation();
   const { settings } = useAppContext();
   const language = i18n.language;
@@ -44,11 +45,28 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, onEdit
               <span className={cn((product.quantity || 0) < 10 ? "text-delete-text font-bold" : "")}>
                 {product.quantity || 0} <span className="text-[10px] opacity-50 font-normal">{t('piece')}</span>
               </span>
+              {showBoxInfo && product.piecesPerBox && product.piecesPerBox > 1 && (
+                <span className="text-[10px] text-zinc-400">
+                  ({Math.floor(product.quantity / product.piecesPerBox)} كرتونة و {product.quantity % product.piecesPerBox} قطعة)
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-1 font-mono font-bold text-[11px] text-neutral-700 dark:text-neutral-300">
-              <span>{!(settings.showFinancials ?? true) ? '••••••' : formatCurrency(product.purchasePrice || 0, settings.currency, language)}</span>
-              <span className="opacity-30">.</span>
-              <span>{formatCurrency(product.sellingPrice || 0, settings.currency, language)}</span>
+              {showBoxInfo ? (
+                <>
+                  <span className="text-brand-600 dark:text-brand-400">
+                    {formatCurrency(product.boxPurchasePrice || 0, settings.currency, language)}
+                  </span>
+                  <span className="opacity-30">/</span>
+                  <span className="text-[10px] font-sans text-neutral-400">كرتونة ({product.piecesPerBox} قطعة)</span>
+                </>
+              ) : (
+                <>
+                  <span>{!(settings.showFinancials ?? true) ? '••••••' : formatCurrency(product.purchasePrice || 0, settings.currency, language)}</span>
+                  <span className="opacity-30">.</span>
+                  <span>{formatCurrency(product.sellingPrice || 0, settings.currency, language)}</span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -60,7 +78,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, onEdit
             e.stopPropagation();
             onAddQuantity(product);
           }}
-          className="flex items-center gap-1 px-4 py-2 bg-[#018ABE] text-[#FFFFFF] rounded-full text-[11px] font-bold transition-all hover:opacity-90 shrink-0 h-9"
+          className="flex items-center gap-1 px-4 py-2 bg-brand-600 text-white rounded-full text-[11px] font-bold transition-all hover:bg-brand-700 shrink-0 h-9 shadow-sm"
         >
           <Plus size={12} />
           <span>إضافة كمية</span>

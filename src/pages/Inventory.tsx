@@ -380,7 +380,7 @@ export default function Inventory() {
             {[
               { label: 'إجمالي المبيعات', value: currentReport?.totalRevenue || 0, color: 'zinc' },
               { label: 'إجمالي الأرباح', value: currentReport?.totalProfit || 0, color: 'emerald' },
-              { label: 'إجمالي المصاريف', value: currentReport?.totalExpenses || 0, color: 'rose' },
+              { label: 'إجمالي المصاريف', value: currentReport?.totalExpenses || 0, color: 'brick-red' },
               { label: 'صافي الربح', value: currentReport?.netProfit || 0, color: 'brand', highlighted: true },
             ].map((bar, i) => (
               <div 
@@ -406,7 +406,7 @@ export default function Inventory() {
                 )}>
                   {i === 0 && <Receipt size={18} className={bar.highlighted ? "text-white" : "text-zinc-400"} />}
                   {i === 1 && <CheckCircle2 size={18} className="text-emerald-500" />}
-                  {i === 2 && <Wallet size={18} className="text-rose-500" />}
+                  {i === 2 && <Wallet size={18} className="text-[#B34C36]" />}
                   {i === 3 && <ClipboardCheck size={18} className="text-white" />}
                 </div>
               </div>
@@ -517,7 +517,7 @@ export default function Inventory() {
                       onClick={() => setShouldDeductExpenses(!shouldDeductExpenses)}
                       className={cn(
                         "w-12 h-6 rounded-full transition-all relative",
-                        shouldDeductExpenses ? "bg-amber-600" : "bg-zinc-300 dark:bg-zinc-700"
+                        shouldDeductExpenses ? "bg-[#B34C36]" : "bg-zinc-300 dark:bg-zinc-700"
                       )}
                     >
                       <motion.div 
@@ -647,7 +647,7 @@ export default function Inventory() {
           onClick={() => setShowExpensesModal(true)}
           className={cn(
             "h-10 px-3 flex items-center gap-2 bg-white dark:bg-zinc-900 border rounded-xl shadow-sm active:scale-95 transition-all text-xs font-bold",
-            expensesAmount > 0 ? "border-amber-200 text-amber-600 bg-amber-50/50" : "border-zinc-100 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 w-10 justify-center px-0"
+            expensesAmount > 0 ? "border-[#B34C36]/20 text-[#B34C36] bg-[#B34C36]/5" : "border-zinc-100 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 w-10 justify-center px-0"
           )}
           title="المصاريف"
         >
@@ -659,9 +659,10 @@ export default function Inventory() {
           className={cn(
             "w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border rounded-xl shadow-sm active:scale-95 transition-transform",
             Object.keys(inventoryData).length > 0 
-              ? "border-rose-100 text-rose-500 bg-rose-50/30" 
+              ? "text-white shadow-lg shadow-[#B34C36]/20" 
               : "border-zinc-100 dark:border-zinc-800 text-zinc-300 dark:text-zinc-700"
           )}
+          style={Object.keys(inventoryData).length > 0 ? { backgroundColor: '#B34C36', borderColor: '#B34C36' } : {}}
           title="مسح الأرقام المدرجة"
         >
           <Trash2 size={18} />

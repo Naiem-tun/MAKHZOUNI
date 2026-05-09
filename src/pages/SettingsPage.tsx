@@ -92,12 +92,12 @@ function CategoriesManager({ onBack }: { onBack: () => void }) {
           onChange={(e) => setNewCatName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
           placeholder="اسم الفئة الجديدة..."
-          className="flex-1 h-14 px-5 text-right rounded-2xl bg-white border border-zinc-200 outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 transition-all dark:bg-zinc-900 dark:border-zinc-800 dark:text-white shadow-sm"
+          className="flex-1 h-14 px-5 text-right rounded-2xl bg-white border border-zinc-200 outline-none focus:border-brand-500/50 focus:ring-4 focus:ring-brand-500/10 transition-all dark:bg-zinc-900 dark:border-zinc-800 dark:text-white shadow-sm"
         />
         <button 
           onClick={handleAddCategory}
           disabled={isAdding || !newCatName.trim()}
-          className="h-14 px-6 min-w-[120px] rounded-2xl bg-emerald-50 text-emerald-700 font-bold flex items-center justify-center gap-2 transition-all hover:bg-emerald-100 disabled:opacity-50 dark:bg-emerald-900/20 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/30 shadow-sm"
+          className="h-14 px-6 min-w-[120px] rounded-2xl bg-brand-600 text-white font-bold flex items-center justify-center gap-2 transition-all hover:bg-brand-700 disabled:opacity-50 shadow-sm"
         >
           <Plus size={20} strokeWidth={2.5} />
           <span>إضافة</span>
@@ -125,7 +125,8 @@ function CategoriesManager({ onBack }: { onBack: () => void }) {
               <div className="flex items-center gap-2">
                 <button 
                   onClick={() => handleDeleteCategory(cat.id)}
-                  className="p-2 rounded-xl text-rose-500 hover:bg-rose-50 transition-colors dark:hover:bg-rose-900/20"
+                  className="p-2 rounded-xl text-white transition-colors active:scale-90"
+                  style={{ backgroundColor: '#B34C36' }}
                 >
                   <Trash2 size={18} />
                 </button>
@@ -146,6 +147,48 @@ export default function SettingsPage() {
   const [isImporting, setIsImporting] = useState(false);
   const [manualCode, setManualCode] = useState('');
   const [status, setStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
+  const [isClearDataModalOpen, setIsClearDataModalOpen] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+
+  const handleClearAllData = async () => {
+    if (!user) return;
+    setIsClearing(true);
+    try {
+      const colNames = [
+        'products', 
+        'suppliers', 
+        'debts', 
+        'categories', 
+        'transactions', 
+        'supplierTransactions', 
+        'expenses',
+        'reports',
+        'purchases',
+        'inventories',
+        'smart_list'
+      ];
+      for (const colName of colNames) {
+        let snapshot = await getDocs(collection(db, `users/${user.uid}/${colName}`));
+        // Firestore batch max is 500, simple approach for client
+        for(let i = 0; i < snapshot.docs.length; i += 500) {
+            const batch = writeBatch(db);
+            const chunk = snapshot.docs.slice(i, i + 500);
+            chunk.forEach(d => batch.delete(d.ref));
+            await batch.commit();
+        }
+      }
+      setIsClearDataModalOpen(false);
+      setStatus({ type: 'success', msg: 'تم مسح جميع بيانات المتجر بنجاح' });
+      
+      // Also clear settings locally
+      await updateSettings({ deletedCategories: [] });
+    } catch (err) {
+      console.error(err);
+      setStatus({ type: 'error', msg: 'حدث خطأ أثناء مسح البيانات' });
+    } finally {
+      setIsClearing(false);
+    }
+  };
 
   const menuItems = [
     { id: 'guide', label: t('user_guide'), subtitle: 'تعلم كيفية احتراف إدارة مخزنك', icon: BookOpen, color: 'text-brand-500' },
@@ -159,7 +202,19 @@ export default function SettingsPage() {
     setStatus(null);
 
     try {
-      const collections = ['products', 'suppliers', 'debts', 'categories', 'transactions'];
+      const collections = [
+        'products', 
+        'suppliers', 
+        'debts', 
+        'categories', 
+        'transactions',
+        'supplierTransactions',
+        'expenses',
+        'reports',
+        'purchases',
+        'inventories',
+        'smart_list'
+      ];
       const exportData: any = {
         version: '1.0.0',
         timestamp: new Date().toISOString(),
@@ -241,8 +296,35 @@ export default function SettingsPage() {
               if (data.currentQuantity !== undefined && data.quantity === undefined) {
                 data.quantity = data.currentQuantity;
               }
+              if (data.piecesPerCarton !== undefined && data.piecesPerBox === undefined) {
+                data.piecesPerBox = data.piecesPerCarton;
+              }
+              if (data.boxPrice !== undefined && data.boxPurchasePrice === undefined) {
+                data.boxPurchasePrice = data.boxPrice;
+              }
+              if (data.cartonPrice !== undefined && data.boxPurchasePrice === undefined) {
+                data.boxPurchasePrice = data.cartonPrice;
+              }
+              if (data.cartonPurchasePrice !== undefined && data.boxPurchasePrice === undefined) {
+                data.boxPurchasePrice = data.cartonPurchasePrice;
+              }
+              
+              // Ensure numeric types
+              data.piecesPerBox = parseFloat(data.piecesPerBox as any) || 1;
+              data.boxPurchasePrice = parseFloat(data.boxPurchasePrice as any) || 0;
+              data.purchasePrice = parseFloat(data.purchasePrice as any) || 0;
+              data.sellingPrice = parseFloat(data.sellingPrice as any) || 0;
+              data.quantity = parseFloat(data.quantity as any) || 0;
+
+              // Logic: If box price is 0 but we have piece price and box size, calculate it
+              if (data.boxPurchasePrice === 0 && data.purchasePrice > 0 && data.piecesPerBox > 1) {
+                data.boxPurchasePrice = data.purchasePrice * data.piecesPerBox;
+              }
+
               if (data.minQuantity === undefined) {
                 data.minQuantity = 5; // Default value
+              } else {
+                data.minQuantity = parseFloat(data.minQuantity as any) || 0;
               }
             }
 
@@ -521,8 +603,25 @@ export default function SettingsPage() {
         ))}
 
         <button 
+          onClick={() => setIsClearDataModalOpen(true)}
+          className="w-full flex items-center justify-between p-6 rounded-3xl text-white font-bold transition-all shadow-lg shadow-[#B34C36]/20 active:scale-95"
+          style={{ backgroundColor: '#B34C36' }}
+        >
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-white/20 flex items-center justify-center text-white">
+              <Trash2 size={24} />
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-white/70">حذف جميع المنتجات والموردين والسجلات</p>
+              <h3 className="text-lg font-bold">مسح كل بيانات المتجر</h3>
+            </div>
+          </div>
+          <ChevronLeft className="text-white/60" size={20} />
+        </button>
+
+        <button 
           onClick={() => auth.signOut()}
-          className="w-full mt-4 flex items-center justify-center gap-2 p-6 rounded-3xl bg-rose-50 text-rose-600 font-bold transition-all hover:bg-rose-100 dark:bg-rose-900/10 dark:hover:bg-rose-900/20"
+          className="w-full mt-4 flex items-center justify-center gap-2 p-6 rounded-3xl bg-zinc-100 text-zinc-600 font-bold transition-all hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800"
         >
           <LogOut size={20} />
           {t('logout')}
@@ -535,6 +634,42 @@ export default function SettingsPage() {
           إصدار 1.0.0 • مخزوني الذكي
         </div>
       </div>
+
+      <AnimatePresence>
+        {isClearDataModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsClearDataModalOpen(false)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-sm rounded-[32px] bg-white p-8 dark:bg-zinc-900 text-center shadow-2xl">
+              <div className="h-20 w-20 rounded-full bg-[#B34C36]/10 flex items-center justify-center text-[#B34C36] mx-auto mb-6">
+                <Trash2 size={40} className="drop-shadow-sm" />
+              </div>
+              <h2 className="text-2xl font-black text-zinc-900 dark:text-white mb-2">تحذير هام!</h2>
+              <p className="text-sm font-bold text-zinc-500 dark:text-zinc-400 mb-8 leading-relaxed">
+                هل أنت متأكد من مسح جميع البيانات؟ <br/>
+                <span className="text-[#B34C36]">هذا الإجراء لا يمكن التراجع عنه.</span>
+              </p>
+              
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={handleClearAllData}
+                  disabled={isClearing}
+                  className="w-full rounded-2xl py-4 font-black text-white shadow-lg shadow-[#B34C36]/20 active:scale-95 transition-all disabled:opacity-50"
+                  style={{ backgroundColor: '#B34C36' }}
+                >
+                  {isClearing ? 'جاري المسح...' : 'نعم، قم بالمسح النهائي'}
+                </button>
+                <button 
+                  onClick={() => setIsClearDataModalOpen(false)}
+                  disabled={isClearing}
+                  className="w-full rounded-2xl bg-zinc-100 py-4 font-bold text-zinc-600 active:scale-95 transition-all dark:bg-zinc-800 dark:text-zinc-400 disabled:opacity-50"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -13,9 +13,10 @@ export const Card = ({ children, className, variant = 'white' }: any) => {
 
 export const Button = ({ children, onClick, className, variant = 'primary', size = 'md' }: any) => {
   const variants: any = {
-    primary: 'bg-zinc-950 text-white hover:bg-zinc-800 dark:bg-brand-600 dark:hover:bg-brand-700',
+    primary: 'bg-brand-600 text-white hover:bg-brand-700',
     secondary: 'bg-white text-zinc-900 border border-zinc-200 hover:bg-zinc-50 dark:bg-zinc-800 dark:text-white dark:border-zinc-700',
     ghost: 'bg-transparent text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800',
+    danger: 'bg-[#B34C36] text-white hover:opacity-90 transition-opacity shadow-sm',
   };
   
   const sizes: any = {

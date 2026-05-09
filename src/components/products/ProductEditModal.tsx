@@ -285,7 +285,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
               <div className="pt-3">
                 <button 
                   type="submit" 
-                  className="w-full rounded-xl bg-zinc-950 py-3 text-sm font-bold text-white transition-all hover:bg-zinc-900 active:scale-95 shadow-lg shadow-zinc-500/10 dark:bg-brand-600 dark:hover:bg-brand-700"
+                  className="w-full rounded-xl bg-brand-600 py-3 text-sm font-bold text-white transition-all hover:bg-brand-700 active:scale-95 shadow-lg shadow-brand-600/10"
                 >
                   {t('save')}
                 </button>
@@ -297,7 +297,8 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                   <button
                     type="button"
                     onClick={() => onDelete(product)}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold text-rose-500 border border-rose-100 bg-rose-50/50 transition-all hover:bg-rose-50 active:scale-95 dark:border-rose-900/30 dark:bg-rose-950/20 dark:hover:bg-rose-900/40"
+                    className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95"
+                    style={{ backgroundColor: '#B34C36' }}
                   >
                     <Trash2 size={16} />
                     <span>حذف المنتج</span>

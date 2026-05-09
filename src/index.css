@@ -17,9 +17,13 @@
   --color-brand-200: #C1E8FF;
   --color-brand-100: #E6F7FF;
 
-  --color-delete-bg: #FEF2F2;
-  --color-delete-text: #EF4444;
-  --color-delete-border: #FEE2E2;
+  --color-delete-bg: #FCF5F4;
+  --color-delete-text: #B34C36;
+  --color-delete-border: #F8E6E3;
+
+  --color-warn-bg: #FEF9C3;
+  --color-warn-text: #854D0E;
+  --color-warn-border: #FDE047;
 
   --color-edit-bg: #F9FAFB;
   --color-edit-text: #4B5563;

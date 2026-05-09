@@ -46,7 +46,8 @@ export function DeleteConfirmationModal({ isOpen, onClose, onConfirm }: DeleteCo
             <div className="space-y-3">
               <button 
                 onClick={onConfirm}
-                className="w-full rounded-2xl bg-zinc-950 py-5 font-bold text-white shadow-xl transition-all hover:bg-zinc-900 active:scale-95 text-lg dark:bg-brand-600 dark:hover:bg-brand-700"
+                className="w-full rounded-2xl py-5 font-bold text-white shadow-xl transition-all active:scale-95 text-lg shadow-[#B34C36]/20"
+                style={{ backgroundColor: '#B34C36' }}
               >
                 تأكيد
               </button>

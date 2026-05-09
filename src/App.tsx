@@ -220,7 +220,7 @@ function AppContent() {
               </button>
               <button 
                 onClick={() => setActiveTab('expenses')}
-                className={`transition-colors ${activeTab === 'expenses' ? 'text-amber-600' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}
+                className={`transition-colors ${activeTab === 'expenses' ? 'text-warn-text' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}
               >
                 <Wallet size={22} />
               </button>
@@ -242,7 +242,7 @@ function AppContent() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex shrink-0 items-center justify-center gap-2 px-6 py-2 text-sm font-bold transition-all rounded-xl ${
                   activeTab === tab.id 
-                  ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white' 
+                  ? 'bg-brand-600 text-white shadow-sm' 
                   : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'
                 }`}
               >
@@ -372,7 +372,7 @@ function AppContent() {
               exit={{ scale: 0, x: -20 }}
               transition={{ delay: 0.1 }}
               onClick={handlePlusClick}
-              className="pointer-events-auto w-12 h-12 bg-black dark:bg-brand-600 text-white rounded-2xl shadow-2xl flex items-center justify-center transition-all active:scale-95"
+              className="pointer-events-auto w-12 h-12 bg-brand-800 text-white rounded-2xl shadow-2xl flex items-center justify-center transition-all active:scale-95"
             >
               <Plus size={24} />
             </motion.button>

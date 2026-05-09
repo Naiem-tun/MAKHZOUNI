@@ -308,7 +308,7 @@ export default function ShoppingList() {
                 
                 <button 
                   onClick={() => deleteItem(item.id)}
-                  className="h-8 w-8 flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all"
+                  className="h-8 w-8 flex items-center justify-center text-zinc-300 hover:text-[#B34C36] hover:bg-[#B34C36]/5 rounded-lg transition-all"
                   title="حذف"
                 >
                   <Trash2 size={14} />
