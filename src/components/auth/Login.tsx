@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { auth, setupRecaptcha, signInWithGoogle, getRedirectResult } from '../../lib/firebase';
+import { auth, setupRecaptcha, signInWithGoogle, getGoogleRedirectResult } from '../../lib/firebase';
 import { signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
 import { useTranslation } from 'react-i18next';
 import { Phone, ArrowRight, Package, Globe, ShieldCheck } from 'lucide-react';
@@ -14,12 +14,18 @@ export function Login() {
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [isRedirecting, setIsRedirecting] = useState(true);
+  const recaptchaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Check for redirect result from Google Sign In
     const checkRedirect = async () => {
+      if (!auth) {
+        setIsRedirecting(false);
+        return;
+      }
+
       try {
-        const result = await getRedirectResult(auth);
+        const result = await getGoogleRedirectResult();
         // If result exists, onAuthStateChanged in AppContext will handle the user update
         // We stay in redirecting state until that happens or until we confirm no result
         if (!result) {
@@ -27,19 +33,39 @@ export function Login() {
         }
       } catch (error: any) {
         console.error('Redirect result error:', error);
-        setError(error.message || t('login_failed'));
+        // Don't show technical auth/argument-error to user if possible
+        if (error.code !== 'auth/argument-error') {
+          setError(error.message || t('login_failed'));
+        }
         setIsRedirecting(false);
       }
     };
     
     checkRedirect();
     
-    // Only initialized once
-    window.recaptchaVerifier = setupRecaptcha('recaptcha-container');
-    return () => {
-      window.recaptchaVerifier?.clear();
+    // Initialize reCAPTCHA once mounted
+    const initRecaptcha = () => {
+      if (recaptchaRef.current && !window.recaptchaVerifier) {
+        window.recaptchaVerifier = setupRecaptcha(recaptchaRef.current);
+      }
     };
-  }, []);
+
+    // If we're not redirecting, we can init immediately
+    if (!isRedirecting) {
+      initRecaptcha();
+    } else {
+      // Otherwise wait a bit to ensure DOM is ready or redirect checked
+      const timer = setTimeout(initRecaptcha, 500);
+      return () => clearTimeout(timer);
+    }
+
+    return () => {
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = null;
+      }
+    };
+  }, [isRedirecting, t]);
 
   if (isRedirecting && !error) {
     return (
@@ -216,7 +242,7 @@ export function Login() {
         )}
       </motion.div>
       
-      <div id="recaptcha-container"></div>
+      <div ref={recaptchaRef}></div>
     </div>
   );
 }
