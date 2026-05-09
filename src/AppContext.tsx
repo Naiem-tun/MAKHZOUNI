@@ -77,6 +77,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setUser(userData);
         localStorage.setItem('has_session', 'true');
         localStorage.setItem('user_session', JSON.stringify(userData));
+        setLoading(false); // Make sure we set loading false here too
       } else {
         setUser(null);
         localStorage.removeItem('has_session');
@@ -126,11 +127,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }, (error) => {
       // Don't treat offline as a fatal error for settings
+      setLoading(false);
       if (!navigator.onLine) {
-        setLoading(false);
+        return;
       } else {
         handleFirestoreError(error, OperationType.GET, `users/${user.uid}/settings/config`);
-        setLoading(false);
       }
     });
 

@@ -5,7 +5,8 @@ import {
   signInWithRedirect,
   getRedirectResult,
   RecaptchaVerifier,
-  Auth
+  Auth,
+  signInWithPopup
 } from 'firebase/auth';
 import { 
   initializeFirestore, 

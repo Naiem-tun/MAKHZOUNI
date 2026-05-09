@@ -139,7 +139,7 @@ function AppContent() {
     }
   };
 
-  const showSplash = loading || (user && !isDataLoaded);
+  const showSplash = loading;
 
   return (
     <>

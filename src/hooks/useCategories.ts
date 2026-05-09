@@ -38,8 +38,8 @@ export function useCategories() {
       setCategories(cats);
       setLoading(false);
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, `users/${user.uid}/categories`);
       setLoading(false);
+      handleFirestoreError(error, OperationType.GET, `users/${user.uid}/categories`);
     });
 
     return unsubscribe;

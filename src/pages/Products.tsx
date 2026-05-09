@@ -54,9 +54,9 @@ export default function Products() {
       setLoading(false);
       setIsDataLoaded(true);
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, path);
       setLoading(false);
       setIsDataLoaded(true);
+      handleFirestoreError(error, OperationType.LIST, path);
     });
   }, [user, setIsDataLoaded]);
 
