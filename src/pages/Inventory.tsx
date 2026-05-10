@@ -23,8 +23,8 @@ import { cn, safeParseFloat, handleFirestoreError, formatCurrency } from '../lib
 import { OperationType } from '../types';
 import { ProductPagination } from '../components/products/ProductPagination';
 import { useCategories } from '../hooks/useCategories';
+import { BarcodeScanner } from '../components/common/BarcodeScanner';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 
 // Updated ProductIcon component to match ProductCard's style (w-9 h-9)
 const ProductIcon = ({ className }: { className?: string }) => (
@@ -77,6 +77,21 @@ export default function Inventory() {
   
   const [showReportView, setShowReportView] = useState(false);
   const [currentReport, setCurrentReport] = useState<any>(null);
+  
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  const handleScan = (decodedText: string) => {
+    setIsScannerOpen(false);
+    
+    const foundProduct = products.find(p => p.barcode === decodedText || p.barcode2 === decodedText);
+    
+    if (foundProduct) {
+      setSearchTerm(decodedText);
+      showToast(`تم العثور على: ${foundProduct.name}`, 'success');
+    } else {
+      showToast('المنتج غير موجود في المخزن', 'error');
+    }
+  };
   
   // Persistence: Save inventory data to localStorage
   useEffect(() => {
@@ -322,49 +337,26 @@ export default function Inventory() {
     });
   };
 
-  const generatePDF = (report: any) => {
-    const doc = new jsPDF();
-    const dateStr = report.date?.toDate 
-      ? report.date.toDate().toLocaleString('ar-TN') 
-      : (report.date ? new Date(report.date).toLocaleString('ar-TN') : '—');
-    
-    // Header
-    doc.setFontSize(20);
-    doc.text('Inventory Audit Report', 105, 20, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`Date: ${dateStr}`, 105, 30, { align: 'center' });
-    
-    // Summary Table
-    autoTable(doc, {
-      startY: 40,
-      head: [['Metric', 'Value']],
-      body: [
-        ['Total Sales', formatCurrency(report.totalRevenue || 0, settings.currency, settings.language)],
-        ['Total Profit', formatCurrency(report.totalProfit || 0, settings.currency, settings.language)],
-        ['Total Expenses', formatCurrency(report.totalExpenses || 0, settings.currency, settings.language)],
-        ['Net Profit', formatCurrency(report.netProfit || 0, settings.currency, settings.language)],
-      ],
-      theme: 'grid',
-    });
-
-    // Details Table
-    autoTable(doc, {
-      startY: (doc as any).lastAutoTable?.finalY + 10 || 100,
-      head: [['Product', 'Sold', 'Profit']],
-      body: (report.items || []).map((item: any) => [
-        item.productName || '—',
-        item.salesCalculated || 0,
-        formatCurrency(item.profit || 0, settings.currency, settings.language)
-      ]),
-      theme: 'striped',
-    });
-
-    doc.save(`inventory_report_${new Date().getTime()}.pdf`);
+  const generatePDF = async (report: any) => {
+    try {
+      showToast('جاري تحضير ملف PDF...');
+      
+      // Allow DOM to update before printing
+      setTimeout(() => {
+        window.print();
+        showToast('تم تحميل التقرير بنجاح', 'success');
+      }, 500);
+      
+    } catch (err) {
+      console.error(err);
+      showToast('حدث خطأ أثناء تحميل التقرير', 'error');
+    }
   };
 
   if (showReportView && currentReport) {
     return (
       <motion.div 
+        id="pdf-report-content"
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         className="space-y-6 pb-40 min-h-screen relative" dir="rtl"
@@ -373,7 +365,7 @@ export default function Inventory() {
         <div className="flex items-center justify-between px-4 pt-4">
           <button 
             onClick={() => setShowReportView(false)}
-            className="w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl text-zinc-400"
+            className="print-hidden w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl text-zinc-400"
           >
             <ArrowRight size={20} />
           </button>
@@ -470,10 +462,10 @@ export default function Inventory() {
         </div>
 
         {/* PDF Button */}
-        <div className="fixed bottom-10 left-6 right-6 z-40">
+        <div className="print-hidden fixed bottom-10 left-6 right-6 z-40">
           <button 
             onClick={() => generatePDF(currentReport)}
-            className="w-full py-4 shadow-2xl rounded-2xl text-base font-black bg-zinc-950 dark:bg-brand-600 text-white flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
+            className="w-full py-4 shadow-2xl rounded-2xl text-base font-black bg-[#4A6FA5] dark:bg-[#4A6FA5] text-white flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
           >
             <Download size={20} />
             <span>تحميل التقرير PDF</span>
@@ -702,7 +694,10 @@ export default function Inventory() {
       {/* Search Bar & Categories */}
       <div className="space-y-3 px-4">
         <div className="flex gap-2">
-          <button className="w-11 h-11 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm active:scale-95">
+          <button 
+            onClick={() => setIsScannerOpen(true)}
+            className="w-11 h-11 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm active:scale-95"
+          >
             <ScanBarcode size={20} className="text-zinc-400" />
           </button>
           <div className="relative flex-1">
@@ -859,12 +854,18 @@ export default function Inventory() {
       <div className="fixed bottom-6 left-6 right-6 z-40 flex justify-center">
         <motion.button 
           onClick={handleCompleteInventory} 
-          className="w-full py-4 shadow-2xl rounded-2xl text-base font-black bg-zinc-950 dark:bg-brand-600 text-white flex items-center justify-center gap-3"
+          className="w-full py-4 shadow-2xl rounded-2xl text-base font-black bg-[#4A6FA5] dark:bg-[#4A6FA5] text-white flex items-center justify-center gap-3"
         >
           <ClipboardCheck size={22} />
           <span>حفظ الجرد وحساب النتائج</span>
         </motion.button>
       </div>
+
+      <BarcodeScanner 
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScan={handleScan}
+      />
     </div>
   );
 }

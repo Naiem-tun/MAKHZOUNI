@@ -266,7 +266,7 @@ export default function Products() {
               setEditingProduct(null);
               setIsModalOpen(true);
             }}
-            className="flex items-center gap-1.5 rounded-2xl bg-zinc-950 px-3 py-2 sm:px-4 sm:py-2 text-sm font-bold text-white transition-all hover:bg-zinc-900 shadow-lg shadow-zinc-500/20 active:scale-95 whitespace-nowrap"
+            className="flex items-center gap-1.5 rounded-2xl bg-[#4A6FA5] px-3 py-2 sm:px-4 sm:py-2 text-sm font-bold text-white transition-all hover:bg-[#4A6FA5]/90 shadow-lg shadow-[#4A6FA5]/20 active:scale-95 whitespace-nowrap"
           >
             <Plus size={16} strokeWidth={3} />
             {t('add_product')}

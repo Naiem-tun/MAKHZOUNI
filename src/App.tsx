@@ -200,7 +200,7 @@ function AppContent() {
               </button>
               <div 
                 onClick={() => setActiveTab('dashboard')}
-                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-2xl bg-zinc-950 text-white shadow-lg shadow-brand-100 transition-all hover:scale-105 active:scale-95 dark:shadow-none"
+                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-2xl bg-[#4A6FA5] text-white shadow-lg shadow-[#4A6FA5]/20 transition-all hover:scale-105 active:scale-95 dark:shadow-none"
               >
                 <Home size={22} />
               </div>
@@ -240,20 +240,14 @@ function AppContent() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex shrink-0 items-center justify-center gap-2 px-5 py-4 text-sm font-bold transition-all relative ${
+                className={`flex shrink-0 items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all relative ${
                    activeTab === tab.id 
-                  ? 'text-zinc-950 dark:text-white' 
-                  : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'
+                  ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white' 
+                  : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
                 }`}
               >
                 <tab.icon size={16} />
                 <span>{tab.label}</span>
-                {activeTab === tab.id && (
-                  <motion.div 
-                    layoutId="activeTabUnderline"
-                    className="absolute bottom-0 left-2 right-2 h-0.5 bg-zinc-950 dark:bg-white rounded-full"
-                  />
-                )}
               </button>
             ))}
           </div>
@@ -370,7 +364,7 @@ function AppContent() {
               exit={{ scale: 0, x: -20 }}
               transition={{ delay: 0.1 }}
               onClick={handlePlusClick}
-              className="pointer-events-auto w-12 h-12 bg-zinc-950 text-white rounded-2xl shadow-2xl flex items-center justify-center transition-all active:scale-95"
+              className="pointer-events-auto w-12 h-12 bg-[#4A6FA5] text-white rounded-2xl shadow-xl flex items-center justify-center transition-all active:scale-95 hover:bg-[#4A6FA5]/90"
             >
               <Plus size={24} />
             </motion.button>
