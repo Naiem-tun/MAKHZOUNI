@@ -39,7 +39,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.02 }}
       onClick={() => onEdit(product)}
-      className="flex items-center justify-between gap-3 bg-white dark:bg-neutral-900 border border-zinc-200 dark:border-neutral-800 py-2 px-3 rounded-2xl group cursor-pointer active:scale-[0.98] transition-transform"
+      className="flex items-center justify-between gap-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 py-2 px-3 rounded-2xl group cursor-pointer active:scale-[0.98] transition-transform"
     >
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <ProductIcon category={product.category} className="w-8 h-8 shrink-0" />

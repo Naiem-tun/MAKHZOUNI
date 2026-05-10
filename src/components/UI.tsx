@@ -5,7 +5,7 @@ import { Package } from 'lucide-react';
 export const Card = ({ children, className, variant = 'white' }: any) => {
   const bg = variant === 'white' ? 'bg-white dark:bg-zinc-900' : 'bg-zinc-50 dark:bg-zinc-800';
   return (
-    <div className={cn("rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm", bg, className)}>
+    <div className={cn("rounded-2xl border border-neutral-200 dark:border-neutral-800", bg, className)}>
       {children}
     </div>
   );
