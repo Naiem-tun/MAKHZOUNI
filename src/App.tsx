@@ -157,7 +157,7 @@ function AppContent() {
                 transition={{ duration: 0.5, ease: "easeOut" }}
                 className="flex flex-col items-center gap-6"
               >
-                <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-brand-600 text-white shadow-2xl shadow-brand-500/20">
+                <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-2xl shadow-brand-500/20">
                   <Package size={48} />
                 </div>
                 <h1 className="text-3xl font-black tracking-tighter text-zinc-900 dark:text-white sm:text-4xl text-center">
@@ -200,7 +200,7 @@ function AppContent() {
               </button>
               <div 
                 onClick={() => setActiveTab('dashboard')}
-                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl bg-brand-600 text-white shadow-lg shadow-brand-100 transition-all hover:scale-105 active:scale-95 dark:shadow-none"
+                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-2xl bg-zinc-950 text-white shadow-lg shadow-brand-100 transition-all hover:scale-105 active:scale-95 dark:shadow-none"
               >
                 <Home size={22} />
               </div>
@@ -240,14 +240,20 @@ function AppContent() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex shrink-0 items-center justify-center gap-2 px-6 py-2 text-sm font-bold transition-all rounded-xl ${
-                  activeTab === tab.id 
-                  ? 'bg-brand-600 text-white shadow-sm' 
+                className={`flex shrink-0 items-center justify-center gap-2 px-5 py-4 text-sm font-bold transition-all relative ${
+                   activeTab === tab.id 
+                  ? 'text-zinc-950 dark:text-white' 
                   : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'
                 }`}
               >
                 <tab.icon size={16} />
-                {tab.label}
+                <span>{tab.label}</span>
+                {activeTab === tab.id && (
+                  <motion.div 
+                    layoutId="activeTabUnderline"
+                    className="absolute bottom-0 left-2 right-2 h-0.5 bg-zinc-950 dark:bg-white rounded-full"
+                  />
+                )}
               </button>
             ))}
           </div>
@@ -303,23 +309,15 @@ function AppContent() {
                   className="flex w-full items-center justify-between px-4 py-3 rounded-2xl transition-all text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
                 >
                   <div className="flex items-center gap-3">
-                    <Wallet size={20} className={settings.showFinancials ? 'text-amber-500' : 'text-zinc-400'} />
+                    <Wallet size={20} className={settings.showFinancials ? 'text-brand-600' : 'text-zinc-400'} />
                     <span className="font-medium">{t('financial_stats')}</span>
                   </div>
-                  <div className={`relative h-6 w-11 rounded-full transition-colors ${settings.showFinancials ? 'bg-amber-500' : 'bg-zinc-200 dark:bg-zinc-700'}`}>
+                  <div className={`relative h-6 w-11 rounded-full transition-colors ${settings.showFinancials ? 'bg-zinc-950' : 'bg-zinc-200 dark:bg-zinc-700'}`}>
                     <motion.div 
                       animate={{ x: settings.showFinancials ? 22 : 4 }}
                       className="absolute left-0 top-1 h-4 w-4 rounded-full bg-white shadow-sm"
                     />
                   </div>
-                </button>
-
-                <button
-                  onClick={() => auth.signOut()}
-                  className="flex w-full items-center gap-3 px-4 py-3 rounded-2xl text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all"
-                >
-                  <LogOut size={20} />
-                  <span className="font-medium">{t('logout')}</span>
                 </button>
               </nav>
             </motion.div>
@@ -372,7 +370,7 @@ function AppContent() {
               exit={{ scale: 0, x: -20 }}
               transition={{ delay: 0.1 }}
               onClick={handlePlusClick}
-              className="pointer-events-auto w-12 h-12 bg-brand-800 text-white rounded-2xl shadow-2xl flex items-center justify-center transition-all active:scale-95"
+              className="pointer-events-auto w-12 h-12 bg-zinc-950 text-white rounded-2xl shadow-2xl flex items-center justify-center transition-all active:scale-95"
             >
               <Plus size={24} />
             </motion.button>

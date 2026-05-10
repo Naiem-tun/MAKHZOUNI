@@ -271,20 +271,13 @@ export default function Suppliers() {
                     : 'border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${
-                    isToday 
-                      ? 'bg-brand-500 text-white' 
-                      : 'bg-brand-50 text-brand-600 dark:bg-brand-950/20'
-                  }`}>
-                    <Truck size={20} />
-                  </div>
+                <div className="flex items-center gap-2">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <div className="flex flex-col">
                         <h3 className="text-base font-bold text-zinc-900 dark:text-white truncate">{s.name}</h3>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="inline-flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-1.5 py-0.5 rounded-lg text-[10px] font-black border border-zinc-200 dark:border-zinc-700">
+                          <span className="inline-flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-1.5 py-0.5 rounded-xl text-[10px] font-bold border border-zinc-200 dark:border-zinc-700">
                             {s.txCount || 0} عمليات
                           </span>
                         </div>
@@ -292,7 +285,7 @@ export default function Suppliers() {
                       <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500 shrink-0">{s.typeOfGoods}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {isToday && <span className="text-[10px] font-bold text-brand-500">• يزورك اليوم</span>}
+                      {isToday && <span className="text-[10px] font-bold text-brand-600">يزورك اليوم</span>}
                     </div>
                   </div>
                 </div>
@@ -301,14 +294,14 @@ export default function Suppliers() {
                     <a 
                       href={`tel:${s.phone}`} 
                       onClick={(e) => e.stopPropagation()}
-                      className="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-50 text-brand-600 border border-zinc-100 hover:bg-zinc-100 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-700 transition-colors"
+                      className="w-10 h-10 flex items-center justify-center rounded-2xl bg-zinc-50 text-brand-600 border border-zinc-100 hover:bg-zinc-100 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-700 transition-colors"
                     >
                       <Phone size={18}/>
                     </a>
                   )}
                   <button 
                     onClick={(e) => { e.stopPropagation(); setSelectedSupplier(s); setIsAddTxModalOpen(true); }} 
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-brand-600 text-white hover:opacity-90 transition-all font-bold shadow-sm"
+                    className="w-10 h-10 flex items-center justify-center rounded-2xl bg-brand-600 text-white hover:opacity-90 transition-all font-bold shadow-sm"
                   >
                     <Plus size={18} />
                   </button>
@@ -327,7 +320,7 @@ export default function Suppliers() {
           className="max-w-fit bg-brand-50/80 dark:bg-brand-950/90 backdrop-blur-md border border-brand-100 dark:border-brand-900 px-6 py-2.5 rounded-full shadow-lg shadow-brand-500/10 pointer-events-auto relative"
         >
           {/* Decorative handle at top */}
-          <div className="absolute -top-1 w-6 h-2 bg-white dark:bg-brand-900 left-1/2 -translate-x-1/2 rounded-t-md border-t border-x border-brand-100 dark:border-brand-800" />
+          <div className="absolute -top-1 w-6 h-2 bg-white dark:bg-brand-900 left-1/2 -translate-x-1/2 rounded-t-md border-t border-x border-brand-100 dark:border-zinc-800" />
           
           <div className="flex items-center justify-center gap-2">
             <span className="text-xl font-black text-brand-900 dark:text-white tracking-tight">
@@ -345,7 +338,7 @@ export default function Suppliers() {
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
-            <motion.div key={editingSupplier?.id || 'new'} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-3xl bg-white p-8 dark:bg-zinc-900">
+            <motion.div key={editingSupplier?.id || 'new'} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-2xl bg-white p-8 dark:bg-zinc-900">
               <h2 className="mb-6 text-2xl font-bold text-zinc-900 dark:text-white">{editingSupplier ? 'تعديل بيانات المورد' : 'إضافة مورد جديد'}</h2>
               <form onSubmit={handleSave} className="space-y-4 text-right">
                 <div>
@@ -361,28 +354,62 @@ export default function Suppliers() {
                   <input name="typeOfGoods" placeholder="مثل: المواد الغذائية" defaultValue={editingSupplier?.typeOfGoods} className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-neutral-400 mb-2 block">أيام الزيارة (للمتابعة الذكية)</label>
-                  <div className="flex flex-row-reverse flex-wrap gap-2">
-                    {days.map((day) => (
-                      <button
-                        key={day.id}
-                        type="button"
-                        onClick={() => {
-                          if (selectedVisitDays.includes(day.id)) {
-                            setSelectedVisitDays(selectedVisitDays.filter(d => d !== day.id));
-                          } else {
-                            setSelectedVisitDays([...selectedVisitDays, day.id]);
-                          }
-                        }}
-                        className={`px-3 py-2 rounded-xl text-[10px] font-bold transition-all ${
-                          selectedVisitDays.includes(day.id)
-                            ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20'
-                            : 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800'
-                        }`}
-                      >
-                        {day.name}
-                      </button>
-                    ))}
+                  <label className="text-xs font-bold text-zinc-400 mb-3 block">أيام الزيارة الأسبوعية</label>
+                  <div className="space-y-2">
+                    {/* Row 1: Sun-Wed */}
+                    <div className="grid grid-cols-4 gap-2">
+                      {[0, 1, 2, 3].map((id) => {
+                        const day = days.find(d => d.id === id);
+                        if (!day) return null;
+                        return (
+                          <button
+                            key={day.id}
+                            type="button"
+                            onClick={() => {
+                              if (selectedVisitDays.includes(day.id)) {
+                                setSelectedVisitDays(selectedVisitDays.filter(d => d !== id));
+                              } else {
+                                setSelectedVisitDays([...selectedVisitDays, id]);
+                              }
+                            }}
+                            className={`py-3 rounded-2xl text-[11px] font-black transition-all ${
+                              selectedVisitDays.includes(day.id)
+                                ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20'
+                                : 'bg-zinc-50 text-zinc-500 dark:bg-zinc-800/50 dark:text-zinc-400 border border-zinc-100 dark:border-zinc-800'
+                            }`}
+                          >
+                            {day.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {/* Row 2: Thu-Sat */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {[4, 5, 6].map((id) => {
+                        const day = days.find(d => d.id === id);
+                        if (!day) return null;
+                        return (
+                          <button
+                            key={day.id}
+                            type="button"
+                            onClick={() => {
+                              if (selectedVisitDays.includes(day.id)) {
+                                setSelectedVisitDays(selectedVisitDays.filter(d => d !== id));
+                              } else {
+                                setSelectedVisitDays([...selectedVisitDays, id]);
+                              }
+                            }}
+                            className={`py-3 rounded-2xl text-[11px] font-black transition-all ${
+                              selectedVisitDays.includes(day.id)
+                                ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20'
+                                : 'bg-zinc-50 text-zinc-500 dark:bg-zinc-800/50 dark:text-zinc-400 border border-zinc-100 dark:border-zinc-800'
+                            }`}
+                          >
+                            {day.name}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
                 <div className="flex gap-3 pt-4">
@@ -399,7 +426,7 @@ export default function Suppliers() {
         {isAddTxModalOpen && selectedSupplier && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAddTxModalOpen(false)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-3xl bg-white p-8 dark:bg-zinc-900">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-2xl bg-white p-8 dark:bg-zinc-900">
               <div className="flex items-center gap-3 mb-6">
                 <div className="h-12 w-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 flex items-center justify-center text-emerald-600">
                   <CirclePlus size={24} />
@@ -439,7 +466,7 @@ export default function Suppliers() {
         {isHistoryModalOpen && selectedSupplier && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsHistoryModalOpen(false)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-lg rounded-3xl bg-white p-8 dark:bg-zinc-900">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-lg rounded-2xl bg-white p-8 dark:bg-zinc-900">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <div className="h-12 w-12 rounded-2xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-500">
@@ -449,13 +476,13 @@ export default function Suppliers() {
                     <h2 className="text-xl font-bold text-zinc-900 dark:text-white">سجل العمليات</h2>
                     <div className="flex items-center gap-2">
                       <p className="text-xs text-zinc-500">{selectedSupplier.name}</p>
-                      <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-500 font-bold">
+                      <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-xl text-zinc-500 font-bold">
                         {transactions.filter(t => t.supplierId === selectedSupplier.id).length} عمليات
                       </span>
                     </div>
                   </div>
                 </div>
-                <button onClick={() => setIsHistoryModalOpen(false)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-zinc-100 text-zinc-500 dark:bg-zinc-800">
+                <button onClick={() => setIsHistoryModalOpen(false)} className="h-10 w-10 flex items-center justify-center rounded-2xl bg-zinc-100 text-zinc-500 dark:bg-zinc-800">
                   <X size={20} />
                 </button>
               </div>
@@ -471,7 +498,7 @@ export default function Suppliers() {
                   .map((tx) => (
                     <div key={tx.id} className="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-white dark:bg-zinc-800 flex items-center justify-center text-brand-600 shadow-sm">
+                        <div className="h-10 w-10 rounded-2xl bg-white dark:bg-zinc-800 flex items-center justify-center text-brand-600 shadow-sm">
                           <Calendar size={18} />
                         </div>
                         <div>
@@ -484,7 +511,7 @@ export default function Suppliers() {
                       </div>
                       <button 
                         onClick={() => setDeleteTxConfirmId(tx.id!)}
-                        className="p-2 rounded-lg text-[#B34C36] hover:bg-[#B34C36]/5 transition-colors"
+                        className="p-2 rounded-xl text-[#B34C36] hover:bg-[#B34C36]/5 transition-colors"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -517,7 +544,7 @@ export default function Suppliers() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.95, y: 10 }} 
-              className="relative w-full max-w-[280px] rounded-3xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
+              className="relative w-full max-w-[280px] rounded-2xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
               <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
                 هل أنت متأكد من حذف المورد <span className="text-[#B34C36]">"{deleteConfirmName}"</span>؟ سيتم حذف جميع العمليات المرتبطة به.
@@ -526,14 +553,14 @@ export default function Suppliers() {
                 <button 
                   onClick={handleDeleteSupplier}
                   disabled={isSaving}
-                  className="flex-1 py-2.5 rounded-xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-2xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
                   style={{ backgroundColor: '#B34C36' }}
                 >
                   تأكيد
                 </button>
                 <button 
                   onClick={() => setDeleteConfirmId(null)}
-                  className="flex-1 py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-xl text-[12px] font-bold active:scale-95 transition-all"
+                  className="flex-1 py-2.5 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 text-[12px] font-bold active:scale-95 transition-all"
                 >
                   إلغاء
                 </button>
@@ -549,7 +576,7 @@ export default function Suppliers() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.95, y: 10 }} 
-              className="relative w-full max-w-[280px] rounded-3xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
+              className="relative w-full max-w-[280px] rounded-2xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
               <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 font-bold">
                 هل أنت متأكد من حذف هذه العملية؟
@@ -557,14 +584,14 @@ export default function Suppliers() {
               <div className="flex gap-2">
                 <button 
                   onClick={handleDeleteTransaction}
-                  className="flex-1 py-2.5 rounded-xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px]"
+                  className="flex-1 py-2.5 rounded-2xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px]"
                   style={{ backgroundColor: '#B34C36' }}
                 >
                   تأكيد
                 </button>
                 <button 
                   onClick={() => setDeleteTxConfirmId(null)}
-                  className="flex-1 py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-xl text-[12px] font-bold active:scale-95 transition-all"
+                  className="flex-1 py-2.5 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 text-[12px] font-bold active:scale-95 transition-all"
                 >
                   إلغاء
                 </button>
@@ -580,7 +607,7 @@ export default function Suppliers() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.95, y: 10 }} 
-              className="relative w-full max-w-[280px] rounded-3xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
+              className="relative w-full max-w-[280px] rounded-2xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
               <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
                 هل أنت متأكد من حذف جميع عمليات الموردين المسجلة؟
@@ -589,14 +616,14 @@ export default function Suppliers() {
                 <button 
                   onClick={handleClearAllTransactions}
                   disabled={isSaving}
-                  className="flex-1 py-2.5 rounded-xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-2xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
                   style={{ backgroundColor: '#B34C36' }}
                 >
                   تأكيد
                 </button>
                 <button 
                   onClick={() => setIsClearAllConfirmOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-xl text-[12px] font-bold active:scale-95 transition-all"
+                  className="flex-1 py-2.5 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 text-[12px] font-bold active:scale-95 transition-all"
                 >
                   إلغاء
                 </button>

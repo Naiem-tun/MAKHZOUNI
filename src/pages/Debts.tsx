@@ -173,7 +173,7 @@ export default function Debts() {
               className="relative z-10 flex cursor-pointer items-center justify-between rounded-2xl bg-white p-3 shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800"
             >
               <div className="flex items-center gap-3">
-                <div className={`h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 shrink-0`}>
+                <div className={`h-10 w-10 rounded-2xl bg-zinc-50 flex items-center justify-center text-zinc-400 shrink-0`}>
                   <BookOpen size={20} />
                 </div>
                 <div className="min-w-0">
@@ -196,7 +196,7 @@ export default function Debts() {
                     setActionType('select');
                     setActionAmount('');
                   }}
-                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-50 text-brand-600 border border-zinc-100 hover:bg-zinc-100 dark:bg-zinc-800 dark:border-zinc-700 dark:text-brand-400 dark:hover:bg-zinc-700 transition-colors"
+                  className="w-10 h-10 flex items-center justify-center rounded-2xl bg-zinc-50 text-brand-600 border border-zinc-100 hover:bg-zinc-100 dark:bg-zinc-800 dark:border-zinc-700 dark:text-brand-400 dark:hover:bg-zinc-700 transition-colors"
                 >
                   <ArrowRightLeft size={18}/>
                 </button>
@@ -210,7 +210,7 @@ export default function Debts() {
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
-            <motion.div key={editingDebt?.id || 'new'} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-3xl bg-white p-8 dark:bg-zinc-900 text-right">
+            <motion.div key={editingDebt?.id || 'new'} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-2xl bg-white p-8 dark:bg-zinc-900 text-right">
               <h2 className="mb-6 text-2xl font-bold text-zinc-900 dark:text-white">
                 {editingDebt ? 'تعديل بيانات الدين' : 'إضافة دين جديد'}
               </h2>
@@ -234,7 +234,7 @@ export default function Debts() {
         {actionDebt && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:items-end">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActionDebt(null)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }} className="relative w-full max-w-md rounded-3xl bg-white p-6 dark:bg-zinc-900 text-right">
+            <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }} className="relative w-full max-w-md rounded-2xl bg-white p-6 dark:bg-zinc-900 text-right">
               <div className="flex items-center justify-between mb-6">
                 <button onClick={() => setActionDebt(null)} className="p-2 -ml-2 text-zinc-500 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800"><X size={20} /></button>
                 <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
@@ -301,7 +301,7 @@ export default function Debts() {
         {activeDebt && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActiveDebt(null)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }} className="relative w-full max-w-xl rounded-3xl bg-white p-8 dark:bg-zinc-900 max-h-[80vh] overflow-y-auto">
+            <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }} className="relative w-full max-w-xl rounded-2xl bg-white p-8 dark:bg-zinc-900 max-h-[80vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-8">
                 <button onClick={() => setActiveDebt(null)}><X size={24} className="text-zinc-500" /></button>
                 <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">سجل العمليات لـ {activeDebt.customerName}</h2>
@@ -344,7 +344,7 @@ export default function Debts() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.95, y: 10 }} 
-              className="relative w-full max-w-[280px] rounded-3xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
+              className="relative w-full max-w-[280px] rounded-2xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
               <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
                 هل أنت متأكد من حذف سجل الدين الخاص بـ <span className="text-[#B34C36]">"{deleteConfirmName}"</span>؟
@@ -353,14 +353,14 @@ export default function Debts() {
                 <button 
                   onClick={handleDeleteDebt}
                   disabled={isSaving}
-                  className="flex-1 py-2.5 rounded-xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-2xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
                   style={{ backgroundColor: '#B34C36' }}
                 >
                   تأكيد
                 </button>
                 <button 
                   onClick={() => setDeleteConfirmId(null)}
-                  className="flex-1 py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-xl text-[12px] font-bold active:scale-95 transition-all"
+                  className="flex-1 py-2.5 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 text-[12px] font-bold active:scale-95 transition-all"
                 >
                   إلغاء
                 </button>

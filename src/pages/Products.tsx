@@ -257,7 +257,7 @@ export default function Products() {
     <div className="space-y-6">
       <header className="flex items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t('products')}</h1>
+          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('products')}</h1>
           <p className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400">إدارة قائمة السلع والأسعار والمخزون</p>
         </div>
         <div>
@@ -266,7 +266,7 @@ export default function Products() {
               setEditingProduct(null);
               setIsModalOpen(true);
             }}
-            className="flex items-center gap-1.5 rounded-xl bg-brand-600 px-3 py-2 sm:px-4 sm:py-2 text-sm font-bold text-white transition-all hover:bg-brand-700 shadow-lg shadow-brand-500/20 active:scale-95 whitespace-nowrap"
+            className="flex items-center gap-1.5 rounded-2xl bg-zinc-950 px-3 py-2 sm:px-4 sm:py-2 text-sm font-bold text-white transition-all hover:bg-zinc-900 shadow-lg shadow-zinc-500/20 active:scale-95 whitespace-nowrap"
           >
             <Plus size={16} strokeWidth={3} />
             {t('add_product')}
@@ -294,7 +294,7 @@ export default function Products() {
                 setScannerTarget('search');
                 setIsScannerOpen(true);
               }}
-              className="flex h-9 w-9 items-center justify-center rounded-xl text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-all active:scale-90 dark:text-zinc-500 dark:hover:bg-zinc-800"
+              className="flex h-9 w-9 items-center justify-center rounded-2xl text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-all active:scale-90 dark:text-zinc-500 dark:hover:bg-zinc-800"
             >
               <Barcode size={20} />
             </button>
@@ -305,7 +305,7 @@ export default function Products() {
             <select 
               value={stockFilter}
               onChange={(e) => setStockFilter(e.target.value)}
-              className="appearance-none flex items-center gap-2 rounded-xl border border-zinc-200 bg-white pr-8 pl-3 py-2 text-sm font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 cursor-pointer min-w-[110px]"
+              className="appearance-none flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white pr-8 pl-3 py-2 text-sm font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 cursor-pointer min-w-[110px]"
             >
               <option value="all">كل المخزون</option>
               <option value="available">المتوفر</option>
@@ -321,7 +321,7 @@ export default function Products() {
             <select 
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="appearance-none flex items-center gap-2 rounded-xl border border-zinc-200 bg-white pr-8 pl-3 py-2 text-sm font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 cursor-pointer min-w-[130px]"
+              className="appearance-none flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white pr-8 pl-3 py-2 text-sm font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 cursor-pointer min-w-[130px]"
             >
               <option value="all">{t('all_categories')}</option>
               {categories.map((c) => (
@@ -336,7 +336,7 @@ export default function Products() {
           <button
             onClick={() => setShowBoxInfo(!showBoxInfo)}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-xl border transition-all text-sm font-bold",
+              "flex items-center gap-2 px-4 py-2 rounded-2xl border transition-all text-sm font-bold",
               showBoxInfo 
                 ? "bg-brand-50 border-brand-200 text-brand-600" 
                 : "bg-white border-zinc-200 text-zinc-500 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-500"

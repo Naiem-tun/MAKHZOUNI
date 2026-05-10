@@ -80,12 +80,12 @@ export default function Expenses() {
     <div className="space-y-5 pb-24" dir="rtl">
       <header className="flex items-center justify-between px-1">
         <div className="text-right">
-          <h1 className="text-2xl font-black text-zinc-900 dark:text-white">المصاريف</h1>
+          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">المصاريف</h1>
           <p className="text-zinc-400 text-[11px] font-bold">إدارة ميزانية المتجر</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)} 
-          className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-[13px] font-black text-white shadow-lg shadow-[#B34C36]/20 active:scale-95 transition-transform"
+          className="flex items-center gap-2 rounded-2xl px-4 py-2.5 text-[13px] font-black text-white shadow-lg shadow-[#B34C36]/20 active:scale-95 transition-transform"
           style={{ backgroundColor: '#B34C36' }}
         >
           <Plus size={16} />
@@ -95,14 +95,14 @@ export default function Expenses() {
 
       {/* Summary Card */}
       <div className="px-1">
-        <div className="p-5 bg-amber-50/50 dark:bg-amber-950/10 rounded-3xl border border-amber-100/50 dark:border-amber-900/20 flex items-center justify-between">
+        <div className="p-5 bg-amber-50/50 dark:bg-amber-950/10 rounded-2xl border border-amber-100/50 dark:border-amber-900/20 flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-[9px] font-black text-amber-600/70 uppercase tracking-widest">مصاريف بانتظار الجرد</span>
             <div className="text-2xl font-black text-zinc-900 dark:text-white">
               {formatCurrency(totalThisMonth, settings.currency, settings.language)}
             </div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-white dark:bg-amber-900/40 text-amber-600 flex items-center justify-center shadow-sm">
+          <div className="w-10 h-10 rounded-2xl bg-white dark:bg-amber-900/40 text-amber-600 flex items-center justify-center shadow-sm">
             <Wallet size={20} />
           </div>
         </div>
@@ -111,7 +111,7 @@ export default function Expenses() {
       <div className="space-y-4">
         <div className="flex items-center justify-between px-2">
           <h2 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">سجل العمليات</h2>
-          <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
+          <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
             <button 
               onClick={() => setFilter('pending')}
               className={cn(
@@ -147,7 +147,7 @@ export default function Expenses() {
             <div className="w-6 h-6 border-2 border-amber-600 border-t-transparent animate-spin rounded-full" />
           </div>
         ) : filteredExpenses.length === 0 ? (
-          <div className="py-10 text-center text-zinc-400 text-xs font-bold bg-white dark:bg-zinc-900 rounded-3xl border border-dashed border-zinc-200 dark:border-zinc-800">
+          <div className="py-10 text-center text-zinc-400 text-xs font-bold bg-white dark:bg-zinc-900 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800">
             {filter === 'pending' ? 'لا توجد مصاريف تنتظر الجرد' : 'لا توجد بيانات'}
           </div>
         ) : (
@@ -162,7 +162,7 @@ export default function Expenses() {
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 shrink-0">
+                  <div className="h-10 w-10 rounded-2xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 shrink-0">
                     <ReceiptText size={18} />
                   </div>
                   <div className="min-w-0">
@@ -203,7 +203,7 @@ export default function Expenses() {
                   {!expense.audited && (
                     <button 
                       onClick={() => deleteDoc(doc(db, `users/${user!.uid}/expenses`, expense.id!))} 
-                      className="p-1.5 rounded-lg text-zinc-300 hover:text-[#B34C36] transition-colors"
+                      className="p-1.5 rounded-xl text-zinc-300 hover:text-[#B34C36] transition-colors"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -229,10 +229,10 @@ export default function Expenses() {
               initial={{ opacity: 0, scale: 0.95 }} 
               animate={{ opacity: 1, scale: 1 }} 
               exit={{ opacity: 0, scale: 0.95 }} 
-              className="relative w-full max-w-sm rounded-[28px] bg-white p-6 dark:bg-zinc-900 text-right shadow-2xl border border-zinc-100 dark:border-zinc-800"
+              className="relative w-full max-w-sm rounded-2xl bg-white p-6 dark:bg-zinc-900 text-right shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
               <div className="flex items-center justify-between mb-6">
-                <button onClick={() => setIsModalOpen(false)} className="text-zinc-400 hover:text-zinc-600 bg-zinc-50 dark:bg-zinc-800 p-1.5 rounded-lg">
+                <button onClick={() => setIsModalOpen(false)} className="text-zinc-400 hover:text-zinc-600 bg-zinc-50 dark:bg-zinc-800 p-1.5 rounded-xl">
                   <X size={18} />
                 </button>
                 <h2 className="text-xl font-black text-zinc-900 dark:text-white">إضافة مصروف</h2>
@@ -249,7 +249,7 @@ export default function Expenses() {
                       placeholder="0.000" 
                       required 
                       autoFocus
-                      className="w-full rounded-xl border border-zinc-100 p-3 text-right outline-none dark:bg-zinc-800 dark:border-zinc-700 focus:ring-2 focus:ring-amber-500/20 transition-all font-black text-2xl text-amber-600" 
+                      className="w-full rounded-2xl border border-zinc-100 p-3 text-right outline-none dark:bg-zinc-800 dark:border-zinc-700 focus:ring-2 focus:ring-amber-500/20 transition-all font-black text-2xl text-amber-600" 
                     />
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-zinc-300">{settings.currency}</div>
                   </div>
@@ -260,7 +260,7 @@ export default function Expenses() {
                   <input 
                     name="description" 
                     placeholder="مثال: فاتورة، نقل، كراء..." 
-                    className="w-full rounded-xl border border-zinc-100 p-3 text-right outline-none dark:bg-zinc-800 dark:border-zinc-700 focus:ring-2 focus:ring-amber-500/20 transition-all font-bold text-sm" 
+                    className="w-full rounded-2xl border border-zinc-100 p-3 text-right outline-none dark:bg-zinc-800 dark:border-zinc-700 focus:ring-2 focus:ring-amber-500/20 transition-all font-bold text-sm" 
                   />
                 </div>
                 
@@ -268,7 +268,7 @@ export default function Expenses() {
                   <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest px-2">الفئة</label>
                   <select 
                     name="category"
-                    className="w-full rounded-xl border border-zinc-100 p-3 text-right outline-none dark:bg-zinc-800 dark:border-zinc-700 focus:ring-2 focus:ring-amber-500/20 transition-all font-bold text-sm appearance-none bg-white dark:bg-zinc-800"
+                    className="w-full rounded-2xl border border-zinc-100 p-3 text-right outline-none dark:bg-zinc-800 dark:border-zinc-700 focus:ring-2 focus:ring-amber-500/20 transition-all font-bold text-sm appearance-none bg-white dark:bg-zinc-800"
                   >
                     <option value="عام">عام</option>
                     <option value="فواتير">فواتير</option>
@@ -279,10 +279,10 @@ export default function Expenses() {
                 </div>
 
                 <div className="flex flex-col gap-2 pt-4">
-                  <button type="submit" className="w-full rounded-xl py-3.5 font-black text-white shadow-lg shadow-[#B34C36]/20 active:scale-95 transition-all text-sm" style={{ backgroundColor: '#B34C36' }}>
+                  <button type="submit" className="w-full rounded-2xl py-3.5 font-black text-white shadow-lg shadow-[#B34C36]/20 active:scale-95 transition-all text-sm" style={{ backgroundColor: '#B34C36' }}>
                     تأكيد المصروف
                   </button>
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="w-full rounded-xl bg-zinc-50 dark:bg-zinc-800 py-3 text-xs font-bold text-zinc-500 active:scale-95 transition-all">
+                  <button type="button" onClick={() => setIsModalOpen(false)} className="w-full rounded-2xl bg-zinc-50 dark:bg-zinc-800 py-3 text-xs font-bold text-zinc-500 active:scale-95 transition-all">
                     إلغاء
                   </button>
                 </div>

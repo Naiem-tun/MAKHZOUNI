@@ -81,7 +81,7 @@ export function Login() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md rounded-3xl bg-white p-8 text-right shadow-2xl dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800"
+        className="w-full max-w-md rounded-2xl bg-white p-8 text-right shadow-2xl dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800"
       >
         <div className="mb-8 flex justify-center">
           <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-brand-800 text-white shadow-lg shadow-brand-800/20">
@@ -206,7 +206,7 @@ export function Login() {
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="mt-6 rounded-xl bg-red-50 p-4 text-center text-sm font-medium text-red-600 dark:bg-red-900/20 dark:text-red-400 border border-red-100 dark:border-red-900/30"
+            className="mt-6 rounded-2xl bg-red-50 p-4 text-center text-sm font-medium text-red-600 dark:bg-red-900/20 dark:text-red-400 border border-red-100 dark:border-red-900/30"
           >
             {error}
           </motion.div>

@@ -5,7 +5,7 @@ import { Package } from 'lucide-react';
 export const Card = ({ children, className, variant = 'white' }: any) => {
   const bg = variant === 'white' ? 'bg-white dark:bg-zinc-900' : 'bg-zinc-50 dark:bg-zinc-800';
   return (
-    <div className={cn("rounded-3xl border border-zinc-100 dark:border-zinc-800 shadow-sm", bg, className)}>
+    <div className={cn("rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm", bg, className)}>
       {children}
     </div>
   );
@@ -49,7 +49,7 @@ export const Modal = ({ isOpen, onClose, title, children }: any) => {
 };
 
 export const ProductIcon = ({ category, className }: any) => (
-  <div className={cn("flex items-center justify-center rounded-xl bg-zinc-50 text-zinc-400 dark:bg-zinc-800", className)}>
+  <div className={cn("flex items-center justify-center rounded-2xl bg-zinc-50 text-zinc-400 dark:bg-zinc-800", className)}>
     <Package size={16} />
   </div>
 );

@@ -85,7 +85,7 @@ const Dashboard = memo(() => {
   return (
     <div className="space-y-8 pb-20" dir="rtl">
       <header className="flex flex-col gap-1 text-right">
-        <h1 className="text-2xl font-bold text-black dark:text-white">{t('لوحة التحكم', 'Dashboard')}</h1>
+        <h1 className="text-3xl font-bold text-black dark:text-white">{t('لوحة التحكم', 'Dashboard')}</h1>
         <p className="text-neutral-500 text-xs font-medium">{t(`نظرة عامة على أداء ${storeName}`, `Overview of ${storeName}`)}</p>
       </header>
 

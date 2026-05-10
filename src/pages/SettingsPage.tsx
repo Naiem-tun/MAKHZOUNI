@@ -21,7 +21,31 @@ import {
   Plus,
   Trash2,
   Package,
-  Eye
+  Eye,
+  Coffee,
+  Apple,
+  Milk,
+  Beef,
+  Cookie,
+  Fish,
+  Pizza,
+  GlassWater,
+  Cherry,
+  Candy,
+  IceCream,
+  Grape,
+  Banana,
+  Carrot,
+  Nut,
+  Cigarette,
+  Zap,
+  Heart,
+  Home,
+  ShoppingBag,
+  Printer,
+  Monitor,
+  Smartphone,
+  Check
 } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { collection, getDocs, doc, setDoc, writeBatch, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
@@ -30,13 +54,19 @@ import { OperationType } from '../types';
 
 type View = 'main' | 'data' | 'guide' | 'categories';
 
-import { useCategories } from '../hooks/useCategories';
+import { useCategories, categoryIcons } from '../hooks/useCategories';
 
 function CategoriesManager({ onBack }: { onBack: () => void }) {
   const { user, settings, updateSettings } = useAppContext();
   const { customCategories: categories, categories: allCategories } = useCategories();
   const [newCatName, setNewCatName] = React.useState('');
+  const [selectedIcon, setSelectedIcon] = React.useState('Package');
   const [isAdding, setIsAdding] = React.useState(false);
+  const [isIconPickerOpen, setIsIconPickerOpen] = React.useState(false);
+
+  const iconsList = Object.entries(categoryIcons).map(([name, icon]) => ({ name, icon }));
+
+  const SelectedIconComp = categoryIcons[selectedIcon] || Package;
 
   const handleAddCategory = async () => {
     if (!user || !newCatName.trim()) return;
@@ -44,9 +74,11 @@ function CategoriesManager({ onBack }: { onBack: () => void }) {
     try {
       await addDoc(collection(db, `users/${user.uid}/categories`), {
         name: newCatName.trim(),
+        icon: selectedIcon,
         createdAt: serverTimestamp()
       });
       setNewCatName('');
+      setSelectedIcon('Package');
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}/categories`);
     } finally {
@@ -72,12 +104,12 @@ function CategoriesManager({ onBack }: { onBack: () => void }) {
   return (
     <div className="space-y-6">
       <header className="flex items-center gap-4 border-b border-zinc-100 dark:border-zinc-800 pb-4">
-        <button onClick={onBack} className="h-10 w-10 rounded-xl bg-white border border-zinc-100 flex items-center justify-center text-zinc-600 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400">
+        <button onClick={onBack} className="h-10 w-10 rounded-2xl bg-white border border-zinc-100 flex items-center justify-center text-zinc-600 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400">
           <ChevronLeft size={20} />
         </button>
         <div className="flex-1 text-right">
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">إدارة الفئات</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">إضافة أو حذف فئات المنتجات</p>
+          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">إدارة الفئات</h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">إضافة أو حذف فئات المنتجات مع اختيار الرمز</p>
         </div>
         <div className="h-12 w-12 rounded-2xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
           <LayoutList size={24} />
@@ -85,54 +117,98 @@ function CategoriesManager({ onBack }: { onBack: () => void }) {
       </header>
 
       {/* Add New Category */}
-      <div className="flex gap-3">
-        <input 
-          type="text"
-          value={newCatName}
-          onChange={(e) => setNewCatName(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
-          placeholder="اسم الفئة الجديدة..."
-          className="flex-1 h-14 px-5 text-right rounded-2xl bg-white border border-zinc-200 outline-none focus:border-brand-500/50 focus:ring-4 focus:ring-brand-500/10 transition-all dark:bg-zinc-900 dark:border-zinc-800 dark:text-white shadow-sm"
-        />
+      <div className="flex flex-col gap-4 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800">
+        <div className="flex gap-3">
+          <button 
+            onClick={() => setIsIconPickerOpen(!isIconPickerOpen)}
+            className="h-14 w-14 rounded-2xl bg-white border border-zinc-200 flex items-center justify-center text-brand-600 dark:bg-zinc-900 dark:border-zinc-800 shadow-sm transition-all hover:border-brand-500/50"
+          >
+            <SelectedIconComp size={24} />
+          </button>
+          <input 
+            type="text"
+            value={newCatName}
+            onChange={(e) => setNewCatName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+            placeholder="اسم الفئة الجديدة..."
+            className="flex-1 h-14 px-5 text-right rounded-2xl bg-white border border-zinc-200 outline-none focus:border-brand-500/50 focus:ring-4 focus:ring-brand-500/10 transition-all dark:bg-zinc-900 dark:border-zinc-800 dark:text-white shadow-sm"
+          />
+        </div>
+
+        <AnimatePresence>
+          {isIconPickerOpen && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 p-3 bg-white dark:bg-zinc-950 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                {iconsList.map((item) => (
+                  <button
+                    key={item.name}
+                    type="button"
+                    onClick={() => {
+                      setSelectedIcon(item.name);
+                      setIsIconPickerOpen(false);
+                    }}
+                    className={`h-11 flex items-center justify-center rounded-xl transition-all ${
+                      selectedIcon === item.name 
+                        ? 'bg-brand-600 text-white shadow-lg' 
+                        : 'bg-zinc-50 text-zinc-500 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 shadow-sm'
+                    }`}
+                  >
+                    <item.icon size={22} />
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <button 
           onClick={handleAddCategory}
           disabled={isAdding || !newCatName.trim()}
-          className="h-14 px-6 min-w-[120px] rounded-2xl bg-brand-600 text-white font-bold flex items-center justify-center gap-2 transition-all hover:bg-brand-700 disabled:opacity-50 shadow-sm"
+          className="h-14 w-full rounded-2xl bg-brand-600 text-white font-bold flex items-center justify-center gap-2 transition-all hover:bg-brand-700 disabled:opacity-50 shadow-sm"
         >
           <Plus size={20} strokeWidth={2.5} />
-          <span>إضافة</span>
+          <span>إضافة الفئة</span>
         </button>
       </div>
 
       {/* Categories List */}
       <div className="space-y-3">
-        <AnimatePresence>
-          {allCategories.map((cat) => (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              key={cat.id}
-              className="flex items-center justify-between p-3 pl-4 rounded-2xl bg-white border border-zinc-100 shadow-sm dark:bg-zinc-900 dark:border-zinc-800"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-zinc-50 border border-zinc-100 flex items-center justify-center text-zinc-600 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-400">
-                  <Package size={18} />
+        <AnimatePresence mode="popLayout">
+          {allCategories.map((cat) => {
+            const IconComp = categoryIcons[(cat as any).icon] || Package;
+            return (
+              <motion.div 
+                layout
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                key={cat.id}
+                className="flex items-center justify-between p-3 pl-4 rounded-2xl bg-white border border-zinc-100 shadow-sm dark:bg-zinc-900 dark:border-zinc-800"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-11 w-11 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center text-zinc-600 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-400">
+                    <IconComp size={20} />
+                  </div>
+                  <span className="font-bold text-zinc-900 dark:text-white text-base">{cat.name}</span>
                 </div>
-                <span className="font-bold text-zinc-900 dark:text-white text-base leading-none pt-1">{cat.name}</span>
-              </div>
 
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => handleDeleteCategory(cat.id)}
-                  className="p-2 rounded-xl text-white transition-colors active:scale-90"
-                  style={{ backgroundColor: '#B34C36' }}
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            </motion.div>
-          ))}
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => handleDeleteCategory(cat.id)}
+                    className="h-10 w-10 flex items-center justify-center rounded-2xl text-white transition-all active:scale-90 shadow-sm"
+                    style={{ backgroundColor: '#B34C36' }}
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
       </div>
     </div>
@@ -148,6 +224,7 @@ export default function SettingsPage() {
   const [manualCode, setManualCode] = useState('');
   const [status, setStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
   const [isClearDataModalOpen, setIsClearDataModalOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
 
   const handleClearAllData = async () => {
@@ -390,11 +467,11 @@ export default function SettingsPage() {
     return (
       <div className="space-y-6">
         <header className="flex items-center gap-4">
-          <button onClick={() => setActiveView('main')} className="h-10 w-10 rounded-xl bg-white border border-zinc-100 flex items-center justify-center text-zinc-600 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400">
+          <button onClick={() => setActiveView('main')} className="h-10 w-10 rounded-2xl bg-white border border-zinc-100 flex items-center justify-center text-zinc-600 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400">
             <ArrowRight size={20} />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">إدارة البيانات</h1>
+            <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">إدارة البيانات</h1>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">تصدير واستيراد قاعدة البيانات الخاصة بك</p>
           </div>
         </header>
@@ -412,7 +489,7 @@ export default function SettingsPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Export section */}
-          <section className="p-6 rounded-3xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
+          <section className="p-6 rounded-2xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
             <div className="h-12 w-12 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-600 dark:bg-brand-950/20">
               <Download size={24} />
             </div>
@@ -430,7 +507,7 @@ export default function SettingsPage() {
           </section>
 
           {/* Import section */}
-          <section className="p-6 rounded-3xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
+          <section className="p-6 rounded-2xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
             <div className="h-12 w-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 dark:bg-amber-950/20">
               <Upload size={24} />
             </div>
@@ -446,9 +523,9 @@ export default function SettingsPage() {
           </section>
 
           {/* Manual Import section */}
-          <section className="md:col-span-2 p-6 rounded-3xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
+          <section className="md:col-span-2 p-6 rounded-2xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-zinc-100 flex items-center justify-center text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+              <div className="h-10 w-10 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
                 <Clipboard size={20} />
               </div>
               <h3 className="text-lg font-bold text-zinc-900 dark:text-white">استيراد يدوي (لصق الكود)</h3>
@@ -474,19 +551,46 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('settings')}</h1>
-        <p className="text-zinc-500 dark:text-zinc-400">تخصيص تجربة {settings.storeName || 'H.STORE'} الخاصة بك</p>
+      <header className="flex items-center justify-between">
+        <div className="text-right">
+          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('settings')}</h1>
+          <p className="text-zinc-500 dark:text-zinc-400">تخصيص تجربة {settings.storeName || 'H.STORE'} الخاصة بك</p>
+        </div>
+
+        {/* Account Card */}
+        <div 
+          onClick={() => setIsLogoutModalOpen(true)}
+          className="p-2 rounded-2xl bg-white border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 shadow-sm flex items-center gap-3 cursor-pointer active:scale-95 transition-all"
+        >
+          <div className="text-left">
+            <p className="text-[9px] text-zinc-400 font-bold mb-0.5 leading-none uppercase">الحساب المرتبط</p>
+            <p className="text-[11px] font-black text-zinc-800 dark:text-zinc-200 truncate max-w-[100px]">
+              {user?.email || user?.phoneNumber}
+            </p>
+          </div>
+          {user?.photoURL ? (
+            <img 
+              src={user.photoURL} 
+              alt="Profile" 
+              className="w-10 h-10 rounded-2xl object-cover border-2 border-brand-50"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-2xl bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-brand-600 dark:text-brand-400 font-black text-xs border-2 border-brand-50 dark:border-brand-900/50">
+              {(user?.email || user?.displayName || '?')[0].toUpperCase()}
+            </div>
+          )}
+        </div>
       </header>
 
       <div className="space-y-4">
         {/* Store Settings Form */}
-        <section className="p-6 rounded-3xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-6">
+        <section className="p-6 rounded-2xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-6">
           {status && (
             <motion.div 
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`p-3 rounded-xl flex items-center gap-2 text-xs font-bold ${status.type === 'success' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' : 'bg-rose-50 text-rose-600 dark:bg-rose-900/20'}`}
+              className={`p-3 rounded-2xl flex items-center gap-2 text-xs font-bold ${status.type === 'success' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' : 'bg-rose-50 text-rose-600 dark:bg-rose-900/20'}`}
             >
               {status.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
               {status.msg}
@@ -539,7 +643,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Dark Mode Toggle */}
-        <section className="flex items-center justify-between p-6 rounded-3xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
+        <section className="flex items-center justify-between p-6 rounded-2xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
           <div className="flex items-center gap-4">
             <div className="h-12 w-12 rounded-2xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
               <Moon size={24} />
@@ -561,7 +665,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Financials Toggle */}
-        <section className="flex items-center justify-between p-6 rounded-3xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
+        <section className="flex items-center justify-between p-6 rounded-2xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
           <div className="flex items-center gap-4">
             <div className="h-12 w-12 rounded-2xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
               <Eye size={24} />
@@ -587,7 +691,7 @@ export default function SettingsPage() {
           <button 
             key={item.id} 
             onClick={() => setActiveView(item.id as View)}
-            className="group w-full flex items-center justify-between p-6 rounded-3xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 transition-all hover:shadow-md"
+            className="group w-full flex items-center justify-between p-6 rounded-2xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 transition-all hover:shadow-md"
           >
             <div className="flex items-center gap-4">
               <div className={`h-12 w-12 rounded-2xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center ${item.color}`}>
@@ -604,7 +708,7 @@ export default function SettingsPage() {
 
         <button 
           onClick={() => setIsClearDataModalOpen(true)}
-          className="w-full flex items-center justify-between p-6 rounded-3xl text-white font-bold transition-all shadow-lg shadow-[#B34C36]/20 active:scale-95"
+          className="w-full flex items-center justify-between p-6 rounded-2xl text-white font-bold transition-all shadow-lg shadow-[#B34C36]/20 active:scale-95"
           style={{ backgroundColor: '#B34C36' }}
         >
           <div className="flex items-center gap-4">
@@ -617,14 +721,6 @@ export default function SettingsPage() {
             </div>
           </div>
           <ChevronLeft className="text-white/60" size={20} />
-        </button>
-
-        <button 
-          onClick={() => auth.signOut()}
-          className="w-full mt-4 flex items-center justify-center gap-2 p-6 rounded-3xl bg-zinc-100 text-zinc-600 font-bold transition-all hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800"
-        >
-          <LogOut size={20} />
-          {t('logout')}
         </button>
       </div>
 
@@ -643,7 +739,7 @@ export default function SettingsPage() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.95, y: 10 }} 
-              className="relative w-full max-w-[280px] rounded-3xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
+              className="relative w-full max-w-[280px] rounded-2xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
               <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
                 هل أنت متأكد من مسح جميع بيانات المتجر نهائياً؟ <span className="text-[#B34C36]">لا يمكن التراجع عن هذا.</span>
@@ -653,7 +749,7 @@ export default function SettingsPage() {
                 <button 
                   onClick={handleClearAllData}
                   disabled={isClearing}
-                  className="flex-1 py-2.5 rounded-xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-2xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
                   style={{ backgroundColor: '#B34C36' }}
                 >
                   تأكيد
@@ -661,7 +757,46 @@ export default function SettingsPage() {
                 <button 
                   onClick={() => setIsClearDataModalOpen(false)}
                   disabled={isClearing}
-                  className="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-xl text-[12px] font-bold active:scale-95 transition-all text-[12px]"
+                  className="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-2xl text-[12px] font-bold active:scale-95 transition-all text-[12px]"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isLogoutModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsLogoutModalOpen(false)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.95, y: 10 }} 
+              className="relative w-full max-w-[280px] rounded-2xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
+            >
+              <div className="mb-4 pt-2">
+                <p className="text-[10px] font-black text-zinc-400 mb-0.5 uppercase tracking-wider">الحساب الحالي</p>
+                <p className="text-xs font-black text-zinc-900 dark:text-white truncate">{user?.email || user?.phoneNumber}</p>
+              </div>
+
+              <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
+                هل تريد الخروج من هذا الحساب؟
+              </p>
+              
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => auth.signOut()}
+                  className="flex-1 py-2.5 rounded-2xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px]"
+                  style={{ backgroundColor: '#B34C36' }}
+                >
+                  تأكيد الخروج
+                </button>
+                <button 
+                  onClick={() => setIsLogoutModalOpen(false)}
+                  className="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-2xl text-[12px] font-bold active:scale-95 transition-all"
                 >
                   إلغاء
                 </button>

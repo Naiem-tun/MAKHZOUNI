@@ -100,13 +100,13 @@ export function BarcodeScanner({ isOpen, onClose, onScan, title = "امسح ال
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="relative w-72 h-72">
                 {/* Corner Accents */}
-                <div className="absolute -top-2 -left-2 w-12 h-12 border-t-4 border-l-4 border-brand-500 rounded-tl-3xl shadow-[0_0_20px_rgba(var(--brand-500),0.3)]" />
-                <div className="absolute -top-2 -right-2 w-12 h-12 border-t-4 border-r-4 border-brand-500 rounded-tr-3xl shadow-[0_0_20px_rgba(var(--brand-500),0.3)]" />
-                <div className="absolute -bottom-2 -left-2 w-12 h-12 border-b-4 border-l-4 border-brand-500 rounded-bl-3xl shadow-[0_0_20px_rgba(var(--brand-500),0.3)]" />
-                <div className="absolute -bottom-2 -right-2 w-12 h-12 border-b-4 border-r-4 border-brand-500 rounded-br-3xl shadow-[0_0_20px_rgba(var(--brand-500),0.3)]" />
+                <div className="absolute -top-2 -left-2 w-12 h-12 border-t-4 border-l-4 border-brand-500 rounded-tl-2xl shadow-[0_0_20px_rgba(var(--brand-500),0.3)]" />
+                <div className="absolute -top-2 -right-2 w-12 h-12 border-t-4 border-r-4 border-brand-500 rounded-tr-2xl shadow-[0_0_20px_rgba(var(--brand-500),0.3)]" />
+                <div className="absolute -bottom-2 -left-2 w-12 h-12 border-b-4 border-l-4 border-brand-500 rounded-bl-2xl shadow-[0_0_20px_rgba(var(--brand-500),0.3)]" />
+                <div className="absolute -bottom-2 -right-2 w-12 h-12 border-b-4 border-r-4 border-brand-500 rounded-br-2xl shadow-[0_0_20px_rgba(var(--brand-500),0.3)]" />
                 
                 {/* Pulse Glow */}
-                <div className="absolute inset-0 bg-brand-500/5 animate-pulse rounded-3xl" />
+                <div className="absolute inset-0 bg-brand-500/5 animate-pulse rounded-2xl" />
                 
                 {/* Scanning Line */}
                 <motion.div 

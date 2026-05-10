@@ -137,13 +137,13 @@ export default function Analytics() {
           {activeTab !== 'menu' && (
             <button 
               onClick={() => setActiveTab('menu')}
-              className="h-10 w-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200"
+              className="h-10 w-10 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200"
             >
               <ArrowDownRight className="rotate-180" size={20} />
             </button>
           )}
           <div>
-            <h1 className="text-2xl font-black text-zinc-900 dark:text-white">التحليل المالي</h1>
+            <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">التحليل المالي</h1>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               {activeTab === 'menu' ? 'اختر القسم الذي تريد استعراضه' : menuItems.find(i => i.id === activeTab)?.label}
             </p>
@@ -151,12 +151,12 @@ export default function Analytics() {
         </div>
         
         {activeTab === 'financial' && (
-          <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
+          <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-2xl">
             {(['month', '3months', '6months'] as const).map((r) => (
               <button
                 key={r}
                 onClick={() => setTimeRange(r)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                className={`px-3 py-1.5 text-xs font-bold rounded-2xl transition-all ${
                   timeRange === r 
                     ? 'bg-white dark:bg-zinc-700 text-brand-600 shadow-sm' 
                     : 'text-zinc-500 hover:text-zinc-700'
@@ -182,7 +182,7 @@ export default function Analytics() {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id as any)}
-                className="group flex items-center gap-4 p-5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[32px] text-right transition-all hover:scale-[1.02] active:scale-95 shadow-sm"
+                className="group flex items-center gap-4 p-5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl text-right transition-all hover:scale-[1.02] active:scale-95 shadow-sm"
               >
                 <div className={`h-14 w-14 rounded-2xl ${item.bg} flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform`}>
                   <item.icon size={28} />
@@ -202,7 +202,7 @@ export default function Analytics() {
         {activeTab === 'financial' && (
           <>
             {/* Main Chart */}
-            <section className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[32px] p-6 shadow-sm overflow-hidden">
+            <section className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-6 shadow-sm overflow-hidden">
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <div className="text-[10px] font-black text-brand-600 uppercase tracking-widest mb-1">التحليل المالي</div>
@@ -262,9 +262,9 @@ export default function Analytics() {
                 { label: 'قيمة المخزون (سعر البيع)', value: totalSalesValue, icon: Package, color: 'text-brand-600', bg: 'bg-brand-50 dark:bg-brand-950/20' },
                 { label: 'الربح المتوقع', value: expectedProfit, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/20' },
               ].map((stat, i) => (
-                <div key={i} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-4 rounded-xl shadow-sm">
+                <div key={i} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-4 rounded-2xl shadow-sm">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className={`h-8 w-8 rounded-lg ${stat.bg} flex items-center justify-center ${stat.color}`}>
+                    <div className={`h-8 w-8 rounded-xl ${stat.bg} flex items-center justify-center ${stat.color}`}>
                       <stat.icon size={16} />
                     </div>
                     <span className="text-[10px] font-bold text-zinc-500">{stat.label}</span>
@@ -280,7 +280,7 @@ export default function Analytics() {
 
         {activeTab === 'rankings' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[32px] p-6 shadow-sm">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-black text-xl text-zinc-900 dark:text-white flex items-center gap-2">
                   <TrendingUp size={22} className="text-emerald-500" />
@@ -294,7 +294,7 @@ export default function Analytics() {
                       <div className="h-10 w-10 rounded-xl bg-white dark:bg-zinc-800 flex items-center justify-center text-sm font-black text-emerald-500 shadow-sm">
                         {i + 1}
                       </div>
-                      <span className="font-bold text-zinc-700 dark:text-zinc-300">{item.productName}</span>
+                      <span className="font-medium text-zinc-700 dark:text-zinc-300">{item.productName}</span>
                     </div>
                     <div className="text-lg font-black text-emerald-600">
                       {formatCurrency(item.profit, settings.currency, language)}
@@ -306,7 +306,7 @@ export default function Analytics() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[32px] p-6 shadow-sm">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-black text-xl text-zinc-900 dark:text-white flex items-center gap-2">
                   <ShoppingCart size={22} className="text-brand-500" />
@@ -320,7 +320,7 @@ export default function Analytics() {
                       <div className="h-10 w-10 rounded-xl bg-white dark:bg-zinc-800 flex items-center justify-center text-sm font-black text-brand-500 shadow-sm">
                         {i + 1}
                       </div>
-                      <span className="font-bold text-zinc-700 dark:text-zinc-300">{item.productName}</span>
+                      <span className="font-medium text-zinc-700 dark:text-zinc-300">{item.productName}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="text-lg font-black text-zinc-900 dark:text-white">{item.salesCalculated}</span>
@@ -354,7 +354,7 @@ export default function Analytics() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
                   key={i}
-                  className="flex items-center justify-between p-5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[28px] shadow-sm transition-all hover:scale-[1.01] active:scale-95 group"
+                  className="flex items-center justify-between p-5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl shadow-sm transition-all hover:scale-[1.01] active:scale-95 group"
                 >
                   <div className="flex flex-col items-start gap-1">
                     <span className="text-lg font-black text-zinc-900 dark:text-white">

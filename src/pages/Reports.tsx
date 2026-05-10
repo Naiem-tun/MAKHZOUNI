@@ -57,9 +57,9 @@ export default function Reports() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Category Share Chart */}
-        <section className="rounded-3xl bg-white p-6 shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
+        <section className="rounded-2xl bg-white p-6 shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
           <div className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-xl bg-brand-50 flex items-center justify-center text-brand-600 dark:bg-brand-950/20">
+            <div className="h-10 w-10 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-600 dark:bg-brand-950/20">
               <PieChartIcon size={20} />
             </div>
             <h2 className="text-xl font-bold text-zinc-900 dark:text-white">قيمة المخزون حسب الفئة</h2>
@@ -87,9 +87,9 @@ export default function Reports() {
         </section>
 
         {/* Profit Analysis */}
-        <section className="rounded-3xl bg-white p-6 shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
+        <section className="rounded-2xl bg-white p-6 shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
           <div className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-xl bg-brand-50 flex items-center justify-center text-brand-600 dark:bg-brand-950/20">
+            <div className="h-10 w-10 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-600 dark:bg-brand-950/20">
               <TrendingUp size={20} />
             </div>
             <h2 className="text-xl font-bold text-zinc-900 dark:text-white">تحليل الربح (أمثلة)</h2>
@@ -112,7 +112,7 @@ export default function Reports() {
       {/* Report Menu list */}
       <div className="space-y-4">
         {menuItems.map((item) => (
-          <button key={item.label} className="group w-full flex items-center justify-between p-6 rounded-3xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 transition-all hover:shadow-md">
+          <button key={item.label} className="group w-full flex items-center justify-between p-6 rounded-2xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 transition-all hover:shadow-md">
             <div className="flex items-center gap-4">
               <div className={`h-12 w-12 rounded-2xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center ${item.color}`}>
                 <item.icon size={24} />

@@ -29,7 +29,7 @@ import autoTable from 'jspdf-autotable';
 // Updated ProductIcon component to match ProductCard's style (w-9 h-9)
 const ProductIcon = ({ className }: { className?: string }) => (
   <div className={cn(
-    "w-9 h-9 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-800 flex items-center justify-center shrink-0 shadow-sm", 
+    "w-9 h-9 rounded-2xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-800 flex items-center justify-center shrink-0 shadow-sm", 
     className
   )}>
     <Package size={16} className="text-neutral-400 dark:text-neutral-500" />
@@ -373,15 +373,15 @@ export default function Inventory() {
         <div className="flex items-center justify-between px-4 pt-4">
           <button 
             onClick={() => setShowReportView(false)}
-            className="w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl text-zinc-400"
+            className="w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl text-zinc-400"
           >
             <ArrowRight size={20} />
           </button>
           <div className="flex flex-col items-center">
-            <div className="w-10 h-10 bg-brand-50 dark:bg-brand-900/20 rounded-xl flex items-center justify-center text-brand-600 mb-1">
+            <div className="w-10 h-10 bg-brand-50 dark:bg-brand-900/20 rounded-2xl flex items-center justify-center text-brand-600 mb-1">
               <ClipboardCheck size={20} />
             </div>
-            <h1 className="text-xl font-black text-zinc-900 dark:text-white">تقرير الجرد النهائي</h1>
+            <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">تقرير الجرد النهائي</h1>
             <p className="text-[10px] font-bold text-zinc-400">
               {currentReport.date?.toDate ? currentReport.date.toDate().toLocaleDateString('ar-TN') : (currentReport.date ? new Date(currentReport.date).toLocaleDateString('ar-TN') : '—')}
             </p>
@@ -408,7 +408,7 @@ export default function Inventory() {
                 )}
               >
                 <div className="flex flex-col">
-                  <span className={cn("text-[9px] font-black uppercase tracking-widest", bar.highlighted ? "text-zinc-400 dark:text-brand-200" : "text-zinc-400")}>
+                  <span className={cn("text-[10px] font-bold uppercase tracking-widest", bar.highlighted ? "text-zinc-400 dark:text-brand-200" : "text-zinc-400")}>
                     {bar.label}
                   </span>
                   <span className={cn("text-lg font-black", bar.highlighted ? "text-white" : "text-inherit dark:text-white")}>
@@ -416,7 +416,7 @@ export default function Inventory() {
                   </span>
                 </div>
                 <div className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center",
+                  "w-10 h-10 rounded-2xl flex items-center justify-center",
                   bar.highlighted ? "bg-white/10" : "bg-zinc-50 dark:bg-zinc-800"
                 )}>
                   {i === 0 && <Receipt size={18} className={bar.highlighted ? "text-white" : "text-zinc-400"} />}
@@ -432,9 +432,9 @@ export default function Inventory() {
         {/* Sales Details - High Density Table Layout */}
         <div className="px-4 space-y-2">
           <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-100 dark:border-zinc-800">
-            <div className="w-44 text-right text-[10px] font-black text-zinc-400 uppercase">المنتج</div>
-            <div className="flex-1 text-center text-[10px] font-black text-zinc-400 uppercase">الكمية</div>
-            <div className="w-32 text-left text-[10px] font-black text-zinc-400 uppercase">الربح</div>
+                    <div className="w-44 text-right text-[10px] font-bold text-zinc-400 uppercase">المنتج</div>
+            <div className="flex-1 text-center text-[10px] font-bold text-zinc-400 uppercase">الكمية</div>
+            <div className="w-32 text-left text-[10px] font-bold text-zinc-400 uppercase">الربح</div>
           </div>
           
           <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl overflow-hidden">
@@ -445,7 +445,7 @@ export default function Inventory() {
               >
                 {/* Product Name (Far Right) */}
                 <div className="w-44 text-right">
-                  <h3 className="text-[12px] font-bold text-zinc-900 dark:text-white truncate">
+                  <h3 className="text-[12px] font-medium text-zinc-900 dark:text-white truncate">
                     {item.productName}
                   </h3>
                 </div>
@@ -473,7 +473,7 @@ export default function Inventory() {
         <div className="fixed bottom-10 left-6 right-6 z-40">
           <button 
             onClick={() => generatePDF(currentReport)}
-            className="w-full py-4 shadow-2xl rounded-[22px] text-base font-black bg-zinc-950 dark:bg-brand-600 text-white flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
+            className="w-full py-4 shadow-2xl rounded-2xl text-base font-black bg-zinc-950 dark:bg-brand-600 text-white flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
           >
             <Download size={20} />
             <span>تحميل التقرير PDF</span>
@@ -500,7 +500,7 @@ export default function Inventory() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-[32px] overflow-hidden shadow-2xl border border-zinc-100 dark:border-zinc-800"
+              className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
               <div className="p-6 space-y-6">
                 <div className="flex justify-between items-center">
@@ -508,14 +508,14 @@ export default function Inventory() {
                     <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center text-amber-600">
                       <Wallet size={20} />
                     </div>
-                    <h3 className="font-black text-lg">مصاريف هذا الشهر</h3>
+                    <h3 className="font-bold text-lg">مصاريف هذا الشهر</h3>
                   </div>
                   <button onClick={() => setShowExpensesModal(false)} className="text-zinc-400 hover:text-zinc-600">
                     <X size={20} />
                   </button>
                 </div>
 
-                <div className="space-y-2 text-center py-4 bg-amber-50/30 dark:bg-amber-950/10 rounded-3xl border border-amber-50 dark:border-amber-950/20">
+                <div className="space-y-2 text-center py-4 bg-amber-50/30 dark:bg-amber-950/10 rounded-2xl border border-amber-50 dark:border-amber-950/20">
                   <div className="text-4xl font-black text-zinc-900 dark:text-white">
                     {loadingExpenses ? "..." : formatCurrency(expensesAmount, settings.currency, settings.language)}
                   </div>
@@ -574,7 +574,7 @@ export default function Inventory() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-lg bg-zinc-50 dark:bg-zinc-900 rounded-[32px] overflow-hidden shadow-2xl border border-zinc-100 dark:border-zinc-800"
+              className="relative w-full max-w-lg bg-zinc-50 dark:bg-zinc-900 rounded-2xl overflow-hidden shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
               <div className="p-6 space-y-6 max-h-[85vh] overflow-y-auto">
                 <div className="flex justify-between items-center sticky top-0 bg-inherit pt-2 pb-4 z-10">
@@ -582,7 +582,7 @@ export default function Inventory() {
                     <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center text-blue-600">
                       <History size={20} />
                     </div>
-                    <h3 className="font-black text-lg">سجل الجرد</h3>
+                    <h3 className="font-bold text-lg">سجل الجرد</h3>
                   </div>
                   <button onClick={() => setShowHistoryModal(false)} className="text-zinc-400 hover:text-zinc-600">
                     <X size={20} />
@@ -646,14 +646,14 @@ export default function Inventory() {
       </AnimatePresence>
       {/* Header Section */}
       <div className="text-right pt-2 space-y-1 px-4">
-        <h1 className="text-[28px] font-black text-black dark:text-white leading-tight">الجرد الشهري</h1>
+        <h1 className="text-3xl font-bold text-black dark:text-white leading-tight">الجرد الشهري</h1>
         <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium">أدخل الكمية الفعلية المتبقية في المخزن</p>
       </div>
 
       <div className="flex justify-start gap-2 px-4">
         <button 
           onClick={() => setShowHistoryModal(true)}
-          className="w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl shadow-sm text-zinc-600 dark:text-zinc-400 active:scale-95 transition-transform"
+          className="w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl shadow-sm text-zinc-600 dark:text-zinc-400 active:scale-95 transition-transform"
           title="سجل الجرد"
         >
           <FileText size={18} />
@@ -661,7 +661,7 @@ export default function Inventory() {
         <button 
           onClick={() => setShowExpensesModal(true)}
           className={cn(
-            "h-10 px-3 flex items-center gap-2 bg-white dark:bg-zinc-900 border rounded-xl shadow-sm active:scale-95 transition-all text-xs font-bold",
+            "h-10 px-3 flex items-center gap-2 bg-white dark:bg-zinc-900 border rounded-2xl shadow-sm active:scale-95 transition-all text-xs font-bold",
             expensesAmount > 0 ? "border-[#B34C36]/20 text-[#B34C36] bg-[#B34C36]/5" : "border-zinc-100 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 w-10 justify-center px-0"
           )}
           title="المصاريف"
@@ -672,7 +672,7 @@ export default function Inventory() {
         <button 
           onClick={handleClearInventory}
           className={cn(
-            "w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border rounded-xl shadow-sm active:scale-95 transition-transform",
+            "w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border rounded-2xl shadow-sm active:scale-95 transition-transform",
             Object.keys(inventoryData).length > 0 
               ? "text-white shadow-lg shadow-[#B34C36]/20" 
               : "border-zinc-100 dark:border-zinc-800 text-zinc-300 dark:text-zinc-700"
@@ -702,13 +702,13 @@ export default function Inventory() {
       {/* Search Bar & Categories */}
       <div className="space-y-3 px-4">
         <div className="flex gap-2">
-          <button className="w-11 h-11 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm active:scale-95">
+          <button className="w-11 h-11 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm active:scale-95">
             <ScanBarcode size={20} className="text-zinc-400" />
           </button>
           <div className="relative flex-1">
             <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-300" size={16} />
             <input 
-              className="w-full h-11 pr-10 pl-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none text-[13px] placeholder:text-zinc-300"
+              className="w-full h-11 pr-10 pl-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl outline-none text-[13px] placeholder:text-zinc-300"
               placeholder="بحث عن منتج للجرد..." 
               value={searchTerm} 
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -719,7 +719,7 @@ export default function Inventory() {
           <select 
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="w-full appearance-none py-2.5 px-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[13px] font-bold text-zinc-600 dark:text-zinc-400 text-center outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors shadow-sm focus:border-brand-500/50"
+            className="w-full appearance-none py-2.5 px-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[13px] font-bold text-zinc-600 dark:text-zinc-400 text-center outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors shadow-sm focus:border-brand-500/50"
           >
             <option value="all">كل الفئات للبحث</option>
             {categories.map((c) => (
@@ -748,7 +748,7 @@ export default function Inventory() {
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <ProductIcon />
                 <div className="flex flex-col text-right truncate">
-                  <h3 className="text-[13px] font-bold truncate text-black dark:text-white leading-tight mb-0.5">{p.name || 'منتج'}</h3>
+                  <h3 className="text-[13px] font-medium truncate text-black dark:text-white leading-tight mb-0.5">{p.name || 'منتج'}</h3>
                   <div className="flex items-center gap-1">
                     <span className="text-[10px] text-zinc-400 dark:text-zinc-500">المخزون:</span>
                     <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold">{p.quantity || 0} قطعة</span>
@@ -761,7 +761,7 @@ export default function Inventory() {
                 {p.piecesPerCarton > 1 && (
                   <button 
                     onClick={() => handleAddCarton(p.id, p.piecesPerCarton)} 
-                    className="w-9 h-9 flex items-center justify-center bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-lg text-zinc-400 active:scale-95 transition-transform"
+                    className="w-9 h-9 flex items-center justify-center bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-2xl text-zinc-400 active:scale-95 transition-transform"
                     title={`إضافة كرتونة (${p.piecesPerCarton} قطعة)`}
                   >
                     <div className="flex flex-col items-center">
@@ -777,7 +777,7 @@ export default function Inventory() {
                     inputMode="decimal"
                     value={inventoryData[p.id] ?? ''}
                     onChange={(e) => setInventoryData({ ...inventoryData, [p.id]: safeParseFloat(e.target.value) })}
-                    className="w-16 h-9 text-center text-sm font-black bg-zinc-100/50 dark:bg-zinc-800 border border-zinc-100 dark:border-neutral-800 rounded-lg outline-none focus:ring-2 focus:ring-brand-500/20 dark:text-white placeholder:text-zinc-300 transition-all font-mono"
+                    className="w-16 h-9 text-center text-sm font-black bg-zinc-100/50 dark:bg-zinc-800 border border-zinc-100 dark:border-neutral-800 rounded-2xl outline-none focus:ring-2 focus:ring-brand-500/20 dark:text-white placeholder:text-zinc-300 transition-all font-mono"
                     placeholder="الكمية"
                   />
                 </div>
@@ -815,7 +815,7 @@ export default function Inventory() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-[280px] bg-white dark:bg-zinc-900 rounded-3xl p-6 shadow-2xl border border-zinc-100 dark:border-zinc-800 text-center"
+              className="relative w-full max-w-[280px] bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-2xl border border-zinc-100 dark:border-zinc-800 text-center"
             >
               <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
                 {modalConfig.message}
@@ -829,13 +829,14 @@ export default function Inventory() {
                         setModalConfig(prev => ({ ...prev, show: false }));
                         modalConfig.onConfirm?.();
                       }}
-                      className="flex-1 py-2.5 bg-brand-600 text-white rounded-xl text-[12px] font-black active:scale-95 transition-all"
+                      className="flex-1 py-2.5 text-white rounded-2xl text-[12px] font-black active:scale-95 transition-all shadow-lg shadow-[#B34C36]/20"
+                      style={{ backgroundColor: '#B34C36' }}
                     >
                       تأكيد
                     </button>
                     <button 
                       onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
-                      className="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-xl text-[12px] font-bold active:scale-95 transition-all"
+                      className="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-2xl text-[12px] font-bold active:scale-95 transition-all"
                     >
                       إلغاء
                     </button>
@@ -843,7 +844,7 @@ export default function Inventory() {
                 ) : (
                   <button 
                     onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
-                    className="w-full py-2.5 bg-brand-600 text-white rounded-xl text-[12px] font-black active:scale-95 transition-all"
+                    className="w-full py-2.5 bg-brand-600 text-white rounded-2xl text-[12px] font-black active:scale-95 transition-all"
                   >
                     حسناً
                   </button>
@@ -857,10 +858,8 @@ export default function Inventory() {
       {/* Save Button */}
       <div className="fixed bottom-6 left-6 right-6 z-40 flex justify-center">
         <motion.button 
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
           onClick={handleCompleteInventory} 
-          className="w-full py-4 shadow-2xl rounded-[22px] text-base font-black bg-zinc-950 dark:bg-brand-600 text-white flex items-center justify-center gap-3"
+          className="w-full py-4 shadow-2xl rounded-2xl text-base font-black bg-zinc-950 dark:bg-brand-600 text-white flex items-center justify-center gap-3"
         >
           <ClipboardCheck size={22} />
           <span>حفظ الجرد وحساب النتائج</span>

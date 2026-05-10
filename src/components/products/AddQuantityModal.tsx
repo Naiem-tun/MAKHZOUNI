@@ -71,7 +71,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm }: AddQua
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl dark:bg-zinc-900"
+            className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-900"
           >
             <button 
               onClick={onClose}
@@ -80,7 +80,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm }: AddQua
               <X size={20} />
             </button>
             
-            <h2 className="mb-6 text-center text-lg font-bold text-zinc-900 dark:text-white px-8">
+            <h2 className="mb-6 text-center text-lg font-medium text-zinc-900 dark:text-white px-8">
               إضافة كمية جديدة - {product.name}
             </h2>
 
@@ -107,7 +107,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm }: AddQua
                       type="number" 
                       value={numBoxes || ''}
                       onChange={(e) => setNumBoxes(parseFloat(e.target.value) || 0)}
-                      className="w-full rounded-xl border border-zinc-200 bg-white py-4 text-center text-xl font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
+                      className="w-full rounded-2xl border border-zinc-200 bg-white py-4 text-center text-xl font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
                       placeholder="0"
                       enterKeyHint="done"
                       inputMode="decimal"
@@ -120,7 +120,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm }: AddQua
                       type="number" 
                       value={extraPieces || ''}
                       onChange={(e) => setExtraPieces(parseFloat(e.target.value) || 0)}
-                      className="w-full rounded-xl border border-zinc-200 bg-white py-4 text-center text-xl font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
+                      className="w-full rounded-2xl border border-zinc-200 bg-white py-4 text-center text-xl font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
                       placeholder="0"
                       enterKeyHint="done"
                       inputMode="decimal"
@@ -137,7 +137,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm }: AddQua
                       step="0.001"
                       value={boxPrice || ''}
                       onChange={(e) => handleQtyBoxPriceChange(parseFloat(e.target.value) || 0)}
-                      className="w-full rounded-xl border border-zinc-200 bg-white py-3 text-center font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
+                      className="w-full rounded-2xl border border-zinc-200 bg-white py-3 text-center font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
                       enterKeyHint="done"
                       inputMode="decimal"
                       onKeyDown={handleKeyDown}
@@ -150,7 +150,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm }: AddQua
                       step="0.001"
                       value={piecePrice || ''}
                       onChange={(e) => handleQtyPiecePriceChange(parseFloat(e.target.value) || 0)}
-                      className="w-full rounded-xl border border-zinc-200 bg-white py-3 text-center font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
+                      className="w-full rounded-2xl border border-zinc-200 bg-white py-3 text-center font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
                       enterKeyHint="done"
                       inputMode="decimal"
                       onKeyDown={handleKeyDown}

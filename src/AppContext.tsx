@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth, db } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
-import { OperationType, UserSettings } from './types';
+import { doc, onSnapshot, setDoc, collection, query, orderBy } from 'firebase/firestore';
+import { OperationType, UserSettings, Category } from './types';
 import { handleFirestoreError, cn } from './lib/utils';
 import i18n from './lib/i18n';
 
@@ -23,6 +23,7 @@ interface AppContextType {
   toggleDarkMode: () => void;
   setLanguage: (lang: 'ar' | 'en') => void;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
+  categories: Category[];
 }
 
 const defaultSettings: UserSettings = {
@@ -55,6 +56,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -138,6 +140,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return unsubscribe;
   }, [user]);
 
+  useEffect(() => {
+    if (!user) {
+      setCategories([]);
+      return;
+    }
+
+    const q = query(collection(db, `users/${user.uid}/categories`), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const cats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Category));
+      setCategories(cats);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, `users/${user.uid}/categories`);
+    });
+
+    return unsubscribe;
+  }, [user]);
+
   const updateSettings = async (newSettings: Partial<UserSettings>) => {
     if (!user) return;
     const path = `users/${user.uid}/settings/config`;
@@ -160,7 +179,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   return (
-    <AppContext.Provider value={{ user, loading, isOffline, isDataLoaded, setIsDataLoaded, settings, updateSettings, toggleDarkMode, setLanguage, showToast }}>
+    <AppContext.Provider value={{ user, loading, isOffline, isDataLoaded, setIsDataLoaded, settings, updateSettings, toggleDarkMode, setLanguage, showToast, categories }}>
       <div className={settings.language === 'ar' ? 'rtl' : 'ltr'} dir={settings.language === 'ar' ? 'rtl' : 'ltr'}>
         {children}
         
