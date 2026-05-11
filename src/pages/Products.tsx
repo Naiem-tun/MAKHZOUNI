@@ -9,9 +9,8 @@ import {
   Plus, 
   Search, 
   Filter, 
-  QrCode,
-  Boxes,
-  Barcode
+  ScanBarcode,
+  Boxes
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { ProductCard } from '../components/products/ProductCard';
@@ -296,7 +295,7 @@ export default function Products() {
               }}
               className="flex h-9 w-9 items-center justify-center rounded-2xl text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-all active:scale-90 dark:text-zinc-500 dark:hover:bg-zinc-800"
             >
-              <Barcode size={20} />
+              <ScanBarcode size={20} />
             </button>
           </div>
         </div>

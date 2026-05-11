@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, QrCode, Trash2 } from 'lucide-react';
+import { X, ScanBarcode, Trash2 } from 'lucide-react';
 import { useCategories } from '../../hooks/useCategories';
 import { Product } from '../../types';
 
@@ -100,7 +100,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
       boxPurchasePrice: parseFloat(formData.get('boxPurchasePrice') as string) || 0,
       // Keep existing stock values if editing, or default to 0 for new products
       quantity: product?.quantity ?? 0,
-      minQuantity: product?.minQuantity ?? 0,
+      minQuantity: parseFloat(formData.get('minQuantity') as string) || 0,
     };
     await onSave(productData);
   };
@@ -175,7 +175,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                         onClick={() => onScan('barcode')}
                         className="flex h-7 w-7 items-center justify-center rounded-lg bg-white border border-zinc-200 text-zinc-400 group-focus-within:border-brand-500 group-focus-within:text-brand-500 dark:bg-zinc-950 dark:border-zinc-800 transition-all active:scale-90"
                       >
-                        <QrCode size={16} />
+                        <ScanBarcode size={16} />
                       </button>
                     </div>
                   </div>
@@ -199,7 +199,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                           onClick={() => onScan('barcode2')}
                           className="flex h-7 w-7 items-center justify-center rounded-lg bg-white border border-zinc-200 text-zinc-400 group-focus-within:border-brand-500 group-focus-within:text-brand-500 dark:bg-zinc-950 dark:border-zinc-800 transition-all active:scale-90"
                         >
-                          <QrCode size={16} />
+                          <ScanBarcode size={16} />
                         </button>
                       </div>
                     </div>

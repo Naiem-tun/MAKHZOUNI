@@ -48,7 +48,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
           <div className="flex flex-col gap-0.5 text-[10px] text-neutral-500 font-bold">
             <div className="flex items-center gap-1">
               <span className="opacity-70">المخزون:</span>
-              <span className={cn((product.quantity || 0) < 10 ? "text-delete-text font-black" : "")}>
+              <span className={cn((product.quantity || 0) <= (product.minQuantity ?? 0) ? "text-delete-text font-black" : "")}>
                 {product.quantity || 0} <span className="opacity-50 font-normal">{t('piece')}</span>
               </span>
               {showBoxInfo && product.piecesPerBox && product.piecesPerBox > 1 && (
