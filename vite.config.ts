@@ -80,7 +80,7 @@ export default defineConfig(({mode}) => {
           ],
           display: 'standalone',
           background_color: '#ffffff',
-          start_url: '/',
+          start_url: './index.html',
         }
       })
     ],
