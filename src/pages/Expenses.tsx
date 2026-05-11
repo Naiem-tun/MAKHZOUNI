@@ -80,8 +80,8 @@ export default function Expenses() {
     <div className="space-y-5 pb-24" dir="rtl">
       <header className="flex items-center justify-between px-1">
         <div className="text-right">
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">المصاريف</h1>
-          <p className="text-zinc-400 text-[11px] font-bold">إدارة ميزانية المتجر</p>
+          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('expenses')}</h1>
+          <p className="text-zinc-400 text-[11px] font-bold">{t('store_budget')}</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)} 
@@ -89,7 +89,7 @@ export default function Expenses() {
           style={{ backgroundColor: '#B34C36' }}
         >
           <Plus size={16} />
-          إضافة مصروف
+          {t('add_expense')}
         </button>
       </header>
 
@@ -97,7 +97,7 @@ export default function Expenses() {
       <div className="px-1">
         <div className="p-5 bg-amber-50/50 dark:bg-amber-950/10 rounded-2xl border border-amber-100/50 dark:border-amber-900/20 flex items-center justify-between">
           <div className="space-y-0.5">
-            <span className="text-[9px] font-black text-amber-600/70 uppercase tracking-widest">مصاريف بانتظار الجرد</span>
+            <span className="text-[9px] font-black text-amber-600/70 uppercase tracking-widest">{t('pending_expenses')}</span>
             <div className="text-2xl font-black text-zinc-900 dark:text-white">
               {formatCurrency(totalThisMonth, settings.currency, settings.language)}
             </div>
@@ -110,7 +110,7 @@ export default function Expenses() {
 
       <div className="space-y-4">
         <div className="flex items-center justify-between px-2">
-          <h2 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">سجل العمليات</h2>
+          <h2 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">{t('operation_history')}</h2>
           <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
             <button 
               onClick={() => setFilter('pending')}
@@ -119,7 +119,7 @@ export default function Expenses() {
                 filter === 'pending' ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-400"
               )}
             >
-              الحالية
+              {t('current')}
             </button>
             <button 
               onClick={() => setFilter('audited')}
@@ -128,7 +128,7 @@ export default function Expenses() {
                 filter === 'audited' ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-400"
               )}
             >
-              المُقيدة
+              {t('audited')}
             </button>
             <button 
               onClick={() => setFilter('all')}
@@ -137,7 +137,7 @@ export default function Expenses() {
                 filter === 'all' ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm" : "text-zinc-400"
               )}
             >
-              الكل
+              {t('all')}
             </button>
           </div>
         </div>

@@ -109,8 +109,8 @@ function AppContent() {
     { id: 'debts', label: t('debts'), icon: BookOpen },
     { id: 'inventory', label: t('inventory'), icon: ClipboardCheck },
     { id: 'reports', label: t('reports'), icon: BarChart3 },
-    { id: 'expenses', label: 'المصاريف', icon: Wallet },
-    { id: 'shopping-list', label: 'قائمة المشتريات', icon: ShoppingCart },
+    { id: 'expenses', label: t('expenses'), icon: Wallet },
+    { id: 'shopping-list', label: t('shopping_list'), icon: ShoppingCart },
     { id: 'settings', label: t('settings'), icon: Settings },
   ];
 
@@ -279,7 +279,7 @@ function AppContent() {
               }`}
             >
               <div className="flex h-18 items-center justify-between px-6 border-b border-zinc-100 dark:border-zinc-800">
-                <span className="text-xl font-bold text-zinc-900 dark:text-white">القائمة</span>
+                <span className="text-xl font-bold text-zinc-900 dark:text-white">{t('menu')}</span>
                 <button onClick={() => setMobileMenuOpen(false)}>
                   <X size={24} className="text-zinc-500" />
                 </button>

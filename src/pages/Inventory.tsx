@@ -626,8 +626,8 @@ export default function Inventory() {
       </AnimatePresence>
       {/* Header Section */}
       <div className="text-right pt-2 space-y-1 px-4">
-        <h1 className="text-3xl font-bold text-black dark:text-white leading-tight">الجرد الشهري</h1>
-        <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium">أدخل الكمية الفعلية المتبقية في المخزن</p>
+        <h1 className="text-3xl font-bold text-black dark:text-white leading-tight">{t('jard_monthly')}</h1>
+        <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium">{t('enter_actual_quantity')}</p>
       </div>
 
       <div className="flex justify-start gap-2 px-4">
@@ -668,7 +668,7 @@ export default function Inventory() {
       <div className="space-y-1.5 px-4">
         <div className="flex justify-between items-center text-[9px] font-black text-zinc-400 uppercase tracking-widest">
           <span className="text-zinc-300 dark:text-zinc-800">{progress}%</span>
-          <span>التقدم الإجمالي</span>
+          <span>{t('overall_progress')}</span>
         </div>
         <div className="h-1 w-full bg-zinc-50 dark:bg-zinc-900 rounded-full overflow-hidden">
           <motion.div 

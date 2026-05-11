@@ -47,13 +47,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
           <h3 className="text-base font-medium text-black dark:text-white leading-tight mb-0.5 truncate">{product.name}</h3>
           <div className="flex flex-col gap-0.5 text-[10px] text-neutral-500 font-bold">
             <div className="flex items-center gap-1">
-              <span className="opacity-70">المخزون:</span>
+              <span className="opacity-70">{t('stock_label')}</span>
               <span className={cn((product.quantity || 0) <= (product.minQuantity ?? 0) ? "text-delete-text font-black" : "")}>
                 {product.quantity || 0} <span className="opacity-50 font-normal">{t('piece')}</span>
               </span>
               {showBoxInfo && product.piecesPerBox && product.piecesPerBox > 1 && (
                 <span className="text-[9px] text-zinc-400 font-medium">
-                  ({Math.floor(product.quantity / product.piecesPerBox)} كرتونة و {product.quantity % product.piecesPerBox} قطعة)
+                  ({Math.floor(product.quantity / product.piecesPerBox)} {t('box_and')} {product.quantity % product.piecesPerBox} {t('piece')})
                 </span>
               )}
             </div>
@@ -64,7 +64,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
                     {formatCurrency(product.boxPurchasePrice || 0, settings.currency, language)}
                   </span>
                   <span className="opacity-30">/</span>
-                  <span className="font-sans text-neutral-400">كرتونة ({product.piecesPerBox} قطعة)</span>
+                  <span className="font-sans text-neutral-400">{t('box')} ({product.piecesPerBox} {t('piece')})</span>
                 </>
               ) : (
                 <>
@@ -87,7 +87,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
           className="flex items-center gap-1 px-4 py-2 bg-brand-600 text-white rounded-2xl text-[11px] font-bold transition-all hover:bg-brand-700 shrink-0 h-9 shadow-sm"
         >
           <Plus size={12} />
-          <span>إضافة كمية</span>
+          <span>{t('add_quantity')}</span>
         </button>
       </div>
     </motion.div>

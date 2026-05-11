@@ -57,6 +57,7 @@ type View = 'main' | 'data' | 'guide' | 'categories';
 import { useCategories, categoryIcons } from '../hooks/useCategories';
 
 function CategoriesManager({ onBack }: { onBack: () => void }) {
+  const { t } = useTranslation();
   const { user, settings, updateSettings } = useAppContext();
   const { customCategories: categories, categories: allCategories } = useCategories();
   const [newCatName, setNewCatName] = React.useState('');
@@ -108,8 +109,8 @@ function CategoriesManager({ onBack }: { onBack: () => void }) {
           <ChevronLeft size={20} />
         </button>
         <div className="flex-1 text-right">
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">إدارة الفئات</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">إضافة أو حذف فئات المنتجات مع اختيار الرمز</p>
+          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('manage_categories')}</h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('add_remove_categories')}</p>
         </div>
         <div className="h-12 w-12 rounded-2xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
           <LayoutList size={24} />
@@ -268,9 +269,9 @@ export default function SettingsPage() {
   };
 
   const menuItems = [
-    { id: 'guide', label: t('user_guide'), subtitle: 'تعلم كيفية احتراف إدارة مخزنك', icon: BookOpen, color: 'text-brand-500' },
-    { id: 'categories', label: t('manage_categories'), subtitle: 'إضافة أو حذف فئات المنتجات', icon: LayoutList, color: 'text-zinc-500' },
-    { id: 'data', label: t('data_export'), subtitle: 'تصدير واستيراد وإدارة البيانات', icon: Database, color: 'text-zinc-500' },
+    { id: 'guide', label: t('user_guide'), subtitle: t('learn_store_management'), icon: BookOpen, color: 'text-brand-500' },
+    { id: 'categories', label: t('manage_categories'), subtitle: t('add_remove_categories'), icon: LayoutList, color: 'text-zinc-500' },
+    { id: 'data', label: t('data_export'), subtitle: t('export_import_data'), icon: Database, color: 'text-zinc-500' },
   ];
 
   const handleExport = async () => {
@@ -554,7 +555,7 @@ export default function SettingsPage() {
       <header className="flex items-center justify-between">
         <div className="text-right">
           <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('settings')}</h1>
-          <p className="text-zinc-500 dark:text-zinc-400">تخصيص تجربة {settings.storeName || 'H.STORE'} الخاصة بك</p>
+          <p className="text-zinc-500 dark:text-zinc-400">{t('customize_experience')}</p>
         </div>
 
         {/* Account Card */}
@@ -563,7 +564,7 @@ export default function SettingsPage() {
           className="p-2 rounded-2xl bg-white border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 shadow-sm flex items-center gap-3 cursor-pointer active:scale-95 transition-all"
         >
           <div className="text-left">
-            <p className="text-[9px] text-zinc-400 font-bold mb-0.5 leading-none uppercase">الحساب المرتبط</p>
+            <p className="text-[9px] text-zinc-400 font-bold mb-0.5 leading-none uppercase">{t('linked_account')}</p>
             <p className="text-[11px] font-black text-zinc-800 dark:text-zinc-200 truncate max-w-[100px]">
               {user?.email || user?.phoneNumber}
             </p>
@@ -599,29 +600,29 @@ export default function SettingsPage() {
 
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-zinc-500 mr-2">الاسم</label>
+              <label className="text-[11px] font-bold text-zinc-500 mr-2">{t('store_name')}</label>
               <input 
                 type="text"
                 value={tempSettings.storeName}
                 onChange={(e) => setTempSettings(prev => ({ ...prev, storeName: e.target.value }))}
-                placeholder="اسم المتجر"
+                placeholder={t('store_name_placeholder')}
                 className="w-full h-12 px-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none text-sm font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-zinc-500 mr-2">العملة</label>
+              <label className="text-[11px] font-bold text-zinc-500 mr-2">{t('currency')}</label>
               <input 
                 type="text"
                 value={tempSettings.currency}
                 onChange={(e) => setTempSettings(prev => ({ ...prev, currency: e.target.value }))}
-                placeholder="مثال: د.ت أو TND"
+                placeholder={t('currency_placeholder')}
                 className="w-full h-12 px-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none text-sm font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-zinc-500 mr-2">اللغة</label>
+              <label className="text-[11px] font-bold text-zinc-500 mr-2">{t('lang')}</label>
               <select 
                 value={tempSettings.language}
                 onChange={(e) => setTempSettings(prev => ({ ...prev, language: e.target.value as 'ar' | 'en' }))}
@@ -638,7 +639,7 @@ export default function SettingsPage() {
             disabled={isSaving}
             className="w-full h-14 rounded-2xl bg-brand-600 text-white font-black shadow-lg shadow-brand-500/20 flex items-center justify-center transition-all hover:bg-brand-700 active:scale-[0.98] disabled:opacity-50"
           >
-            {isSaving ? 'جاري الحفظ...' : 'حفظ'}
+            {isSaving ? t('saving') : t('save')}
           </button>
         </section>
 
@@ -649,7 +650,7 @@ export default function SettingsPage() {
               <Moon size={24} />
             </div>
             <div className="text-right">
-              <p className="text-xs text-zinc-400">تغيير مظهر التطبيق</p>
+              <p className="text-xs text-zinc-400">{t('change_app_appearance')}</p>
               <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{t('dark_mode')}</h3>
             </div>
           </div>
@@ -671,8 +672,8 @@ export default function SettingsPage() {
               <Eye size={24} />
             </div>
             <div className="text-right">
-              <p className="text-xs text-zinc-400">إظهار الأرقام والبيانات المالية في واجهة التطبيق</p>
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">إحصائيات المال</h3>
+              <p className="text-xs text-zinc-400">{t('show_financial_data')}</p>
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{t('financial_stats')}</h3>
             </div>
           </div>
           <button 
@@ -716,8 +717,8 @@ export default function SettingsPage() {
               <Trash2 size={24} />
             </div>
             <div className="text-right">
-              <p className="text-xs text-white/70">حذف جميع المنتجات والموردين والسجلات</p>
-              <h3 className="text-lg font-bold">مسح كل بيانات المتجر</h3>
+              <p className="text-xs text-white/70">{t('delete_all_data')}</p>
+              <h3 className="text-lg font-bold">{t('clear_store_data')}</h3>
             </div>
           </div>
           <ChevronLeft className="text-white/60" size={20} />

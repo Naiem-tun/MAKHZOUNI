@@ -25,13 +25,13 @@ export default function Suppliers() {
   const [isClearAllConfirmOpen, setIsClearAllConfirmOpen] = useState(false);
 
   const days = [
-    { id: 0, name: 'الأحد' },
-    { id: 1, name: 'الاثنين' },
-    { id: 2, name: 'الثلاثاء' },
-    { id: 3, name: 'الأربعاء' },
-    { id: 4, name: 'الخميس' },
-    { id: 5, name: 'الجمعة' },
-    { id: 6, name: 'السبت' },
+    { id: 0, name: t('sunday') },
+    { id: 1, name: t('monday') },
+    { id: 2, name: t('tuesday') },
+    { id: 3, name: t('wednesday') },
+    { id: 4, name: t('thursday') },
+    { id: 5, name: t('friday') },
+    { id: 6, name: t('saturday') },
   ];
 
   const today = new Date().getDay();
@@ -216,18 +216,18 @@ export default function Suppliers() {
     <div className="space-y-6 pb-24">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">مدونة الموردين</h1>
-          <p className="text-zinc-500 dark:text-zinc-400">سجل الإنفاق اليدوي والموردين</p>
+          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('suppliers_book')}</h1>
+          <p className="text-zinc-500 dark:text-zinc-400">{t('suppliers_subtitle')}</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => { setEditingSupplier(null); setSelectedVisitDays([]); setIsModalOpen(true); }} className="flex items-center gap-2 rounded-2xl bg-brand-600 px-6 py-3 font-semibold text-white shadow-lg shadow-brand-500/20">
             <UserPlus size={20} />
-            إضافة مورد
+            {t('add_supplier')}
           </button>
           <button 
             onClick={() => setIsClearAllConfirmOpen(true)}
             className="p-3 rounded-2xl bg-zinc-100 text-zinc-500 hover:bg-[#B34C36]/5 hover:text-[#B34C36] transition-all dark:bg-zinc-800"
-            title="مسح جميع العمليات"
+            title={t('clear_all_transactions')}
           >
             <RotateCcw size={20}/>
           </button>
@@ -246,7 +246,7 @@ export default function Suppliers() {
                   className="h-[calc(100%-8px)] w-16 bg-edit-bg border border-edit-border rounded-2xl flex flex-col items-center justify-center gap-1 text-edit-text"
                 >
                   <Edit2 size={18} />
-                  <span className="text-[10px] font-bold">تعديل</span>
+                  <span className="text-[10px] font-bold">{t('edit')}</span>
                 </button>
                 <button 
                   onClick={() => { setDeleteConfirmId(s.id!); setDeleteConfirmName(s.name || ''); }}

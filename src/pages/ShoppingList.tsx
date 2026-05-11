@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   collection, 
   onSnapshot, 
@@ -34,6 +35,7 @@ interface ListItem {
 }
 
 export default function ShoppingList() {
+  const { t } = useTranslation();
   const { user, settings, showToast } = useAppContext();
   const [items, setItems] = useState<ListItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -167,8 +169,8 @@ export default function ShoppingList() {
       {/* Header matching screenshot style */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-1">قائمة المشتريات</h1>
-          <p className="text-xs text-zinc-500 font-medium">سجل احتياجاتك المتبقية بسرعة</p>
+          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-1">{t('shopping_list')}</h1>
+          <p className="text-xs text-zinc-500 font-medium">{t('needs_record_subtitle')}</p>
         </div>
         <button className="h-9 w-9 flex items-center justify-center text-zinc-300 hover:text-zinc-500 transition-all bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700">
           <X size={18} />
@@ -192,8 +194,8 @@ export default function ShoppingList() {
             </div>
             <div className="mt-12 text-center space-y-6">
               <div className="space-y-1">
-                <p className="text-white font-bold text-xl">جارِ مسح الباركود...</p>
-                <p className="text-zinc-400 text-sm">وجه الكاميرا نحو الرمز الموجود على المنتج</p>
+                <p className="text-white font-bold text-xl">{t('scanning_barcode')}</p>
+                <p className="text-zinc-400 text-sm">{t('point_camera')}</p>
               </div>
               <button 
                 onClick={stopScanner}
@@ -213,14 +215,14 @@ export default function ShoppingList() {
           className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'products' ? 'bg-white dark:bg-zinc-700 shadow-sm text-brand-600' : 'text-zinc-400'}`}
         >
           <ListTodo size={18} strokeWidth={2.5} />
-          المشتريات
+          {t('purchases')}
         </button>
         <button 
           onClick={() => { setActiveTab('notes'); setInputText(''); }}
           className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'notes' ? 'bg-white dark:bg-zinc-700 shadow-sm text-amber-600' : 'text-zinc-400'}`}
         >
           <StickyNote size={18} strokeWidth={2.5} />
-          ملاحظات
+          {t('notes')}
         </button>
       </div>
 
@@ -232,7 +234,7 @@ export default function ShoppingList() {
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addItem()}
-            placeholder={activeTab === 'products' ? 'ماذا تريد أن تشتري؟' : 'أضف ملاحظة خاصة...'}
+            placeholder={activeTab === 'products' ? t('what_to_buy') : t('add_private_note')}
             className="flex-1 h-12 bg-transparent px-3 text-base font-medium text-zinc-900 dark:text-white placeholder:text-zinc-400 outline-none w-full"
           />
 

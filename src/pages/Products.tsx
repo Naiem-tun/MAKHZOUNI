@@ -264,7 +264,7 @@ export default function Products() {
       <header className="flex items-center justify-between gap-2">
         <div>
           <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('products')}</h1>
-          <p className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400">إدارة قائمة السلع والأسعار والمخزون</p>
+          <p className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400">{t('products_list_subtitle')}</p>
         </div>
         <div>
           <button 
@@ -288,7 +288,7 @@ export default function Products() {
           </div>
           <input 
             type="text" 
-            placeholder="بحث عن منتج بالاسم أو الباركود..." 
+            placeholder={t('search_product_placeholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full rounded-2xl border border-zinc-200 bg-white py-3 pr-12 pl-12 outline-none focus:ring-2 focus:ring-brand-500 transition-all dark:bg-zinc-900 dark:border-zinc-800 dark:text-white"
@@ -313,10 +313,10 @@ export default function Products() {
               onChange={(e) => setStockFilter(e.target.value)}
               className="appearance-none flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white pr-8 pl-3 py-2 text-sm font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 cursor-pointer min-w-[110px]"
             >
-              <option value="all">كل المخزون</option>
-              <option value="available">المتوفر</option>
-              <option value="low">النواقص</option>
-              <option value="out">نفذ</option>
+              <option value="all">{t('all_stock')}</option>
+              <option value="available">{t('available_stock')}</option>
+              <option value="low">{t('low_stock')}</option>
+              <option value="out">{t('out_of_stock')}</option>
             </select>
             <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-zinc-400">
               <Boxes size={16} />
