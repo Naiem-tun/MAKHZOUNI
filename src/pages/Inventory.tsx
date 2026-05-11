@@ -26,6 +26,8 @@ import { useCategories } from '../hooks/useCategories';
 import { BarcodeScanner } from '../components/common/BarcodeScanner';
 import jsPDF from 'jspdf';
 
+import { useTranslation } from 'react-i18next';
+
 // Updated ProductIcon component to match ProductCard's style (w-9 h-9)
 const ProductIcon = ({ className }: { className?: string }) => (
   <div className={cn(
@@ -37,6 +39,7 @@ const ProductIcon = ({ className }: { className?: string }) => (
 );
 
 export default function Inventory() {
+  const { t } = useTranslation();
   const { settings, showToast } = useAppContext();
   const { categories } = useCategories();
   const [searchTerm, setSearchTerm] = useState('');
