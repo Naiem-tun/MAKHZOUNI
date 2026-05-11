@@ -31,7 +31,10 @@ export default function Products() {
   const [searchTerm, setSearchTerm] = useState('');
   const [stockFilter, setStockFilter] = useState('all'); // 'all', 'available', 'low', 'out'
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [showBoxInfo, setShowBoxInfo] = useState(false);
+  const [showBoxInfo, setShowBoxInfo] = useState(() => {
+    const saved = localStorage.getItem('products_showBoxInfo');
+    return saved === 'true';
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQuantityModalOpen, setIsQuantityModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -234,6 +237,10 @@ export default function Products() {
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
+
+  useEffect(() => {
+    localStorage.setItem('products_showBoxInfo', showBoxInfo.toString());
+  }, [showBoxInfo]);
 
   useEffect(() => {
     const productHandler = () => {
