@@ -231,12 +231,22 @@ export default function Inventory() {
         
         let totalRevenue = 0;
         let totalProfit = 0;
+        let totalRemainingValue = 0;
         const items: any[] = [];
+
+        // calculate remaining value for ALL products
+        products.forEach(p => {
+          const actualQty = inventoryData[p.id];
+          const finalQty = actualQty !== undefined ? Number(actualQty) : Number(p.quantity || 0);
+          totalRemainingValue += finalQty * (Number(p.purchasePrice || p.costPrice) || 0);
+        });
 
         for (const [pid, actualQty] of Object.entries(inventoryData)) {
           const p = products.find(prod => prod.id === pid);
           if (p) {
             const sold = Number(p.quantity || 0) - Number(actualQty);
+            const remainingValue = Number(actualQty) * (Number(p.purchasePrice || p.costPrice) || 0);
+            
             if (sold > 0) {
               const revenue = sold * Number(p.sellingPrice || 0);
               const profit = revenue - (sold * (Number(p.purchasePrice || p.costPrice) || 0));
@@ -247,8 +257,14 @@ export default function Inventory() {
                 quantityBefore: p.quantity, 
                 quantityAfter: actualQty, 
                 salesCalculated: sold, 
-                profit 
+                profit,
+                remainingValue 
               });
+            } else if (sold <= 0) {
+              // Store items with no sales too if you want them in the table. 
+              // Wait, the prompt says sort descending by qty sold, does it mean include all? 
+              // Usually inventory report lists only what moved, but lets add the remaining ones if they have stock?
+              // The original logic only did `if (sold > 0)`. I'll stick to original logic but ensure the remainingValue is calculated.
             }
             
             const productRef = doc(db, `users/${user.uid}/products`, pid);
@@ -278,6 +294,7 @@ export default function Inventory() {
           date: auditTime,
           totalRevenue,
           totalProfit,
+          totalRemainingValue,
           totalExpenses: finalExpensesAmount, 
           netProfit: netProfit,
           items,
@@ -316,6 +333,7 @@ export default function Inventory() {
           date: localNow,
           totalRevenue,
           totalProfit,
+          totalRemainingValue,
           totalExpenses: finalExpensesAmount,
           netProfit,
           items,
@@ -354,118 +372,88 @@ export default function Inventory() {
   };
 
   if (showReportView && currentReport) {
+    const sortedItems = [...(currentReport.items || [])].sort((a: any, b: any) => (b.salesCalculated || 0) - (a.salesCalculated || 0));
+
     return (
       <motion.div 
         id="pdf-report-content"
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
-        className="space-y-6 pb-40 min-h-screen relative" dir="rtl"
+        className="pb-40 min-h-screen bg-white" dir="rtl"
       >
-        {/* Report Header */}
-        <div className="flex items-center justify-between px-4 pt-4">
-          <button 
-            onClick={() => setShowReportView(false)}
-            className="print-hidden w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl text-zinc-400"
-          >
-            <ArrowRight size={20} />
-          </button>
-          <div className="flex flex-col items-center">
-            <div className="w-10 h-10 bg-brand-50 dark:bg-brand-900/20 rounded-2xl flex items-center justify-center text-brand-600 mb-1">
-              <ClipboardCheck size={20} />
-            </div>
-            <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">تقرير الجرد النهائي</h1>
-            <p className="text-[10px] font-bold text-zinc-400">
-              {currentReport.date?.toDate ? currentReport.date.toDate().toLocaleDateString('ar-TN') : (currentReport.date ? new Date(currentReport.date).toLocaleDateString('ar-TN') : '—')}
-            </p>
-          </div>
-          <div className="w-10" /> {/* Spacer */}
-        </div>
-
-        {/* Summary Bars - Slim Horizontal Geometry */}
-        <div className="px-4 space-y-2">
-          <div className="grid grid-cols-1 gap-2">
-            {[
-              { label: 'إجمالي المبيعات', value: currentReport?.totalRevenue || 0, color: 'zinc' },
-              { label: 'إجمالي الأرباح', value: currentReport?.totalProfit || 0, color: 'emerald' },
-              { label: 'إجمالي المصاريف', value: currentReport?.totalExpenses || 0, color: 'brick-red' },
-              { label: 'صافي الربح', value: currentReport?.netProfit || 0, color: 'brand', highlighted: true },
-            ].map((bar, i) => (
-              <div 
-                key={i}
-                className={cn(
-                  "flex items-center justify-between px-5 py-4 rounded-2xl border transition-all",
-                  bar.highlighted 
-                    ? "bg-zinc-900 dark:bg-brand-600 border-zinc-800 dark:border-brand-500 text-white shadow-xl shadow-zinc-500/10" 
-                    : "bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800 text-zinc-900 dark:text-zinc-400"
-                )}
-              >
-                <div className="flex flex-col">
-                  <span className={cn("text-[10px] font-bold uppercase tracking-widest", bar.highlighted ? "text-zinc-400 dark:text-brand-200" : "text-zinc-400")}>
-                    {bar.label}
-                  </span>
-                  <span className={cn("text-lg font-black", bar.highlighted ? "text-white" : "text-inherit dark:text-white")}>
-                    {formatCurrency(bar.value, settings.currency, settings.language)}
-                  </span>
-                </div>
-                <div className={cn(
-                  "w-10 h-10 rounded-2xl flex items-center justify-center",
-                  bar.highlighted ? "bg-white/10" : "bg-zinc-50 dark:bg-zinc-800"
-                )}>
-                  {i === 0 && <Receipt size={18} className={bar.highlighted ? "text-white" : "text-zinc-400"} />}
-                  {i === 1 && <CheckCircle2 size={18} className="text-emerald-500" />}
-                  {i === 2 && <Wallet size={18} className="text-[#B34C36]" />}
-                  {i === 3 && <ClipboardCheck size={18} className="text-white" />}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Sales Details - High Density Table Layout */}
-        <div className="px-4 space-y-2">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-100 dark:border-zinc-800">
-                    <div className="w-44 text-right text-[10px] font-bold text-zinc-400 uppercase">المنتج</div>
-            <div className="flex-1 text-center text-[10px] font-bold text-zinc-400 uppercase">الكمية</div>
-            <div className="w-32 text-left text-[10px] font-bold text-zinc-400 uppercase">الربح</div>
-          </div>
+        <div className="p-4 sm:p-6 text-black" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, system-ui" }}>
           
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl overflow-hidden">
-            {(currentReport.items || []).map((item: any, i: number) => (
-              <div 
-                key={i} 
-                className="flex items-center justify-between py-3 px-4 border-b border-zinc-50 dark:border-zinc-800/40 last:border-0"
-              >
-                {/* Product Name (Far Right) */}
-                <div className="w-44 text-right">
-                  <h3 className="text-[12px] font-medium text-zinc-900 dark:text-white truncate">
-                    {item.productName}
-                  </h3>
-                </div>
+          <div className="print-hidden mb-6">
+            <button 
+              onClick={() => setShowReportView(false)}
+              className="w-10 h-10 flex items-center justify-center bg-zinc-100 border border-zinc-200 rounded-2xl text-zinc-600"
+            >
+              <ArrowRight size={20} />
+            </button>
+          </div>
 
-                {/* Sold Qty (Center) */}
-                <div className="flex-1 text-center">
-                  <span className="text-[12px] font-black text-zinc-700 dark:text-zinc-300">
-                    {item.salesCalculated}
-                  </span>
-                  <span className="text-[9px] text-zinc-400 font-bold mr-1">قطعة</span>
-                </div>
+          <div className="flex justify-between items-center border-b-2 border-[#e0e0e0] pb-4 mb-6 sm:mb-8">
+            <div className="text-[18px] sm:text-[22px] font-bold text-[#021024]">متجر حميدة</div>
+            <div className="text-[20px] sm:text-[24px] font-bold text-center flex-grow">تقرير حركة المبيعات</div>
+            <div className="text-[16px] sm:text-[18px] text-[#555555]" dir="ltr">
+              {currentReport.date?.toDate ? currentReport.date.toDate().toLocaleDateString('ar-TN') : (currentReport.date ? new Date(currentReport.date).toLocaleDateString('ar-TN') : '—')}
+            </div>
+          </div>
 
-                {/* Profit (Far Left) */}
-                <div className="w-32 text-left">
-                  <div className="text-[13px] font-black text-emerald-600">
-                    {formatCurrency(item.profit || 0, settings.currency, settings.language)}
-                  </div>
-                </div>
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 mb-6 sm:mb-8">
+            <div className="flex-1 p-5 rounded-[12px] bg-[#004eff] text-white shadow-sm">
+              <div className="text-[18px] mb-2 opacity-90">إجمالي الأرباح</div>
+              <div className="text-[24px] sm:text-[28px] font-bold inline-block" dir="ltr">
+                {formatCurrency(currentReport.totalProfit || 0, settings.currency, settings.language)}
               </div>
-            ))}
+            </div>
+            <div className="flex-1 p-5 rounded-[12px] bg-[#021024] text-white shadow-sm">
+              <div className="text-[18px] mb-2 opacity-90">قيمة المخزون المتبقي</div>
+              <div className="text-[24px] sm:text-[28px] font-bold inline-block" dir="ltr">
+                {formatCurrency(currentReport.totalRemainingValue !== undefined ? currentReport.totalRemainingValue : currentReport.items?.reduce((sum: number, item: any) => sum + (((products.find(p => p.name === item.productName)?.purchasePrice || products.find(p => p.name === item.productName)?.costPrice) || 0) * (item.quantityAfter || 0)), 0) || 0, settings.currency, settings.language)}
+              </div>
+            </div>
+          </div>
+
+          <div className="text-[14px] text-[#666666] mb-3">
+            * تم ترتيب البيانات تنازلياً حسب <strong>الكمية المباعة</strong>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-[14px]">
+              <thead>
+                <tr>
+                  <th className="px-3 py-3 text-right border-b border-[#eeeeee] bg-[#e6f0ff] text-[#021024] font-bold text-[16px]">المنتج</th>
+                  <th className="px-3 py-3 text-right border-b border-[#eeeeee] bg-[#e6f0ff] text-[#021024] font-bold text-[16px]">المباع</th>
+                  <th className="px-3 py-3 text-right border-b border-[#eeeeee] bg-[#e6f0ff] text-[#021024] font-bold text-[16px]">الربح</th>
+                  <th className="px-3 py-3 text-right border-b border-[#eeeeee] bg-[#e6f0ff] text-[#021024] font-bold text-[16px]">المتبقي (كمية)</th>
+                  <th className="px-3 py-3 text-right border-b border-[#eeeeee] bg-[#e6f0ff] text-[#021024] font-bold text-[16px]">المتبقي (قيمة)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedItems.map((item: any, i: number) => (
+                  <tr key={i} className="even:bg-[#fafbfc]">
+                    <td className="px-3 py-3 text-right border-b border-[#eeeeee]">{item.productName}</td>
+                    <td className="px-3 py-3 text-right border-b border-[#eeeeee]">{item.salesCalculated}</td>
+                    <td className="px-3 py-3 text-right border-b border-[#eeeeee]" dir="ltr">
+                      <div className="inline-block">{formatCurrency(item.profit || 0, settings.currency, settings.language)}</div>
+                    </td>
+                    <td className="px-3 py-3 text-right border-b border-[#eeeeee]">{item.quantityAfter ?? '—'}</td>
+                    <td className="px-3 py-3 text-right border-b border-[#eeeeee]" dir="ltr">
+                      <div className="inline-block">{formatCurrency(item.remainingValue !== undefined ? item.remainingValue : ((products.find(p => p.name === item.productName)?.purchasePrice || products.find(p => p.name === item.productName)?.costPrice) || 0) * (item.quantityAfter || 0), settings.currency, settings.language)}</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
         {/* PDF Button */}
-        <div className="print-hidden fixed bottom-10 left-6 right-6 z-40">
+        <div className="print-hidden fixed bottom-6 left-6 right-6 z-40">
           <button 
             onClick={() => generatePDF(currentReport)}
-            className="w-full py-4 shadow-2xl rounded-2xl text-base font-black bg-[#4A6FA5] dark:bg-[#4A6FA5] text-white flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
+            className="w-full py-4 shadow-2xl rounded-2xl text-base font-black bg-[#4A6FA5] text-white flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
           >
             <Download size={20} />
             <span>تحميل التقرير PDF</span>
