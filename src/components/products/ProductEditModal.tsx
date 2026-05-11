@@ -207,22 +207,34 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                 )}
               </div>
 
-              {/* 3. Category */}
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-zinc-500">{t('category')}</label>
-                <div className="relative">
-                  <select 
-                    name="category" 
-                    defaultValue={product?.category || "أخرى"} 
-                    className="w-full appearance-none rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-right font-medium outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white"
-                  >
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.name}>{c.name}</option>
-                    ))}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-3 text-zinc-400">
-                    <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+              {/* 3. Category & Min Quantity */}
+              <div className="grid grid-cols-2 gap-3 text-right">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-zinc-500">{t('category')}</label>
+                  <div className="relative">
+                    <select 
+                      name="category" 
+                      defaultValue={product?.category || "أخرى"} 
+                      className="w-full appearance-none rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-right font-medium outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white"
+                    >
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.name}>{c.name}</option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-3 text-zinc-400">
+                      <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                    </div>
                   </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-zinc-500">الحد الأدنى</label>
+                  <input 
+                    name="minQuantity" 
+                    type="number" 
+                    defaultValue={product?.minQuantity ?? 0} 
+                    onKeyDown={handleKeyDown}
+                    className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
+                  />
                 </div>
               </div>
 
