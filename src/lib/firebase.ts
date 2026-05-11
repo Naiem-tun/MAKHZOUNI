@@ -26,7 +26,8 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const db: Firestore = initializeFirestore(app, {
   localCache: persistentLocalCache({
     tabManager: persistentMultipleTabManager()
-  })
+  }),
+  experimentalForceLongPolling: true
 }, firebaseConfig.firestoreDatabaseId);
 
 export const auth: Auth = getAuth(app);
