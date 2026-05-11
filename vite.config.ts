@@ -13,7 +13,7 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['index.html'],
+        includeAssets: ['index.html', 'icon.svg'],
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
           cleanupOutdatedCaches: true,
@@ -48,20 +48,6 @@ export default defineConfig(({mode}) => {
                   statuses: [0, 200]
                 }
               }
-            },
-            {
-              urlPattern: /^https:\/\/cdn-icons-png\.flaticon\.com\/.*/i,
-              handler: 'CacheFirst', // Changed to CacheFirst for better offline performance
-              options: {
-                cacheName: 'icons-cache',
-                expiration: {
-                  maxEntries: 50,
-                  maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
-                },
-                cacheableResponse: {
-                  statuses: [0, 200]
-                }
-              }
             }
           ]
         },
@@ -74,14 +60,22 @@ export default defineConfig(({mode}) => {
           lang: 'ar',
           icons: [
             {
-              src: 'https://cdn-icons-png.flaticon.com/512/2897/2897785.png',
+              src: 'icon.svg',
               sizes: '192x192',
-              type: 'image/png'
+              type: 'image/svg+xml',
+              purpose: 'any'
             },
             {
-              src: 'https://cdn-icons-png.flaticon.com/512/2897/2897785.png',
+              src: 'icon.svg',
               sizes: '512x512',
-              type: 'image/png'
+              type: 'image/svg+xml',
+              purpose: 'any'
+            },
+            {
+              src: 'icon.svg',
+              sizes: '192x192',
+              type: 'image/svg+xml',
+              purpose: 'maskable'
             }
           ],
           display: 'standalone',

@@ -10,6 +10,7 @@
 
 import { useState, useEffect } from 'react';
 import { AppProvider, useAppContext } from './AppContext';
+import { Logo } from './components/UI';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -137,7 +138,7 @@ function AppContent() {
     }
   };
 
-  const showSplash = loading;
+  const showSplash = loading || (!!user && !isDataLoaded);
 
   return (
     <>
@@ -147,35 +148,39 @@ function AppContent() {
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-950"
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white dark:bg-zinc-950"
           >
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-            <div className="relative z-10 flex flex-col items-center gap-8">
+            {/* Grid Background */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:32px_32px]"></div>
+            
+            <div className="relative z-10 flex flex-col items-center">
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-                className="flex flex-col items-center gap-6"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                className="flex flex-col items-center gap-8"
               >
-                <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-2xl shadow-brand-500/20">
-                  <Package size={48} />
+                <Logo className="h-32 w-32 shadow-2xl" />
+                
+                <div className="text-center space-y-2">
+                  <h1 className="text-5xl font-black tracking-tighter text-zinc-900 dark:text-white uppercase">
+                    {settings?.storeName || 'H.STORE'}
+                  </h1>
                 </div>
-                <h1 className="text-3xl font-black tracking-tighter text-zinc-900 dark:text-white sm:text-4xl text-center">
-                  {settings?.storeName || 'SMART.STORE | مخزوني الذكي'}
-                </h1>
               </motion.div>
+
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="flex flex-col items-center gap-3"
+                transition={{ delay: 0.3 }}
+                className="mt-16 flex flex-col items-center gap-4"
               >
                 <motion.div 
                   animate={{ rotate: 360 }}
                   transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                  className="h-8 w-8 rounded-full border-4 border-zinc-200 border-t-brand-600 dark:border-zinc-800 dark:border-t-brand-500"
+                  className="h-12 w-12 rounded-full border-4 border-zinc-100 border-t-[#5B89BB] dark:border-zinc-800 dark:border-t-[#5B89BB]"
                 />
-                <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">جاري التحميل...</span>
+                <span className="text-lg font-medium text-zinc-400 dark:text-zinc-500">جاري التحميل...</span>
               </motion.div>
             </div>
           </motion.div>
@@ -200,9 +205,9 @@ function AppContent() {
               </button>
               <div 
                 onClick={() => setActiveTab('dashboard')}
-                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-2xl bg-[#4A6FA5] text-white shadow-lg shadow-[#4A6FA5]/20 transition-all hover:scale-105 active:scale-95 dark:shadow-none"
+                className="cursor-pointer"
               >
-                <Home size={22} />
+                <Logo className="w-10 h-10 shadow-lg active:scale-95 transition-transform" />
               </div>
               <span className="text-xl font-black tracking-tighter text-zinc-900 dark:text-white ml-2">
                 {settings.storeName || 'H.STORE'}

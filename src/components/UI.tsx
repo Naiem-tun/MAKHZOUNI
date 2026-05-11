@@ -53,3 +53,25 @@ export const ProductIcon = ({ category, className }: any) => (
     <Package size={16} />
   </div>
 );
+
+export const Logo = ({ className }: { className?: string }) => (
+  <div 
+    className={`flex items-center justify-center bg-[#5B89BB] text-white overflow-hidden shadow-indigo-500/10 ${className}`}
+    style={{ borderRadius: '28%' }}
+  >
+    <svg 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2.2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      className="w-3/5 h-3/5"
+    >
+      <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+      <path d="m3.3 7 8.7 5 8.7-5" />
+      <path d="M12 22V12" />
+      <path d="M16.5 9.42 7.5 4.27" />
+    </svg>
+  </div>
+);
