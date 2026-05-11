@@ -94,7 +94,7 @@ export default function Products() {
     // UI feedback: close modal immediately
     setIsQuantityModalOpen(false);
     setQuantityProduct(null);
-    showToast('تم تحديث المخزون بنجاح');
+    showToast(t('stock_updated_success'));
 
     try {
       const batch = writeBatch(db);
@@ -137,7 +137,7 @@ export default function Products() {
     setIsModalOpen(false);
     setEditingProduct(null);
     setScannedBarcode('');
-    showToast('تم حفظ المنتج بنجاح');
+    showToast(t('product_saved_success'));
 
     try {
       const batch = writeBatch(db);
@@ -191,7 +191,7 @@ export default function Products() {
         setQuantityProduct(foundProduct);
         setIsQuantityModalOpen(true);
       } else {
-        if (window.confirm(`المنتج "${decodedText}" غير موجود. هل تريد إضافته كمنتج جديد؟`)) {
+        if (window.confirm(t('product_not_found_add'))) {
           setScannedBarcode(decodedText);
           setEditingProduct(null);
           setIsModalOpen(true);
@@ -349,7 +349,7 @@ export default function Products() {
             )}
           >
             <Boxes size={18} className={showBoxInfo ? "text-brand-500" : ""} />
-            <span>كرتونة</span>
+            <span>{t('box')}</span>
           </button>
         </div>
       </div>

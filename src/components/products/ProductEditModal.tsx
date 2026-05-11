@@ -155,10 +155,10 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                         onClick={() => setShowBarcode2(true)}
                         className="text-[10px] font-bold text-brand-500 hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-300"
                       >
-                        + باركود إضافي
+                        {t('extra_barcode')}
                       </button>
                     )}
-                    <label className="text-[10px] font-bold text-zinc-500">الباركود</label>
+                    <label className="text-[10px] font-bold text-zinc-500">{t('barcode')}</label>
                   </div>
                   <div className="relative group">
                     <input 
@@ -167,7 +167,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                       onChange={(e) => setBarcode(e.target.value)}
                       onKeyDown={handleKeyDown}
                       className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 pl-10 text-sm text-right outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-700 dark:text-white block" 
-                      placeholder="امسح الباركود أو أدخله يدوياً"
+                      placeholder={t('scan_barcode_placeholder')}
                     />
                     <div className="absolute inset-y-0 left-1 flex items-center pl-1">
                       <button 
@@ -183,7 +183,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
 
                 {showBarcode2 && (
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-500 flex justify-end">الباركود الإضافي</label>
+                    <label className="text-[10px] font-bold text-zinc-500 flex justify-end">{t('barcode')}</label>
                     <div className="relative group">
                       <input 
                         name="barcode2" 
@@ -191,7 +191,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                         onChange={(e) => setBarcode2(e.target.value)}
                         onKeyDown={handleKeyDown}
                         className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 pl-10 text-sm text-right outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-700 dark:text-white block" 
-                        placeholder="امسح الباركود الإضافي"
+                        placeholder={t('scan_barcode_placeholder')}
                       />
                       <div className="absolute inset-y-0 left-1 flex items-center pl-1">
                         <button 
@@ -227,7 +227,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-500">الحد الأدنى</label>
+                  <label className="text-[10px] font-bold text-zinc-500">{t('min_quantity')}</label>
                   <input 
                     name="minQuantity" 
                     type="number" 
@@ -241,7 +241,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
               {/* 4. Box Info Row */}
               <div className="grid grid-cols-2 gap-3 text-right">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-500">القطع في الكرتونة</label>
+                  <label className="text-[10px] font-bold text-zinc-500">{t('pieces_in_box')}</label>
                   <input 
                     name="piecesPerBox" 
                     type="number" 
@@ -252,7 +252,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-500">سعر الكرتونة (شراء)</label>
+                  <label className="text-[10px] font-bold text-zinc-500">{t('box_purchase_price')}</label>
                   <input 
                     name="boxPurchasePrice" 
                     type="number" 
@@ -268,7 +268,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
               {/* 5. Prices Row */}
               <div className="grid grid-cols-2 gap-3 text-right">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-500">سعر شراء القطعة</label>
+                  <label className="text-[10px] font-bold text-zinc-500">{t('piece_purchase_price')}</label>
                   <input 
                     name="purchasePrice" 
                     type="number" 
@@ -281,7 +281,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-500">سعر البيع</label>
+                  <label className="text-[10px] font-bold text-zinc-500">{t('selling_price')}</label>
                   <input 
                     name="sellingPrice" 
                     type="number" 
@@ -313,7 +313,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                     style={{ backgroundColor: '#B34C36' }}
                   >
                     <Trash2 size={16} />
-                    <span>حذف المنتج</span>
+                    <span>{t('delete_product')}</span>
                   </button>
                 </>
               )}

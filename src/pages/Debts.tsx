@@ -134,12 +134,12 @@ export default function Debts() {
     <div className="space-y-6 pb-24">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">دفتر الديون</h1>
-          <p className="text-zinc-500 dark:text-zinc-400">إدارة الكريدي والديون</p>
+          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('debts_book')}</h1>
+          <p className="text-zinc-500 dark:text-zinc-400">{t('debts_subtitle')}</p>
         </div>
         <button onClick={() => { setEditingDebt(null); setIsModalOpen(true); }} className="flex items-center gap-2 rounded-2xl bg-brand-600 px-6 py-3 font-semibold text-white shadow-lg shadow-brand-500/20">
           <UserPlus size={20} />
-          إضافة شخص
+          {t('add_person')}
         </button>
       </header>
 
@@ -153,14 +153,14 @@ export default function Debts() {
                 className="h-[calc(100%-8px)] w-16 bg-edit-bg border border-edit-border rounded-2xl flex flex-col items-center justify-center gap-1 text-edit-text"
               >
                 <Edit2 size={18} />
-                <span className="text-[10px] font-bold">تعديل</span>
+                <span className="text-[10px] font-bold">{t('edit')}</span>
               </button>
               <button 
                 onClick={() => { setDeleteConfirmId(d.id!); setDeleteConfirmName(d.customerName || ''); }}
                 className="h-[calc(100%-8px)] w-16 bg-delete-bg border border-delete-border flex flex-col items-center justify-center gap-1 text-delete-text rounded-2xl"
               >
                 <Trash2 size={18} />
-                <span className="text-[10px] font-bold">حذف</span>
+                <span className="text-[10px] font-bold">{t('delete')}</span>
               </button>
             </div>
 
@@ -212,15 +212,15 @@ export default function Debts() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
             <motion.div key={editingDebt?.id || 'new'} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-2xl bg-white p-8 dark:bg-zinc-900 text-right">
               <h2 className="mb-6 text-2xl font-bold text-zinc-900 dark:text-white">
-                {editingDebt ? 'تعديل بيانات الدين' : 'إضافة دين جديد'}
+                {editingDebt ? t('edit_debt_data') : t('add_new_debt')}
               </h2>
               <form onSubmit={handleSaveDebt} className="space-y-4">
-                <input name="customerName" placeholder="اسم العميل" defaultValue={editingDebt?.customerName} required className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800" />
-                <input name="phone" type="tel" placeholder="رقم الهاتف (اختياري)" defaultValue={editingDebt?.phone} className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 text-left dir-ltr" style={{ direction: 'ltr' }} />
+                <input name="customerName" placeholder={t('customer_name_placeholder')} defaultValue={editingDebt?.customerName} required className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800" />
+                <input name="phone" type="tel" placeholder={t('phone_optional_placeholder')} defaultValue={editingDebt?.phone} className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 text-left dir-ltr" style={{ direction: 'ltr' }} />
                 <div className="flex gap-3 pt-4">
-                  <button type="button" onClick={closeModal} className="flex-1 rounded-2xl bg-zinc-100 py-3 font-semibold text-zinc-600 border border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700">إلغاء</button>
+                  <button type="button" onClick={closeModal} className="flex-1 rounded-2xl bg-zinc-100 py-3 font-semibold text-zinc-600 border border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700">{t('cancel')}</button>
                   <button type="submit" disabled={isSaving} className="flex-1 rounded-2xl bg-brand-600 py-3 font-semibold text-white disabled:opacity-50">
-                    {isSaving ? 'جاري الحفظ...' : (editingDebt ? 'تحديث' : 'إضافة')}
+                    {isSaving ? t('saving') : (editingDebt ? t('update') : t('add'))}
                   </button>
                 </div>
               </form>
@@ -238,7 +238,7 @@ export default function Debts() {
               <div className="flex items-center justify-between mb-6">
                 <button onClick={() => setActionDebt(null)} className="p-2 -ml-2 text-zinc-500 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800"><X size={20} /></button>
                 <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
-                  {actionType === 'select' ? 'اختيار عملية' : (actionType === 'debt' ? 'تسجيل دين جديد' : 'تسجيل سداد')}
+                  {actionType === 'select' ? t('select_operation') : (actionType === 'debt' ? t('record_new_debt') : t('record_payment'))}
                 </h2>
               </div>
               
@@ -249,14 +249,14 @@ export default function Debts() {
                     className="w-full flex items-center justify-between p-4 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/30 transition-colors"
                   >
                     <Plus size={24} />
-                    <span className="font-bold text-lg">تسجيل سداد</span>
+                    <span className="font-bold text-lg">{t('record_payment')}</span>
                   </button>
                   <button 
                     onClick={() => setActionType('debt')}
                     className="w-full flex items-center justify-between p-4 rounded-2xl bg-[#B34C36]/5 text-[#B34C36] border border-[#B34C36]/10 dark:bg-[#B34C36]/10 dark:border-[#B34C36]/20 transition-colors"
                   >
                     <Minus size={24} />
-                    <span className="font-bold text-lg">تسجيل دين</span>
+                    <span className="font-bold text-lg">{t('record_new_debt')}</span>
                   </button>
                 </div>
               )}
@@ -278,16 +278,16 @@ export default function Debts() {
                     step="0.001" 
                     value={actionAmount}
                     onChange={(e) => setActionAmount(e.target.value)}
-                    placeholder="أدخل المبلغ..." 
+                    placeholder={t('enter_amount_placeholder')} 
                     autoFocus
                     required 
                     className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-right text-xl font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white" 
                   />
                   <div className="flex gap-3 pt-2">
                     <button type="submit" disabled={!actionAmount || isSaving} className={`flex-1 rounded-2xl py-3 font-semibold text-white transition-opacity ${actionType === 'payment' ? 'bg-emerald-500' : 'bg-[#B34C36]'} disabled:opacity-50`}>
-                      تأكيد
+                      {t('confirm')}
                     </button>
-                    <button type="button" onClick={() => setActionType('select')} className="flex-1 rounded-2xl bg-zinc-100 py-3 font-semibold text-zinc-600 border border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700">رجوع</button>
+                    <button type="button" onClick={() => setActionType('select')} className="flex-1 rounded-2xl bg-zinc-100 py-3 font-semibold text-zinc-600 border border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700">{t('cancel')}</button>
                   </div>
                 </form>
               )}
@@ -304,7 +304,7 @@ export default function Debts() {
             <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }} className="relative w-full max-w-xl rounded-2xl bg-white p-8 dark:bg-zinc-900 max-h-[80vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-8">
                 <button onClick={() => setActiveDebt(null)}><X size={24} className="text-zinc-500" /></button>
-                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">سجل العمليات لـ {activeDebt.customerName}</h2>
+                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">{t('operations_log')} {t('debts')} {activeDebt.customerName}</h2>
               </div>
               <div className="space-y-4">
                 {(() => {
@@ -312,7 +312,7 @@ export default function Debts() {
                   const sortedHistory = [...displayHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                   
                   if (sortedHistory.length === 0) {
-                    return <p className="text-center text-zinc-500 py-8">لا توجد عمليات مسجلة بعد</p>;
+                    return <p className="text-center text-zinc-500 py-8">{t('no_expenses_waiting')}</p>;
                   }
                   
                   return sortedHistory.map((item, i) => (
@@ -328,7 +328,7 @@ export default function Debts() {
                           <p className="text-xs text-zinc-500">{new Date(item.date).toLocaleString()}</p>
                         </div>
                       </div>
-                      <span className="text-xs font-bold text-zinc-400">{item.type === 'payment' ? 'تسديد' : 'دين'}</span>
+                      <span className="text-xs font-bold text-zinc-400">{item.type === 'payment' ? t('payment_type') : t('debt_type')}</span>
                     </div>
                   ));
                 })()}

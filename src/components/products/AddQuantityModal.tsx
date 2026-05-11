@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Product } from '../../types';
 
 interface AddQuantityModalProps {
@@ -11,6 +12,7 @@ interface AddQuantityModalProps {
 }
 
 export function AddQuantityModal({ product, isOpen, onClose, onConfirm }: AddQuantityModalProps) {
+  const { t } = useTranslation();
   const [numBoxes, setNumBoxes] = useState(0);
   const [extraPieces, setExtraPieces] = useState(0);
   const [boxPrice, setBoxPrice] = useState(0);
@@ -81,20 +83,20 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm }: AddQua
             </button>
             
             <h2 className="mb-6 text-center text-lg font-medium text-zinc-900 dark:text-white px-8">
-              إضافة كمية جديدة - {product.name}
+              {t('add_quantity')} - {product.name}
             </h2>
 
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-3 rounded-2xl bg-zinc-50 p-4 dark:bg-zinc-800/50">
                 <div className="text-center border-r border-zinc-200 dark:border-zinc-700">
-                  <p className="text-[10px] font-bold text-zinc-400 mb-1">المخزون الحالي</p>
+                  <p className="text-[10px] font-bold text-zinc-400 mb-1">{t('current_stock')}</p>
                   <div className="flex items-baseline justify-center gap-1">
                     <span className="text-lg font-bold text-zinc-900 dark:text-white">{product.quantity}</span>
-                    <span className="text-[8px] font-bold text-zinc-400">قطعة</span>
+                    <span className="text-[8px] font-bold text-zinc-400">{t('piece')}</span>
                   </div>
                 </div>
                 <div className="text-center">
-                  <p className="text-[10px] font-bold text-zinc-400 mb-1">القطع / كرتونة</p>
+                  <p className="text-[10px] font-bold text-zinc-400 mb-1">{t('pieces_in_box')}</p>
                   <span className="text-lg font-black text-zinc-900 dark:text-white">{product.piecesPerBox}</span>
                 </div>
               </div>
@@ -102,7 +104,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm }: AddQua
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1 text-right">
-                    <label className="text-[10px] font-bold text-zinc-400 pr-1">عدد الكراتين</label>
+                    <label className="text-[10px] font-bold text-zinc-400 pr-1">{t('num_boxes')}</label>
                     <input 
                       type="number" 
                       value={numBoxes || ''}
@@ -115,7 +117,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm }: AddQua
                     />
                   </div>
                   <div className="space-y-1 text-right">
-                    <label className="text-[10px] font-bold text-zinc-400 pr-1">قطع إضافية</label>
+                    <label className="text-[10px] font-bold text-zinc-400 pr-1">{t('extra_pieces')}</label>
                     <input 
                       type="number" 
                       value={extraPieces || ''}
@@ -131,7 +133,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm }: AddQua
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1 text-right">
-                    <label className="text-[10px] font-bold text-zinc-400 pr-1">سعر الكرتونة (شراء)</label>
+                    <label className="text-[10px] font-bold text-zinc-400 pr-1">{t('box_purchase_price')}</label>
                     <input 
                       type="number" 
                       step="0.001"
@@ -144,7 +146,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm }: AddQua
                     />
                   </div>
                   <div className="space-y-1 text-right">
-                    <label className="text-[10px] font-bold text-zinc-400 pr-1">سعر القطعة (شراء)</label>
+                    <label className="text-[10px] font-bold text-zinc-400 pr-1">{t('piece_purchase_price')}</label>
                     <input 
                       type="number" 
                       step="0.001"
@@ -162,17 +164,17 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm }: AddQua
                   <div className="flex items-center justify-between">
                     <div className="flex items-baseline gap-1">
                       <span className="text-sm font-bold text-zinc-900 dark:text-white">{addedQty}</span>
-                      <span className="text-[10px] font-bold text-zinc-400">pcs</span>
+                      <span className="text-[10px] font-bold text-zinc-400">{t('piece')}</span>
                     </div>
-                    <span className="text-xs font-bold text-zinc-500">سيتم إضافتها</span>
+                    <span className="text-xs font-bold text-zinc-500">{t('will_be_added')}</span>
                   </div>
                   <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
                   <div className="flex items-center justify-between">
                     <div className="flex items-baseline gap-1">
                       <span className="text-lg font-bold text-brand-600">{newTotalQty}</span>
-                      <span className="text-[10px] font-bold text-zinc-400">pcs</span>
+                      <span className="text-[10px] font-bold text-zinc-400">{t('piece')}</span>
                     </div>
-                    <span className="text-sm font-bold text-zinc-900 dark:text-white">المخزون الإجمالي الجديد</span>
+                    <span className="text-sm font-bold text-zinc-900 dark:text-white">{t('new_total_stock')}</span>
                   </div>
                 </div>
 
@@ -180,7 +182,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm }: AddQua
                   type="submit" 
                   className="w-full rounded-2xl bg-zinc-950 py-4 font-bold text-white transition-all hover:bg-zinc-900 active:scale-95 shadow-xl shadow-zinc-500/10 dark:bg-brand-600 dark:hover:bg-brand-700"
                 >
-                  تأكيد الشراء
+                  {t('confirm_purchase')}
                 </button>
               </form>
             </div>

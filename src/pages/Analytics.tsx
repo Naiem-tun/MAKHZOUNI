@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
+import { useTranslation } from 'react-i18next';
 import { 
   TrendingUp, Wallet, Package, ShoppingCart, 
   ArrowUpRight, ArrowDownRight, Calendar, 
@@ -17,6 +18,7 @@ import { useAppContext } from '../AppContext';
 import { formatCurrency } from '../lib/utils';
 
 export default function Analytics() {
+  const { t } = useTranslation();
   const { settings, user } = useAppContext();
   const [products, setProducts] = useState<any[]>([]);
   const [inventoryReports, setInventoryReports] = useState<any[]>([]);
@@ -124,9 +126,9 @@ export default function Analytics() {
   }
 
   const menuItems = [
-    { id: 'financial', label: 'إحصائيات المال', icon: Wallet, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-950/20', desc: 'الإيرادات، الأرباح، وتكلفة المخزون' },
-    { id: 'rankings', label: 'المنتجات الأفضل', icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/20', desc: 'الأكثر ربحية والأكثر مبيعاً' },
-    { id: 'purchases', label: 'حركة المشتريات', icon: BarChart3, color: 'text-brand-500', bg: 'bg-brand-50 dark:bg-brand-950/20', desc: 'سجل عمليات الشراء الأخيرة' },
+    { id: 'financial', label: t('financial_stats'), icon: Wallet, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-950/20', desc: t('revenue_profit_cost') },
+    { id: 'rankings', label: t('best_products'), icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/20', desc: t('most_profitable_sold') },
+    { id: 'purchases', label: t('purchase_movement'), icon: BarChart3, color: 'text-brand-500', bg: 'bg-brand-50 dark:bg-brand-950/20', desc: t('recent_purchases_log') },
   ];
 
   return (
@@ -143,9 +145,9 @@ export default function Analytics() {
             </button>
           )}
           <div>
-            <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">التحليل المالي</h1>
+            <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('reports')}</h1>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              {activeTab === 'menu' ? 'اختر القسم الذي تريد استعراضه' : menuItems.find(i => i.id === activeTab)?.label}
+              {activeTab === 'menu' ? t('choose_section') : menuItems.find(i => i.id === activeTab)?.label}
             </p>
           </div>
         </div>
@@ -162,7 +164,7 @@ export default function Analytics() {
                     : 'text-zinc-500 hover:text-zinc-700'
                 }`}
               >
-                {r === 'month' ? 'شهر' : r === '3months' ? '3 أشهر' : '6 أشهر'}
+                {r === 'month' ? t('month') : r === '3months' ? t('3_months') : t('6_months')}
               </button>
             ))}
           </div>
@@ -205,8 +207,8 @@ export default function Analytics() {
             <section className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-6 shadow-sm overflow-hidden">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <div className="text-[10px] font-black text-brand-600 uppercase tracking-widest mb-1">التحليل المالي</div>
-                  <h2 className="text-xl font-black text-zinc-900 dark:text-white">الأرباح والإيرادات</h2>
+                  <div className="text-[10px] font-black text-brand-600 uppercase tracking-widest mb-1">{t('reports')}</div>
+                  <h2 className="text-xl font-black text-zinc-900 dark:text-white">{t('revenues_and_profits')}</h2>
                 </div>
                 <div className="h-10 w-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center text-emerald-600">
                   <Activity size={20} />
@@ -216,15 +218,15 @@ export default function Analytics() {
               <div className="flex items-center gap-6 mb-8">
                 <div className="flex items-center gap-2">
                   <div className="h-3 w-3 rounded-full bg-brand-500" />
-                  <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">الإيرادات</span>
+                  <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">{t('revenues')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="h-3 w-3 rounded-full bg-emerald-500" />
-                  <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">صافي الربح</span>
+                  <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">{t('net_profit')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="h-3 w-3 rounded-full bg-rose-500" />
-                  <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">المصاريف</span>
+                  <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">{t('expenses')}</span>
                 </div>
               </div>
 
@@ -258,9 +260,9 @@ export default function Analytics() {
             {/* Financial Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { label: 'رأس المال (سعر الشراء)', value: totalPurchaseValue, icon: Wallet, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950/20' },
-                { label: 'قيمة المخزون (سعر البيع)', value: totalSalesValue, icon: Package, color: 'text-brand-600', bg: 'bg-brand-50 dark:bg-brand-950/20' },
-                { label: 'الربح المتوقع', value: expectedProfit, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/20' },
+                { label: t('capital_purchase_price'), value: totalPurchaseValue, icon: Wallet, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950/20' },
+                { label: t('inventory_value_selling_price'), value: totalSalesValue, icon: Package, color: 'text-brand-600', bg: 'bg-brand-50 dark:bg-brand-950/20' },
+                { label: t('expected_profit'), value: expectedProfit, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/20' },
               ].map((stat, i) => (
                 <div key={i} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-4 rounded-2xl shadow-sm">
                   <div className="flex items-center gap-2 mb-2">
@@ -284,7 +286,7 @@ export default function Analytics() {
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-black text-xl text-zinc-900 dark:text-white flex items-center gap-2">
                   <TrendingUp size={22} className="text-emerald-500" />
-                  المنتجات الأكثر ربحية
+                  {t('most_profitable_products')}
                 </h3>
               </div>
               <div className="space-y-4">
@@ -301,7 +303,7 @@ export default function Analytics() {
                     </div>
                   </div>
                 )) : (
-                  <p className="text-center text-sm text-zinc-400 py-10">لا توجد بيانات جرد كافية</p>
+                  <p className="text-center text-sm text-zinc-400 py-10">{t('no_data_available')}</p>
                 )}
               </div>
             </div>
@@ -310,7 +312,7 @@ export default function Analytics() {
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-black text-xl text-zinc-900 dark:text-white flex items-center gap-2">
                   <ShoppingCart size={22} className="text-brand-500" />
-                  الأكثر مبيعاً
+                  {t('most_sold_products')}
                 </h3>
               </div>
               <div className="space-y-4">
@@ -324,11 +326,11 @@ export default function Analytics() {
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="text-lg font-black text-zinc-900 dark:text-white">{item.salesCalculated}</span>
-                      <span className="text-sm font-bold text-zinc-400">قطعة</span>
+                      <span className="text-sm font-bold text-zinc-400">{t('piece')}</span>
                     </div>
                   </div>
                 )) : (
-                  <p className="text-center text-sm text-zinc-400 py-10">لا توجد بيانات جرد كافية</p>
+                  <p className="text-center text-sm text-zinc-400 py-10">{t('no_data_available')}</p>
                 )}
               </div>
             </div>
@@ -339,8 +341,8 @@ export default function Analytics() {
           <section className="space-y-4">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="font-black text-xl text-zinc-900 dark:text-white">سجل المشتريات الأخيرة</h3>
-                <p className="text-[10px] font-bold text-zinc-400">إجمالي المشتريات اليومية للسلع</p>
+                <h3 className="font-black text-xl text-zinc-900 dark:text-white">{t('last_purchases_log')}</h3>
+                <p className="text-[10px] font-bold text-zinc-400">{t('daily_purchases_total')}</p>
               </div>
               <div className="h-10 w-10 rounded-2xl bg-amber-50 dark:bg-amber-950/20 flex items-center justify-center text-amber-600">
                 <Receipt size={20} />
@@ -364,7 +366,7 @@ export default function Analytics() {
 
                   <div className="text-right">
                     <div className="text-sm font-black text-zinc-700 dark:text-zinc-300">
-                      {day.date.toLocaleDateString('ar-TN', { weekday: 'long', day: 'numeric', month: 'long' })}
+                      {day.date.toLocaleDateString(language === 'ar' ? 'ar-TN' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' })}
                     </div>
                     <div className="text-[10px] font-bold text-zinc-400">
                       {day.date.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -376,7 +378,7 @@ export default function Analytics() {
                   <div className="h-16 w-16 rounded-full bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-center mx-auto text-zinc-300">
                     <BarChart3 size={32} />
                   </div>
-                  <p className="text-sm text-zinc-400 font-bold">لا توجد سجلات مشتريات مسجلة بعد</p>
+                  <p className="text-sm text-zinc-400 font-bold">{t('no_purchases_waiting')}</p>
                 </div>
               )}
             </div>

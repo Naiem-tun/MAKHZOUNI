@@ -253,7 +253,7 @@ export default function Suppliers() {
                   className="h-[calc(100%-8px)] w-16 bg-delete-bg border border-delete-border flex flex-col items-center justify-center gap-1 text-delete-text rounded-2xl"
                 >
                   <Trash2 size={18} />
-                  <span className="text-[10px] font-bold">حذف</span>
+                  <span className="text-[10px] font-bold">{t('delete')}</span>
                 </button>
               </div>
 
@@ -278,14 +278,14 @@ export default function Suppliers() {
                         <h3 className="text-base font-bold text-zinc-900 dark:text-white truncate">{s.name}</h3>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className="inline-flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-1.5 py-0.5 rounded-xl text-[10px] font-bold border border-zinc-200 dark:border-zinc-700">
-                            {s.txCount || 0} عمليات
+                            {s.txCount || 0} {t('operations')}
                           </span>
                         </div>
                       </div>
                       <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500 shrink-0">{s.typeOfGoods}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {isToday && <span className="text-[10px] font-bold text-brand-600">يزورك اليوم</span>}
+                      {isToday && <span className="text-[10px] font-bold text-brand-600">{t('visits_today')}</span>}
                     </div>
                   </div>
                 </div>
@@ -339,19 +339,19 @@ export default function Suppliers() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
             <motion.div key={editingSupplier?.id || 'new'} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-2xl bg-white p-8 dark:bg-zinc-900">
-              <h2 className="mb-6 text-2xl font-bold text-zinc-900 dark:text-white">{editingSupplier ? 'تعديل بيانات المورد' : 'إضافة مورد جديد'}</h2>
+              <h2 className="mb-6 text-2xl font-bold text-zinc-900 dark:text-white">{editingSupplier ? t('edit_supplier_data') : t('add_new_supplier')}</h2>
               <form onSubmit={handleSave} className="space-y-4 text-right">
                 <div>
-                  <label className="text-xs font-bold text-neutral-400 mb-1 block">اسم المورّد</label>
-                  <input name="name" placeholder="مثال: شركة المشروبات" defaultValue={editingSupplier?.name} required className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
+                  <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('name')}</label>
+                  <input name="name" placeholder={t('supplier_name_placeholder')} defaultValue={editingSupplier?.name} required className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-neutral-400 mb-1 block">رقم الهاتف</label>
-                  <input name="phone" placeholder="رقم الهاتف (اختياري)" defaultValue={editingSupplier?.phone} className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
+                  <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('phone_number')}</label>
+                  <input name="phone" placeholder={t('supplier_phone_placeholder')} defaultValue={editingSupplier?.phone} className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-neutral-400 mb-1 block">نوع السلعة</label>
-                  <input name="typeOfGoods" placeholder="مثل: المواد الغذائية" defaultValue={editingSupplier?.typeOfGoods} className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
+                  <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('category')}</label>
+                  <input name="typeOfGoods" placeholder={t('supplier_goods_placeholder')} defaultValue={editingSupplier?.typeOfGoods} className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-zinc-400 mb-3 block">أيام الزيارة الأسبوعية</label>
@@ -413,9 +413,9 @@ export default function Suppliers() {
                   </div>
                 </div>
                 <div className="flex gap-3 pt-4">
-                  <button type="button" onClick={closeModal} className="flex-1 rounded-2xl bg-zinc-100 py-3 font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">إلغاء</button>
+                  <button type="button" onClick={closeModal} className="flex-1 rounded-2xl bg-zinc-100 py-3 font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">{t('cancel')}</button>
                   <button type="submit" disabled={isSaving} className="flex-1 rounded-2xl bg-brand-600 py-3 font-semibold text-white shadow-lg shadow-brand-500/20 disabled:opacity-50">
-                    {isSaving ? 'جاري الحفظ...' : 'حفظ البيانات'}
+                    {isSaving ? t('saving') : t('save_data')}
                   </button>
                 </div>
               </form>
@@ -432,13 +432,13 @@ export default function Suppliers() {
                   <CirclePlus size={24} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-zinc-900 dark:text-white">تسجيل دفعة مالية</h2>
-                  <p className="text-xs text-zinc-500">للمورد: {selectedSupplier.name}</p>
+                  <h2 className="text-xl font-bold text-zinc-900 dark:text-white">{t('record_payment')}</h2>
+                  <p className="text-xs text-zinc-500">{t('suppliers')}: {selectedSupplier.name}</p>
                 </div>
               </div>
               <form onSubmit={handleAddTransaction} className="space-y-4 text-right">
                 <div>
-                  <label className="text-xs font-bold text-neutral-400 mb-1 block">المبلغ المدفوع</label>
+                  <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('purchase_price')}</label>
                   <div className="relative">
                     <input name="amount" type="number" step="0.001" placeholder="0.000" required className="w-full rounded-2xl border bg-zinc-50 p-4 pr-12 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700 font-mono text-lg" />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-zinc-400">{settings.currency}</span>
@@ -449,13 +449,13 @@ export default function Suppliers() {
                   <input name="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-neutral-400 mb-1 block">ملاحظة</label>
-                  <input name="note" placeholder="مثال: دفعة فواتير مارس" className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
+                  <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('notes')}</label>
+                  <input name="note" placeholder={t('record_payment_note_placeholder')} className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
                 </div>
                 <div className="flex gap-3 pt-4">
-                  <button type="button" onClick={() => setIsAddTxModalOpen(false)} className="flex-1 rounded-2xl bg-zinc-100 py-3 font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">إلغاء</button>
+                  <button type="button" onClick={() => setIsAddTxModalOpen(false)} className="flex-1 rounded-2xl bg-zinc-100 py-3 font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">{t('cancel')}</button>
                   <button type="submit" disabled={isSaving} className="flex-1 rounded-2xl py-3 font-semibold text-white shadow-lg shadow-[#B34C36]/20 disabled:opacity-50" style={{ backgroundColor: '#B34C36' }}>
-                    {isSaving ? 'جاري الحفظ...' : 'تأكيد الدفع'}
+                    {isSaving ? t('saving') : t('confirm_payment')}
                   </button>
                 </div>
               </form>
@@ -473,11 +473,11 @@ export default function Suppliers() {
                     <History size={24} />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-zinc-900 dark:text-white">سجل العمليات</h2>
+                    <h2 className="text-xl font-bold text-zinc-900 dark:text-white">{t('operations_log')}</h2>
                     <div className="flex items-center gap-2">
                       <p className="text-xs text-zinc-500">{selectedSupplier.name}</p>
                       <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-xl text-zinc-500 font-bold">
-                        {transactions.filter(t => t.supplierId === selectedSupplier.id).length} عمليات
+                        {transactions.filter(t => t.supplierId === selectedSupplier.id).length} {t('operations')}
                       </span>
                     </div>
                   </div>
@@ -519,13 +519,13 @@ export default function Suppliers() {
                   ))}
                 {transactions.filter(t => t.supplierId === selectedSupplier.id).length === 0 && (
                   <div className="text-center py-12 text-zinc-400">
-                    <p className="text-sm">لا توجد عمليات مسجلة لهذا المورد</p>
+                    <p className="text-sm">{t('no_expenses_waiting')}</p>
                   </div>
                 )}
               </div>
 
               <div className="mt-8 pt-6 border-t border-zinc-100 dark:border-zinc-800 flex justify-between items-center">
-                <span className="text-base font-bold text-zinc-500">إجمالي المدفوعات</span>
+                <span className="text-base font-bold text-zinc-500">{t('total_expenses')}</span>
                 <span className="text-xl font-black text-zinc-900 dark:text-white">
                   {formatCurrency(
                     transactions.filter(t => t.supplierId === selectedSupplier.id).reduce((acc, t) => acc + (t.amount || 0), 0),
@@ -578,8 +578,8 @@ export default function Suppliers() {
               exit={{ opacity: 0, scale: 0.95, y: 10 }} 
               className="relative w-full max-w-[280px] rounded-2xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
-              <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 font-bold">
-                هل أنت متأكد من حذف هذه العملية؟
+              <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
+                {t('confirm_delete_operation')}
               </p>
               <div className="flex gap-2">
                 <button 
@@ -587,13 +587,13 @@ export default function Suppliers() {
                   className="flex-1 py-2.5 rounded-2xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px]"
                   style={{ backgroundColor: '#B34C36' }}
                 >
-                  تأكيد
+                  {t('confirm')}
                 </button>
                 <button 
                   onClick={() => setDeleteTxConfirmId(null)}
                   className="flex-1 py-2.5 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 text-[12px] font-bold active:scale-95 transition-all"
                 >
-                  إلغاء
+                  {t('cancel')}
                 </button>
               </div>
             </motion.div>
@@ -610,7 +610,7 @@ export default function Suppliers() {
               className="relative w-full max-w-[280px] rounded-2xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
               <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
-                هل أنت متأكد من حذف جميع عمليات الموردين المسجلة؟
+                {t('confirm_delete_all_operations')}
               </p>
               <div className="flex gap-2">
                 <button 
@@ -619,13 +619,13 @@ export default function Suppliers() {
                   className="flex-1 py-2.5 rounded-2xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
                   style={{ backgroundColor: '#B34C36' }}
                 >
-                  تأكيد
+                  {t('confirm')}
                 </button>
                 <button 
                   onClick={() => setIsClearAllConfirmOpen(false)}
                   className="flex-1 py-2.5 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 text-[12px] font-bold active:scale-95 transition-all"
                 >
-                  إلغاء
+                  {t('cancel')}
                 </button>
               </div>
             </motion.div>
