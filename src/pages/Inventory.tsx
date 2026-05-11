@@ -22,21 +22,28 @@ import { useAppContext } from '../AppContext';
 import { cn, safeParseFloat, handleFirestoreError, formatCurrency } from '../lib/utils';
 import { OperationType } from '../types';
 import { ProductPagination } from '../components/products/ProductPagination';
-import { useCategories } from '../hooks/useCategories';
+import { useCategories, categoryIcons } from '../hooks/useCategories';
 import { BarcodeScanner } from '../components/common/BarcodeScanner';
+import { Logo } from '../components/UI';
 import jsPDF from 'jspdf';
 
 import { useTranslation } from 'react-i18next';
 
-// Updated ProductIcon component to match ProductCard's style (w-9 h-9)
-const ProductIcon = ({ className }: { className?: string }) => (
-  <div className={cn(
-    "w-9 h-9 rounded-2xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-100 dark:border-neutral-800 flex items-center justify-center shrink-0 shadow-sm", 
-    className
-  )}>
-    <Package size={16} className="text-neutral-400 dark:text-neutral-500" />
-  </div>
-);
+const ProductIcon = ({ category: catName, className }: { category?: string, className?: string }) => {
+  const { categories } = useCategories();
+  const category = categories.find(c => c.name === catName);
+  const iconName = category?.icon || 'Package';
+  const Icon = categoryIcons[iconName] || Package;
+
+  return (
+    <div className={cn(
+      "w-9 h-9 rounded-2xl bg-brand-50 text-brand-600 dark:bg-brand-950/20 border border-brand-100/20 dark:border-brand-900/10 flex items-center justify-center shrink-0 shadow-sm", 
+      className
+    )}>
+      <Icon size={16} />
+    </div>
+  );
+};
 
 export default function Inventory() {
   const { t } = useTranslation();
@@ -740,7 +747,7 @@ export default function Inventory() {
             >
               {/* Product Info (Right) */}
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <ProductIcon />
+                <ProductIcon category={p.category} />
                 <div className="flex flex-col text-right truncate">
                   <h3 className="text-[13px] font-medium truncate text-black dark:text-white leading-tight mb-0.5">{p.name || t('product')}</h3>
                   <div className="flex items-center gap-1">

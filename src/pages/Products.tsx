@@ -22,6 +22,8 @@ import { useCategories } from '../hooks/useCategories';
 
 import { BarcodeScanner } from '../components/common/BarcodeScanner';
 
+import { Logo } from '../components/UI';
+
 export default function Products() {
   const { t } = useTranslation();
   const { user, settings, showToast, setIsDataLoaded } = useAppContext();
@@ -262,7 +264,7 @@ export default function Products() {
   return (
     <div className="space-y-6">
       <header className="flex items-center justify-between gap-2">
-        <div>
+        <div className="text-right">
           <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('products')}</h1>
           <p className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400">{t('products_list_subtitle')}</p>
         </div>
