@@ -863,7 +863,7 @@ export default function Inventory() {
           className="w-full py-4 shadow-2xl rounded-2xl text-base font-black bg-[#4A6FA5] dark:bg-[#4A6FA5] text-white flex items-center justify-center gap-3"
         >
           <ClipboardCheck size={22} />
-          <span>حفظ الجرد وحساب النتائج</span>
+          <span>{t('save_inventory')}</span>
         </motion.button>
       </div>
 

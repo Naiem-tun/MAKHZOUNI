@@ -205,7 +205,23 @@ const resources = {
       "product": "المنتج",
       "sold": "المباع",
       "profit": "الربح",
-      "download_pdf_report": "تحميل تقرير PDF"
+      "download_pdf_report": "تحميل تقرير PDF",
+      "purchase_movement": "حركة المشتريات",
+      "last_purchases_log": "آخر سجل مشتريات",
+      "daily_purchases_total": "إجمالي المشتريات اليومية",
+      "best_products": "المنتجات الأفضل",
+      "most_profitable_products": "الأكثر ربحية",
+      "most_sold_products": "الأكثر مبيعاً",
+      "no_data_available": "لا توجد بيانات",
+      "revenue_profit_cost": "الإيرادات، الأرباح، والتكلفة",
+      "most_profitable_sold": "الأكثر ربحية ومبيعاً",
+      "recent_purchases_log": "سجل المشتريات الأخيرة",
+      "revenues_and_profits": "الإيرادات والأرباح",
+      "revenues": "الإيرادات",
+      "months_3": "3 أشهر",
+      "months_6": "6 أشهر",
+      "inventory_value_selling_price": "قيمة المخزون (سعر البيع)",
+      "confirm_save_inventory": "هل أنت متأكد من حفظ الجرد وحساب النتائج؟"
     }
   },
   en: {
@@ -402,7 +418,23 @@ const resources = {
       "product": "Product",
       "sold": "Sold",
       "profit": "Profit",
-      "download_pdf_report": "Download PDF Report"
+      "download_pdf_report": "Download PDF Report",
+      "purchase_movement": "Purchase Movement",
+      "last_purchases_log": "Last Purchases Log",
+      "daily_purchases_total": "Daily Purchases Total",
+      "best_products": "Best Products",
+      "most_profitable_products": "Most Profitable",
+      "most_sold_products": "Most Sold",
+      "no_data_available": "No data available",
+      "revenue_profit_cost": "Revenue, Profit & Cost",
+      "most_profitable_sold": "Most Profitable & Sold",
+      "recent_purchases_log": "Recent Purchases Log",
+      "revenues_and_profits": "Revenues & Profits",
+      "revenues": "Revenues",
+      "months_3": "3 Months",
+      "months_6": "6 Months",
+      "inventory_value_selling_price": "Inventory Value (Selling Price)",
+      "confirm_save_inventory": "Are you sure you want to save the inventory and calculate results?"
     }
   }
 };
