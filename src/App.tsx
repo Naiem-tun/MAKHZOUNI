@@ -238,20 +238,20 @@ function AppContent() {
       </header>
 
       {/* Tabs Navigation (Matches secondary nav style) */}
-      <div className="sticky top-16 z-30 bg-white/80 backdrop-blur-md dark:bg-zinc-900/80 border-b border-zinc-100 dark:border-zinc-800 overflow-x-auto no-scrollbar">
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="flex items-center gap-1 py-2">
+      <div className="sticky top-16 z-30 bg-zinc-50/80 dark:bg-zinc-950/80 backdrop-blur-md overflow-x-auto no-scrollbar pt-4 pb-2">
+        <div className="flex px-4 mx-auto w-max">
+          <div className="flex items-center gap-1 p-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[20px] shadow-sm">
             {toolbarTabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex shrink-0 items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all relative ${
+                className={`flex shrink-0 items-center justify-center gap-2 px-6 py-2.5 rounded-2xl text-sm font-bold transition-all ${
                    activeTab === tab.id 
                   ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white' 
                   : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
                 }`}
               >
-                <tab.icon size={16} />
+                <tab.icon size={18} />
                 <span>{tab.label}</span>
               </button>
             ))}

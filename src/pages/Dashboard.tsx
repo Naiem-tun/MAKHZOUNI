@@ -10,7 +10,7 @@ import {
   Plus, 
   ScanBarcode 
 } from 'lucide-react';
-import { Card, Button, Modal, ProductIcon } from '../components/UI';
+import { Card } from '../components/UI';
 import { cn, formatCurrency, safeParseFloat, safeDispatchEvent } from '../lib/utils';
 import { Product, Transaction, OperationType } from '../types';
 import { handleFirestoreError } from '../lib/utils';

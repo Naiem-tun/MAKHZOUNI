@@ -24,7 +24,6 @@ export default function Analytics() {
   const [inventoryReports, setInventoryReports] = useState<any[]>([]);
   const [purchases, setPurchases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<'month' | '3months' | '6months'>('month');
   const [activeTab, setActiveTab] = useState<'menu' | 'financial' | 'rankings' | 'purchases'>('menu');
 
   const language = settings.language || 'ar';
@@ -151,24 +150,6 @@ export default function Analytics() {
             </p>
           </div>
         </div>
-        
-        {activeTab === 'financial' && (
-          <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-2xl">
-            {(['month', '3months', '6months'] as const).map((r) => (
-              <button
-                key={r}
-                onClick={() => setTimeRange(r)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-2xl transition-all ${
-                  timeRange === r 
-                    ? 'bg-white dark:bg-zinc-700 text-brand-600 shadow-sm' 
-                    : 'text-zinc-500 hover:text-zinc-700'
-                }`}
-              >
-                {r === 'month' ? t('month') : r === '3months' ? t('3_months') : t('6_months')}
-              </button>
-            ))}
-          </div>
-        )}
       </header>
 
       {/* Conditional Content */}
