@@ -180,7 +180,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm }: AddQua
 
                 <button 
                   type="submit" 
-                  className="w-full rounded-2xl bg-zinc-950 py-4 font-bold text-white transition-all hover:bg-zinc-900 active:scale-95 shadow-xl shadow-zinc-500/10 dark:bg-brand-600 dark:hover:bg-brand-700"
+                  className="w-full rounded-2xl bg-brand-600 py-4 font-bold text-white transition-all hover:bg-brand-700 active:scale-95 dark:bg-brand-600 dark:hover:bg-brand-700"
                 >
                   {t('confirm_purchase')}
                 </button>
