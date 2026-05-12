@@ -164,7 +164,7 @@ function AppContent() {
                 
                 <div className="text-center space-y-2">
                   <h1 className="text-5xl font-black tracking-tighter text-zinc-900 dark:text-white uppercase">
-                    {settings?.storeName || 'H.STORE'}
+                    {settings?.storeName || 'مخزوني'}
                   </h1>
                 </div>
               </motion.div>
@@ -210,7 +210,7 @@ function AppContent() {
                 <Logo className="w-10 h-10 shadow-lg active:scale-95 transition-transform" />
               </div>
               <span className="text-xl font-black tracking-tighter text-zinc-900 dark:text-white ml-2">
-                {settings.storeName || 'H.STORE'}
+                {settings.storeName || 'مخزوني'}
               </span>
             </div>
 

@@ -96,7 +96,7 @@ const Dashboard = memo(() => {
             <Package size={14} className="text-neutral-400" />
             <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">{t('total_products')}</span>
           </div>
-          <span className="text-sm font-mono font-bold">{stats.totalProducts}</span>
+          <span className="text-sm font-mono font-bold text-zinc-800 dark:text-zinc-100">{stats.totalProducts}</span>
         </Card>
 
         <Card variant="white" className="flex items-center justify-between py-3 px-4 rounded-2xl border-neutral-100">
@@ -112,7 +112,7 @@ const Dashboard = memo(() => {
             <TrendingUp size={14} className="text-emerald-500" />
             <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">{t('inventory_value')}</span>
           </div>
-          <span className="text-sm font-mono font-bold">{formatPrivateValue(stats.totalValue)}</span>
+          <span className="text-sm font-mono font-bold text-zinc-800 dark:text-zinc-100">{formatPrivateValue(stats.totalValue)}</span>
         </Card>
 
         <Card variant="white" className="flex items-center justify-between py-3 px-4 rounded-2xl border-neutral-100">
@@ -120,7 +120,7 @@ const Dashboard = memo(() => {
             <Wallet size={14} className="text-rose-500" />
             <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">{t('expenses')}</span>
           </div>
-          <span className="text-sm font-mono font-bold">{formatPrivateValue(0)}</span>
+          <span className="text-sm font-mono font-bold text-zinc-800 dark:text-zinc-100">{formatPrivateValue(0)}</span>
         </Card>
       </div>
 
