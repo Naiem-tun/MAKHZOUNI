@@ -329,7 +329,8 @@ export default function Suppliers() {
         <motion.div 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="max-w-fit bg-brand-50/80 dark:bg-brand-950/90 backdrop-blur-md border border-brand-100 dark:border-brand-900 px-6 py-2.5 rounded-full shadow-lg shadow-brand-500/10 pointer-events-auto relative"
+          className="max-w-fit bg-brand-50/80 dark:bg-brand-950/90 backdrop-blur-md border border-brand-100 dark:border-brand-900 px-6 py-2.5 rounded-full shadow-lg shadow-brand-500/10 pointer-events-auto relative cursor-pointer"
+          onClick={() => setIsTotalModalOpen(true)}
         >
           {/* Decorative handle at top */}
           <div className="absolute -top-1 w-6 h-2 bg-white dark:bg-brand-900 left-1/2 -translate-x-1/2 rounded-t-md border-t border-x border-brand-100 dark:border-zinc-800" />

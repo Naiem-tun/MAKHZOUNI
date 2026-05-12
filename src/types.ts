@@ -25,6 +25,7 @@ export interface UserSettings {
   darkMode: boolean;
   storeName: string;
   showFinancials?: boolean;
+  showFloatingTotals?: boolean;
   email?: string;
   displayName?: string;
   deletedCategories?: string[];

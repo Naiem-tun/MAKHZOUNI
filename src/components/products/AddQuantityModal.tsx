@@ -43,6 +43,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm }: AddQua
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (addedQty <= 0) return;
     await onConfirm(numBoxes, extraPieces, boxPrice, piecePrice);
   };
 
@@ -51,6 +52,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm }: AddQua
       e.preventDefault();
       e.stopPropagation();
       e.currentTarget.blur();
+      if (addedQty <= 0) return;
       onConfirm(numBoxes, extraPieces, boxPrice, piecePrice);
     }
   };
@@ -180,7 +182,8 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm }: AddQua
 
                 <button 
                   type="submit" 
-                  className="w-full rounded-2xl bg-brand-600 py-4 font-bold text-white transition-all hover:bg-brand-700 active:scale-95 dark:bg-brand-600 dark:hover:bg-brand-700"
+                  disabled={addedQty <= 0}
+                  className="w-full rounded-2xl bg-brand-600 py-4 font-bold text-white transition-all hover:bg-brand-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-brand-600 dark:hover:bg-brand-700"
                 >
                   {t('confirm_purchase')}
                 </button>

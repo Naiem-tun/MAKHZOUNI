@@ -687,6 +687,28 @@ export default function SettingsPage() {
           </button>
         </section>
 
+        {/* Floating Totals Toggle */}
+        <section className="flex items-center justify-between p-6 rounded-2xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
+              <Eye size={24} />
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-zinc-400">{t('show_floating_totals')}</p>
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{t('show_floating_totals')}</h3>
+            </div>
+          </div>
+          <button 
+            onClick={() => updateSettings({ showFloatingTotals: !(settings.showFloatingTotals ?? true) })}
+            className={`relative h-8 w-14 rounded-full transition-colors ${(settings.showFloatingTotals ?? true) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+          >
+            <motion.div 
+              animate={{ x: (settings.showFloatingTotals ?? true) ? 24 : 4 }}
+              className="absolute left-0 top-1 h-6 w-6 rounded-full bg-white shadow-sm"
+            />
+          </button>
+        </section>
+
         {/* Other menu items */}
         {menuItems.map((item) => (
           <button 

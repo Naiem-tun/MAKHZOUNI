@@ -349,7 +349,7 @@ function AppContent() {
 
       {/* Floating Action Buttons Unified (Matches Dashboard screenshot style) */}
       <AnimatePresence>
-        {['dashboard', 'products'].includes(activeTab) && (
+        {['dashboard', 'products'].includes(activeTab) && (settings.showFloatingTotals ?? true) && (
           <div className="fixed bottom-8 left-8 flex items-center gap-4 z-50 pointer-events-none">
             {/* Barcode Scanner Button - Primary style user liked */}
             <motion.button
@@ -357,21 +357,9 @@ function AppContent() {
               animate={{ scale: 1, x: 0 }}
               exit={{ scale: 0, x: -20 }}
               onClick={handleScannerClick}
-              className="pointer-events-auto w-12 h-12 bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl flex items-center justify-center text-zinc-600 dark:text-zinc-400 transition-all active:scale-95"
+              className="pointer-events-auto w-16 h-12 bg-white dark:bg-zinc-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-xl flex items-center justify-center text-zinc-600 dark:text-zinc-400 transition-all active:scale-95"
             >
-              <ScanBarcode size={20} />
-            </motion.button>
-
-            {/* Add Button - Same size as Barcode button */}
-            <motion.button
-              initial={{ scale: 0, x: -20 }}
-              animate={{ scale: 1, x: 0 }}
-              exit={{ scale: 0, x: -20 }}
-              transition={{ delay: 0.1 }}
-              onClick={handlePlusClick}
-              className="pointer-events-auto w-12 h-12 bg-[#4A6FA5] text-white rounded-2xl shadow-xl flex items-center justify-center transition-all active:scale-95 hover:bg-[#4A6FA5]/90"
-            >
-              <Plus size={24} />
+              <ScanBarcode size={24} />
             </motion.button>
           </div>
         )}
