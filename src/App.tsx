@@ -350,7 +350,7 @@ function AppContent() {
       {/* Floating Action Buttons Unified (Matches Dashboard screenshot style) */}
       <AnimatePresence>
         {['dashboard', 'products'].includes(activeTab) && (settings.showFloatingTotals ?? true) && (
-          <div className="fixed bottom-8 right-8 flex items-center gap-4 z-50 pointer-events-none">
+          <div className="fixed bottom-8 left-8 flex items-center gap-4 z-50 pointer-events-none">
             {/* Barcode Scanner Button - Primary style user liked */}
             <motion.button
               initial={{ scale: 0, x: -20 }}
