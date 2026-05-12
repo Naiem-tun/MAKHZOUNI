@@ -35,13 +35,13 @@ export default function Expenses() {
     if (!user) return;
     const formData = new FormData(e.currentTarget);
     const amount = parseFloat(formData.get('amount') as string);
-    const description = (formData.get('description') as string).trim() || 'مصروف';
+    const description = (formData.get('description') as string).trim() || t('expense');
     const category = formData.get('category') as string;
 
     if (isNaN(amount) || amount <= 0) return;
 
     // UI Feedback
-    showToast('تمت إضافة المصروف');
+    showToast(t('expense_added_success'));
     setIsModalOpen(false);
 
     try {
@@ -148,7 +148,7 @@ export default function Expenses() {
           </div>
         ) : filteredExpenses.length === 0 ? (
           <div className="py-10 text-center text-zinc-400 text-xs font-bold bg-white dark:bg-zinc-900 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800">
-            {filter === 'pending' ? 'لا توجد مصاريف تنتظر الجرد' : 'لا توجد بيانات'}
+            {filter === 'pending' ? t('no_expenses_match') : t('no_data_available')}
           </div>
         ) : (
           <div className="space-y-2">
@@ -173,13 +173,13 @@ export default function Expenses() {
                       {expense.audited && (
                         <div className="text-[7px] font-black text-blue-500 flex items-center gap-0.5 bg-blue-50 dark:bg-blue-900/20 px-1 py-0.5 rounded">
                           <CheckCheck size={8} />
-                          مُقيد
+                          {t('audited_label')}
                         </div>
                       )}
                       {!expense.audited && (
                         <div className="text-[7px] font-black text-amber-500 flex items-center gap-0.5 bg-amber-50 dark:bg-amber-900/20 px-1 py-0.5 rounded">
                           <Clock size={8} />
-                          بانتظار
+                          {t('waiting_label')}
                         </div>
                       )}
                     </div>
@@ -235,12 +235,12 @@ export default function Expenses() {
                 <button onClick={() => setIsModalOpen(false)} className="text-zinc-400 hover:text-zinc-600 bg-zinc-50 dark:bg-zinc-800 p-1.5 rounded-xl">
                   <X size={18} />
                 </button>
-                <h2 className="text-xl font-black text-zinc-900 dark:text-white">إضافة مصروف</h2>
+                <h2 className="text-xl font-black text-zinc-900 dark:text-white">{t('add_expense_title')}</h2>
               </div>
               
               <form onSubmit={handleAddExpense} className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest px-2">المبلغ (ضروري)</label>
+                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest px-2">{t('amount_required')}</label>
                   <div className="relative">
                     <input 
                       name="amount" 
@@ -256,34 +256,34 @@ export default function Expenses() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest px-2">البيان / الوصف (اختياري)</label>
+                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest px-2">{t('description_optional')}</label>
                   <input 
                     name="description" 
-                    placeholder="مثال: فاتورة، نقل، كراء..." 
+                    placeholder={t('expense_placeholder')} 
                     className="w-full rounded-2xl border border-zinc-100 p-3 text-right outline-none dark:bg-zinc-800 dark:border-zinc-700 focus:ring-2 focus:ring-amber-500/20 transition-all font-bold text-sm" 
                   />
                 </div>
                 
                 <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest px-2">الفئة</label>
+                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest px-2">{t('category')}</label>
                   <select 
                     name="category"
                     className="w-full rounded-2xl border border-zinc-100 p-3 text-right outline-none dark:bg-zinc-800 dark:border-zinc-700 focus:ring-2 focus:ring-amber-500/20 transition-all font-bold text-sm appearance-none bg-white dark:bg-zinc-800"
                   >
-                    <option value="عام">عام</option>
-                    <option value="فواتير">فواتير</option>
-                    <option value="كراء">كراء</option>
-                    <option value="سلع">سلع ونقل</option>
-                    <option value="أخرى">أخرى</option>
+                    <option value="عام">{t('general_cat')}</option>
+                    <option value="فواتير">{t('bills_cat')}</option>
+                    <option value="كراء">{t('rent_cat')}</option>
+                    <option value="سلع">{t('goods_transport_cat')}</option>
+                    <option value="أخرى">{t('other_cat')}</option>
                   </select>
                 </div>
 
                 <div className="flex flex-col gap-2 pt-4">
                   <button type="submit" className="w-full rounded-2xl py-3.5 font-black text-white shadow-lg shadow-[#B34C36]/20 active:scale-95 transition-all text-sm" style={{ backgroundColor: '#B34C36' }}>
-                    تأكيد المصروف
+                    {t('confirm_expense')}
                   </button>
                   <button type="button" onClick={() => setIsModalOpen(false)} className="w-full rounded-2xl bg-zinc-50 dark:bg-zinc-800 py-3 text-xs font-bold text-zinc-500 active:scale-95 transition-all">
-                    إلغاء
+                    {t('cancel')}
                   </button>
                 </div>
               </form>

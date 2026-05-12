@@ -112,7 +112,7 @@ export function Login() {
                 </div>
                 <input
                   type="tel"
-                  placeholder={t('phone_number') + ' (مثال: 55123456)'}
+                  placeholder={t('phone_number') + ' ' + t('phone_example')}
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 py-4 pr-12 pl-4 text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:ring-2 focus:ring-brand-800 dark:border-zinc-800 dark:bg-zinc-800/50 dark:text-white"
@@ -131,7 +131,7 @@ export function Login() {
 
               <div className="relative flex items-center justify-center py-4">
                 <div className="h-[1px] w-full bg-zinc-100 dark:bg-zinc-800" />
-                <span className="absolute bg-white px-4 text-xs font-bold text-zinc-400 dark:bg-zinc-900">أو</span>
+                <span className="absolute bg-white px-4 text-xs font-bold text-zinc-400 dark:bg-zinc-900">{t('or')}</span>
               </div>
 
               <button
@@ -144,9 +144,9 @@ export function Login() {
                   } catch (err: any) {
                     console.error("Google Sign-in Error:", err);
                     if (err.code === 'auth/unauthorized-domain') {
-                      setError("عذراً، هذا النطاق (h-store-pied.vercel.app) غير مصرح له بتسجيل الدخول. يجب إضافته في إعدادات Firebase -> Authentication -> Settings -> Authorized domains");
+                      setError(t('auth_domain_error'));
                     } else if (err.code === 'auth/popup-closed-by-user') {
-                      setError("تم إغلاق نافذة تسجيل الدخول. إذا كنت تستخدم متصفح داخل تطبيق (مثل فيسبوك أو انستغرام)، يرجى فتح الرابط في متصفح خارجي مثل Chrome.");
+                      setError(t('popup_closed_error'));
                     } else {
                       setError(err.message || t('login_failed'));
                     }
@@ -196,7 +196,7 @@ export function Login() {
                 onClick={() => setStep('phone')}
                 className="w-full py-2 text-center text-sm font-medium text-zinc-500 hover:text-zinc-800 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
               >
-                تعديل رقم الهاتف
+                {t('edit_phone')}
               </button>
             </motion.form>
           )}

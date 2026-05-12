@@ -15,8 +15,10 @@ import { cn, formatCurrency, safeParseFloat, safeDispatchEvent } from '../lib/ut
 import { Product, Transaction, OperationType } from '../types';
 import { handleFirestoreError } from '../lib/utils';
 
+import { useTranslation } from 'react-i18next';
 const Dashboard = memo(() => {
   const { user, settings } = useAppContext();
+  const { t } = useTranslation();
   const [products, setProducts] = useState<Product[]>([]);
   const [allPurchases, setAllPurchases] = useState<Transaction[]>([]);
 
@@ -69,9 +71,7 @@ const Dashboard = memo(() => {
 
   const language = settings.language || 'ar';
   const showFinancials = settings.showFinancials ?? true;
-  const storeName = settings.storeName || 'H.STORE';
 
-  const t = (ar: string, en: string) => language === 'ar' ? ar : en;
   const formatPrivateValue = (val: number) => !showFinancials ? '••••••' : formatCurrency(val, settings.currency, language);
 
   const onAddProduct = () => {
@@ -85,8 +85,8 @@ const Dashboard = memo(() => {
   return (
     <div className="space-y-8 pb-20" dir="rtl">
       <header className="flex flex-col gap-1 text-right">
-        <h1 className="text-3xl font-bold text-black dark:text-white">{t('لوحة التحكم', 'Dashboard')}</h1>
-        <p className="text-neutral-500 text-xs font-medium">{t(`نظرة عامة على أداء ${storeName}`, `Overview of ${storeName}`)}</p>
+        <h1 className="text-3xl font-bold text-black dark:text-white">{t('dashboard')}</h1>
+        <p className="text-neutral-500 text-xs font-medium">{t('welcome')}</p>
       </header>
 
       {/* Stats Section - Slim Bars */}
@@ -94,7 +94,7 @@ const Dashboard = memo(() => {
         <Card variant="white" className="flex items-center justify-between py-3 px-4 rounded-2xl border-neutral-100">
            <div className="flex items-center gap-2">
             <Package size={14} className="text-neutral-400" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">{t('إجمالي المنتجات', 'Products')}</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">{t('total_products')}</span>
           </div>
           <span className="text-sm font-mono font-bold">{stats.totalProducts}</span>
         </Card>
@@ -102,7 +102,7 @@ const Dashboard = memo(() => {
         <Card variant="white" className="flex items-center justify-between py-3 px-4 rounded-2xl border-neutral-100">
           <div className="flex items-center gap-2">
             <AlertTriangle size={14} className="text-amber-500" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">{t('نواقص المخزون', 'Low Stock')}</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">{t('low_stock')}</span>
           </div>
           <span className="text-sm font-mono font-bold text-amber-600">{stats.lowStock}</span>
         </Card>
@@ -110,7 +110,7 @@ const Dashboard = memo(() => {
         <Card variant="white" className="flex items-center justify-between py-3 px-4 rounded-2xl border-neutral-100">
           <div className="flex items-center gap-2">
             <TrendingUp size={14} className="text-emerald-500" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">{t('قيمة المخزون', 'Stock Value')}</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">{t('inventory_value')}</span>
           </div>
           <span className="text-sm font-mono font-bold">{formatPrivateValue(stats.totalValue)}</span>
         </Card>
@@ -118,7 +118,7 @@ const Dashboard = memo(() => {
         <Card variant="white" className="flex items-center justify-between py-3 px-4 rounded-2xl border-neutral-100">
           <div className="flex items-center gap-2">
             <Wallet size={14} className="text-rose-500" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">{t('المصاريف', 'Expenses')}</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">{t('expenses')}</span>
           </div>
           <span className="text-sm font-mono font-bold">{formatPrivateValue(0)}</span>
         </Card>
@@ -126,10 +126,10 @@ const Dashboard = memo(() => {
 
       {/* Recent Purchases List */}
       <div className="space-y-4 text-right">
-        <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-400">{t('آخر عمليات الشراء', 'Recent Activity')}</h2>
+        <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-400">{t('last_purchases')}</h2>
         <div className="grid grid-cols-1 gap-2">
           {allPurchases?.length === 0 ? (
-            <div className="py-8 text-center text-zinc-500 text-sm">{t('لا توجد عمليات مؤخراً', 'No recent activity')}</div>
+            <div className="py-8 text-center text-zinc-500 text-sm">{t('no_data_available')}</div>
           ) : (
             allPurchases?.map((p: any) => (
               <div key={p.id} className="flex justify-between items-center py-3 border-b border-neutral-50 dark:border-neutral-800">
@@ -141,7 +141,9 @@ const Dashboard = memo(() => {
                     <span>{p.quantityChange}</span>
                   </div>
                 </div>
-                <span className="text-[10px] font-mono text-neutral-300">{new Date(p.date).toLocaleDateString('en-GB')}</span>
+                <span className="text-[10px] font-mono text-neutral-300">
+                  {new Date(p.date).toLocaleDateString(settings.language === 'ar' ? 'ar-TN' : 'en-GB')}
+                </span>
               </div>
             ))
           )}

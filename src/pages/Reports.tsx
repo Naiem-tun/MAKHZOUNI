@@ -27,7 +27,7 @@ export default function Reports() {
     if (found) {
       found.value += p.quantity * p.purchasePrice;
     } else {
-      acc.push({ name: p.category || 'متنوع', value: p.quantity * p.purchasePrice });
+      acc.push({ name: p.category || t('other'), value: p.quantity * p.purchasePrice });
     }
     return acc;
   }, [] as { name: string, value: number }[]);
@@ -40,9 +40,9 @@ export default function Reports() {
   }));
 
   const menuItems = [
-    { label: t('profits_revenue'), subtitle: 'الأرباح والإيرادات', icon: TrendingUp, color: 'text-brand-600' },
-    { label: 'تحليل الفئات الاستراتيجي', subtitle: 'توزيع المخزون (بالقيمة)', icon: BarChart3, color: 'text-brand-500' },
-    { label: 'إحصائيات المال', subtitle: 'عرض رأس المال والأرباح المتوقعة', icon: Wallet, color: 'text-zinc-500' },
+    { label: t('profits_revenue'), subtitle: t('revenues_and_profits'), icon: TrendingUp, color: 'text-brand-600' },
+    { label: t('category_analysis'), subtitle: t('stock_value_by_category'), icon: BarChart3, color: 'text-brand-500' },
+    { label: t('financial_stats'), subtitle: t('financial_stats'), icon: Wallet, color: 'text-zinc-500' },
   ];
 
   const showFinancials = settings.showFinancials ?? true;
@@ -51,8 +51,8 @@ export default function Reports() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">التقارير المالية</h1>
-        <p className="text-zinc-500 dark:text-zinc-400">تحليل معمق لأداء المتجر والمخزون</p>
+        <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('financial_reports')}</h1>
+        <p className="text-zinc-500 dark:text-zinc-400">{t('financial_reports_desc')}</p>
       </header>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -62,7 +62,7 @@ export default function Reports() {
             <div className="h-10 w-10 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-600 dark:bg-brand-950/20">
               <PieChartIcon size={20} />
             </div>
-            <h2 className="text-xl font-bold text-zinc-900 dark:text-white">قيمة المخزون حسب الفئة</h2>
+            <h2 className="text-xl font-bold text-zinc-900 dark:text-white">{t('stock_value_by_category')}</h2>
           </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -92,7 +92,7 @@ export default function Reports() {
             <div className="h-10 w-10 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-600 dark:bg-brand-950/20">
               <TrendingUp size={20} />
             </div>
-            <h2 className="text-xl font-bold text-zinc-900 dark:text-white">تحليل الربح (أمثلة)</h2>
+            <h2 className="text-xl font-bold text-zinc-900 dark:text-white">{t('profit_analysis_samples')}</h2>
           </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -105,7 +105,7 @@ export default function Reports() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <p className="text-xs text-center text-zinc-400">مقارنة بين تكلفة الشراء وصافي الربح للمنتجات الأعلى قيمة</p>
+          <p className="text-xs text-center text-zinc-400">{t('profit_analysis_desc')}</p>
         </section>
       </div>
 

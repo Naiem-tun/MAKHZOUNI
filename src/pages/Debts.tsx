@@ -50,10 +50,10 @@ export default function Debts() {
     try {
       if (editingDebt) {
         await updateDoc(doc(db, `users/${user.uid}/debts`, editingDebt.id!), data);
-        showToast('تم تحديث بيانات الدين');
+        showToast(t('debt_updated_success'));
       } else {
         await addDoc(collection(db, `users/${user.uid}/debts`), data);
-        showToast('تمت إضافة الدين');
+        showToast(t('debt_added_success'));
       }
       setIsModalOpen(false);
       setEditingDebt(null);
@@ -74,7 +74,7 @@ export default function Debts() {
     const newHistory = [...(debt.history || []), { type: 'payment' as const, amount, date: timestamp }];
     
     // UI Feedback
-    showToast('تم تسجيل الدفعة');
+    showToast(t('payment_recorded_success'));
 
     updateDoc(doc(db, `users/${user.uid}/debts`, debt.id!), {
       totalAmount: newTotal,
@@ -93,7 +93,7 @@ export default function Debts() {
     const timestamp = new Date().toISOString();
     const newHistory = [...(debt.history || []), { type: 'debt' as const, amount, date: timestamp }];
     
-    showToast('تمت إضافة مبلغ للدين');
+    showToast(t('debt_amount_added_success'));
 
     updateDoc(doc(db, `users/${user.uid}/debts`, debt.id!), {
       totalAmount: newTotal,
@@ -110,7 +110,7 @@ export default function Debts() {
     setIsSaving(true);
     try {
       await deleteDoc(doc(db, `users/${user.uid}/debts`, deleteConfirmId));
-      showToast('تم حذف السجل بنجاح');
+      showToast(t('debt_deleted_success'));
       setDeleteConfirmId(null);
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/debts/${deleteConfirmId}`);
@@ -347,7 +347,7 @@ export default function Debts() {
               className="relative w-full max-w-[280px] rounded-2xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
               <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
-                هل أنت متأكد من حذف سجل الدين الخاص بـ <span className="text-[#B34C36]">"{deleteConfirmName}"</span>؟
+                {t('confirm_delete_debt_desc')} <span className="text-[#B34C36]">"{deleteConfirmName}"</span> {settings.language === 'ar' ? '؟' : '?'}
               </p>
               <div className="flex gap-2">
                 <button 
@@ -356,13 +356,13 @@ export default function Debts() {
                   className="flex-1 py-2.5 rounded-2xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
                   style={{ backgroundColor: '#B34C36' }}
                 >
-                  تأكيد
+                  {t('confirm')}
                 </button>
                 <button 
                   onClick={() => setDeleteConfirmId(null)}
                   className="flex-1 py-2.5 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 text-[12px] font-bold active:scale-95 transition-all"
                 >
-                  إلغاء
+                  {t('cancel')}
                 </button>
               </div>
             </motion.div>

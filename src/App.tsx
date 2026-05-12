@@ -180,7 +180,7 @@ function AppContent() {
                   transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
                   className="h-12 w-12 rounded-full border-4 border-zinc-100 border-t-[#5B89BB] dark:border-zinc-800 dark:border-t-[#5B89BB]"
                 />
-                <span className="text-lg font-medium text-zinc-400 dark:text-zinc-500">جاري التحميل...</span>
+                <span className="text-lg font-medium text-zinc-400 dark:text-zinc-500">{t('loading')}</span>
               </motion.div>
             </div>
           </motion.div>
@@ -219,7 +219,7 @@ function AppContent() {
               <button 
                 onClick={() => setActiveTab('shopping-list')}
                 className={`transition-colors ${activeTab === 'shopping-list' ? 'text-brand-600' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}
-                title={t('قائمة المشتريات')}
+                title={t('shopping_list')}
               >
                 <ShoppingCart size={22} />
               </button>

@@ -43,18 +43,18 @@ export const categoryIcons: Record<string, any> = {
 };
 
 export const defaultCategories = [
-  { id: 'default_general', name: 'مواد غذائية عامة', icon: 'ShoppingBag' },
-  { id: 'default_dairy', name: 'ألبان وبيض', icon: 'Milk' },
-  { id: 'default_drinks', name: 'مشروبات', icon: 'CupSoda' },
-  { id: 'default_sweets', name: 'حلويات وبسكويت', icon: 'Cookie' },
-  { id: 'default_legumes', name: 'بقوليات وعجين', icon: 'Wheat' },
-  { id: 'default_spices', name: 'توابل وهريسة', icon: 'Flame' },
-  { id: 'default_cleaning', name: 'مواد تنظيف', icon: 'Sparkles' },
-  { id: 'default_gas', name: 'غاز', icon: 'Flame' },
-  { id: 'default_tobacco', name: 'تبغ وسجائر', icon: 'Cigarette' },
-  { id: 'default_dry_fruits', name: 'فواكه جافة', icon: 'Nut' },
-  { id: 'default_veg', name: 'خضر وغلال', icon: 'Apple' },
-  { id: 'default_other', name: 'أخرى', icon: 'Package' },
+  { id: 'default_general', name: 'مواد غذائية عامة', key: 'cat_general', icon: 'ShoppingBag' },
+  { id: 'default_dairy', name: 'ألبان وبيض', key: 'cat_dairy', icon: 'Milk' },
+  { id: 'default_drinks', name: 'مشروبات', key: 'cat_drinks', icon: 'CupSoda' },
+  { id: 'default_sweets', name: 'حلويات وبسكويت', key: 'cat_sweets', icon: 'Cookie' },
+  { id: 'default_legumes', name: 'بقوليات وعجين', key: 'cat_legumes', icon: 'Wheat' },
+  { id: 'default_spices', name: 'توابل وهريسة', key: 'cat_spices', icon: 'Flame' },
+  { id: 'default_cleaning', name: 'مواد تنظيف', key: 'cat_cleaning', icon: 'Sparkles' },
+  { id: 'default_gas', name: 'غاز', key: 'cat_gas', icon: 'Flame' },
+  { id: 'default_tobacco', name: 'تبغ وسجائر', key: 'cat_tobacco', icon: 'Cigarette' },
+  { id: 'default_dry_fruits', name: 'فواكه جافة', key: 'cat_dry_fruits', icon: 'Nut' },
+  { id: 'default_veg', name: 'خضر وغلال', key: 'cat_veg', icon: 'Apple' },
+  { id: 'default_other', name: 'أخرى', key: 'cat_other', icon: 'Package' },
 ];
 
 export function useCategories() {

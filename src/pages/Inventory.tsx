@@ -206,11 +206,9 @@ export default function Inventory() {
     });
 
     return [...filtered].sort((a, b) => {
-      // أولاً حسب الفئة
-      const categoryCompare = (a.category || '').localeCompare(b.category || '', 'ar');
+      const categoryCompare = (a.category || '').localeCompare(b.category || '', settings.language);
       if (categoryCompare !== 0) return categoryCompare;
-      // ثم حسب الاسم
-      return (a.name || '').localeCompare(b.name || '', 'ar');
+      return (a.name || '').localeCompare(b.name || '', settings.language);
     });
   }, [products, searchTerm, categoryFilter]);
 
@@ -411,7 +409,7 @@ export default function Inventory() {
           </div>
 
           <div className="flex justify-between items-center border-b-2 border-[#e0e0e0] pb-4 mb-6 sm:mb-8">
-            <div className="text-[18px] sm:text-[22px] font-bold text-[#021024]">{settings.shopName || 'متجر حميدة'}</div>
+            <div className="text-[18px] sm:text-[22px] font-bold text-[#021024]">{settings.shopName || (settings.language === 'ar' ? 'متجر حميدة' : 'Hamida Store')}</div>
             <div className="text-[20px] sm:text-[24px] font-bold text-center flex-grow">{t('sales_report')}</div>
             <div className="text-[16px] sm:text-[18px] text-[#555555]" dir="ltr">
               {currentReport.date?.toDate ? currentReport.date.toDate().toLocaleDateString('ar-TN') : (currentReport.date ? new Date(currentReport.date).toLocaleDateString('ar-TN') : '—')}
@@ -662,7 +660,7 @@ export default function Inventory() {
             "h-10 px-3 flex items-center gap-2 bg-white dark:bg-zinc-900 border rounded-2xl shadow-sm active:scale-95 transition-all text-xs font-bold",
             expensesAmount > 0 ? "border-[#B34C36]/20 text-[#B34C36] bg-[#B34C36]/5" : "border-zinc-100 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 w-10 justify-center px-0"
           )}
-          title="المصاريف"
+          title={t('expenses')}
         >
           <Wallet size={18} />
           {expensesAmount > 0 && <span>{formatCurrency(expensesAmount, settings.currency, settings.language)}</span>}
@@ -676,7 +674,7 @@ export default function Inventory() {
               : "border-zinc-100 dark:border-zinc-800 text-zinc-300 dark:text-zinc-700"
           )}
           style={Object.keys(inventoryData).length > 0 ? { backgroundColor: '#B34C36', borderColor: '#B34C36' } : {}}
-          title="مسح الأرقام المدرجة"
+          title={t('confirm_clear_quantities')}
         >
           <Trash2 size={18} />
         </button>
@@ -724,7 +722,7 @@ export default function Inventory() {
           >
             <option value="all">{t('all_categories_filter')}</option>
             {categories.map((c) => (
-              <option key={c.id} value={c.name}>{c.name}</option>
+              <option key={c.id} value={c.name}>{t(c.key || c.name)}</option>
             ))}
           </select>
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-4 text-zinc-400">
@@ -833,13 +831,13 @@ export default function Inventory() {
                       className="flex-1 py-2.5 text-white rounded-2xl text-[12px] font-black active:scale-95 transition-all shadow-lg shadow-[#B34C36]/20"
                       style={{ backgroundColor: '#B34C36' }}
                     >
-                      تأكيد
+                      {t('confirm')}
                     </button>
                     <button 
                       onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
                       className="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-2xl text-[12px] font-bold active:scale-95 transition-all"
                     >
-                      إلغاء
+                      {t('cancel')}
                     </button>
                   </>
                 ) : (
@@ -847,7 +845,7 @@ export default function Inventory() {
                     onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
                     className="w-full py-2.5 bg-brand-600 text-white rounded-2xl text-[12px] font-black active:scale-95 transition-all"
                   >
-                    حسناً
+                    {t('ok')}
                   </button>
                 )}
               </div>

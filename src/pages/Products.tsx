@@ -227,11 +227,11 @@ export default function Products() {
     const catA = a.category || '';
     const catB = b.category || '';
     if (catA !== catB) {
-      return catA.localeCompare(catB, 'ar');
+      return catA.localeCompare(catB, settings.language);
     }
     const nameA = a.name || '';
     const nameB = b.name || '';
-    return nameA.localeCompare(nameB, 'ar');
+    return nameA.localeCompare(nameB, settings.language);
   });
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
@@ -333,7 +333,7 @@ export default function Products() {
             >
               <option value="all">{t('all_categories')}</option>
               {categories.map((c) => (
-                <option key={c.id} value={c.name}>{c.name}</option>
+                <option key={c.id} value={c.name}>{t(c.key || c.name)}</option>
               ))}
             </select>
             <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-zinc-400">

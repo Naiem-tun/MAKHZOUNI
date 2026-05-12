@@ -103,10 +103,10 @@ export default function ShoppingList() {
             const product = products.find(p => p.barcode === decodedText || p.barcode2 === decodedText);
             if (product) {
               addItem(product.name);
-              showToast(`تم العثور على: ${product.name}`, 'success');
+              showToast(`${t('found_label')}: ${product.name}`, 'success');
               stopScanner();
             } else {
-              showToast('المنتج غير موجود في المخزن', 'info');
+              showToast(t('product_not_found_stock'), 'info');
               stopScanner();
               setInputText(decodedText);
             }
@@ -267,7 +267,7 @@ export default function ShoppingList() {
               className="absolute left-0 right-0 top-16 z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl overflow-hidden mt-1"
             >
               <div className="px-5 py-2 border-b border-zinc-50 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/20">
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">تطابق من المخزن</span>
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{t('match_from_stock')}</span>
               </div>
               {suggestions.map((p) => (
                 <button
@@ -277,7 +277,7 @@ export default function ShoppingList() {
                 >
                   <div className="flex flex-col">
                     <span className="text-sm font-medium text-zinc-900 dark:text-white">{p.name}</span>
-                    <span className="text-[10px] font-bold text-brand-500">متوفر: {p.quantity} {p.unit}</span>
+                    <span className="text-[10px] font-bold text-brand-500">{t('available')}: {p.quantity} {p.unit}</span>
                   </div>
                   <Plus size={16} className="text-zinc-300" />
                 </button>
@@ -311,7 +311,7 @@ export default function ShoppingList() {
                 <button 
                   onClick={() => deleteItem(item.id)}
                   className="h-8 w-8 flex items-center justify-center text-zinc-300 hover:text-[#B34C36] hover:bg-[#B34C36]/5 rounded-xl transition-all"
-                  title="حذف"
+                  title={t('delete')}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -327,7 +327,7 @@ export default function ShoppingList() {
               {activeTab === 'products' ? <ListTodo size={40} strokeWidth={1} /> : <StickyNote size={40} strokeWidth={1} />}
             </div>
             <p className="font-bold text-sm text-zinc-400">
-              {activeTab === 'products' ? 'ماذا سنشتري اليوم؟' : 'سجل ملاحظاتك هنا'}
+              {activeTab === 'products' ? t('shopping_list_empty') : t('notes_empty')}
             </p>
           </div>
         )}

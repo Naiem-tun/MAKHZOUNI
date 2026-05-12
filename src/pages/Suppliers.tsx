@@ -118,10 +118,10 @@ export default function Suppliers() {
     try {
       if (editingSupplier) {
         await updateDoc(doc(db, `users/${user.uid}/suppliers`, editingSupplier.id!), data);
-        showToast('تم تحديث بيانات المورد');
+        showToast(t('supplier_updated_success'));
       } else {
         await addDoc(collection(db, `users/${user.uid}/suppliers`), data);
-        showToast('تم إضافة المورد بنجاح');
+        showToast(t('supplier_added_success'));
       }
       setIsModalOpen(false);
       setEditingSupplier(null);
@@ -138,7 +138,7 @@ export default function Suppliers() {
     setIsSaving(true);
     try {
       await deleteDoc(doc(db, `users/${user.uid}/suppliers`, deleteConfirmId));
-      showToast('تم حذف المورد بنجاح');
+      showToast(t('supplier_deleted_success'));
       setDeleteConfirmId(null);
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/suppliers/${deleteConfirmId}`);
@@ -155,7 +155,7 @@ export default function Suppliers() {
         deleteDoc(doc(db, `users/${user.uid}/supplierTransactions`, t.id!))
       );
       await Promise.all(deletePromises);
-      showToast('تم مسح جميع سجلات العمليات بنجاح');
+      showToast(t('all_supplier_transactions_cleared_success'));
       setIsClearAllConfirmOpen(false);
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/supplierTransactions`);
@@ -189,7 +189,7 @@ export default function Suppliers() {
 
     try {
       await addDoc(collection(db, `users/${user.uid}/supplierTransactions`), data);
-      showToast('تم تسجيل العملية بنجاح');
+      showToast(t('supplier_transaction_added_success'));
       setIsAddTxModalOpen(false);
     } catch (err) {
       handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}/supplierTransactions`);
@@ -205,7 +205,7 @@ export default function Suppliers() {
 
     try {
       await deleteDoc(doc(db, `users/${user.uid}/supplierTransactions`, deleteTxConfirmId));
-      showToast('تم حذف العملية');
+      showToast(t('supplier_transaction_deleted_success'));
       setDeleteTxConfirmId(null);
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/supplierTransactions`);
@@ -354,7 +354,7 @@ export default function Suppliers() {
                   <input name="typeOfGoods" placeholder={t('supplier_goods_placeholder')} defaultValue={editingSupplier?.typeOfGoods} className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-zinc-400 mb-3 block">أيام الزيارة الأسبوعية</label>
+                  <label className="text-xs font-bold text-zinc-400 mb-3 block">{t('weekly_visit_days')}</label>
                   <div className="space-y-2">
                     {/* Row 1: Sun-Wed */}
                     <div className="grid grid-cols-4 gap-2">
@@ -445,7 +445,7 @@ export default function Suppliers() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-neutral-400 mb-1 block">التاريخ</label>
+                  <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('date')}</label>
                   <input name="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
                 </div>
                 <div>
@@ -503,9 +503,11 @@ export default function Suppliers() {
                         </div>
                         <div>
                           <div className="font-bold text-zinc-900 dark:text-white">{formatCurrency(tx.amount, settings.currency, settings.language)}</div>
-                          <div className="text-[10px] text-zinc-400 capitalize">
-                            {tx.date?.toDate ? tx.date.toDate().toLocaleDateString('ar-TN', { day: 'numeric', month: 'long', year: 'numeric' }) : new Date(tx.date).toLocaleDateString()}
-                          </div>
+                    <div className="text-[10px] text-zinc-400 capitalize">
+                      {tx.date?.toDate 
+                        ? tx.date.toDate().toLocaleDateString(settings.language === 'ar' ? 'ar-TN' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' }) 
+                        : new Date(tx.date).toLocaleDateString(settings.language === 'ar' ? 'ar-TN' : 'en-US')}
+                    </div>
                           {tx.note && <div className="text-[10px] text-zinc-500 mt-0.5">{tx.note}</div>}
                         </div>
                       </div>
@@ -547,7 +549,7 @@ export default function Suppliers() {
               className="relative w-full max-w-[280px] rounded-2xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
               <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
-                هل أنت متأكد من حذف المورد <span className="text-[#B34C36]">"{deleteConfirmName}"</span>؟ سيتم حذف جميع العمليات المرتبطة به.
+                {t('confirm_delete_supplier_desc')} <span className="text-[#B34C36]">"{deleteConfirmName}"</span> {settings.language === 'ar' ? '؟' : '?'} {t('confirm_delete_supplier_warning')}
               </p>
               <div className="flex gap-2">
                 <button 
@@ -556,13 +558,13 @@ export default function Suppliers() {
                   className="flex-1 py-2.5 rounded-2xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
                   style={{ backgroundColor: '#B34C36' }}
                 >
-                  تأكيد
+                  {t('confirm')}
                 </button>
                 <button 
                   onClick={() => setDeleteConfirmId(null)}
                   className="flex-1 py-2.5 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 text-[12px] font-bold active:scale-95 transition-all"
                 >
-                  إلغاء
+                  {t('cancel')}
                 </button>
               </div>
             </motion.div>

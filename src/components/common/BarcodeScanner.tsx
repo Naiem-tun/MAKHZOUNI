@@ -3,6 +3,8 @@ import { Html5Qrcode } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, QrCode } from 'lucide-react';
 
+import { useTranslation } from 'react-i18next';
+
 interface BarcodeScannerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -10,7 +12,10 @@ interface BarcodeScannerProps {
   title?: string;
 }
 
-export function BarcodeScanner({ isOpen, onClose, onScan, title = "امسح الباركود" }: BarcodeScannerProps) {
+export function BarcodeScanner({ isOpen, onClose, onScan, title }: BarcodeScannerProps) {
+  const { t } = useTranslation();
+  const displayTitle = title || t('scan_barcode_title');
+
   useEffect(() => {
     let html5QrCode: Html5Qrcode | null = null;
 
@@ -85,7 +90,7 @@ export function BarcodeScanner({ isOpen, onClose, onScan, title = "امسح ال
             >
               <X size={28} />
             </button>
-            <h2 className="text-xl font-bold">{title}</h2>
+            <h2 className="text-xl font-bold">{displayTitle}</h2>
             <div className="w-12 h-12 flex items-center justify-center text-brand-500">
               <QrCode size={24} />
             </div>
@@ -126,7 +131,7 @@ export function BarcodeScanner({ isOpen, onClose, onScan, title = "امسح ال
             {/* Instruction Text */}
             <div className="absolute bottom-12 left-0 right-0 text-center px-8 z-10">
               <p className="inline-block px-6 py-2 rounded-full bg-zinc-900/60 text-white/80 text-sm font-medium backdrop-blur-sm border border-white/5">
-                ضع الباركود بوضوح داخل المربع للمسح
+                {t('scan_barcode_hint')}
               </p>
             </div>
           </div>

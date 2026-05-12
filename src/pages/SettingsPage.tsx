@@ -131,7 +131,7 @@ function CategoriesManager({ onBack }: { onBack: () => void }) {
             value={newCatName}
             onChange={(e) => setNewCatName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
-            placeholder="اسم الفئة الجديدة..."
+            placeholder={t('new_category_placeholder')}
             className="flex-1 h-14 px-5 text-right rounded-2xl bg-white border border-zinc-200 outline-none focus:border-brand-500/50 focus:ring-4 focus:ring-brand-500/10 transition-all dark:bg-zinc-900 dark:border-zinc-800 dark:text-white shadow-sm"
           />
         </div>
@@ -173,7 +173,7 @@ function CategoriesManager({ onBack }: { onBack: () => void }) {
           className="h-14 w-full rounded-2xl bg-brand-600 text-white font-bold flex items-center justify-center gap-2 transition-all hover:bg-brand-700 disabled:opacity-50 shadow-sm"
         >
           <Plus size={20} strokeWidth={2.5} />
-          <span>إضافة الفئة</span>
+          <span>{t('add_category')}</span>
         </button>
       </div>
 
@@ -256,13 +256,13 @@ export default function SettingsPage() {
         }
       }
       setIsClearDataModalOpen(false);
-      setStatus({ type: 'success', msg: 'تم مسح جميع بيانات المتجر بنجاح' });
+      setStatus({ type: 'success', msg: t('clear_data_success') });
       
       // Also clear settings locally
       await updateSettings({ deletedCategories: [] });
     } catch (err) {
       console.error(err);
-      setStatus({ type: 'error', msg: 'حدث خطأ أثناء مسح البيانات' });
+      setStatus({ type: 'error', msg: t('clear_data_error') });
     } finally {
       setIsClearing(false);
     }
@@ -320,10 +320,10 @@ export default function SettingsPage() {
       // 2. Copy to clipboard
       await navigator.clipboard.writeText(jsonString);
 
-      setStatus({ type: 'success', msg: 'تم تصدير البيانات بنجاح وتحميل الملف ونسخ الكود!' });
+      setStatus({ type: 'success', msg: t('export_success') });
     } catch (error) {
       console.error('Export error:', error);
-      setStatus({ type: 'error', msg: 'فشل تصدير البيانات. يرجى المحاولة لاحقاً.' });
+      setStatus({ type: 'error', msg: t('export_error') });
     } finally {
       setIsExporting(false);
     }
@@ -352,7 +352,7 @@ export default function SettingsPage() {
       );
 
       if (collectionsToProcess.length === 0) {
-        throw new Error('لم يتم العثور على بيانات صالحة للاستيراد في الملف');
+        throw new Error(t('no_valid_import_data'));
       }
 
       let totalProcessed = 0;
@@ -417,12 +417,12 @@ export default function SettingsPage() {
         }
       }
 
-      setStatus({ type: 'success', msg: `تم استيراد ${totalProcessed} عنصر بنجاح عبر ${collectionsToProcess.length} فئة!` });
+      setStatus({ type: 'success', msg: t('import_success', { count: totalProcessed, catCount: collectionsToProcess.length }) });
       setManualCode('');
     } catch (error: any) {
       console.error('Import error:', error);
-      const errorMsg = error instanceof Error ? error.message : 'حدث خطأ غير متوقع';
-      setStatus({ type: 'error', msg: `فشل استيراد البيانات: ${errorMsg}` });
+      const errorMsg = error instanceof Error ? error.message : t('unexpected_error');
+      setStatus({ type: 'error', msg: `${t('import_error')}: ${errorMsg}` });
     } finally {
       setIsImporting(false);
     }
@@ -451,9 +451,9 @@ export default function SettingsPage() {
     setIsSaving(true);
     try {
       await updateSettings(tempSettings);
-      setStatus({ type: 'success', msg: 'تم حفظ الإعدادات بنجاح' });
+      setStatus({ type: 'success', msg: t('settings_saved_success') });
     } catch (error) {
-      setStatus({ type: 'error', msg: 'فشل حفظ الإعدادات' });
+      setStatus({ type: 'error', msg: t('settings_saved_error') });
     } finally {
       setIsSaving(false);
       setTimeout(() => setStatus(null), 3000);
@@ -472,8 +472,8 @@ export default function SettingsPage() {
             <ArrowRight size={20} />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">إدارة البيانات</h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">تصدير واستيراد قاعدة البيانات الخاصة بك</p>
+            <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('data_management')}</h1>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('export_import_data_desc')}</p>
           </div>
         </header>
 
@@ -495,15 +495,15 @@ export default function SettingsPage() {
               <Download size={24} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">تصدير النسخة الاحتياطية</h3>
-              <p className="text-sm text-zinc-500">سيتم تحميل ملف JSON ونسخ كود البيانات إلى الحافظة تلقائياً.</p>
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{t('export_backup')}</h3>
+              <p className="text-sm text-zinc-500">{t('export_backup_desc')}</p>
             </div>
             <button 
               onClick={handleExport}
               disabled={isExporting}
               className="w-full py-4 rounded-2xl bg-brand-600 text-white font-bold shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2 transition-all hover:bg-brand-700 disabled:opacity-50"
             >
-              {isExporting ? 'جاري التصدير...' : <><Clipboard size={20} /> تصدير الآن</>}
+              {isExporting ? t('exporting') : <><Clipboard size={20} /> {t('export_now')}</>}
             </button>
           </section>
 
@@ -513,12 +513,12 @@ export default function SettingsPage() {
               <Upload size={24} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">استيراد ملف</h3>
-              <p className="text-sm text-zinc-500">اختر ملف .json الذي قمت بتصديره مسبقاً لاستعادة بياناتك.</p>
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{t('import_file')}</h3>
+              <p className="text-sm text-zinc-500">{t('import_file_desc')}</p>
             </div>
             <label className="cursor-pointer w-full py-4 rounded-2xl bg-zinc-100 text-zinc-600 font-bold border-2 border-dashed border-zinc-200 flex items-center justify-center gap-2 transition-all hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700 dark:hover:bg-zinc-700">
               <FileJson size={20} />
-              {isImporting ? 'جاري الاستيراد...' : 'اختر ملف للاستيراد'}
+              {isImporting ? t('importing') : t('choose_file_import')}
               <input type="file" accept=".json" onChange={handleFileImport} className="hidden" disabled={isImporting} />
             </label>
           </section>
@@ -529,10 +529,10 @@ export default function SettingsPage() {
               <div className="h-10 w-10 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
                 <Clipboard size={20} />
               </div>
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">استيراد يدوي (لصق الكود)</h3>
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{t('manual_import')}</h3>
             </div>
             <textarea 
-              placeholder="الصق كود النسخة الاحتياطية هنا..."
+              placeholder={t('paste_backup_placeholder')}
               value={manualCode}
               onChange={(e) => setManualCode(e.target.value)}
               className="w-full h-32 rounded-2xl bg-zinc-50 border border-zinc-200 p-4 font-mono text-xs outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300"
@@ -542,7 +542,7 @@ export default function SettingsPage() {
               disabled={isImporting || !manualCode.trim()}
               className="w-full py-3 rounded-2xl bg-zinc-900 text-white font-bold transition-all hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-zinc-900 shadow-xl"
             >
-              تحميل الكود ومعالجة البيانات
+              {t('load_code_process_data')}
             </button>
           </section>
         </div>
@@ -728,7 +728,7 @@ export default function SettingsPage() {
       <div className="text-center pt-8">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-50 text-brand-600 text-xs font-bold dark:bg-brand-950/20 dark:text-brand-400">
           <span className="h-2 w-2 rounded-full bg-brand-600 animate-pulse" />
-          إصدار 1.0.0 • مخزوني الذكي
+          {t('version_label')} • {t('my_smart_inventory')}
         </div>
       </div>
 
@@ -743,7 +743,7 @@ export default function SettingsPage() {
               className="relative w-full max-w-[280px] rounded-2xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
               <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
-                هل أنت متأكد من مسح جميع بيانات المتجر نهائياً؟ <span className="text-[#B34C36]">لا يمكن التراجع عن هذا.</span>
+                {t('confirm_clear_all_data_desc')} <span className="text-[#B34C36]">{t('irreversible_action')}</span>
               </p>
               
               <div className="flex gap-2">
@@ -753,14 +753,14 @@ export default function SettingsPage() {
                   className="flex-1 py-2.5 rounded-2xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
                   style={{ backgroundColor: '#B34C36' }}
                 >
-                  تأكيد
+                  {t('confirm')}
                 </button>
                 <button 
                   onClick={() => setIsClearDataModalOpen(false)}
                   disabled={isClearing}
                   className="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-2xl text-[12px] font-bold active:scale-95 transition-all text-[12px]"
                 >
-                  إلغاء
+                  {t('cancel')}
                 </button>
               </div>
             </motion.div>
@@ -779,12 +779,12 @@ export default function SettingsPage() {
               className="relative w-full max-w-[280px] rounded-2xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
               <div className="mb-4 pt-2">
-                <p className="text-[10px] font-black text-zinc-400 mb-0.5 uppercase tracking-wider">الحساب الحالي</p>
+                <p className="text-[10px] font-black text-zinc-400 mb-0.5 uppercase tracking-wider">{t('current_account')}</p>
                 <p className="text-xs font-black text-zinc-900 dark:text-white truncate">{user?.email || user?.phoneNumber}</p>
               </div>
 
               <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
-                هل تريد الخروج من هذا الحساب؟
+                {t('confirm_logout_desc')}
               </p>
               
               <div className="flex gap-2">
@@ -793,13 +793,13 @@ export default function SettingsPage() {
                   className="flex-1 py-2.5 rounded-2xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px]"
                   style={{ backgroundColor: '#B34C36' }}
                 >
-                  تأكيد الخروج
+                  {t('confirm_logout')}
                 </button>
                 <button 
                   onClick={() => setIsLogoutModalOpen(false)}
                   className="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-2xl text-[12px] font-bold active:scale-95 transition-all"
                 >
-                  إلغاء
+                  {t('cancel')}
                 </button>
               </div>
             </motion.div>
