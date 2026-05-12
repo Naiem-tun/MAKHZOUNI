@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../AppContext';
 import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, serverTimestamp, query, orderBy, where, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Supplier, SupplierTransaction, OperationType } from '../types';
+import { Supplier, SupplierTransaction, Debt, OperationType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Truck, Plus, Phone, Trash2, Edit2, X, RotateCcw, UserPlus, Eye, Receipt, History, CirclePlus, Calendar } from 'lucide-react';
 import { formatCurrency, handleFirestoreError } from '../lib/utils';
@@ -13,6 +13,7 @@ export default function Suppliers() {
   const { user, showToast, settings } = useAppContext();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [transactions, setTransactions] = useState<SupplierTransaction[]>([]);
+  const [debts, setDebts] = useState<Debt[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddTxModalOpen, setIsAddTxModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -52,9 +53,15 @@ export default function Suppliers() {
       handleFirestoreError(error, OperationType.LIST, `users/${user.uid}/supplierTransactions`);
     });
 
+    const debtsQ = collection(db, `users/${user.uid}/debts`);
+    const unsubDebts = onSnapshot(debtsQ, (snap) => {
+      setDebts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Debt)));
+    });
+
     return () => {
       unsubSuppliers();
       unsubTx();
+      unsubDebts();
     };
   }, [user]);
 
@@ -275,7 +282,12 @@ export default function Suppliers() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <div className="flex flex-col">
-                        <h3 className="text-base font-bold text-zinc-900 dark:text-white truncate">{s.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-base font-bold text-zinc-900 dark:text-white truncate">{s.name}</h3>
+                          {debts.some(d => d.customerName === s.name && d.status === 'unpaid') && (
+                            <span className="text-[#B34C36] font-bold">-</span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className="inline-flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-1.5 py-0.5 rounded-xl text-[10px] font-bold border border-zinc-200 dark:border-zinc-700">
                             {s.txCount || 0} {t('operations')}

@@ -82,6 +82,7 @@ export interface Debt {
   phone?: string;
   totalAmount: number;
   status: 'paid' | 'unpaid';
+  type?: 'receivable' | 'payable';
   payments?: Payment[];
   history?: DebtHistory[];
   updatedAt: any;

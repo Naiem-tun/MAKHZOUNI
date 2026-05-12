@@ -3,17 +3,19 @@ import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../AppContext';
 import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Debt, OperationType } from '../types';
+import { Debt, Supplier, OperationType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { BookOpen, UserPlus, Trash2, Eye, Plus, Minus, X, CheckCircle2, History, Edit2, ArrowRightLeft } from 'lucide-react';
+import { BookOpen, UserPlus, Trash2, Eye, Plus, Minus, X, CheckCircle2, History, Edit2, ArrowRightLeft, Truck } from 'lucide-react';
 import { formatCurrency, cn, handleFirestoreError } from '../lib/utils';
 
 export default function Debts() {
   const { t } = useTranslation();
   const { user, settings, showToast } = useAppContext();
   const [debts, setDebts] = useState<Debt[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDebt, setEditingDebt] = useState<Debt | null>(null);
+  const [debtType, setDebtType] = useState<'receivable' | 'payable'>('receivable');
   const [activeDebt, setActiveDebt] = useState<Debt | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -27,9 +29,19 @@ export default function Debts() {
   useEffect(() => {
     if (!user) return;
     const q = collection(db, `users/${user.uid}/debts`);
-    return onSnapshot(q, (snap) => {
+    const unsubDebts = onSnapshot(q, (snap) => {
       setDebts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Debt)));
     });
+
+    const suppliersQ = collection(db, `users/${user.uid}/suppliers`);
+    const unsubSuppliers = onSnapshot(suppliersQ, (snap) => {
+      setSuppliers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Supplier)));
+    });
+
+    return () => {
+      unsubDebts();
+      unsubSuppliers();
+    };
   }, [user]);
 
   const handleSaveDebt = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -40,6 +52,7 @@ export default function Debts() {
     const data = {
       customerName: formData.get('customerName') as string,
       phone: formData.get('phone') as string,
+      type: editingDebt ? (editingDebt.type || 'receivable') : debtType,
       totalAmount: editingDebt ? editingDebt.totalAmount : 0,
       status: editingDebt ? editingDebt.status : 'paid' as const,
       payments: editingDebt ? editingDebt.payments : [],
@@ -174,14 +187,14 @@ export default function Debts() {
             >
               <div className="flex items-center gap-3">
                 <div className={`h-10 w-10 rounded-2xl bg-zinc-50 flex items-center justify-center text-zinc-400 shrink-0`}>
-                  <BookOpen size={20} />
+                  {d.type === 'payable' ? <Truck size={20} /> : <BookOpen size={20} />}
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-base font-bold text-zinc-900 dark:text-white truncate">{d.customerName}</h3>
                   <div className="flex items-center gap-2 text-xs">
                     <span className={`h-1.5 w-1.5 rounded-full ${d.status === 'paid' ? 'bg-brand-500' : 'bg-[#B34C36]'}`} />
                     <span className={d.status === 'paid' ? 'text-brand-600' : 'text-[#B34C36]'}>
-                      {d.status === 'paid' ? t('paid') : t('over_due')}
+                      {d.status === 'paid' ? t('paid') : (d.type === 'payable' ? 'علينا' : t('over_due'))}
                     </span>
                     <span className="text-zinc-300">•</span>
                     <span className="font-bold text-zinc-900 dark:text-white">{formatCurrency(d.totalAmount, settings.currency, settings.language)}</span>
@@ -215,7 +228,47 @@ export default function Debts() {
                 {editingDebt ? t('edit_debt_data') : t('add_new_debt')}
               </h2>
               <form onSubmit={handleSaveDebt} className="space-y-4">
-                <input name="customerName" placeholder={t('customer_name_placeholder')} defaultValue={editingDebt?.customerName} required className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800" />
+                {!editingDebt && (
+                  <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-2xl mb-4">
+                    <button 
+                      type="button" 
+                      onClick={() => setDebtType('receivable')} 
+                      className={`flex-1 py-3 text-sm font-bold rounded-2xl transition-all ${debtType === 'receivable' ? 'bg-emerald-500 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                    >
+                      لنا (دين على الزبون)
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => setDebtType('payable')} 
+                      className={`flex-1 py-3 text-sm font-bold rounded-2xl transition-all ${debtType === 'payable' ? 'bg-[#B34C36] text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                    >
+                      علينا (للمورد/لغيره)
+                    </button>
+                  </div>
+                )}
+                
+                <input 
+                  name="customerName" 
+                  list={debtType === 'payable' ? 'suppliers-list' : undefined}
+                  autoComplete="off"
+                  placeholder={
+                    editingDebt 
+                      ? t('customer_name_placeholder') 
+                      : (debtType === 'payable' ? 'الشخص أو الجهة (اختر من القائمة أو اكتب)' : t('customer_name_placeholder'))
+                  } 
+                  defaultValue={editingDebt?.customerName} 
+                  required 
+                  className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800" 
+                />
+                
+                {debtType === 'payable' && !editingDebt && (
+                  <datalist id="suppliers-list">
+                    {suppliers.map(s => (
+                      <option key={s.id} value={s.name} />
+                    ))}
+                  </datalist>
+                )}
+
                 <input name="phone" type="tel" placeholder={t('phone_optional_placeholder')} defaultValue={editingDebt?.phone} className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 text-left dir-ltr" style={{ direction: 'ltr' }} />
                 <div className="flex gap-3 pt-4">
                   <button type="button" onClick={closeModal} className="flex-1 rounded-2xl bg-zinc-100 py-3 font-semibold text-zinc-600 border border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700">{t('cancel')}</button>
