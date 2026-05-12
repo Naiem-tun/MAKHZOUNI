@@ -10,7 +10,8 @@ import {
   Search, 
   Filter, 
   ScanBarcode,
-  Boxes
+  Layers,
+  Package
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { ProductCard } from '../components/products/ProductCard';
@@ -321,7 +322,7 @@ export default function Products() {
               <option value="out">{t('out_of_stock')}</option>
             </select>
             <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-zinc-400">
-              <Boxes size={16} />
+              <Layers size={16} />
             </div>
           </div>
 
@@ -350,7 +351,7 @@ export default function Products() {
                 : "bg-white border-zinc-200 text-zinc-500 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-500"
             )}
           >
-            <Boxes size={18} className={showBoxInfo ? "text-brand-500" : ""} />
+            <Package size={18} className={showBoxInfo ? "text-brand-500" : ""} />
             <span>{t('box')}</span>
           </button>
         </div>
