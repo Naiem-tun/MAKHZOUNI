@@ -194,7 +194,7 @@ export default function Debts() {
                   <div className="flex items-center gap-2 text-xs">
                     <span className={`h-1.5 w-1.5 rounded-full ${d.status === 'paid' ? 'bg-brand-500' : 'bg-[#B34C36]'}`} />
                     <span className={d.status === 'paid' ? 'text-brand-600' : 'text-[#B34C36]'}>
-                      {d.status === 'paid' ? t('paid') : (d.type === 'payable' ? 'علينا' : t('over_due'))}
+                      {d.status === 'paid' ? t('paid') : (d.type === 'payable' ? t('payable_owed') : t('over_due'))}
                     </span>
                     <span className="text-zinc-300">•</span>
                     <span className="font-bold text-zinc-900 dark:text-white">{formatCurrency(d.totalAmount, settings.currency, settings.language)}</span>
@@ -235,14 +235,14 @@ export default function Debts() {
                       onClick={() => setDebtType('receivable')} 
                       className={`flex-1 py-3 text-sm font-bold rounded-2xl transition-all ${debtType === 'receivable' ? 'bg-emerald-500 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
                     >
-                      لنا (دين على الزبون)
+                      {t('receivable_debt')}
                     </button>
                     <button 
                       type="button" 
                       onClick={() => setDebtType('payable')} 
                       className={`flex-1 py-3 text-sm font-bold rounded-2xl transition-all ${debtType === 'payable' ? 'bg-[#B34C36] text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
                     >
-                      علينا (للمورد/لغيره)
+                      {t('payable_debt')}
                     </button>
                   </div>
                 )}
@@ -254,7 +254,7 @@ export default function Debts() {
                   placeholder={
                     editingDebt 
                       ? t('customer_name_placeholder') 
-                      : (debtType === 'payable' ? 'الشخص أو الجهة (اختر من القائمة أو اكتب)' : t('customer_name_placeholder'))
+                      : (debtType === 'payable' ? t('supplier_name_or_person') : t('customer_name_placeholder'))
                   } 
                   defaultValue={editingDebt?.customerName} 
                   required 
