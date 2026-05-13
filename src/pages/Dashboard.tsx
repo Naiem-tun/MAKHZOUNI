@@ -8,7 +8,9 @@ import {
   TrendingUp, 
   Wallet, 
   Plus, 
-  ScanBarcode 
+  ScanBarcode,
+  Users,
+  Truck
 } from 'lucide-react';
 import { Card } from '../components/UI';
 import { cn, formatCurrency, safeParseFloat, safeDispatchEvent } from '../lib/utils';
@@ -21,12 +23,16 @@ const Dashboard = memo(() => {
   const { t } = useTranslation();
   const [products, setProducts] = useState<Product[]>([]);
   const [allPurchases, setAllPurchases] = useState<Transaction[]>([]);
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [debts, setDebts] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user) return;
 
     const productsPath = `users/${user.uid}/products`;
     const purchasesPath = `users/${user.uid}/purchases`;
+    const expensesPath = `users/${user.uid}/expenses`;
+    const debtsPath = `users/${user.uid}/debts`;
     
     const productsQuery = collection(db, productsPath);
     const purchasesQuery = query(
@@ -34,6 +40,8 @@ const Dashboard = memo(() => {
       orderBy('date', 'desc'),
       limit(50)
     );
+    const expensesQuery = collection(db, expensesPath);
+    const debtsQuery = collection(db, debtsPath);
 
     const unsubProducts = onSnapshot(productsQuery, (snap) => {
       setProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
@@ -56,18 +64,44 @@ const Dashboard = memo(() => {
       handleFirestoreError(error, OperationType.LIST, purchasesPath);
     });
 
+    const unsubExpenses = onSnapshot(expensesQuery, (snap) => {
+      setExpenses(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, expensesPath);
+    });
+
+    const unsubDebts = onSnapshot(debtsQuery, (snap) => {
+      setDebts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, debtsPath);
+    });
+
     return () => {
       unsubProducts();
       unsubPurchases();
+      unsubExpenses();
+      unsubDebts();
     };
   }, [user]);
 
   const stats = useMemo(() => {
-    if (!products.length) return { totalProducts: 0, lowStock: 0, totalValue: 0 };
     const totalValue = products.reduce((acc, p) => acc + ((p.quantity || 0) * (p.purchasePrice || 0)), 0);
     const lowStock = products.filter(p => (p.quantity || 0) < (p.minQuantity || 10)).length;
-    return { totalProducts: products.length, lowStock, totalValue };
-  }, [products]);
+    
+    const totalExpenses = expenses.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+    
+    const totalCustomerDebts = debts.filter(d => d.type !== 'payable').reduce((sum, d) => sum + (Number(d.totalAmount) || 0), 0);
+    const totalSupplierDebts = debts.filter(d => d.type === 'payable').reduce((sum, d) => sum + (Number(d.totalAmount) || 0), 0);
+
+    return { 
+      totalProducts: products.length, 
+      lowStock, 
+      totalValue,
+      totalExpenses,
+      totalCustomerDebts,
+      totalSupplierDebts
+    };
+  }, [products, expenses, debts]);
 
   const language = settings.language || 'ar';
   const showFinancials = settings.showFinancials ?? true;
@@ -82,51 +116,78 @@ const Dashboard = memo(() => {
     safeDispatchEvent('open-barcode-scanner');
   };
 
+  const statsCards = [
+    {
+      title: t('total_products'),
+      value: stats.totalProducts,
+      icon: Package,
+      iconColor: 'text-zinc-400 dark:text-zinc-500',
+    },
+    {
+      title: t('low_stock'),
+      value: stats.lowStock,
+      icon: AlertTriangle,
+      iconColor: 'text-amber-500',
+    },
+    {
+      title: t('inventory_value'),
+      value: formatPrivateValue(stats.totalValue),
+      icon: TrendingUp,
+      iconColor: 'text-emerald-500',
+    },
+    {
+      title: t('expenses'),
+      value: formatPrivateValue(stats.totalExpenses),
+      icon: Wallet,
+      iconColor: 'text-rose-500',
+    },
+    {
+      title: t('customer_debts'),
+      value: formatPrivateValue(stats.totalCustomerDebts),
+      icon: Users,
+      iconColor: 'text-indigo-500',
+    },
+    {
+      title: t('supplier_debts'),
+      value: formatPrivateValue(stats.totalSupplierDebts),
+      icon: Truck,
+      iconColor: 'text-[#B34C36]',
+    }
+  ];
+
   return (
-    <div className="space-y-8 pb-20" dir="rtl">
-      <header className="flex flex-col gap-1 text-right">
+    <div className="space-y-6 pb-24" dir="rtl">
+      <header className="flex flex-col gap-1 text-right mb-4">
         <h1 className="text-3xl font-bold text-black dark:text-white">{t('dashboard')}</h1>
         <p className="text-neutral-500 text-xs font-medium">{t('welcome')}</p>
       </header>
 
-      {/* Stats Section - Slim Bars */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card variant="white" className="flex items-center justify-between py-3 px-4 rounded-2xl border-neutral-100">
-           <div className="flex items-center gap-2">
-            <Package size={14} className="text-neutral-400" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">{t('total_products')}</span>
-          </div>
-          <span className="text-sm font-mono font-bold text-zinc-800 dark:text-zinc-100">{stats.totalProducts}</span>
-        </Card>
-
-        <Card variant="white" className="flex items-center justify-between py-3 px-4 rounded-2xl border-neutral-100">
-          <div className="flex items-center gap-2">
-            <AlertTriangle size={14} className="text-amber-500" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">{t('low_stock')}</span>
-          </div>
-          <span className="text-sm font-mono font-bold text-amber-600">{stats.lowStock}</span>
-        </Card>
-
-        <Card variant="white" className="flex items-center justify-between py-3 px-4 rounded-2xl border-neutral-100">
-          <div className="flex items-center gap-2">
-            <TrendingUp size={14} className="text-emerald-500" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">{t('inventory_value')}</span>
-          </div>
-          <span className="text-sm font-mono font-bold text-zinc-800 dark:text-zinc-100">{formatPrivateValue(stats.totalValue)}</span>
-        </Card>
-
-        <Card variant="white" className="flex items-center justify-between py-3 px-4 rounded-2xl border-neutral-100">
-          <div className="flex items-center gap-2">
-            <Wallet size={14} className="text-rose-500" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">{t('expenses')}</span>
-          </div>
-          <span className="text-sm font-mono font-bold text-zinc-800 dark:text-zinc-100">{formatPrivateValue(0)}</span>
-        </Card>
+      {/* Stats Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {statsCards.map((card, idx) => {
+          const Icon = card.icon;
+          return (
+            <div 
+              key={idx} 
+              className="flex items-center justify-between bg-white dark:bg-zinc-900 rounded-[28px] p-6 shadow-sm border border-zinc-100 dark:border-zinc-800 transition-all hover:shadow-md"
+            >
+              <h3 className="text-[20px] font-bold text-zinc-900 dark:text-white font-mono leading-none">
+                {card.value}
+              </h3>
+              <div className="flex items-center gap-3">
+                <span className="text-[13px] font-bold text-zinc-500 dark:text-zinc-400">
+                  {card.title}
+                </span>
+                <Icon size={20} className={card.iconColor} strokeWidth={2} />
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Recent Purchases List */}
-      <div className="space-y-4 text-right">
-        <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-400">{t('last_purchases')}</h2>
+      <div className="space-y-4 text-right mt-8">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-400 pr-2">{t('last_purchases')}</h2>
         <div className="grid grid-cols-1 gap-2">
           {allPurchases?.length === 0 ? (
             <div className="py-8 text-center text-zinc-500 text-sm">{t('no_data_available')}</div>
