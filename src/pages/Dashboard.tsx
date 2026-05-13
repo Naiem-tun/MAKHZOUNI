@@ -46,7 +46,7 @@ const Dashboard = memo(() => {
     const purchasesQuery = query(
       collection(db, purchasesPath),
       orderBy('date', 'desc'),
-      limit(200)
+      limit(1000)
     );
     const expensesQuery = collection(db, expensesPath);
     const debtsQuery = collection(db, debtsPath);
@@ -279,7 +279,7 @@ const Dashboard = memo(() => {
           {allPurchases?.length === 0 ? (
             <div className="py-8 text-center text-zinc-500 text-sm">{t('no_data_available')}</div>
           ) : (
-            allPurchases?.slice(0, 50).map((p: any) => (
+            allPurchases?.slice(0, 100).map((p: any) => (
               <div key={p.id} className="flex justify-between items-center py-3 border-b border-neutral-50 dark:border-neutral-800 px-2 group hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 rounded-xl transition-colors">
                 <div className="flex flex-col text-right flex-1">
                   <span className="text-sm font-bold text-black dark:text-white">{p.productName}</span>
