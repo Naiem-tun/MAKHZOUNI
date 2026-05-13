@@ -5,7 +5,7 @@ import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, serverTimest
 import { db } from '../lib/firebase';
 import { Supplier, SupplierTransaction, Debt, OperationType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Truck, Plus, Phone, Trash2, Edit2, X, RotateCcw, UserPlus, Eye, Receipt, History, CirclePlus, Calendar } from 'lucide-react';
+import { Truck, Plus, Phone, Trash2, Edit2, X, RotateCcw, UserPlus, Eye, Receipt, History, CirclePlus, Calendar, Search } from 'lucide-react';
 import { formatCurrency, handleFirestoreError } from '../lib/utils';
 
 export default function Suppliers() {
@@ -25,6 +25,7 @@ export default function Suppliers() {
   const [deleteConfirmName, setDeleteConfirmName] = useState<string>('');
   const [isClearAllConfirmOpen, setIsClearAllConfirmOpen] = useState(false);
   const [isTotalModalOpen, setIsTotalModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const days = [
     { id: 0, name: t('sunday') },
@@ -102,6 +103,12 @@ export default function Suppliers() {
   });
 
   const grandTotal = transactions.reduce((acc, t) => acc + (t.amount || 0), 0);
+
+  const filteredSuppliers = suppliersWithTotals.filter(s => 
+    s.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.phone?.includes(searchQuery) ||
+    s.typeOfGoods?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -242,8 +249,31 @@ export default function Suppliers() {
         </div>
       </header>
 
+      {/* Search Bar */}
+      <div className="relative group">
+        <input 
+          type="text" 
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={t('search')} 
+          className="w-full rounded-2xl border border-zinc-100 bg-white py-3 pr-12 pl-4 outline-none focus:ring-2 focus:ring-brand-500 transition-all dark:bg-zinc-900 dark:border-zinc-800 dark:text-white"
+          dir="rtl"
+        />
+        <div className="absolute inset-y-0 right-4 flex items-center pr-3 pointer-events-none text-zinc-400 group-focus-within:text-brand-500 transition-colors">
+          <Search size={20} className="opacity-50" />
+        </div>
+        {searchQuery && (
+          <button 
+            onClick={() => setSearchQuery('')}
+            className="absolute inset-y-0 left-4 flex items-center pl-3 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+          >
+            <X size={18} />
+          </button>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 gap-4 pb-40">
-        {suppliersWithTotals.map((s) => {
+        {filteredSuppliers.map((s) => {
           const isToday = s.visitDays?.includes(today);
           return (
             <div key={s.id} className="relative group overflow-hidden rounded-2xl">
@@ -657,11 +687,6 @@ export default function Suppliers() {
               exit={{ opacity: 0, scale: 0.95, y: 10 }} 
               className="relative w-full max-w-[320px] rounded-[32px] bg-white p-8 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
-              <div className="mb-6 flex justify-center">
-                <div className="h-16 w-16 rounded-3xl bg-brand-50 flex items-center justify-center text-brand-600 dark:bg-brand-950/30">
-                  <Receipt size={32} />
-                </div>
-              </div>
               <h2 className="text-zinc-500 dark:text-zinc-400 font-bold mb-2">{t('total_expenses')}</h2>
               <div className="flex items-center justify-center gap-2 mb-8">
                 <span className="text-4xl font-black text-zinc-900 dark:text-white tracking-tighter">
