@@ -102,6 +102,9 @@ export interface Transaction {
   type: 'purchase' | 'sale' | 'jard' | 'adjustment';
   quantityChange: number;
   price: number;
+  amount?: number;
+  supplierId?: string;
+  supplierName?: string;
   date: any;
 }
 

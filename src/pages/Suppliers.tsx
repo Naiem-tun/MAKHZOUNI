@@ -5,12 +5,12 @@ import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, serverTimest
 import { db } from '../lib/firebase';
 import { Supplier, SupplierTransaction, Debt, OperationType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Truck, Plus, Phone, Trash2, Edit2, X, RotateCcw, UserPlus, Eye, Receipt, History, CirclePlus, Calendar, Search } from 'lucide-react';
+import { Truck, Plus, Phone, Trash2, Edit2, X, RotateCcw, UserPlus, Eye, Receipt, History, CirclePlus, Calendar, Search, Play, Square } from 'lucide-react';
 import { formatCurrency, handleFirestoreError } from '../lib/utils';
 
 export default function Suppliers() {
   const { t } = useTranslation();
-  const { user, showToast, settings } = useAppContext();
+  const { user, showToast, settings, activeSupplier, setActiveSupplier } = useAppContext();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [transactions, setTransactions] = useState<SupplierTransaction[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
@@ -341,6 +341,23 @@ export default function Suppliers() {
                     >
                       <Phone size={18}/>
                     </a>
+                  )}
+                  {activeSupplier?.id === s.id ? (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setActiveSupplier(null); }} 
+                      className="w-10 h-10 flex items-center justify-center rounded-2xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:opacity-90 transition-all font-bold shadow-sm"
+                      title={t('end_supplier_session')}
+                    >
+                      <Square size={16} fill="currentColor" />
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setActiveSupplier({ id: s.id!, name: s.name }); }} 
+                      className="w-10 h-10 flex items-center justify-center rounded-2xl bg-brand-50 text-brand-600 hover:bg-brand-100 transition-all font-bold shadow-sm"
+                      title={t('start_supplier_session')}
+                    >
+                      <Play size={16} fill="currentColor" />
+                    </button>
                   )}
                   <button 
                     onClick={(e) => { e.stopPropagation(); setSelectedSupplier(s); setIsAddTxModalOpen(true); }} 

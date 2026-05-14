@@ -11,23 +11,30 @@ import {
   Filter, 
   ScanBarcode,
   Layers,
-  Package
+  Package,
+  History,
+  AlertCircle,
+  Shield,
+  X
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { ProductCard } from '../components/products/ProductCard';
 import { ProductPagination } from '../components/products/ProductPagination';
 import { DeleteConfirmationModal } from '../components/products/DeleteConfirmationModal';
 import { AddQuantityModal } from '../components/products/AddQuantityModal';
 import { ProductEditModal } from '../components/products/ProductEditModal';
+import { PriceNegotiationModal } from '../components/products/PriceNegotiationModal';
 import { useCategories } from '../hooks/useCategories';
 
 import { BarcodeScanner } from '../components/common/BarcodeScanner';
 
 import { Logo } from '../components/UI';
+import { query, orderBy, limit, getDocs, where } from 'firebase/firestore';
 
 export default function Products() {
   const { t } = useTranslation();
-  const { user, settings, showToast, setIsDataLoaded } = useAppContext();
+  const { user, settings, showToast, setIsDataLoaded, activeSupplier } = useAppContext();
   const { categories } = useCategories();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,6 +55,9 @@ export default function Products() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [quantityProduct, setQuantityProduct] = useState<Product | null>(null);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [lastPurchaseInfo, setLastPurchaseInfo] = useState<any>(null);
+  const [isNegotiationModalOpen, setIsNegotiationModalOpen] = useState(false);
+  const [negotiationProduct, setNegotiationProduct] = useState<Product | null>(null);
   
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
@@ -113,6 +123,13 @@ export default function Products() {
         productName: quantityProduct.name,
         qtyAdded: addedQty,
         amount: purchaseAmount,
+        price: piecePrice,
+        boxPrice: boxPrice,
+        numBoxes,
+        extraPieces,
+        piecesPerBox: quantityProduct.piecesPerBox || 1,
+        supplierId: activeSupplier?.id || null,
+        supplierName: activeSupplier?.name || null,
         date: serverTimestamp(),
       });
 
@@ -185,14 +202,61 @@ export default function Products() {
     }
   };
 
-  const handleScan = (decodedText: string) => {
+  const fetchLastPurchase = async (productId: string) => {
+    if (!user) return null;
+    try {
+      const q = query(
+        collection(db, `users/${user.uid}/purchases`),
+        where('productId', '==', productId),
+        orderBy('date', 'desc'),
+        limit(1)
+      );
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        return snap.docs[0].data();
+      }
+    } catch (err) {
+      console.warn("Failed to fetch last purchase:", err);
+    }
+    return null;
+  };
+
+  const fetchPurchaseHistory = async (productId: string) => {
+    if (!user) return [];
+    try {
+      const q = query(
+        collection(db, `users/${user.uid}/purchases`),
+        where('productId', '==', productId),
+        orderBy('date', 'desc'),
+        limit(20)
+      );
+      const snap = await getDocs(q);
+      return snap.docs.map(doc => doc.data());
+    } catch (err) {
+      console.warn("Failed to fetch purchase history:", err);
+      return [];
+    }
+  };
+
+  const handleProductChoice = async (product: Product) => {
+    if (showBoxInfo) {
+      setNegotiationProduct(product);
+      setIsNegotiationModalOpen(true);
+    } else {
+      setQuantityProduct(product);
+      const lastP = await fetchLastPurchase(product.id!);
+      setLastPurchaseInfo(lastP);
+      setIsQuantityModalOpen(true);
+    }
+  };
+
+  const handleScan = async (decodedText: string) => {
     setIsScannerOpen(false);
     if (scannerTarget === 'search') {
       const foundProduct = products.find(p => p.barcode === decodedText || p.barcode2 === decodedText);
+      
       if (foundProduct) {
-        setSearchTerm(decodedText);
-        setQuantityProduct(foundProduct);
-        setIsQuantityModalOpen(true);
+        handleProductChoice(foundProduct);
       } else {
         if (window.confirm(t('product_not_found_add'))) {
           setScannedBarcode(decodedText);
@@ -347,11 +411,12 @@ export default function Products() {
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-2xl border transition-all text-sm font-bold",
               showBoxInfo 
-                ? "bg-brand-50 border-brand-200 text-brand-600" 
+                ? "bg-brand-600 border-brand-700 text-white shadow-lg shadow-brand-500/20 scale-105" 
                 : "bg-white border-zinc-200 text-zinc-500 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-500"
             )}
+            title={showBoxInfo ? t('price_negotiation_tool') : t('box')}
           >
-            <Package size={18} className={showBoxInfo ? "text-brand-500" : ""} />
+            {showBoxInfo ? <Shield size={18} fill="currentColor" fillOpacity={0.2} /> : <Package size={18} />}
             <span>{t('box')}</span>
           </button>
         </div>
@@ -392,8 +457,12 @@ export default function Products() {
       <AddQuantityModal
         product={quantityProduct}
         isOpen={isQuantityModalOpen}
-        onClose={() => setIsQuantityModalOpen(false)}
+        onClose={() => {
+          setIsQuantityModalOpen(false);
+          setLastPurchaseInfo(null);
+        }}
         onConfirm={performQuantitySave}
+        lastPurchase={lastPurchaseInfo}
       />
 
       <ProductEditModal
@@ -418,6 +487,15 @@ export default function Products() {
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
         onScan={handleScan}
+      />
+
+      <PriceNegotiationModal
+        product={negotiationProduct}
+        isOpen={isNegotiationModalOpen}
+        onClose={() => {
+          setIsNegotiationModalOpen(false);
+          setNegotiationProduct(null);
+        }}
       />
     </div>
   );

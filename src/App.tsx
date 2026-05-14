@@ -35,17 +35,20 @@ import {
   Home,
   QrCode,
   ScanBarcode,
-  WifiOff
+  WifiOff,
+  UserCheck,
+  Play,
+  Square
 } from 'lucide-react';
 import { signInWithGoogle, auth } from './lib/firebase';
 
 import { Login } from './components/auth/Login';
 import { ProductEditModal } from './components/products/ProductEditModal';
 import { BarcodeScanner } from './components/common/BarcodeScanner';
-import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from './lib/firebase';
 import { handleFirestoreError, safeDispatchEvent } from './lib/utils';
-import { OperationType } from './types';
+import { OperationType, Supplier } from './types';
 
 // Pages
 import Dashboard from './pages/Dashboard';
@@ -59,10 +62,20 @@ import Expenses from './pages/Expenses';
 import ShoppingList from './pages/ShoppingList';
 
 function AppContent() {
-  const { user, loading, isOffline, isDataLoaded, settings, toggleDarkMode, setLanguage, updateSettings } = useAppContext();
+  const { user, loading, isOffline, isDataLoaded, settings, toggleDarkMode, setLanguage, updateSettings, activeSupplier, setActiveSupplier } = useAppContext();
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('products');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isSupplierSelectorOpen, setIsSupplierSelectorOpen] = useState(false);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    const unsub = onSnapshot(collection(db, `users/${user.uid}/suppliers`), (snap) => {
+      setSuppliers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Supplier)));
+    });
+    return unsub;
+  }, [user]);
 
   // Dark mode effect
   useEffect(() => {
@@ -209,13 +222,26 @@ function AppContent() {
               >
                 <Logo className="w-10 h-10 shadow-lg active:scale-95 transition-transform" />
               </div>
-              <span className="text-xl font-black tracking-tighter text-zinc-900 dark:text-white ml-2">
-                {settings.storeName || 'مخزوني'}
-              </span>
             </div>
 
-            {/* Left Icons Group */}
+            {/* Icons Group */}
             <div className="flex items-center gap-4">
+              {/* Supplier Session Icon Button */}
+              <button 
+                onClick={() => activeSupplier ? setActiveSupplier(null) : setIsSupplierSelectorOpen(true)}
+                className={`transition-all h-9 px-3 rounded-xl flex items-center justify-center ${activeSupplier ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-md scale-105' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 bg-zinc-100/50 dark:bg-zinc-800/50'}`}
+                title={activeSupplier ? t('end_supplier_session') : t('supplier_session')}
+              >
+                {activeSupplier ? (
+                  <div className="flex items-center gap-2">
+                    <Square size={16} fill="currentColor" />
+                    <span className="text-[10px] font-black">{activeSupplier.name}</span>
+                  </div>
+                ) : (
+                  <Play size={18} fill="currentColor" />
+                )}
+              </button>
+
               <button 
                 onClick={() => setActiveTab('shopping-list')}
                 className={`transition-colors ${activeTab === 'shopping-list' ? 'text-brand-600' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}
@@ -228,9 +254,6 @@ function AppContent() {
                 className={`transition-colors ${activeTab === 'expenses' ? 'text-warn-text' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}
               >
                 <Wallet size={22} />
-              </button>
-              <button onClick={toggleDarkMode} className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
-                {settings.darkMode ? <Sun size={22} /> : <Moon size={22} />}
               </button>
             </div>
           </div>
@@ -383,6 +406,62 @@ function AppContent() {
         onClose={() => setIsScannerOpen(false)}
         onScan={handleScannerResult}
       />
+
+      {/* Supplier Selector Modal */}
+      <AnimatePresence>
+        {isSupplierSelectorOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              onClick={() => setIsSupplierSelectorOpen(false)} 
+              className="absolute inset-0 bg-zinc-950/40 backdrop-blur-sm" 
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.95, y: 10 }} 
+              className="relative w-full max-w-sm rounded-[32px] bg-white p-8 dark:bg-zinc-900 shadow-2xl border border-zinc-100 dark:border-zinc-800"
+            >
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-xl font-black text-zinc-900 dark:text-white">{t('select_supplier')}</h2>
+                <button 
+                  onClick={() => setIsSupplierSelectorOpen(false)}
+                  className="h-10 w-10 flex items-center justify-center rounded-xl bg-zinc-100 text-zinc-500 dark:bg-zinc-800"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="max-h-[400px] overflow-y-auto pr-2 space-y-2">
+                {suppliers.length === 0 ? (
+                  <div className="py-8 text-center text-zinc-400 font-bold">{t('no_suppliers_found')}</div>
+                ) : (
+                  suppliers.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => {
+                        setActiveSupplier({ id: s.id!, name: s.name });
+                        setIsSupplierSelectorOpen(false);
+                      }}
+                      className="w-full flex items-center gap-4 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 hover:bg-brand-50 dark:hover:bg-brand-900/10 hover:text-brand-600 transition-all text-right border border-transparent hover:border-brand-100 group"
+                    >
+                      <div className="h-12 w-12 rounded-xl bg-white dark:bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-brand-600 group-hover:scale-110 transition-all">
+                        <Truck size={20} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-bold text-zinc-900 dark:text-white group-hover:text-brand-600">{s.name}</p>
+                        <p className="text-xs text-zinc-400 font-mono">{s.typeOfGoods}</p>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
       )}
     </>

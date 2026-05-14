@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X } from 'lucide-react';
+import { X, History, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Product } from '../../types';
+import { formatCurrency, cn } from '../../lib/utils';
+import { useAppContext } from '../../AppContext';
 
 interface AddQuantityModalProps {
   product: Product | null;
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (numBoxes: number, extraPieces: number, boxPrice: number, piecePrice: number) => Promise<void>;
+  lastPurchase?: any;
 }
 
-export function AddQuantityModal({ product, isOpen, onClose, onConfirm }: AddQuantityModalProps) {
+export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurchase }: AddQuantityModalProps) {
   const { t } = useTranslation();
+  const { settings } = useAppContext();
   const [numBoxes, setNumBoxes] = useState(0);
   const [extraPieces, setExtraPieces] = useState(0);
   const [boxPrice, setBoxPrice] = useState(0);
@@ -89,6 +93,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm }: AddQua
             </h2>
 
             <div className="space-y-6">
+
               <div className="grid grid-cols-2 gap-3 rounded-2xl bg-zinc-50 p-4 dark:bg-zinc-800/50">
                 <div className="text-center border-r border-zinc-200 dark:border-zinc-700">
                   <p className="text-[10px] font-bold text-zinc-400 mb-1">{t('current_stock')}</p>

@@ -24,6 +24,8 @@ interface AppContextType {
   setLanguage: (lang: 'ar' | 'en') => void;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   categories: Category[];
+  activeSupplier: { id: string; name: string } | null;
+  setActiveSupplier: (supplier: { id: string; name: string } | null) => void;
 }
 
 const defaultSettings: UserSettings = {
@@ -57,6 +59,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [activeSupplier, setActiveSupplier] = useState<{ id: string; name: string } | null>(() => {
+    const saved = localStorage.getItem('active_supplier_session');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  useEffect(() => {
+    if (activeSupplier) {
+      localStorage.setItem('active_supplier_session', JSON.stringify(activeSupplier));
+    } else {
+      localStorage.removeItem('active_supplier_session');
+    }
+  }, [activeSupplier]);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -179,7 +193,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   return (
-    <AppContext.Provider value={{ user, loading, isOffline, isDataLoaded, setIsDataLoaded, settings, updateSettings, toggleDarkMode, setLanguage, showToast, categories }}>
+    <AppContext.Provider value={{ 
+      user, 
+      loading, 
+      isOffline, 
+      isDataLoaded, 
+      setIsDataLoaded, 
+      settings, 
+      updateSettings, 
+      toggleDarkMode, 
+      setLanguage, 
+      showToast, 
+      categories,
+      activeSupplier,
+      setActiveSupplier
+    }}>
       <div className={settings.language === 'ar' ? 'rtl' : 'ltr'} dir={settings.language === 'ar' ? 'rtl' : 'ltr'}>
         {children}
         

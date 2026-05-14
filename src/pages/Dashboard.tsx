@@ -33,6 +33,31 @@ const Dashboard = memo(() => {
   const [supplierTransactions, setSupplierTransactions] = useState<any[]>([]);
   const [isMovementExpanded, setIsMovementExpanded] = useState(false);
 
+  const groupedPurchases = useMemo(() => {
+    if (!allPurchases) return [];
+    
+    const groupsMap = new Map<string, any>();
+
+    allPurchases.slice(0, 100).forEach((p: any) => {
+      const dateStr = new Date(p.date).toLocaleDateString(settings.language === 'ar' ? 'ar-TN' : 'en-GB');
+      const supplierName = p.supplierName || t('unknown_supplier');
+      const groupKey = `${supplierName}-${dateStr}`;
+
+      if (groupsMap.has(groupKey)) {
+        groupsMap.get(groupKey).items.push(p);
+      } else {
+        groupsMap.set(groupKey, {
+          key: groupKey,
+          supplierName: p.supplierName,
+          date: dateStr,
+          items: [p]
+        });
+      }
+    });
+
+    return Array.from(groupsMap.values());
+  }, [allPurchases, settings.language, t]);
+
   useEffect(() => {
     if (!user) return;
 
@@ -67,6 +92,8 @@ const Dashboard = memo(() => {
           quantityChange: data.qtyAdded,
           amount: data.amount || 0,
           price: data.qtyAdded > 0 ? (data.amount / data.qtyAdded) : 0,
+          supplierId: data.supplierId || null,
+          supplierName: data.supplierName || null,
           date: data.date?.toDate ? data.date.toDate() : (data.date || new Date())
         } as any;
       }));
@@ -273,26 +300,49 @@ const Dashboard = memo(() => {
       </div>
 
       {/* Recent Purchases List */}
-      <div className="space-y-4 text-right mt-8">
-        <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-400 pr-2">{t('last_purchases')}</h2>
-        <div className="grid grid-cols-1 gap-2">
-          {allPurchases?.length === 0 ? (
-            <div className="py-8 text-center text-zinc-500 text-sm">{t('no_data_available')}</div>
+      <div className="space-y-6 text-right mt-12 pb-12">
+        <h2 className="text-xs font-black uppercase tracking-[0.2em] text-neutral-400 pr-2">{t('last_purchases')}</h2>
+        <div className="space-y-8">
+          {groupedPurchases.length === 0 ? (
+            <div className="py-12 text-center text-zinc-400 font-bold text-sm bg-zinc-50 dark:bg-zinc-800/50 rounded-[32px] border-2 border-dashed border-zinc-100 dark:border-zinc-800">
+              {t('no_data_available')}
+            </div>
           ) : (
-            allPurchases?.slice(0, 100).map((p: any) => (
-              <div key={p.id} className="flex justify-between items-center py-3 border-b border-neutral-50 dark:border-neutral-800 px-2 group hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 rounded-xl transition-colors">
-                <div className="flex flex-col text-right flex-1">
-                  <span className="text-sm font-bold text-black dark:text-white">{p.productName}</span>
-                  <div className="flex items-center gap-1 text-[10px] text-neutral-400 font-mono">
-                    <span className="text-black dark:text-white font-black">{p.quantityChange}</span>
-                    <span className="text-black dark:text-white font-bold">{t('piece')}</span>
-                    <span className="px-1 text-neutral-300">|</span>
-                    <span>{formatCurrency(p.amount, settings.currency, language)}</span>
+            groupedPurchases.map((group: any) => (
+              <div key={group.key} className="space-y-3">
+                <div className="flex items-center justify-between px-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-xl bg-brand-50 dark:bg-brand-900/10 flex items-center justify-center text-brand-600 dark:text-brand-400">
+                      <Truck size={14} />
+                    </div>
+                    <span className="text-sm font-black text-brand-600 dark:text-brand-400">
+                      {group.supplierName || t('unknown_supplier')}
+                    </span>
                   </div>
+                  <span className="text-[10px] font-black text-zinc-400 font-mono tracking-tighter">
+                    {group.date}
+                  </span>
                 </div>
-                <span className="text-[10px] font-mono text-neutral-400 shrink-0">
-                  {new Date(p.date).toLocaleDateString(settings.language === 'ar' ? 'ar-TN' : 'en-GB')}
-                </span>
+                
+                <div className="bg-white dark:bg-zinc-900 rounded-[28px] border border-zinc-100 dark:border-zinc-800 divide-y divide-zinc-50 dark:divide-zinc-800 overflow-hidden shadow-sm">
+                  {group.items.map((p: any) => (
+                    <div key={p.id} className="flex justify-between items-center p-4 group hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-colors">
+                      <div className="flex flex-col text-right flex-1">
+                        <span className="text-sm font-bold text-black dark:text-white mb-1">{p.productName}</span>
+                        <div className="flex items-center gap-2 text-[11px] font-mono">
+                          <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-lg">
+                            <span className="text-black dark:text-white font-black">{p.quantityChange}</span>
+                            <span className="text-zinc-500 font-bold">{t('piece')}</span>
+                          </div>
+                          <span className="text-zinc-300">|</span>
+                          <span className="text-zinc-500 dark:text-zinc-400 font-medium">{formatCurrency(p.price, settings.currency, language)}</span>
+                          <span className="text-zinc-300">|</span>
+                          <span className="text-brand-600 dark:text-brand-400 font-bold">{formatCurrency(p.amount, settings.currency, language)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ))
           )}
