@@ -85,7 +85,7 @@ export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegoti
   // 2. Add prices from history (overwriting or adding if better/newer)
   history.forEach(h => {
     const sName = h.supplierName || t('unknown_supplier');
-    const unitPrice = h.price || (h.amount / h.qtyAdded);
+    const unitPrice = h.price || (h.amount && h.qtyAdded ? h.amount / h.qtyAdded : 0);
     if (unitPrice > 0) {
       const key = `${sName}_${unitPrice.toFixed(3)}`;
       // Only add if not exists or if this history record is newer than what we have

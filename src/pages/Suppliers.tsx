@@ -95,11 +95,11 @@ export default function Suppliers() {
 
     return { ...s, totalPaid, txCount, isMissed };
   }).sort((a, b) => {
-    const aIsToday = a.visitDays?.includes(today);
-    const bIsToday = b.visitDays?.includes(today);
+    const aIsToday = !!a.visitDays?.includes(today);
+    const bIsToday = !!b.visitDays?.includes(today);
     if (aIsToday && !bIsToday) return -1;
     if (!aIsToday && bIsToday) return 1;
-    return 0;
+    return a.name.localeCompare(b.name, 'ar');
   });
 
   const grandTotal = transactions.reduce((acc, t) => acc + (t.amount || 0), 0);

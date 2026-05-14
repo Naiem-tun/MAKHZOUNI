@@ -15,8 +15,10 @@ import {
   ChevronUp,
   History,
   ShoppingCart,
-  Receipt
+  Receipt,
+  ScanLine
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Card } from '../components/UI';
 import { cn, formatCurrency, safeParseFloat, safeDispatchEvent } from '../lib/utils';
 import { Product, Transaction, OperationType } from '../types';
@@ -181,51 +183,6 @@ const Dashboard = memo(() => {
     safeDispatchEvent('open-barcode-scanner');
   };
 
-  const statsCards = [
-    {
-      title: t('total_products'),
-      value: stats.totalProducts,
-      icon: Package,
-      iconColor: 'text-zinc-400 dark:text-zinc-500',
-    },
-    {
-      title: t('low_stock'),
-      value: stats.lowStock,
-      icon: AlertTriangle,
-      iconColor: 'text-amber-500',
-    },
-    {
-      title: t('inventory_value'),
-      value: formatPrivateValue(stats.totalValue),
-      icon: TrendingUp,
-      iconColor: 'text-emerald-500',
-    },
-    {
-      title: t('expenses'),
-      value: formatPrivateValue(stats.totalExpenses),
-      icon: Wallet,
-      iconColor: 'text-rose-500',
-    },
-    {
-      title: t('customer_debts'),
-      value: formatPrivateValue(stats.totalCustomerDebts),
-      icon: Users,
-      iconColor: 'text-indigo-500',
-    },
-    {
-      title: t('supplier_debts'),
-      value: formatPrivateValue(stats.totalSupplierDebts),
-      icon: Truck,
-      iconColor: 'text-[#B34C36]',
-    },
-    {
-      title: t('total_supplier_purchases'),
-      value: formatPrivateValue(stats.totalSupplierPurchasesValue),
-      icon: Receipt,
-      iconColor: 'text-zinc-600 dark:text-zinc-400',
-    }
-  ];
-
   return (
     <div className="space-y-6 pb-24" dir="rtl">
       <header className="flex flex-col gap-1 text-right mb-4">
@@ -233,71 +190,131 @@ const Dashboard = memo(() => {
         <p className="text-neutral-500 text-xs font-medium">{t('welcome')}</p>
       </header>
 
-      {/* Stats Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {statsCards.map((card, idx) => {
-          const Icon = card.icon;
-          return (
-            <div 
-              key={idx} 
-              className="flex items-center justify-between bg-white dark:bg-zinc-900 rounded-[28px] p-6 shadow-sm border border-zinc-100 dark:border-zinc-800 transition-all hover:shadow-md"
-            >
-              <h3 className="text-[20px] font-black text-black dark:text-white font-mono leading-none">
-                {card.value}
-              </h3>
-              <div className="flex items-center gap-3">
-                <span className="text-[13px] font-bold text-zinc-500 dark:text-zinc-400">
-                  {card.title}
-                </span>
-                <Icon size={20} className={card.iconColor} strokeWidth={2} />
+      {/* Modern Vertical Dashboard */}
+      <div className="space-y-6">
+        
+        {/* SECTION 1: MASTER VALUE HERO */}
+      <div className="relative p-8 rounded-[40px] bg-zinc-900 dark:bg-black text-white shadow-xl shadow-zinc-200/50 dark:shadow-none overflow-hidden group">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/20 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-brand-500/10 rounded-full blur-[60px] translate-y-1/4 -translate-x-1/4" />
+        
+        <div className="relative z-10 flex flex-col gap-6">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 px-2.5 py-1 bg-white/10 w-fit rounded-full backdrop-blur-md border border-white/5">
+                <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-100/80">{t('inventory_value')}</p>
               </div>
+              <h1 className="text-4xl md:text-6xl font-black font-mono tracking-tighter leading-none">
+                {formatPrivateValue(stats.totalValue)}
+              </h1>
             </div>
-          );
-        })}
-      </div>
 
-      {/* Purchase Movement Section */}
-      <div className="space-y-3">
-        <div 
-          onClick={() => setIsMovementExpanded(!isMovementExpanded)}
-          className="flex items-center justify-between bg-white dark:bg-zinc-900 rounded-[28px] p-6 shadow-sm border border-zinc-100 dark:border-zinc-800 transition-all hover:shadow-md cursor-pointer group"
-        >
-          <div className="flex items-center gap-4">
-            <div className="h-10 w-10 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-600 dark:bg-brand-950/20">
-              <History size={20} />
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">{t('purchase_movement')}</p>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-black text-black dark:text-white">{formatPrivateValue(stats.todayPurchasesTotal)}</span>
-                <span className="text-[10px] text-zinc-400 font-bold">({t('today_total')})</span>
+            <div className="flex gap-2.5">
+              <div className="px-4 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
+                <p className="text-[8px] font-black text-zinc-400 uppercase mb-1">{t('total_products')}</p>
+                <div className="flex items-center gap-2">
+                  <Package size={12} className="text-zinc-500" />
+                  <p className="text-xl font-black font-mono">{stats.totalProducts}</p>
+                </div>
+              </div>
+              <div className="px-4 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 backdrop-blur-md">
+                <p className="text-[8px] font-black text-amber-500/60 uppercase mb-1">{t('low_stock')}</p>
+                <div className="flex items-center gap-2 text-amber-500">
+                  <AlertTriangle size={12} />
+                  <p className="text-xl font-black font-mono">{stats.lowStock}</p>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="h-10 w-10 rounded-2xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-brand-600 transition-colors">
-            {isMovementExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
           </div>
         </div>
-
-        {isMovementExpanded && (
-          <div className="bg-white dark:bg-zinc-900 rounded-[28px] p-4 shadow-sm border border-zinc-100 dark:border-zinc-800 animate-in slide-in-from-top-2 duration-200">
-            <div className="space-y-1">
-              {stats.movementHistory.length === 0 ? (
-                <p className="text-center py-4 text-zinc-500 text-sm">{t('no_data_available')}</p>
-              ) : (
-                stats.movementHistory.map((day, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 rounded-2xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
-                    <span className="text-sm font-bold text-zinc-900 dark:text-white">{formatPrivateValue(day.total)}</span>
-                    <span className="text-xs text-zinc-500 font-mono">
-                      {new Date(day.date).toLocaleDateString(settings.language === 'ar' ? 'ar-TN' : 'en-GB', { day: 'numeric', month: 'long' })}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* SECTION 2: FINANCIAL SUMMARY (ELEGANT GRID) */}
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-[32px] p-6 border border-zinc-100 dark:border-zinc-800 shadow-sm relative overflow-hidden group">
+            <div className="absolute bottom-0 right-0 h-2 w-full bg-indigo-500/20" />
+            <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-3">{t('customer_debts')}</p>
+            <h3 className="text-xl font-black font-mono text-zinc-900 dark:text-white tracking-tight">{formatPrivateValue(stats.totalCustomerDebts)}</h3>
+          </div>
+          
+          <div className="bg-white dark:bg-zinc-900 rounded-[32px] p-6 border border-zinc-100 dark:border-zinc-800 shadow-sm relative overflow-hidden group">
+            <div className="absolute bottom-0 right-0 h-2 w-full bg-[#B34C36]/20" />
+            <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-3">{t('supplier_debts')}</p>
+            <h3 className="text-xl font-black font-mono text-zinc-900 dark:text-white tracking-tight">{formatPrivateValue(stats.totalSupplierDebts)}</h3>
+          </div>
+
+          <div className="bg-white dark:bg-zinc-900 rounded-[32px] p-6 border border-zinc-100 dark:border-zinc-800 shadow-sm relative overflow-hidden group">
+            <div className="absolute bottom-0 right-0 h-2 w-full bg-rose-500/20" />
+            <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-3">{t('expenses')}</p>
+            <h3 className="text-xl font-black font-mono text-zinc-900 dark:text-white tracking-tight">{formatPrivateValue(stats.totalExpenses)}</h3>
+          </div>
+
+          <div className="bg-zinc-50 dark:bg-zinc-800 rounded-[32px] p-6 border border-zinc-100 dark:border-zinc-700 shadow-sm relative overflow-hidden group">
+            <div className="absolute bottom-0 right-0 h-2 w-full bg-zinc-900/10 dark:bg-white/10" />
+            <p className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-3">{t('total_supplier_purchases')}</p>
+            <h3 className="text-xl font-black font-mono text-zinc-900 dark:text-white tracking-tight">{formatPrivateValue(stats.totalSupplierPurchasesValue)}</h3>
+          </div>
+        </div>
+      </div>
+
+        {/* SECTION 3: PURCHASE MOVEMENT (INTERACTIVE) */}
+        <div className="bg-white dark:bg-zinc-900 rounded-[32px] p-6 border border-zinc-100 dark:border-zinc-800 shadow-sm transition-all duration-300">
+          <div 
+            onClick={() => setIsMovementExpanded(!isMovementExpanded)}
+            className="flex items-center justify-between cursor-pointer"
+          >
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-xl bg-brand-50 dark:bg-brand-950/30 flex items-center justify-center text-brand-600">
+                <History size={20} />
+              </div>
+              <div className="text-right">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-0.5">{t('purchase_movement')}</p>
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xl font-black font-mono text-zinc-900 dark:text-white tracking-tighter">
+                    {formatPrivateValue(stats.todayPurchasesTotal)}
+                  </h3>
+                  <div className="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 text-[8px] font-black text-emerald-600 border border-emerald-100/50 uppercase">
+                    {t('today')}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <button className="h-10 w-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-brand-600 transition-all shrink-0">
+              {isMovementExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+            </button>
+          </div>
+
+          <AnimatePresence>
+            {isMovementExpanded && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="mt-10 pt-10 border-t border-zinc-50 dark:border-zinc-800 overflow-hidden"
+              >
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
+                  {stats.movementHistory.length === 0 ? (
+                    <div className="col-span-full py-8 text-center text-zinc-400 font-bold bg-zinc-50/50 dark:bg-zinc-800/30 rounded-2xl border-2 border-dashed border-zinc-100 dark:border-zinc-800">{t('no_data_available')}</div>
+                  ) : (
+                    stats.movementHistory.slice(0, 14).map((day, idx) => (
+                      <div key={idx} className="p-4 rounded-2xl bg-zinc-50/50 dark:bg-zinc-800/20 border border-transparent hover:border-zinc-100 dark:hover:border-brand-500/10 transition-colors">
+                        <p className="text-[10px] font-black text-zinc-400 mb-2 uppercase tracking-tight opacity-60">
+                          {new Date(day.date).toLocaleDateString(settings.language === 'ar' ? 'ar-TN' : 'en-GB', { day: 'numeric', month: 'short' })}
+                        </p>
+                        <p className="text-sm font-black text-zinc-900 dark:text-white font-mono leading-none">{formatPrivateValue(day.total).split(' ')[0]}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
 
       {/* Recent Purchases List */}
       <div className="space-y-6 text-right mt-12 pb-12">
