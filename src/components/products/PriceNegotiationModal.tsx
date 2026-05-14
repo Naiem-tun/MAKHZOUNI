@@ -64,28 +64,44 @@ export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegoti
 
   const absoluteBestPrice = allPrices.length > 0 ? Math.min(...allPrices) : 0;
 
-  // Calculate Supplier Comparison
-  const supplierBestPrices: Record<string, { price: number, lastDate: any, supplierName: string, boxQty: number }> = {};
+  // Calculate price points from both products and history
+  const pricePointsMap: Record<string, { price: number, lastDate: any, supplierName: string, boxQty: number, isCurrent?: boolean }> = {};
   
+  // 1. Add current prices from the products themselves
+  products.forEach(p => {
+    if (p.purchasePrice > 0) {
+      const sName = t('unknown_supplier');
+      const key = `${sName}_${p.purchasePrice.toFixed(3)}`;
+      pricePointsMap[key] = {
+        price: p.purchasePrice,
+        lastDate: { seconds: Date.now() / 1000 },
+        supplierName: sName,
+        boxQty: p.piecesPerBox || 1,
+        isCurrent: true
+      };
+    }
+  });
+
+  // 2. Add prices from history (overwriting or adding if better/newer)
   history.forEach(h => {
     const sName = h.supplierName || t('unknown_supplier');
     const unitPrice = h.price || (h.amount / h.qtyAdded);
-    const relatedProduct = products.find(p => p.id === h.productId) || mainProduct;
-    const boxQty = relatedProduct.piecesPerBox || 1;
-
     if (unitPrice > 0) {
-      if (!supplierBestPrices[sName] || unitPrice < supplierBestPrices[sName].price) {
-        supplierBestPrices[sName] = {
+      const key = `${sName}_${unitPrice.toFixed(3)}`;
+      // Only add if not exists or if this history record is newer than what we have
+      if (!pricePointsMap[key] || (h.date?.seconds > (pricePointsMap[key].lastDate?.seconds || 0))) {
+        const relatedProduct = products.find(p => p.id === h.productId) || mainProduct;
+        pricePointsMap[key] = {
           price: unitPrice,
           lastDate: h.date,
           supplierName: sName,
-          boxQty: boxQty
+          boxQty: relatedProduct.piecesPerBox || 1
         };
       }
     }
   });
 
-  const sortedSuppliers = Object.values(supplierBestPrices).sort((a, b) => a.price - b.price);
+  const sortedSuppliers = Object.values(pricePointsMap).sort((a, b) => a.price - b.price);
 
   return (
     <AnimatePresence>
