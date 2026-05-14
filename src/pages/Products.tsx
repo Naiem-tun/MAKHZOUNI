@@ -239,6 +239,15 @@ export default function Products() {
   };
 
   const handleProductChoice = async (product: Product) => {
+    // Update search term so the product is visible in the list behind the modal
+    if (product.barcode) {
+      setSearchTerm(product.barcode);
+    } else if (product.barcode2) {
+      setSearchTerm(product.barcode2);
+    } else {
+      setSearchTerm(product.name);
+    }
+
     if (showBoxInfo) {
       setNegotiationProduct(product);
       setIsNegotiationModalOpen(true);
@@ -253,6 +262,9 @@ export default function Products() {
   const handleScan = async (decodedText: string) => {
     setIsScannerOpen(false);
     if (scannerTarget === 'search') {
+      // Set search term immediately to filter the list
+      setSearchTerm(decodedText);
+      
       const foundProduct = products.find(p => p.barcode === decodedText || p.barcode2 === decodedText);
       
       if (foundProduct) {
