@@ -229,16 +229,16 @@ function AppContent() {
               {/* Supplier Session Icon Button */}
               <button 
                 onClick={() => activeSupplier ? setActiveSupplier(null) : setIsSupplierSelectorOpen(true)}
-                className={`transition-all h-9 px-3 rounded-xl flex items-center justify-center ${activeSupplier ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-md scale-105' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 bg-zinc-100/50 dark:bg-zinc-800/50'}`}
-                title={activeSupplier ? t('end_supplier_session') : t('supplier_session')}
+                className={`transition-all h-9 px-3 rounded-xl flex items-center justify-center ${activeSupplier ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-md scale-105' : 'bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-900/40 shadow-sm transition-all'}`}
+                title={activeSupplier ? t('end_supplier_session') : t('start_supplier_session')}
               >
                 {activeSupplier ? (
                   <div className="flex items-center gap-2">
                     <Square size={16} fill="currentColor" />
-                    <span className="text-[10px] font-black">{activeSupplier.name}</span>
+                    <span className="text-[10px] font-black leading-none">{activeSupplier.name}</span>
                   </div>
                 ) : (
-                  <Play size={18} fill="currentColor" />
+                  <Play size={16} fill="currentColor" />
                 )}
               </button>
 
@@ -438,24 +438,38 @@ function AppContent() {
                 {suppliers.length === 0 ? (
                   <div className="py-8 text-center text-zinc-400 font-bold">{t('no_suppliers_found')}</div>
                 ) : (
-                  suppliers.map((s) => (
-                    <button
-                      key={s.id}
-                      onClick={() => {
-                        setActiveSupplier({ id: s.id!, name: s.name });
-                        setIsSupplierSelectorOpen(false);
-                      }}
-                      className="w-full flex items-center gap-4 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 hover:bg-brand-50 dark:hover:bg-brand-900/10 hover:text-brand-600 transition-all text-right border border-transparent hover:border-brand-100 group"
-                    >
-                      <div className="h-12 w-12 rounded-xl bg-white dark:bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-brand-600 group-hover:scale-110 transition-all">
-                        <Truck size={20} />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-bold text-zinc-900 dark:text-white group-hover:text-brand-600">{s.name}</p>
-                        <p className="text-xs text-zinc-400 font-mono">{s.typeOfGoods}</p>
-                      </div>
-                    </button>
-                  ))
+                  suppliers
+                    .sort((a, b) => {
+                      const today = new Date().getDay();
+                      const aIsToday = a.visitDays?.includes(today);
+                      const bIsToday = b.visitDays?.includes(today);
+                      if (aIsToday && !bIsToday) return -1;
+                      if (!aIsToday && bIsToday) return 1;
+                      return 0;
+                    })
+                    .map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => {
+                          setActiveSupplier({ id: s.id!, name: s.name });
+                          setIsSupplierSelectorOpen(false);
+                        }}
+                        className="w-full flex items-center gap-4 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 hover:bg-brand-50 dark:hover:bg-brand-900/10 hover:text-brand-600 transition-all text-right border border-transparent hover:border-brand-100 group"
+                      >
+                        <div className="h-12 w-12 rounded-xl bg-white dark:bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-brand-600 group-hover:scale-110 transition-all">
+                          <Truck size={20} />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <p className="font-bold text-zinc-900 dark:text-white group-hover:text-brand-600">{s.name}</p>
+                            {s.visitDays?.includes(new Date().getDay()) && (
+                              <span className="text-[10px] font-black text-brand-600 bg-brand-50 dark:bg-brand-900/40 px-1.5 py-0.5 rounded-lg">{t('visits_today')}</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-zinc-400 font-mono">{s.typeOfGoods}</p>
+                        </div>
+                      </button>
+                    ))
                 )}
               </div>
             </motion.div>

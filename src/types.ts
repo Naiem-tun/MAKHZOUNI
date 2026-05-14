@@ -26,6 +26,7 @@ export interface UserSettings {
   storeName: string;
   showFinancials?: boolean;
   showFloatingTotals?: boolean;
+  showSupplierSessionButton?: boolean;
   email?: string;
   displayName?: string;
   deletedCategories?: string[];
