@@ -9,30 +9,35 @@ import { query, collection, where, orderBy, limit, getDocs } from 'firebase/fire
 import { db } from '../../lib/firebase';
 
 interface PriceNegotiationModalProps {
-  product: Product | null;
+  products: Product[];
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function PriceNegotiationModal({ product, isOpen, onClose }: PriceNegotiationModalProps) {
+export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegotiationModalProps) {
   const { t } = useTranslation();
   const { settings, user } = useAppContext();
   const [history, setHistory] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);
 
   React.useEffect(() => {
-    if (isOpen && product && user) {
+    if (isOpen && products && products.length > 0 && user) {
       const fetchHistory = async () => {
         setLoading(true);
         try {
-          const q = query(
-            collection(db, `users/${user.uid}/purchases`),
-            where('productId', '==', product.id),
-            orderBy('date', 'desc'),
-            limit(10)
-          );
-          const snap = await getDocs(q);
-          setHistory(snap.docs.map(doc => doc.data()));
+          const allHistory: any[] = [];
+          for (const p of products) {
+            const q = query(
+              collection(db, `users/${user.uid}/purchases`),
+              where('productId', '==', p.id),
+              orderBy('date', 'desc'),
+              limit(10)
+            );
+            const snap = await getDocs(q);
+            allHistory.push(...snap.docs.map(doc => doc.data()));
+          }
+          allHistory.sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0));
+          setHistory(allHistory);
         } catch (err) {
           console.error("Error fetching price history:", err);
         } finally {
@@ -41,13 +46,17 @@ export function PriceNegotiationModal({ product, isOpen, onClose }: PriceNegotia
       };
       fetchHistory();
     }
-  }, [isOpen, product, user]);
+  }, [isOpen, products, user]);
 
-  if (!product) return null;
+  if (!products || products.length === 0) return null;
+  const mainProduct = products[0];
 
   // Aggregate all prices to find the absolute best
   const allPrices: number[] = [];
-  if (product.purchasePrice) allPrices.push(product.purchasePrice);
+  products.forEach(p => {
+    if (p.purchasePrice) allPrices.push(p.purchasePrice);
+  });
+  
   history.forEach(h => {
     const price = h.price || (h.amount && h.qtyAdded ? h.amount / h.qtyAdded : 0);
     if (price > 0) allPrices.push(price);
@@ -58,18 +67,19 @@ export function PriceNegotiationModal({ product, isOpen, onClose }: PriceNegotia
   // Calculate Supplier Comparison
   const supplierBestPrices: Record<string, { price: number, lastDate: any, supplierName: string, boxQty: number }> = {};
   
-  const pBoxQty = product.piecesPerBox || 1;
-  
   history.forEach(h => {
     const sName = h.supplierName || t('unknown_supplier');
     const unitPrice = h.price || (h.amount / h.qtyAdded);
+    const relatedProduct = products.find(p => p.id === h.productId) || mainProduct;
+    const boxQty = relatedProduct.piecesPerBox || 1;
+
     if (unitPrice > 0) {
       if (!supplierBestPrices[sName] || unitPrice < supplierBestPrices[sName].price) {
         supplierBestPrices[sName] = {
           price: unitPrice,
           lastDate: h.date,
           supplierName: sName,
-          boxQty: pBoxQty
+          boxQty: boxQty
         };
       }
     }
@@ -108,8 +118,8 @@ export function PriceNegotiationModal({ product, isOpen, onClose }: PriceNegotia
                     </div>
                     <span className="text-[10px] font-black uppercase tracking-[0.2em]">{t('price_negotiation_tool')}</span>
                   </div>
-                  <h2 className="text-xl font-black">{product.name}</h2>
-                  <p className="text-[10px] font-bold text-white/60">{product.barcode}</p>
+                  <h2 className="text-xl font-black">{mainProduct.name}</h2>
+                  <p className="text-[10px] font-bold text-white/60">{mainProduct.barcode}</p>
                 </div>
                 <button 
                   onClick={onClose}

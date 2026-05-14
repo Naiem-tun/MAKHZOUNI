@@ -57,7 +57,7 @@ export default function Products() {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [lastPurchaseInfo, setLastPurchaseInfo] = useState<any>(null);
   const [isNegotiationModalOpen, setIsNegotiationModalOpen] = useState(false);
-  const [negotiationProduct, setNegotiationProduct] = useState<Product | null>(null);
+  const [negotiationProducts, setNegotiationProducts] = useState<Product[]>([]);
   
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
@@ -249,7 +249,12 @@ export default function Products() {
     }
 
     if (showBoxInfo) {
-      setNegotiationProduct(product);
+      const barcodeToMatch = product.barcode || product.barcode2;
+      const matchingProducts = barcodeToMatch 
+        ? products.filter(p => p.barcode === barcodeToMatch || p.barcode2 === barcodeToMatch || p.id === product.id)
+        : [product];
+      
+      setNegotiationProducts(matchingProducts);
       setIsNegotiationModalOpen(true);
     } else {
       setQuantityProduct(product);
@@ -265,10 +270,15 @@ export default function Products() {
       // Set search term immediately to filter the list
       setSearchTerm(decodedText);
       
-      const foundProduct = products.find(p => p.barcode === decodedText || p.barcode2 === decodedText);
+      const matching = products.filter(p => p.barcode === decodedText || p.barcode2 === decodedText);
       
-      if (foundProduct) {
-        handleProductChoice(foundProduct);
+      if (matching.length > 0) {
+        if (showBoxInfo) {
+          setNegotiationProducts(matching);
+          setIsNegotiationModalOpen(true);
+        } else {
+          handleProductChoice(matching[0]);
+        }
       } else {
         if (window.confirm(t('product_not_found_add'))) {
           setScannedBarcode(decodedText);
@@ -502,11 +512,11 @@ export default function Products() {
       />
 
       <PriceNegotiationModal
-        product={negotiationProduct}
+        products={negotiationProducts}
         isOpen={isNegotiationModalOpen}
         onClose={() => {
           setIsNegotiationModalOpen(false);
-          setNegotiationProduct(null);
+          setNegotiationProducts([]);
         }}
       />
     </div>
