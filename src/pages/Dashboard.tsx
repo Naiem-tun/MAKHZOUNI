@@ -184,108 +184,104 @@ const Dashboard = memo(() => {
   };
 
   return (
-    <div className="space-y-6 pb-24" dir="rtl">
-      <header className="flex flex-col gap-1 text-right mb-4">
-        <h1 className="text-3xl font-bold text-black dark:text-white">{t('dashboard')}</h1>
-        <p className="text-neutral-500 text-xs font-medium">{t('welcome')}</p>
-      </header>
+    <div className="pb-24" dir="rtl">
+      {/* Premium Header Background Section */}
+      <div className="-mx-4 sm:-mx-6 lg:-mx-8 -mt-8 px-4 sm:px-6 lg:px-8 pt-8 pb-80 bg-gradient-to-br from-brand-900 via-brand-950 to-brand-900 rounded-b-[56px] mb-[-260px] relative overflow-hidden">
+        {/* Abstract Decorative Elements */}
+        <div className="absolute top-0 right-0 w-80 h-80 bg-brand-500/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/4" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-emerald-500/10 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/4" />
+        
+        <header className="relative z-10 flex flex-col gap-1 text-right mb-8">
+          <h1 className="text-4xl font-black tracking-tight text-white">{t('dashboard')}</h1>
+          <p className="text-brand-300/60 text-sm font-medium">{t('welcome')}</p>
+        </header>
 
-      {/* Modern Vertical Dashboard */}
-      <div className="space-y-6">
-        
-        {/* SECTION 1: MASTER VALUE HERO */}
-      <div className="relative p-8 rounded-[40px] bg-zinc-900 dark:bg-black text-white shadow-xl shadow-zinc-200/50 dark:shadow-none overflow-hidden group">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/20 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-brand-500/10 rounded-full blur-[60px] translate-y-1/4 -translate-x-1/4" />
-        
-        <div className="relative z-10 flex flex-col gap-6">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 px-2.5 py-1 bg-white/10 w-fit rounded-full backdrop-blur-md border border-white/5">
-                <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-100/80">{t('inventory_value')}</p>
+        {/* SECTION 1: COMPACT MASTER HERO */}
+        <div className="relative z-10 p-7 rounded-[32px] bg-white/5 backdrop-blur-xl border border-white/10 text-white shadow-2xl shadow-black/20 overflow-hidden group">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-1 text-right">
+              <div className="flex items-center gap-2 opacity-60 justify-end">
+                <TrendingUp size={12} className="text-emerald-400" />
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-brand-100">{t('inventory_value')}</p>
               </div>
-              <h1 className="text-4xl md:text-6xl font-black font-mono tracking-tighter leading-none">
+              <h2 className="text-4xl md:text-5xl font-black font-mono tracking-tighter leading-none">
                 {formatPrivateValue(stats.totalValue)}
-              </h1>
+              </h2>
             </div>
 
-            <div className="flex gap-2.5">
-              <div className="px-4 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
-                <p className="text-[8px] font-black text-zinc-400 uppercase mb-1">{t('total_products')}</p>
-                <div className="flex items-center gap-2">
-                  <Package size={12} className="text-zinc-500" />
-                  <p className="text-xl font-black font-mono">{stats.totalProducts}</p>
-                </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="px-5 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex flex-col items-center">
+                <p className="text-[8px] font-black text-brand-200 uppercase mb-1">{t('total_products')}</p>
+                <p className="text-xl font-black font-mono leading-none">{stats.totalProducts}</p>
               </div>
-              <div className="px-4 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 backdrop-blur-md">
-                <p className="text-[8px] font-black text-amber-500/60 uppercase mb-1">{t('low_stock')}</p>
-                <div className="flex items-center gap-2 text-amber-500">
-                  <AlertTriangle size={12} />
-                  <p className="text-xl font-black font-mono">{stats.lowStock}</p>
-                </div>
+              <div className="px-5 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 backdrop-blur-md flex flex-col items-center text-amber-500">
+                <p className="text-[8px] font-black opacity-60 uppercase mb-1">{t('low_stock')}</p>
+                <p className="text-xl font-black font-mono leading-none">{stats.lowStock}</p>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* SECTION 2: FINANCIAL SUMMARY (ELEGANT GRID) */}
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-zinc-900 rounded-[32px] p-6 border border-zinc-100 dark:border-zinc-800 shadow-sm relative overflow-hidden group">
-            <div className="absolute bottom-0 right-0 h-2 w-full bg-indigo-500/20" />
-            <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-3">{t('customer_debts')}</p>
-            <h3 className="text-xl font-black font-mono text-zinc-900 dark:text-white tracking-tight">{formatPrivateValue(stats.totalCustomerDebts)}</h3>
-          </div>
-          
-          <div className="bg-white dark:bg-zinc-900 rounded-[32px] p-6 border border-zinc-100 dark:border-zinc-800 shadow-sm relative overflow-hidden group">
-            <div className="absolute bottom-0 right-0 h-2 w-full bg-[#B34C36]/20" />
-            <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-3">{t('supplier_debts')}</p>
-            <h3 className="text-xl font-black font-mono text-zinc-900 dark:text-white tracking-tight">{formatPrivateValue(stats.totalSupplierDebts)}</h3>
-          </div>
-
-          <div className="bg-white dark:bg-zinc-900 rounded-[32px] p-6 border border-zinc-100 dark:border-zinc-800 shadow-sm relative overflow-hidden group">
-            <div className="absolute bottom-0 right-0 h-2 w-full bg-rose-500/20" />
-            <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-3">{t('expenses')}</p>
-            <h3 className="text-xl font-black font-mono text-zinc-900 dark:text-white tracking-tight">{formatPrivateValue(stats.totalExpenses)}</h3>
-          </div>
-
-          <div className="bg-zinc-50 dark:bg-zinc-800 rounded-[32px] p-6 border border-zinc-100 dark:border-zinc-700 shadow-sm relative overflow-hidden group">
-            <div className="absolute bottom-0 right-0 h-2 w-full bg-zinc-900/10 dark:bg-white/10" />
-            <p className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-3">{t('total_supplier_purchases')}</p>
-            <h3 className="text-xl font-black font-mono text-zinc-900 dark:text-white tracking-tight">{formatPrivateValue(stats.totalSupplierPurchasesValue)}</h3>
-          </div>
+      {/* Modern Dashboard Content */}
+      <div className="space-y-6 relative z-20 px-0.5">
+        {/* SECTION 2: FINANCIAL SUMMARY (COMPACT GRID) */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: t('customer_debts'), value: stats.totalCustomerDebts, color: 'indigo', icon: Users },
+            { label: t('supplier_debts'), value: stats.totalSupplierDebts, color: 'brand', icon: Truck },
+            { label: t('expenses'), value: stats.totalExpenses, color: 'rose', icon: Wallet },
+            { label: t('total_supplier_purchases'), value: stats.totalSupplierPurchasesValue, color: 'emerald', icon: Receipt },
+          ].map((item, idx) => (
+            <div key={idx} className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm rounded-[28px] p-5 border border-zinc-200/50 dark:border-zinc-800 shadow-xl shadow-black/5 relative overflow-hidden group hover:translate-y-[-2px] transition-all">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-[8px] font-black text-zinc-400 uppercase tracking-widest leading-none">{item.label}</p>
+                  <item.icon size={10} className="text-zinc-300" />
+                </div>
+                <h3 className="text-base font-black font-mono text-zinc-900 dark:text-white tracking-tight leading-none">
+                  {formatPrivateValue(item.value)}
+                </h3>
+              </div>
+              <div className={cn(
+                "absolute bottom-0 right-0 h-1 w-full",
+                item.color === 'indigo' && "bg-indigo-500/30",
+                item.color === 'brand' && "bg-brand-500/30",
+                item.color === 'rose' && "bg-rose-500/30",
+                item.color === 'emerald' && "bg-emerald-500/30"
+              )} />
+            </div>
+          ))}
         </div>
-      </div>
 
-        {/* SECTION 3: PURCHASE MOVEMENT (INTERACTIVE) */}
-        <div className="bg-white dark:bg-zinc-900 rounded-[32px] p-6 border border-zinc-100 dark:border-zinc-800 shadow-sm transition-all duration-300">
+        {/* SECTION 3: PURCHASE MOVEMENT (COMPACT) */}
+        <div className="bg-white dark:bg-zinc-900 rounded-[28px] p-5 border border-zinc-100 dark:border-zinc-800 shadow-sm transition-all duration-300">
           <div 
             onClick={() => setIsMovementExpanded(!isMovementExpanded)}
             className="flex items-center justify-between cursor-pointer"
           >
             <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-xl bg-brand-50 dark:bg-brand-950/30 flex items-center justify-center text-brand-600">
-                <History size={20} />
+              <div className="h-9 w-9 rounded-xl bg-brand-50 dark:bg-brand-950/20 flex items-center justify-center text-brand-600">
+                <History size={18} />
               </div>
               <div className="text-right">
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-0.5">{t('purchase_movement')}</p>
-                <div className="flex items-center gap-3">
-                  <h3 className="text-xl font-black font-mono text-zinc-900 dark:text-white tracking-tighter">
+                <p className="text-[8px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-0.5">{t('purchase_movement')}</p>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-black font-mono text-zinc-900 dark:text-white tracking-tighter">
                     {formatPrivateValue(stats.todayPurchasesTotal)}
                   </h3>
-                  <div className="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 text-[8px] font-black text-emerald-600 border border-emerald-100/50 uppercase">
+                  <div className="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 text-[7px] font-black text-emerald-600 uppercase">
                     {t('today')}
                   </div>
                 </div>
               </div>
             </div>
             
-            <button className="h-10 w-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-brand-600 transition-all shrink-0">
-              {isMovementExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+            <button className="h-9 w-9 rounded-xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-brand-600 transition-all">
+              {isMovementExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </button>
           </div>
+
 
           <AnimatePresence>
             {isMovementExpanded && (
@@ -317,7 +313,7 @@ const Dashboard = memo(() => {
 
 
       {/* Recent Purchases List */}
-      <div className="space-y-6 text-right mt-12 pb-12">
+      <div className="space-y-6 text-right mt-24 pb-12">
         <h2 className="text-xs font-black uppercase tracking-[0.2em] text-neutral-400 pr-2">{t('last_purchases')}</h2>
         <div className="space-y-8">
           {groupedPurchases.length === 0 ? (
