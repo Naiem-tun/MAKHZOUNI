@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Search, ScanBarcode, CheckCircle2, 
+  Search, ScanBarcode, CheckCircle2, Check,
   Package, Wallet, FileText, ClipboardCheck, Trash2, History,
   X, PlusCircle, MinusCircle, ArrowRight, Download, Receipt, FileBarChart, TrendingUp
 } from 'lucide-react';
@@ -55,6 +55,10 @@ export default function Inventory() {
     const saved = localStorage.getItem('current_inventory_data');
     return saved ? JSON.parse(saved) : {};
   });
+  const [checkedProducts, setCheckedProducts] = useState<Record<string, boolean>>(() => {
+    const saved = localStorage.getItem('checked_inventory_products');
+    return saved ? JSON.parse(saved) : {};
+  });
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -89,6 +93,13 @@ export default function Inventory() {
   const [currentReport, setCurrentReport] = useState<any>(null);
   
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [showDetailedControls, setShowDetailedControls] = useState(() => {
+    return localStorage.getItem('detailed_inventory_mode') === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('detailed_inventory_mode', String(showDetailedControls));
+  }, [showDetailedControls]);
 
   const handleScan = (decodedText: string) => {
     setIsScannerOpen(false);
@@ -108,11 +119,21 @@ export default function Inventory() {
     localStorage.setItem('current_inventory_data', JSON.stringify(inventoryData));
   }, [inventoryData]);
 
+  useEffect(() => {
+    localStorage.setItem('checked_inventory_products', JSON.stringify(checkedProducts));
+  }, [checkedProducts]);
+
+  const toggleChecked = (id: string) => {
+    setCheckedProducts(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
   const handleClearInventory = () => {
-    if (Object.keys(inventoryData).length === 0) return;
+    if (Object.keys(inventoryData).length === 0 && Object.keys(checkedProducts).length === 0) return;
     showConfirm(t('confirm_clear_quantities'), () => {
       setInventoryData({});
+      setCheckedProducts({});
       localStorage.removeItem('current_inventory_data');
+      localStorage.removeItem('checked_inventory_products');
     });
   };
 
@@ -224,12 +245,30 @@ export default function Inventory() {
     return Math.round((completed / products.length) * 100);
   }, [products, inventoryData]);
 
+  const getCountBreakdown = (total: number, piecesPerCarton: number) => {
+    if (!total || total <= 0) return null;
+    if (!piecesPerCarton || piecesPerCarton <= 1) return `${total} ${t('piece')}`;
+    
+    const cartons = Math.floor(total / piecesPerCarton);
+    const pieces = total % piecesPerCarton;
+    
+    const parts = [];
+    if (cartons > 0) parts.push(`${cartons} ${t('box')}`);
+    if (pieces > 0) parts.push(`${pieces} ${t('piece')}`);
+    
+    return parts.join(' + ');
+  };
+
   const handleMatch = (id: string, qty: number) => {
     setInventoryData(prev => ({ ...prev, [id]: qty }));
   };
 
   const handleAddCarton = (id: string, pieces: number) => {
     setInventoryData(prev => ({ ...prev, [id]: (Number(prev[id]) || 0) + pieces }));
+  };
+
+  const handleAddPiece = (id: string) => {
+    setInventoryData(prev => ({ ...prev, [id]: (Number(prev[id]) || 0) + 1 }));
   };
 
   const handleCompleteInventory = async () => {
@@ -357,6 +396,7 @@ export default function Inventory() {
         };
         
         setInventoryData({});
+        setCheckedProducts({});
         setExpensesAmount(0);
         setCurrentReport(newReport);
         setShowReportView(true);
@@ -364,6 +404,7 @@ export default function Inventory() {
         
         // Clear localStorage
         localStorage.removeItem('current_inventory_data');
+        localStorage.removeItem('checked_inventory_products');
         
       } catch (err) {
         handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}/inventory`);
@@ -666,6 +707,18 @@ export default function Inventory() {
           {expensesAmount > 0 && <span>{formatCurrency(expensesAmount, settings.currency, settings.language)}</span>}
         </button>
         <button 
+          onClick={() => setShowDetailedControls(!showDetailedControls)}
+          className={cn(
+            "w-10 h-10 flex items-center justify-center border rounded-2xl shadow-sm active:scale-95 transition-all",
+            showDetailedControls 
+              ? "bg-brand-600 border-brand-600 text-white shadow-brand-500/20" 
+              : "bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800 text-zinc-400"
+          )}
+          title={t('detailed_inventory_mode')}
+        >
+          <PlusCircle size={18} />
+        </button>
+        <button 
           onClick={handleClearInventory}
           className={cn(
             "w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border rounded-2xl shadow-sm active:scale-95 transition-transform",
@@ -739,24 +792,55 @@ export default function Inventory() {
               layout
               key={p.id} 
               className={cn(
-                "flex items-center justify-between gap-3 py-2.5 px-3.5 bg-white dark:bg-zinc-900 border rounded-2xl min-h-[70px] transition-all",
+                "flex items-center justify-between gap-3 py-2.5 px-3.5 bg-white dark:bg-zinc-900 border rounded-2xl min-h-[70px] transition-all relative",
+                checkedProducts[p.id] ? "opacity-50 grayscale-[0.5]" : "",
                 inventoryData[p.id] !== undefined ? "border-brand-500/20 bg-brand-50/5 shadow-sm" : "border-neutral-100 dark:border-neutral-800"
               )}
             >
               {/* Product Info (Right) */}
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <ProductIcon category={p.category} />
-                <div className="flex flex-col text-right truncate">
-                  <h3 className="text-[13px] font-medium truncate text-black dark:text-white leading-tight mb-0.5">{p.name || t('product')}</h3>
-                  <div className="flex items-center gap-1">
+              <div className="flex items-center gap-3 flex-1 min-w-0" onClick={() => toggleChecked(p.id)}>
+                <div className="relative">
+                  <ProductIcon category={p.category} />
+                  {checkedProducts[p.id] && (
+                    <div className="absolute -top-1 -right-1 bg-brand-500 text-white rounded-full p-0.5 shadow-sm">
+                      <Check size={8} strokeWidth={4} />
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col text-right truncate items-end">
+                  <h3 className="text-[13px] font-medium truncate text-black dark:text-white leading-tight mb-1 flex items-center gap-1 justify-end">
+                    {p.name || t('product')}
+                  </h3>
+                  <div className="flex items-center gap-1 justify-end mb-1.5 opacity-60">
                     <span className="text-[10px] text-zinc-400 dark:text-zinc-500">{t('stock')}:</span>
                     <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold">{p.quantity || 0} {t('piece')}</span>
                   </div>
+                  {inventoryData[p.id] > 0 && (
+                    <div className="flex items-center gap-1 justify-end">
+                      <div className="inline-flex items-center gap-1 bg-brand-500 text-white px-2 py-0.5 rounded-full text-[9px] font-black shadow-sm ring-2 ring-white dark:ring-zinc-900">
+                        <Check size={8} strokeWidth={4} />
+                        <span className="truncate">{getCountBreakdown(inventoryData[p.id], p.piecesPerCarton)}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Controls (Left) */}
               <div className="flex items-center gap-2 shrink-0 mr-auto">
+                {showDetailedControls && (
+                  <button 
+                    onClick={() => handleAddPiece(p.id)} 
+                    className="w-9 h-9 flex items-center justify-center bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-2xl text-zinc-600 dark:text-zinc-400 active:scale-95 transition-transform shadow-sm"
+                    title={t('add_piece')}
+                  >
+                    <div className="flex flex-col items-center">
+                      <PlusCircle size={14} className="text-brand-500" />
+                      <span className="text-[8px] font-black leading-none mt-0.5">+1</span>
+                    </div>
+                  </button>
+                )}
+
                 {p.piecesPerCarton > 1 && (
                   <button 
                     onClick={() => handleAddCarton(p.id, p.piecesPerCarton)} 

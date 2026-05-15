@@ -16,7 +16,10 @@ import {
   History,
   ShoppingCart,
   Receipt,
-  ScanLine
+  ScanLine,
+  Sun,
+  Moon,
+  Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Card } from '../components/UI';
@@ -173,6 +176,15 @@ const Dashboard = memo(() => {
   const language = settings.language || 'ar';
   const showFinancials = settings.showFinancials ?? true;
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return { text: t('good_morning') || 'صباح الخير', icon: <Sun size={20} className="text-amber-400" /> };
+    if (hour < 18) return { text: t('good_afternoon') || 'مساء الخير', icon: <Sun size={20} className="text-orange-400" /> };
+    return { text: t('good_evening') || 'مساء الخير', icon: <Moon size={20} className="text-brand-300" /> };
+  };
+
+  const greeting = getGreeting();
+
   const formatPrivateValue = (val: number) => !showFinancials ? '••••••' : formatCurrency(val, settings.currency, language);
 
   const onAddProduct = () => {
@@ -191,9 +203,19 @@ const Dashboard = memo(() => {
         <div className="absolute top-0 right-0 w-80 h-80 bg-brand-500/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/4" />
         <div className="absolute bottom-0 left-0 w-72 h-72 bg-emerald-500/10 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/4" />
         
-        <header className="relative z-10 flex flex-col gap-1 text-right mb-8">
-          <h1 className="text-4xl font-black tracking-tight text-white">{t('dashboard')}</h1>
-          <p className="text-brand-300/60 text-sm font-medium">{t('welcome')}</p>
+        <header className="relative z-10 flex items-center justify-between mb-10 text-right">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <h1 className="text-4xl font-black tracking-tight text-white">{t('dashboard')}</h1>
+            </div>
+            <div className="flex items-center gap-2 text-brand-300/60">
+              {greeting.icon}
+              <p className="text-sm font-black tracking-tight">{greeting.text}</p>
+            </div>
+          </div>
+          <div className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center justify-center text-white/40">
+            <Clock size={20} />
+          </div>
         </header>
 
         {/* SECTION 1: COMPACT MASTER HERO */}
@@ -312,49 +334,64 @@ const Dashboard = memo(() => {
       </div>
 
 
-      {/* Recent Purchases List */}
-      <div className="space-y-6 text-right mt-24 pb-12">
-        <h2 className="text-xs font-black uppercase tracking-[0.2em] text-neutral-400 pr-2">{t('last_purchases')}</h2>
-        <div className="space-y-8">
+      {/* Recent Purchases List - Activity Feed Style */}
+      <div className="space-y-8 text-right mt-24 pb-12">
+        <div className="flex items-center justify-between px-2">
+          <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-400">{t('last_purchases')}</h2>
+          <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800 mx-4" />
+        </div>
+
+        <div className="relative space-y-10 pr-2">
+          {/* Vertical Timeline Line */}
+          <div className="absolute top-0 right-7 bottom-0 w-px bg-gradient-to-b from-brand-500/20 via-zinc-100 dark:via-zinc-800 to-transparent" />
+
           {groupedPurchases.length === 0 ? (
-            <div className="py-12 text-center text-zinc-400 font-bold text-sm bg-zinc-50 dark:bg-zinc-800/50 rounded-[32px] border-2 border-dashed border-zinc-100 dark:border-zinc-800">
+            <div className="py-16 text-center text-zinc-400 font-bold text-sm bg-white dark:bg-zinc-900 rounded-[32px] border border-zinc-100 dark:border-zinc-800 shadow-sm mr-8">
+              <div className="h-16 w-16 rounded-full bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-4 text-zinc-300">
+                <ShoppingCart size={24} strokeWidth={1.5} />
+              </div>
               {t('no_data_available')}
             </div>
           ) : (
             groupedPurchases.map((group: any) => (
-              <div key={group.key} className="space-y-3">
-                <div className="flex items-center justify-between px-2">
-                  <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-xl bg-brand-50 dark:bg-brand-900/10 flex items-center justify-center text-brand-600 dark:text-brand-400">
-                      <Truck size={14} />
-                    </div>
-                    <span className="text-sm font-black text-brand-600 dark:text-brand-400">
+              <div key={group.key} className="relative">
+                {/* Timeline Node */}
+                <div className="absolute right-0 top-0 h-14 w-14 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 shadow-sm flex items-center justify-center z-10 text-brand-600 dark:text-brand-400">
+                  <Truck size={18} />
+                </div>
+
+                <div className="mr-20 space-y-3">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-base font-black text-zinc-900 dark:text-white tracking-tight">
                       {group.supplierName || t('unknown_supplier')}
                     </span>
+                    <span className="text-[10px] font-black text-zinc-400 font-mono flex items-center gap-1">
+                      <Clock size={10} />
+                      {group.date}
+                    </span>
                   </div>
-                  <span className="text-[10px] font-black text-zinc-400 font-mono tracking-tighter">
-                    {group.date}
-                  </span>
-                </div>
-                
-                <div className="bg-white dark:bg-zinc-900 rounded-[28px] border border-zinc-100 dark:border-zinc-800 divide-y divide-zinc-50 dark:divide-zinc-800 overflow-hidden shadow-sm">
-                  {group.items.map((p: any) => (
-                    <div key={p.id} className="flex justify-between items-center p-4 group hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-colors">
-                      <div className="flex flex-col text-right flex-1">
-                        <span className="text-sm font-bold text-black dark:text-white mb-1">{p.productName}</span>
-                        <div className="flex items-center gap-2 text-[11px] font-mono">
-                          <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-lg">
-                            <span className="text-black dark:text-white font-black">{p.quantityChange}</span>
-                            <span className="text-zinc-500 font-bold">{t('piece')}</span>
+                  
+                  <div className="bg-white dark:bg-zinc-900 rounded-[24px] border border-zinc-100 dark:border-zinc-800 divide-y divide-zinc-50 dark:divide-zinc-800 overflow-hidden shadow-sm">
+                    {group.items.map((p: any) => (
+                      <div key={p.id} className="flex justify-between items-center p-4 group hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-colors">
+                        <div className="flex flex-col text-right flex-1">
+                          <span className="text-sm font-bold text-black dark:text-white mb-2">{p.productName}</span>
+                          <div className="flex flex-wrap items-center gap-y-2 gap-x-3 text-[10px] font-mono">
+                            <div className="flex items-center gap-1 bg-brand-50/50 dark:bg-brand-900/10 px-2 py-0.5 rounded-lg border border-brand-100/50 dark:border-brand-500/10">
+                              <span className="text-brand-700 dark:text-brand-300 font-black">{p.quantityChange}</span>
+                              <span className="text-brand-400 font-bold">{t('piece')}</span>
+                            </div>
+                            <div className="flex items-center gap-1 bg-zinc-50 dark:bg-zinc-800 px-2 py-0.5 rounded-lg">
+                              <span className="text-zinc-500 dark:text-zinc-400 font-medium">{formatCurrency(p.price, settings.currency, language)}</span>
+                            </div>
+                            <div className="flex items-center gap-1 bg-emerald-50/50 dark:bg-emerald-900/10 px-2 py-0.5 rounded-lg border border-emerald-100/50 dark:border-emerald-500/10">
+                              <span className="text-emerald-700 dark:text-emerald-300 font-black">{formatCurrency(p.amount, settings.currency, language)}</span>
+                            </div>
                           </div>
-                          <span className="text-zinc-300">|</span>
-                          <span className="text-zinc-500 dark:text-zinc-400 font-medium">{formatCurrency(p.price, settings.currency, language)}</span>
-                          <span className="text-zinc-300">|</span>
-                          <span className="text-brand-600 dark:text-brand-400 font-bold">{formatCurrency(p.amount, settings.currency, language)}</span>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             ))
