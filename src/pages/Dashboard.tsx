@@ -19,7 +19,8 @@ import {
   ScanLine,
   Sun,
   Moon,
-  Clock
+  Clock,
+  Coins
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Card } from '../components/UI';
@@ -252,8 +253,8 @@ const Dashboard = memo(() => {
           {[
             { label: t('customer_debts'), value: stats.totalCustomerDebts, color: 'indigo', icon: Users },
             { label: t('supplier_debts'), value: stats.totalSupplierDebts, color: 'brand', icon: Truck },
-            { label: t('expenses'), value: stats.totalExpenses, color: 'rose', icon: Wallet },
-            { label: t('total_supplier_purchases'), value: stats.totalSupplierPurchasesValue, color: 'emerald', icon: Receipt },
+            { label: t('expenses'), value: stats.totalExpenses, color: 'rose', icon: Coins },
+            { label: t('total_supplier_purchases'), value: stats.totalSupplierPurchasesValue, color: 'emerald', icon: ShoppingCart },
           ].map((item, idx) => (
             <div key={idx} className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm rounded-[28px] p-5 border border-zinc-200/50 dark:border-zinc-800 shadow-xl shadow-black/5 relative overflow-hidden group hover:translate-y-[-2px] transition-all">
               <div className="flex flex-col gap-3">

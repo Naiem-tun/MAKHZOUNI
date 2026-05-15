@@ -24,6 +24,7 @@ import {
   Eye,
   Play,
   Coffee,
+  Truck,
   Apple,
   Milk,
   Beef,
@@ -212,6 +213,109 @@ function CategoriesManager({ onBack }: { onBack: () => void }) {
             );
           })}
         </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+function GuideView({ onBack }: { onBack: () => void }) {
+  const { t } = useTranslation();
+  
+  const sections = [
+    {
+      title: "نظرة عامة على التطبيق",
+      content: "تطبيق 'مخزوني' هو أداة متكاملة لإدارة المحلات التجارية والمخازن. يهدف التطبيق إلى تبسيط عملية تتبع المخزون، المبيعات، المشتريات، والديون في مكان واحد وبشكل ذكي.",
+      icon: Home
+    },
+    {
+      title: "إدارة المنتجات (الكرتونة والقطع)",
+      content: "يمكنك إضافة المنتجات وتحديد ما إذا كنت تشتريها بالقطعة أو بالكرتونة. التطبيق يدعم الباركود (يمكنك إضافة أكثر من باركود لنفس المنتج). عند البيع أو الشراء، يقوم التطبيق تلقائياً بحساب عدد القطع الإجمالي بناءً على 'عدد القطع في الكرتونة'.",
+      icon: Package
+    },
+    {
+      title: "عملية الجرد الذكي",
+      content: "في قسم 'الجرد'، يمكنك إدخال الكميات الفعلية الموجودة في المحل. يدعم التطبيق 'الوضع التفصيلي' الذي يتيح لك إدخال عدد الكراتين والقطع الزائدة (مثلاً: 2 كرتونة + 5 قطع) ليقوم بحساب الإجمالي فوراً. بعد الحفظ، يقوم التطبيق بمقارنة المخزن المسجل مع المدخل وحساب الأرباح.",
+      icon: Clipboard
+    },
+    {
+      title: "الموردون وأداة التفاوض",
+      content: "عند تسجيل مشتريات جديدة من مورد، ستحصل على 'أداة التفاوض' التي تعرض لك تاريخ أسعار هذا المنتج من قبل. هذا يساعدك على معرفة ما إذا كان المورد قد رفع السعر عليك مقارنة بالمرة السابقة أو مقارنة بموردين آخرين.",
+      icon: Truck
+    },
+    {
+      title: "دفتر الديون (الكريدي)",
+      content: "يتيح لك دفتر الديون تسجيل المبالغ التي 'لنا' (على الزبائن) أو 'علينا' (للموردين). يمكنك تسجيل دفعات جزئية وتتبع السجل الكامل لكل شخص بوضوح.",
+      icon: Wallet
+    },
+    {
+      title: "المصاريف اليومية",
+      content: "سجل كل مصاريف المحل (نقل، فاتورة ضوء، كراء...) في قسم المصاريف. هذه البيانات ضرورية ليقوم التطبيق بحساب 'الربح الصافي' الحقيقي بعد خصم تكلفة التشغيل.",
+      icon: Coffee
+    },
+    {
+      title: "التقارير المالية والـ PDF",
+      content: "يوفر قسم التقارير تحليلاً بيانياً للأرباح، الإيرادات، وقيمة السلع الموجودة حالياً. يمكنك تحميل تقرير مفصل بصيغة PDF يتضمن حالة كل منتج والأرباح المحققة.",
+      icon: Printer
+    },
+    {
+      title: "حماية البيانات (التصدير والاستيراد)",
+      content: "بما أن بياناتك تُخزن محلياً وسحابياً، ننصح دائماً بعمل 'تصدير نسخة احتياطية' من الإعدادات بشكل دوري. يمكنك استعادة بياناتك على أي هاتف آخر بمجرد لصق 'كود النسخة الاحتياطية' أو رفع ملف الـ JSON.",
+      icon: Database
+    }
+  ];
+
+  return (
+    <div className="space-y-8 pb-12">
+      <header className="flex items-center gap-4 border-b border-zinc-100 dark:border-zinc-800 pb-4">
+        <button onClick={onBack} className="h-10 w-10 rounded-2xl bg-white border border-zinc-100 flex items-center justify-center text-zinc-600 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400">
+          <ChevronLeft size={20} />
+        </button>
+        <div className="flex-1 text-right">
+          <h1 className="text-2xl font-black text-zinc-900 dark:text-white">{t('user_guide')}</h1>
+          <p className="text-[10px] uppercase font-bold tracking-widest text-brand-500">{t('learn_store_management')}</p>
+        </div>
+        <div className="h-12 w-12 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-600 dark:bg-brand-950/20">
+          <BookOpen size={24} />
+        </div>
+      </header>
+
+      <div className="space-y-6">
+        {sections.map((section, idx) => (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.05 }}
+            key={idx} 
+            className="flex gap-4 group"
+          >
+            <div className="flex flex-col items-center gap-2">
+              <div className="h-12 w-12 rounded-2xl bg-white border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-400 shadow-sm group-hover:border-brand-200 transition-all">
+                <section.icon size={22} />
+              </div>
+              {idx < sections.length - 1 && <div className="w-px flex-1 bg-zinc-100 dark:bg-zinc-800" />}
+            </div>
+            <div className="flex-1 text-right pt-1 pb-4">
+              <h3 className="text-base font-black text-zinc-900 dark:text-white mb-2 leading-none flex items-center gap-2 justify-end">
+                {section.title}
+                <span className="h-1 w-4 bg-brand-500 rounded-full opacity-30" />
+              </h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
+                {section.content}
+              </p>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="bg-brand-500 rounded-[32px] p-8 text-white text-center relative overflow-hidden shadow-xl shadow-brand-500/20">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+        <div className="relative z-10">
+          <Zap className="mx-auto mb-4 opacity-50" size={32} />
+          <h4 className="text-xl font-black mb-2">هل تحتاج لمساعدة إضافية؟</h4>
+          <p className="text-sm opacity-80 font-medium">
+            نحن هنا لضمان أفضل تجربة لك. يمكنك دائماً مراجعة الأسئلة الشائعة أو التواصل معنا عبر البريد الإلكتروني.
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -463,6 +567,10 @@ export default function SettingsPage() {
 
   if (activeView === 'categories') {
     return <CategoriesManager onBack={() => setActiveView('main')} />;
+  }
+
+  if (activeView === 'guide') {
+    return <GuideView onBack={() => setActiveView('main')} />;
   }
 
   if (activeView === 'data') {

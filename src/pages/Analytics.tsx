@@ -2,10 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { 
-  TrendingUp, Wallet, Package, ShoppingCart, 
+  TrendingUp, Coins, Package, ShoppingCart, 
   ArrowUpRight, ArrowDownRight, Calendar, 
-  BarChart3, PieChart as PieChartIcon, Activity,
-  Info, ChevronDown, Filter, Receipt
+  BarChart3, LineChart, Activity,
+  Info, ChevronDown, Filter, History
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, 
@@ -113,9 +113,9 @@ export default function Analytics() {
   // 4. Chart Data (Analysis of Profit/Revenue/Expenses)
   const chartData = inventoryReports.slice().reverse().map((report, i) => ({
     name: report.date?.toDate ? report.date.toDate().toLocaleDateString('ar-TN', { day: 'numeric', month: 'short' }) : `Day ${i+1}`,
-    revenue: report.totalRevenue || 0,
-    profit: report.netProfit || 0,
-    expenses: report.totalExpenses || 0,
+    revenues: Number((report.totalRevenue || 0).toFixed(3)),
+    profit: Number((report.netProfit || 0).toFixed(3)),
+    expenses: Number((report.totalExpenses || 0).toFixed(3)),
   }));
 
   if (loading) {
@@ -125,9 +125,9 @@ export default function Analytics() {
   }
 
   const menuItems = [
-    { id: 'financial', label: t('financial_stats'), icon: Wallet, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-950/20', desc: t('revenue_profit_cost') },
-    { id: 'rankings', label: t('best_products'), icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/20', desc: t('most_profitable_sold') },
-    { id: 'purchases', label: t('purchase_movement'), icon: BarChart3, color: 'text-brand-500', bg: 'bg-brand-50 dark:bg-brand-950/20', desc: t('recent_purchases_log') },
+    { id: 'financial', label: t('financial_stats'), icon: BarChart3, color: 'text-zinc-500', bg: 'bg-zinc-50 dark:bg-zinc-800/50', desc: t('revenue_profit_cost') },
+    { id: 'rankings', label: t('best_products'), icon: TrendingUp, color: 'text-zinc-500', bg: 'bg-zinc-50 dark:bg-zinc-800/50', desc: t('most_profitable_sold') },
+    { id: 'purchases', label: t('purchase_movement'), icon: History, color: 'text-zinc-500', bg: 'bg-zinc-50 dark:bg-zinc-800/50', desc: t('recent_purchases_log') },
   ];
 
   return (
@@ -192,7 +192,7 @@ export default function Analytics() {
                   <h2 className="text-xl font-black text-zinc-900 dark:text-white">{t('revenues_and_profits')}</h2>
                 </div>
                 <div className="h-10 w-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center text-emerald-600">
-                  <Activity size={20} />
+                  <BarChart3 size={20} />
                 </div>
               </div>
 
@@ -228,9 +228,18 @@ export default function Analytics() {
                     <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} tick={{fill: '#94a3b8'}} />
                     <YAxis fontSize={10} axisLine={false} tickLine={false} tick={{fill: '#94a3b8'}} hide />
                     <Tooltip 
-                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                      contentStyle={{ 
+                        borderRadius: '16px', 
+                        border: 'none', 
+                        boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                        textAlign: 'right' 
+                      }}
+                      formatter={(value: number, name: string) => [
+                        formatCurrency(value, settings.currency, language), 
+                        t(name)
+                      ]}
                     />
-                    <Area type="monotone" dataKey="revenue" stroke="#004eff" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
+                    <Area type="monotone" dataKey="revenues" stroke="#004eff" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
                     <Area type="monotone" dataKey="profit" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorProfit)" />
                     <Area type="monotone" dataKey="expenses" stroke="#f43f5e" strokeWidth={2} strokeDasharray="5 5" fill="none" />
                   </AreaChart>
@@ -241,8 +250,8 @@ export default function Analytics() {
             {/* Financial Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { label: t('capital_purchase_price'), value: totalPurchaseValue, icon: Wallet, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950/20' },
-                { label: t('inventory_value_selling_price'), value: totalSalesValue, icon: Package, color: 'text-brand-600', bg: 'bg-brand-50 dark:bg-brand-950/20' },
+                { label: t('capital_purchase_price'), value: totalPurchaseValue, icon: BarChart3, color: 'text-zinc-600', bg: 'bg-zinc-100 dark:bg-zinc-800' },
+                { label: t('inventory_value_selling_price'), value: totalSalesValue, icon: Package, color: 'text-zinc-600', bg: 'bg-zinc-100 dark:bg-zinc-800' },
                 { label: t('expected_profit'), value: expectedProfit, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/20' },
               ].map((stat, i) => (
                 <div key={i} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-4 rounded-2xl shadow-sm">
@@ -274,12 +283,12 @@ export default function Analytics() {
                 {topProfitableProducts.length > 0 ? topProfitableProducts.map((item: any, i: number) => (
                   <div key={i} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl">
                     <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-xl bg-white dark:bg-zinc-800 flex items-center justify-center text-sm font-black text-emerald-500 shadow-sm">
+                      <div className="h-10 w-10 rounded-xl bg-white dark:bg-zinc-800 flex items-center justify-center text-sm font-black text-zinc-500 shadow-sm">
                         {i + 1}
                       </div>
-                      <span className="font-medium text-zinc-700 dark:text-zinc-300">{item.productName}</span>
+                      <span className="font-bold text-zinc-900 dark:text-white leading-none">{item.productName}</span>
                     </div>
-                    <div className="text-lg font-black text-emerald-600">
+                    <div className="text-lg font-black text-zinc-900 dark:text-white">
                       {formatCurrency(item.profit, settings.currency, language)}
                     </div>
                   </div>
@@ -300,10 +309,10 @@ export default function Analytics() {
                 {topSellingProducts.length > 0 ? topSellingProducts.map((item: any, i: number) => (
                   <div key={i} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl">
                     <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-xl bg-white dark:bg-zinc-800 flex items-center justify-center text-sm font-black text-brand-500 shadow-sm">
+                      <div className="h-10 w-10 rounded-xl bg-white dark:bg-zinc-800 flex items-center justify-center text-sm font-black text-zinc-500 shadow-sm">
                         {i + 1}
                       </div>
-                      <span className="font-medium text-zinc-700 dark:text-zinc-300">{item.productName}</span>
+                      <span className="font-bold text-zinc-900 dark:text-white leading-none">{item.productName}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="text-lg font-black text-zinc-900 dark:text-white">{item.salesCalculated}</span>
@@ -324,9 +333,6 @@ export default function Analytics() {
               <div>
                 <h3 className="font-black text-xl text-zinc-900 dark:text-white">{t('last_purchases_log')}</h3>
                 <p className="text-[10px] font-bold text-zinc-400">{t('daily_purchases_total')}</p>
-              </div>
-              <div className="h-10 w-10 rounded-2xl bg-amber-50 dark:bg-amber-950/20 flex items-center justify-center text-amber-600">
-                <Receipt size={20} />
               </div>
             </div>
             
