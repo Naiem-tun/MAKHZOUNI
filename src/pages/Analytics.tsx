@@ -442,7 +442,7 @@ export default function Analytics() {
                         <Tooltip 
                           formatter={(value: number, name: string) => [
                             formatCurrency(value, settings.currency, language), 
-                            t(name) !== name ? t(name) : t('other')
+                            name === 'other_cat' ? t('other') : t(String(name))
                           ]}
                           contentStyle={{ 
                             borderRadius: '16px', 
@@ -456,7 +456,7 @@ export default function Analytics() {
                           verticalAlign="bottom" 
                           height={36}
                           iconType="circle"
-                          formatter={(value) => <span className="text-zinc-600 dark:text-zinc-400 font-medium mr-2">{t(value) !== value ? t(value) : t('other')}</span>}
+                          formatter={(value: string) => <span className="text-zinc-600 dark:text-zinc-400 font-medium mr-2">{value === 'other_cat' ? t('other') : t(value)}</span>}
                         />
                       </PieChart>
                     </ResponsiveContainer>
@@ -478,7 +478,7 @@ export default function Analytics() {
                         </div>
                         <div className="flex flex-col text-right">
                           <span className="font-bold text-zinc-900 dark:text-white mb-1">
-                            {t(cat.name) !== cat.name ? t(cat.name) : t('other')}
+                            {cat.name === 'other_cat' ? t('other') : t(cat.name)}
                           </span>
                           <span className="text-xs font-bold text-zinc-500">
                             {cat.count} {t('products')} • {cat.totalQuantity} {t('piece')}
