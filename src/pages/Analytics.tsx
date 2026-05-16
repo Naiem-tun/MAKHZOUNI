@@ -5,7 +5,7 @@ import {
   TrendingUp, Coins, Package, ShoppingCart, 
   ArrowUpRight, ArrowDownRight, Calendar, 
   BarChart3, LineChart, Activity,
-  Info, ChevronDown, Filter, History
+  Info, ChevronDown, Filter, History, PieChart as PieChartIcon
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, 
@@ -24,7 +24,7 @@ export default function Analytics() {
   const [inventoryReports, setInventoryReports] = useState<any[]>([]);
   const [purchases, setPurchases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'menu' | 'financial' | 'rankings' | 'purchases'>('menu');
+  const [activeTab, setActiveTab] = useState<'menu' | 'financial' | 'rankings' | 'purchases' | 'categories'>('menu');
 
   const language = settings.language || 'ar';
   const showFinancials = settings.showFinancials ?? true;
@@ -87,6 +87,37 @@ export default function Analytics() {
     return Object.values(groups).sort((a, b) => b.date.getTime() - a.date.getTime());
   }, [purchases]);
 
+  const categoryAnalysis = useMemo(() => {
+    const cats: Record<string, { count: number, totalPurchase: number, totalSales: number, totalQuantity: number }> = {};
+    
+    products.forEach(p => {
+      const cat = p.category || 'other_cat';
+      if (!cats[cat]) {
+        cats[cat] = { count: 0, totalPurchase: 0, totalSales: 0, totalQuantity: 0 };
+      }
+      const q = Number(p.quantity) || 0;
+      const pp = Number(p.purchasePrice) || 0;
+      const sp = Number(p.sellingPrice) || 0;
+      
+      cats[cat].count += 1;
+      cats[cat].totalQuantity += q;
+      cats[cat].totalPurchase += q * pp;
+      cats[cat].totalSales += q * sp;
+    });
+
+    return Object.entries(cats).map(([name, data]) => {
+      const expectedProfit = data.totalSales - data.totalPurchase;
+      const profitMargin = data.totalPurchase > 0 ? (expectedProfit / data.totalPurchase) * 100 : 0;
+      
+      return {
+        name,
+        ...data,
+        expectedProfit,
+        profitMargin
+      };
+    }).sort((a, b) => b.totalPurchase - a.totalPurchase);
+  }, [products]);
+
   // 1. Financial Stats Calculation
   const totalPurchaseValue = (products || []).reduce((acc, p) => acc + (Number(p.purchasePrice || 0) * Number(p.quantity || 0)), 0);
   const totalSalesValue = (products || []).reduce((acc, p) => acc + (Number(p.sellingPrice || 0) * Number(p.quantity || 0)), 0);
@@ -127,6 +158,7 @@ export default function Analytics() {
   const menuItems = [
     { id: 'financial', label: t('financial_stats'), icon: BarChart3, color: 'text-zinc-500', bg: 'bg-zinc-50 dark:bg-zinc-800/50', desc: t('revenue_profit_cost') },
     { id: 'rankings', label: t('best_products'), icon: TrendingUp, color: 'text-zinc-500', bg: 'bg-zinc-50 dark:bg-zinc-800/50', desc: t('most_profitable_sold') },
+    { id: 'categories', label: t('category_analysis'), icon: PieChartIcon, color: 'text-zinc-500', bg: 'bg-zinc-50 dark:bg-zinc-800/50', desc: t('stock_value_by_category') },
     { id: 'purchases', label: t('purchase_movement'), icon: History, color: 'text-zinc-500', bg: 'bg-zinc-50 dark:bg-zinc-800/50', desc: t('recent_purchases_log') },
   ];
 
@@ -366,6 +398,128 @@ export default function Analytics() {
                     <BarChart3 size={32} />
                   </div>
                   <p className="text-sm text-zinc-400 font-bold">{t('no_purchases_waiting')}</p>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'categories' && (
+          <section className="space-y-6">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="font-black text-xl text-zinc-900 dark:text-white flex items-center gap-2">
+                    <PieChartIcon size={22} className="text-brand-500" />
+                    {t('category_analysis')}
+                  </h3>
+                  <p className="text-[10px] font-bold text-zinc-400 mt-1">{t('stock_value_by_category')}</p>
+                </div>
+              </div>
+
+              {categoryAnalysis.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="h-[320px] mb-8 relative">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={categoryAnalysis}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={80}
+                          outerRadius={110}
+                          paddingAngle={5}
+                          cornerRadius={8}
+                          dataKey="totalPurchase"
+                          nameKey="name"
+                          stroke="none"
+                        >
+                          {categoryAnalysis.map((entry, index) => {
+                            const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316'];
+                            return <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />;
+                          })}
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value: number, name: string) => [
+                            formatCurrency(value, settings.currency, language), 
+                            t(name) !== name ? t(name) : t('other')
+                          ]}
+                          contentStyle={{ 
+                            borderRadius: '16px', 
+                            border: 'none', 
+                            boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                            textAlign: 'right'
+                          }}
+                          itemStyle={{ fontWeight: 'bold' }}
+                        />
+                        <Legend 
+                          verticalAlign="bottom" 
+                          height={36}
+                          iconType="circle"
+                          formatter={(value) => <span className="text-zinc-600 dark:text-zinc-400 font-medium mr-2">{t(value) !== value ? t(value) : t('other')}</span>}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
+                      <span className="text-[10px] font-black text-zinc-400 uppercase tracking-wider mb-1">
+                        {t('capital_purchase_price')}
+                      </span>
+                      <span className="text-xl font-black text-zinc-900 dark:text-white">
+                        {formatCurrency(categoryAnalysis.reduce((total, cat) => total + cat.totalPurchase, 0), settings.currency, language)}
+                      </span>
+                    </div>
+                  </div>
+                  {categoryAnalysis.map((cat, i) => (
+                    <div key={i} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl gap-4">
+                      
+                      <div className="flex items-center gap-4 min-w-[200px]">
+                        <div className="h-12 w-12 rounded-xl bg-white dark:bg-zinc-800 flex items-center justify-center text-lg font-black text-zinc-500 shadow-sm border border-zinc-200 dark:border-zinc-700">
+                          {i + 1}
+                        </div>
+                        <div className="flex flex-col text-right">
+                          <span className="font-bold text-zinc-900 dark:text-white mb-1">
+                            {t(cat.name) !== cat.name ? t(cat.name) : t('other')}
+                          </span>
+                          <span className="text-xs font-bold text-zinc-500">
+                            {cat.count} {t('products')} • {cat.totalQuantity} {t('piece')}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-3 flex-1 md:items-end">
+                        <div className="flex items-center justify-between md:justify-end gap-x-8 w-full border-b border-zinc-200 dark:border-zinc-700 pb-3 md:border-0 md:pb-0">
+                          <div className="flex flex-col items-start md:items-end">
+                            <span className="text-xs font-bold text-zinc-400 mb-0.5">{t('capital_purchase_price')}</span>
+                            <span className="text-sm font-bold text-zinc-900 dark:text-white">{formatCurrency(cat.totalPurchase, settings.currency, language)}</span>
+                          </div>
+                          <div className="flex flex-col items-start md:items-end">
+                            <span className="text-xs font-bold text-zinc-400 mb-0.5">{t('inventory_value_sell')}</span>
+                            <span className="text-sm font-bold text-emerald-600 dark:text-emerald-500">{formatCurrency(cat.totalSales, settings.currency, language)}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between md:justify-end gap-x-8 w-full">
+                          <div className="flex flex-col items-start md:items-end">
+                            <span className="text-xs font-bold text-zinc-400 mb-0.5">{t('expected_profit')}</span>
+                            <span className="text-sm font-bold text-brand-600 dark:text-brand-500">{formatCurrency(cat.expectedProfit, settings.currency, language)}</span>
+                          </div>
+                          <div className="flex flex-col items-start md:items-end">
+                            <span className="text-xs font-bold text-zinc-400 mb-0.5">نسبة الربح</span>
+                            <span className="text-sm font-black text-zinc-900 dark:text-white bg-amber-100 dark:bg-amber-900/30 text-amber-600 px-2 py-0.5 rounded-lg border border-amber-200 dark:border-amber-800">
+                              {cat.profitMargin.toFixed(1)}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-20 text-center space-y-4">
+                  <div className="h-16 w-16 rounded-full bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-center mx-auto text-zinc-300">
+                    <PieChartIcon size={32} />
+                  </div>
+                  <p className="text-sm text-zinc-400 font-bold">{t('no_data_available')}</p>
                 </div>
               )}
             </div>
