@@ -807,17 +807,18 @@ export default function Inventory() {
                     </div>
                   )}
                 </div>
-                <div className="flex flex-col text-right truncate items-end">
-                  <h3 className="text-[13px] font-medium truncate text-black dark:text-white leading-tight mb-1 flex items-center gap-1 justify-end">
+                <div className="min-w-0 flex-1 flex flex-col">
+                  <h3 className="text-[13px] font-medium text-black dark:text-white leading-tight mb-1 truncate">
                     {p.name || t('product')}
                   </h3>
-                  <div className="flex items-center gap-1 justify-end mb-1.5 opacity-60">
+                  <div className="flex items-center gap-1 mb-1.5 opacity-60">
                     <span className="text-[10px] text-zinc-400 dark:text-zinc-500">{t('stock')}:</span>
                     <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold">{p.quantity || 0} {t('piece')}</span>
                   </div>
                   {inventoryData[p.id] > 0 && (
-                    <div className="flex items-center gap-1 justify-end">
+                    <div className="flex items-center gap-1">
                       <div className="inline-flex items-center gap-1 bg-brand-500 text-white px-2 py-0.5 rounded-full text-[9px] font-black shadow-sm ring-2 ring-white dark:ring-zinc-900">
+
                         <Check size={8} strokeWidth={4} />
                         <span className="truncate">{getCountBreakdown(inventoryData[p.id], p.piecesPerCarton)}</span>
                       </div>
