@@ -58,13 +58,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
     <div className="relative group/swipe touch-pan-y">
       {/* Background layer for profit (Revealed when swiped left/right) */}
       {!showBoxInfo && (
-        <div className="absolute inset-0 bg-amber-50 dark:bg-amber-900/20 rounded-2xl flex items-center justify-end px-4 overflow-hidden" dir="ltr">
+        <div className="absolute inset-0 bg-brand-50 dark:bg-brand-900/20 rounded-2xl flex items-center justify-end px-4 overflow-hidden" dir="ltr">
           <div className="flex flex-col items-end opacity-90 transition-opacity">
-            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">نسبة الربح</span>
-            <span className="text-sm font-black text-amber-700 dark:text-amber-300">
+            <span className="text-[10px] font-bold text-brand-600 dark:text-brand-400">نسبة الربح</span>
+            <span className="text-sm font-black text-brand-700 dark:text-brand-300">
                {formatCurrency(profit, settings.currency, language)}
             </span>
-            <span className="text-[10px] font-bold text-amber-600 bg-amber-100 dark:bg-amber-800/50 px-1 rounded mt-0.5">
+            <span className="text-[10px] font-bold text-brand-600 bg-brand-100 dark:bg-brand-800/50 px-1 rounded mt-0.5">
               {profitMargin.toFixed(1)}%
             </span>
           </div>
