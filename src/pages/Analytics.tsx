@@ -435,7 +435,7 @@ export default function Analytics() {
                           stroke="none"
                         >
                           {categoryAnalysis.map((entry, index) => {
-                            const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316'];
+                            const COLORS = ['#54ACBF', '#7ABD87', '#26658C', '#AADCB6', '#023859', '#3E7E55', '#A7EBF2', '#CADEC8', '#011C40', '#EAEEE5'];
                             return <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />;
                           })}
                         </Pie>
@@ -452,15 +452,9 @@ export default function Analytics() {
                           }}
                           itemStyle={{ fontWeight: 'bold' }}
                         />
-                        <Legend 
-                          verticalAlign="bottom" 
-                          height={36}
-                          iconType="circle"
-                          formatter={(value: string) => <span className="text-zinc-600 dark:text-zinc-400 font-medium mr-2">{value === 'other_cat' ? t('other') : t(value)}</span>}
-                        />
                       </PieChart>
                     </ResponsiveContainer>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mb-4">
                       <span className="text-[10px] font-black text-zinc-400 uppercase tracking-wider mb-1">
                         {t('capital_purchase_price')}
                       </span>
@@ -469,50 +463,56 @@ export default function Analytics() {
                       </span>
                     </div>
                   </div>
-                  {categoryAnalysis.map((cat, i) => (
-                    <div key={i} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl gap-4">
-                      
-                      <div className="flex items-center gap-4 min-w-[200px]">
-                        <div className="h-12 w-12 rounded-xl bg-white dark:bg-zinc-800 flex items-center justify-center text-lg font-black text-zinc-500 shadow-sm border border-zinc-200 dark:border-zinc-700">
-                          {i + 1}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {categoryAnalysis.map((cat, i) => {
+                    const COLORS = ['#54ACBF', '#7ABD87', '#26658C', '#AADCB6', '#023859', '#3E7E55', '#A7EBF2', '#CADEC8', '#011C40', '#EAEEE5'];
+                    const catColor = COLORS[i % COLORS.length];
+                    
+                    return (
+                    <div key={i} className="flex flex-col p-5 bg-zinc-50 dark:bg-zinc-800/40 rounded-3xl border border-zinc-100 dark:border-zinc-800 transition-colors">
+                      <div className="flex justify-between items-center mb-5 pb-4 border-b border-zinc-200/60 dark:border-zinc-700/60">
+                        <div className="flex items-center gap-3">
+                           <div className="w-3.5 h-3.5 rounded-full shadow-sm" style={{ backgroundColor: catColor }} />
+                           <span className="font-bold text-base text-zinc-900 dark:text-white">
+                             {cat.name === 'other_cat' ? t('other') : t(cat.name)}
+                           </span>
                         </div>
-                        <div className="flex flex-col text-right">
-                          <span className="font-bold text-zinc-900 dark:text-white mb-1">
-                            {cat.name === 'other_cat' ? t('other') : t(cat.name)}
-                          </span>
-                          <span className="text-xs font-bold text-zinc-500">
-                            {cat.count} {t('products')} • {cat.totalQuantity} {t('piece')}
+                        <div className="text-left">
+                          <span className="block text-[10px] font-bold text-zinc-400 mb-0.5">{t('piece')}</span>
+                          <span className="text-xs font-black text-zinc-600 dark:text-zinc-300 bg-zinc-200/50 dark:bg-zinc-700/50 px-2 py-0.5 rounded-lg">
+                            {cat.totalQuantity}
                           </span>
                         </div>
                       </div>
-
-                      <div className="flex flex-col gap-3 flex-1 md:items-end">
-                        <div className="flex items-center justify-between md:justify-end gap-x-8 w-full border-b border-zinc-200 dark:border-zinc-700 pb-3 md:border-0 md:pb-0">
-                          <div className="flex flex-col items-start md:items-end">
-                            <span className="text-xs font-bold text-zinc-400 mb-0.5">{t('capital_purchase_price')}</span>
-                            <span className="text-sm font-bold text-zinc-900 dark:text-white">{formatCurrency(cat.totalPurchase, settings.currency, language)}</span>
-                          </div>
-                          <div className="flex flex-col items-start md:items-end">
-                            <span className="text-xs font-bold text-zinc-400 mb-0.5">{t('inventory_value_sell')}</span>
-                            <span className="text-sm font-bold text-emerald-600 dark:text-emerald-500">{formatCurrency(cat.totalSales, settings.currency, language)}</span>
-                          </div>
+                      
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-medium text-zinc-500">{t('capital_purchase_price')}</span>
+                          <span className="text-sm font-black text-zinc-900 dark:text-white">
+                            {formatCurrency(cat.totalPurchase, settings.currency, language)}
+                          </span>
                         </div>
-                        <div className="flex items-center justify-between md:justify-end gap-x-8 w-full">
-                          <div className="flex flex-col items-start md:items-end">
-                            <span className="text-xs font-bold text-zinc-400 mb-0.5">{t('expected_profit')}</span>
-                            <span className="text-sm font-bold text-brand-600 dark:text-brand-500">{formatCurrency(cat.expectedProfit, settings.currency, language)}</span>
-                          </div>
-                          <div className="flex flex-col items-start md:items-end">
-                            <span className="text-xs font-bold text-zinc-400 mb-0.5">نسبة الربح</span>
-                            <span className="text-sm font-black text-zinc-900 dark:text-white bg-amber-100 dark:bg-amber-900/30 text-amber-600 px-2 py-0.5 rounded-lg border border-amber-200 dark:border-amber-800">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-medium text-zinc-500">{t('inventory_value_sell')}</span>
+                          <span className="text-sm font-black text-zinc-900 dark:text-white">
+                            {formatCurrency(cat.totalSales, settings.currency, language)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center pt-1">
+                          <span className="text-xs font-medium text-zinc-500">{t('expected_profit')}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black bg-brand-100 dark:bg-brand-900/30 text-brand-600 px-1.5 py-0.5 rounded-md">
                               {cat.profitMargin.toFixed(1)}%
+                            </span>
+                            <span className="text-sm font-black text-brand-600 dark:text-brand-400">
+                               {formatCurrency(cat.expectedProfit, settings.currency, language)}
                             </span>
                           </div>
                         </div>
                       </div>
-
                     </div>
-                  ))}
+                  )})}
+                  </div>
                 </div>
               ) : (
                 <div className="py-20 text-center space-y-4">
