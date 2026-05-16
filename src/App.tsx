@@ -203,9 +203,9 @@ function AppContent() {
       {!loading && !user && <Login />}
 
       {!loading && user && (
-        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 font-sans transition-colors duration-300">
+        <div className="min-h-screen bg-[#F4F7FB] dark:bg-[#0B1121] font-sans transition-colors duration-300">
       {/* Navbar to match screenshot */}
-      <header className="sticky top-0 z-40 bg-white shadow-sm dark:bg-zinc-900">
+      <header className="sticky top-0 z-40 bg-white shadow-sm dark:bg-[#121A2F]">
         <div className="mx-auto max-w-7xl px-4">
           <div className="flex h-16 items-center justify-between">
             {/* Right Branding and Home Group (Now first child for RTL right placement) */}

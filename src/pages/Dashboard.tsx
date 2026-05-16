@@ -197,150 +197,110 @@ const Dashboard = memo(() => {
   };
 
   return (
-    <div className="pb-24" dir="rtl">
-      {/* Premium Header Background Section */}
-      <div className="-mx-4 sm:-mx-6 lg:-mx-8 -mt-8 px-4 sm:px-6 lg:px-8 pt-8 pb-80 bg-gradient-to-br from-brand-900 via-brand-950 to-brand-900 rounded-b-[56px] mb-[-260px] relative overflow-hidden">
-        {/* Abstract Decorative Elements */}
-        <div className="absolute top-0 right-0 w-80 h-80 bg-brand-500/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/4" />
-        <div className="absolute bottom-0 left-0 w-72 h-72 bg-emerald-500/10 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/4" />
+    <div className="pb-24 space-y-6" dir="rtl">
+      <header className="flex items-center justify-between mb-4 pt-2 text-right">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-black tracking-tight text-zinc-900 dark:text-white">{t('dashboard')}</h1>
+          <div className="flex items-center gap-2 text-zinc-500">
+            {greeting.icon}
+            <p className="text-sm font-bold tracking-tight">{greeting.text}</p>
+          </div>
+        </div>
+        <div className="h-12 w-12 rounded-[20px] bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 shadow-sm flex items-center justify-center text-brand-600 dark:text-brand-400">
+          <Clock size={20} />
+        </div>
+      </header>
+
+      {/* SECTION 1: MASTER HERO CARD (Modeled after screenshot dark blue cards) */}
+      <div className="relative p-7 rounded-[32px] bg-brand-800 dark:bg-zinc-900 text-white shadow-xl shadow-brand-900/10 dark:shadow-none overflow-hidden">
+        {/* Soft geometric background details */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-brand-400/10 rounded-full blur-2xl translate-y-1/3 -translate-x-1/4" />
         
-        <header className="relative z-10 flex items-center justify-between mb-10 text-right">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <h1 className="text-4xl font-black tracking-tight text-white">{t('dashboard')}</h1>
-            </div>
-            <div className="flex items-center gap-2 text-brand-300/60">
-              {greeting.icon}
-              <p className="text-sm font-black tracking-tight">{greeting.text}</p>
-            </div>
-          </div>
-          <div className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex items-center justify-center text-white/40">
-            <Clock size={20} />
-          </div>
-        </header>
+        <div className="relative z-10 flex items-center gap-2 mb-2 text-brand-200 opacity-90 justify-start">
+          <TrendingUp size={16} className="text-emerald-400" />
+          <p className="text-xs font-bold uppercase tracking-wider">{t('inventory_value')}</p>
+        </div>
+        
+        <h2 className="relative z-10 text-4xl md:text-5xl font-black tracking-tight mb-8 text-right text-white">
+          {formatPrivateValue(stats.totalValue)}
+        </h2>
 
-        {/* SECTION 1: COMPACT MASTER HERO */}
-        <div className="relative z-10 p-7 rounded-[32px] bg-white/5 backdrop-blur-xl border border-white/10 text-white shadow-2xl shadow-black/20 overflow-hidden group">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-1 text-right">
-              <div className="flex items-center gap-2 opacity-60 justify-end">
-                <TrendingUp size={12} className="text-emerald-400" />
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-brand-100">{t('inventory_value')}</p>
-              </div>
-              <h2 className="text-4xl md:text-5xl font-black font-mono tracking-tighter leading-none">
-                {formatPrivateValue(stats.totalValue)}
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div className="px-5 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md flex flex-col items-center">
-                <p className="text-[8px] font-black text-brand-200 uppercase mb-1">{t('total_products')}</p>
-                <p className="text-xl font-black font-mono leading-none">{stats.totalProducts}</p>
-              </div>
-              <div className="px-5 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 backdrop-blur-md flex flex-col items-center text-amber-500">
-                <p className="text-[8px] font-black opacity-60 uppercase mb-1">{t('low_stock')}</p>
-                <p className="text-xl font-black font-mono leading-none">{stats.lowStock}</p>
-              </div>
-            </div>
+        <div className="relative z-10 grid grid-cols-2 gap-3">
+          <div className="p-4 rounded-[20px] bg-white/10 dark:bg-white/5 backdrop-blur-md flex flex-col items-center">
+            <p className="text-2xl font-black tracking-tight mb-1">{stats.totalProducts}</p>
+            <p className="text-xs font-bold text-brand-200">{t('total_products')}</p>
+          </div>
+          <div className="p-4 rounded-[20px] bg-white/10 dark:bg-white/5 backdrop-blur-md flex flex-col items-center">
+            <p className="text-2xl font-black tracking-tight mb-1">{stats.lowStock}</p>
+            <p className="text-xs font-bold text-amber-300">{t('low_stock')}</p>
           </div>
         </div>
       </div>
 
-      {/* Modern Dashboard Content */}
-      <div className="space-y-6 relative z-20 px-0.5">
+      <div className="px-0.5 space-y-6 mt-6">
         {/* SECTION 2: FINANCIAL SUMMARY (COMPACT GRID) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: t('customer_debts'), value: stats.totalCustomerDebts, color: 'indigo', icon: Users },
-            { label: t('supplier_debts'), value: stats.totalSupplierDebts, color: 'brand', icon: Truck },
-            { label: t('expenses'), value: stats.totalExpenses, color: 'rose', icon: Coins },
-            { label: t('total_supplier_purchases'), value: stats.totalSupplierPurchasesValue, color: 'emerald', icon: ShoppingCart },
+            { label: t('customer_debts'), value: stats.totalCustomerDebts, color: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400', icon: Users },
+            { label: t('supplier_debts'), value: stats.totalSupplierDebts, color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400', icon: Truck },
+            { label: t('expenses'), value: stats.totalExpenses, color: 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400', icon: Coins },
+            { label: t('total_supplier_purchases'), value: stats.totalSupplierPurchasesValue, color: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400', icon: ShoppingCart },
           ].map((item, idx) => (
-            <div key={idx} className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm rounded-[28px] p-5 border border-zinc-200/50 dark:border-zinc-800 shadow-xl shadow-black/5 relative overflow-hidden group hover:translate-y-[-2px] transition-all">
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-[8px] font-black text-zinc-400 uppercase tracking-widest leading-none">{item.label}</p>
-                  <item.icon size={10} className="text-zinc-300" />
-                </div>
-                <h3 className="text-base font-black font-mono text-zinc-900 dark:text-white tracking-tight leading-none">
-                  {formatPrivateValue(item.value)}
-                </h3>
+            <div key={idx} className="bg-white dark:bg-zinc-800/80 rounded-[24px] p-5 border border-zinc-100/80 dark:border-zinc-700/50 shadow-sm relative overflow-hidden group hover:translate-y-[-2px] hover:shadow-md transition-all flex flex-col items-start">
+              <div className={cn("h-10 w-10 rounded-[14px] flex items-center justify-center mb-4 transition-transform group-hover:scale-110", item.color)}>
+                <item.icon size={18} />
               </div>
-              <div className={cn(
-                "absolute bottom-0 right-0 h-1 w-full",
-                item.color === 'indigo' && "bg-indigo-500/30",
-                item.color === 'brand' && "bg-brand-500/30",
-                item.color === 'rose' && "bg-rose-500/30",
-                item.color === 'emerald' && "bg-emerald-500/30"
-              )} />
+              <h3 className="text-lg font-black font-sans text-zinc-900 dark:text-white tracking-tight leading-none mb-1 text-right">
+                {formatPrivateValue(item.value)}
+              </h3>
+              <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider leading-none text-right">{item.label}</p>
             </div>
           ))}
         </div>
 
-        {/* SECTION 3: PURCHASE MOVEMENT (COMPACT) */}
-        <div className="bg-white dark:bg-zinc-900 rounded-[28px] p-5 border border-zinc-100 dark:border-zinc-800 shadow-sm transition-all duration-300">
-          <div 
-            onClick={() => setIsMovementExpanded(!isMovementExpanded)}
-            className="flex items-center justify-between cursor-pointer"
-          >
-            <div className="flex items-center gap-4">
-              <div className="h-9 w-9 rounded-xl bg-brand-50 dark:bg-brand-950/20 flex items-center justify-center text-brand-600">
-                <History size={18} />
-              </div>
-              <div className="text-right">
-                <p className="text-[8px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-0.5">{t('purchase_movement')}</p>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-black font-mono text-zinc-900 dark:text-white tracking-tighter">
-                    {formatPrivateValue(stats.todayPurchasesTotal)}
-                  </h3>
-                  <div className="px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 text-[7px] font-black text-emerald-600 uppercase">
-                    {t('today')}
-                  </div>
-                </div>
-              </div>
+        {/* SECTION 3: PURCHASE MOVEMENT */}
+        <div className="mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-black uppercase tracking-wider text-zinc-900 dark:text-white pr-2">{t('purchase_movement')}</h2>
+            <div className="text-xs font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full dark:bg-brand-500/10 dark:text-brand-400">
+               {formatPrivateValue(stats.todayPurchasesTotal)} {t('today')}
             </div>
-            
-            <button className="h-9 w-9 rounded-xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-brand-600 transition-all">
-              {isMovementExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-            </button>
           </div>
 
-
-          <AnimatePresence>
-            {isMovementExpanded && (
-              <motion.div 
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="mt-10 pt-10 border-t border-zinc-50 dark:border-zinc-800 overflow-hidden"
-              >
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
-                  {stats.movementHistory.length === 0 ? (
-                    <div className="col-span-full py-8 text-center text-zinc-400 font-bold bg-zinc-50/50 dark:bg-zinc-800/30 rounded-2xl border-2 border-dashed border-zinc-100 dark:border-zinc-800">{t('no_data_available')}</div>
-                  ) : (
-                    stats.movementHistory.slice(0, 14).map((day, idx) => (
-                      <div key={idx} className="p-4 rounded-2xl bg-zinc-50/50 dark:bg-zinc-800/20 border border-transparent hover:border-zinc-100 dark:hover:border-brand-500/10 transition-colors">
-                        <p className="text-[10px] font-black text-zinc-400 mb-2 uppercase tracking-tight opacity-60">
-                          {new Date(day.date).toLocaleDateString(settings.language === 'ar' ? 'ar-TN' : 'en-GB', { day: 'numeric', month: 'short' })}
-                        </p>
-                        <p className="text-sm font-black text-zinc-900 dark:text-white font-mono leading-none">{formatPrivateValue(day.total).split(' ')[0]}</p>
-                      </div>
-                    ))
-                  )}
+          <div className="flex overflow-x-auto gap-3 pb-4 snap-x hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {stats.movementHistory.length === 0 ? (
+              <div className="w-full py-10 text-center text-zinc-400 font-bold bg-white dark:bg-zinc-800/50 rounded-[24px] border border-dashed border-zinc-200 dark:border-zinc-700 shadow-sm">
+                {t('no_data_available')}
+              </div>
+            ) : (
+              stats.movementHistory.slice(0, 14).map((day, idx) => (
+                <div key={idx} className="min-w-[110px] flex-shrink-0 snap-start p-4 rounded-[20px] bg-white dark:bg-zinc-800 shadow-sm border border-zinc-100 dark:border-zinc-700 hover:border-brand-300 dark:hover:border-brand-500/50 transition-all text-center flex flex-col items-center justify-center gap-2 group">
+                  <div className="h-8 w-8 rounded-full bg-zinc-50 dark:bg-zinc-700 flex items-center justify-center group-hover:bg-brand-50 dark:group-hover:bg-brand-500/20 transition-colors">
+                    <History size={14} className="text-zinc-400 group-hover:text-brand-500" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-zinc-400 mb-1">
+                      {new Date(day.date).toLocaleDateString(settings.language === 'ar' ? 'ar-TN' : 'en-GB', { day: 'numeric', month: 'short' })}
+                    </p>
+                    <p className="text-sm font-black text-brand-800 dark:text-white font-sans leading-none">
+                      {formatPrivateValue(day.total).split(' ')[0]}
+                    </p>
+                  </div>
                 </div>
-              </motion.div>
+              ))
             )}
-          </AnimatePresence>
+          </div>
         </div>
       </div>
 
 
       {/* Recent Purchases List */}
-      <div className="space-y-6 text-right mt-24 pb-12">
-        <h2 className="text-xs font-black uppercase tracking-[0.2em] text-neutral-400 pr-2">{t('last_purchases')}</h2>
-        <div className="space-y-8">
+      <div className="space-y-4 text-right mt-8 pb-12">
+        <h2 className="text-sm font-black uppercase tracking-wider text-zinc-900 dark:text-white pr-2 mb-4">{t('last_purchases')}</h2>
+        <div className="space-y-6">
           {groupedPurchases.length === 0 ? (
-            <div className="py-12 text-center text-zinc-400 font-bold text-sm bg-zinc-50 dark:bg-zinc-800/50 rounded-[32px] border-2 border-dashed border-zinc-100 dark:border-zinc-800">
+            <div className="py-12 text-center text-zinc-400 font-bold text-sm bg-white dark:bg-zinc-800/50 rounded-[24px] border border-dashed border-zinc-200 dark:border-zinc-700 shadow-sm">
               {t('no_data_available')}
             </div>
           ) : (
@@ -348,32 +308,32 @@ const Dashboard = memo(() => {
               <div key={group.key} className="space-y-3">
                 <div className="flex items-center justify-between px-2">
                   <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-xl bg-brand-50 dark:bg-brand-900/10 flex items-center justify-center text-brand-600 dark:text-brand-400">
-                      <Truck size={14} />
+                    <div className="h-7 w-7 rounded-full bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-brand-600 dark:text-brand-400">
+                      <Truck size={12} />
                     </div>
-                    <span className="text-sm font-black text-brand-600 dark:text-brand-400">
+                    <span className="text-sm font-bold text-brand-800 dark:text-brand-400">
                       {group.supplierName || t('unknown_supplier')}
                     </span>
                   </div>
-                  <span className="text-[10px] font-black text-zinc-400 font-mono tracking-tighter">
+                  <span className="text-[11px] font-bold text-zinc-400 font-sans tracking-tight">
                     {group.date}
                   </span>
                 </div>
                 
-                <div className="bg-white dark:bg-zinc-900 rounded-[28px] border border-zinc-100 dark:border-zinc-800 divide-y divide-zinc-50 dark:divide-zinc-800 overflow-hidden shadow-sm">
+                <div className="bg-white dark:bg-zinc-800/80 rounded-[24px] border border-zinc-100/80 dark:border-zinc-700/50 overflow-hidden shadow-sm flex flex-col gap-px bg-zinc-100 dark:bg-zinc-700/50">
                   {group.items.map((p: any) => (
-                    <div key={p.id} className="flex justify-between items-center p-4 group hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-colors">
+                    <div key={p.id} className="flex justify-between items-center p-4 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors">
                       <div className="flex flex-col text-right flex-1">
-                        <span className="text-sm font-bold text-black dark:text-white mb-1">{p.productName}</span>
-                        <div className="flex items-center gap-2 text-[11px] font-mono">
-                          <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-lg">
-                            <span className="text-black dark:text-white font-black">{p.quantityChange}</span>
-                            <span className="text-zinc-500 font-bold">{t('piece')}</span>
+                        <span className="text-sm font-bold text-zinc-900 dark:text-white mb-2">{p.productName}</span>
+                        <div className="flex items-center justify-start gap-2 text-[11px] font-sans font-bold text-zinc-500">
+                          <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-900 px-2 py-0.5 rounded-md">
+                            <span className="text-zinc-900 dark:text-white">{p.quantityChange}</span>
+                            <span>{t('piece')}</span>
                           </div>
-                          <span className="text-zinc-300">|</span>
-                          <span className="text-zinc-500 dark:text-zinc-400 font-medium">{formatCurrency(p.price, settings.currency, language)}</span>
-                          <span className="text-zinc-300">|</span>
-                          <span className="text-brand-600 dark:text-brand-400 font-bold">{formatCurrency(p.amount, settings.currency, language)}</span>
+                          <span className="text-zinc-300 dark:text-zinc-600">|</span>
+                          <span>{formatCurrency(p.price, settings.currency, language)}</span>
+                          <span className="text-zinc-300 dark:text-zinc-600">|</span>
+                          <span className="text-emerald-600 dark:text-emerald-400">{formatCurrency(p.amount, settings.currency, language)}</span>
                         </div>
                       </div>
                     </div>
