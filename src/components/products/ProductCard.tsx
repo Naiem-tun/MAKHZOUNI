@@ -78,10 +78,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
         dragElastic={0.1}
         onDragEnd={handleDragEnd}
         animate={controls}
-        initial={{ opacity: 0, scale: 0.95 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: true, margin: "-20px" }}
-        transition={{ delay: Math.min(index * 0.05, 0.5) }}
         className="relative z-10 flex items-center justify-between gap-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 py-2 px-3 rounded-2xl cursor-pointer active:scale-[0.99] transition-transform"
         onClick={(e) => {
           // Prevent triggering edit if it's currently swiped open and being tapped

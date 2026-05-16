@@ -36,8 +36,14 @@ export default function Products() {
   const { t } = useTranslation();
   const { user, settings, showToast, setIsDataLoaded, activeSupplier } = useAppContext();
   const { categories } = useCategories();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>(() => {
+    if (!user) return [];
+    try {
+      const cached = localStorage.getItem(`products_cache_${user.uid}`);
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
+  const [loading, setLoading] = useState(products.length === 0);
   const [searchTerm, setSearchTerm] = useState('');
   const [stockFilter, setStockFilter] = useState('all'); // 'all', 'available', 'low', 'out'
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -67,7 +73,9 @@ export default function Products() {
     const path = `users/${user.uid}/products`;
     const q = collection(db, path);
     return onSnapshot(q, (snap) => {
-      setProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
+      const fetchedProducts = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+      setProducts(fetchedProducts);
+      localStorage.setItem(`products_cache_${user.uid}`, JSON.stringify(fetchedProducts));
       setLoading(false);
       setIsDataLoaded(true);
     }, (error) => {
