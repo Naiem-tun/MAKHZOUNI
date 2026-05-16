@@ -26,6 +26,7 @@ import { useCategories, categoryIcons } from '../hooks/useCategories';
 import { BarcodeScanner } from '../components/common/BarcodeScanner';
 import { Logo } from '../components/UI';
 import jsPDF from 'jspdf';
+import * as html2pdf from 'html2pdf.js';
 
 import { useTranslation } from 'react-i18next';
 
@@ -416,15 +417,43 @@ export default function Inventory() {
     try {
       showToast(t('preparing_pdf'));
       
-      // Allow DOM to update before printing
-      setTimeout(() => {
-        window.print();
-        showToast(t('pdf_download_success'), 'success');
-      }, 500);
+      const element = document.getElementById('pdf-report-content');
+      if (!element) throw new Error("Report element not found");
+      
+      // Temporarily hide buttons
+      const hiddenElements = element.querySelectorAll('.print-hidden');
+      hiddenElements.forEach((el: any) => {
+         el.setAttribute('data-original-display', el.style.display);
+         el.style.display = 'none';
+      });
+
+      const storeName = settings.storeName || 'Store';
+      const reportDate = report.date?.toDate ? report.date.toDate().toLocaleDateString('en-GB') : (report.date ? new Date(report.date).toLocaleDateString('en-GB') : '—');
+      const filename = `inventory-${reportDate.replace(/\//g, '-')}.pdf`;
+      
+      const opt = {
+        margin:       10,
+        filename:     filename,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      // @ts-ignore - html2pdf might have different default export signature depending on version
+      const html2pdfModule = html2pdf.default || html2pdf;
+
+      await html2pdfModule().set(opt).from(element).save();
+
+      // Restore
+      hiddenElements.forEach((el: any) => {
+         el.style.display = el.getAttribute('data-original-display') || '';
+      });
+      
+      showToast(t('pdf_download_success'), 'success');
       
     } catch (err) {
-      console.error(err);
-      showToast(t('pdf_download_error'), 'error');
+      console.error("PDF generation error:", err);
+      showToast(t('pdf_download_error') + ': ' + String(err), 'error');
     }
   };
 
