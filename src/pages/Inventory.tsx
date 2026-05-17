@@ -246,12 +246,12 @@ export default function Inventory() {
     return Math.round((completed / products.length) * 100);
   }, [products, inventoryData]);
 
-  const getCountBreakdown = (total: number, piecesPerCarton: number) => {
+  const getCountBreakdown = (total: number, piecesPerBox: number) => {
     if (!total || total <= 0) return null;
-    if (!piecesPerCarton || piecesPerCarton <= 1) return `${total} ${t('piece')}`;
+    if (!piecesPerBox || piecesPerBox <= 1) return `${total} ${t('piece')}`;
     
-    const cartons = Math.floor(total / piecesPerCarton);
-    const pieces = total % piecesPerCarton;
+    const cartons = Math.floor(total / piecesPerBox);
+    const pieces = total % piecesPerBox;
     
     const parts = [];
     if (cartons > 0) parts.push(`${cartons} ${t('box')}`);
@@ -850,7 +850,7 @@ export default function Inventory() {
                       <div className="inline-flex items-center gap-1 bg-brand-500 text-white px-2 py-0.5 rounded-full text-[9px] font-black shadow-sm ring-2 ring-white dark:ring-zinc-900">
 
                         <Check size={8} strokeWidth={4} />
-                        <span className="truncate">{getCountBreakdown(inventoryData[p.id], p.piecesPerCarton)}</span>
+                        <span className="truncate">{getCountBreakdown(inventoryData[p.id], p.piecesPerBox || 1)}</span>
                       </div>
                     </div>
                   )}
@@ -872,15 +872,15 @@ export default function Inventory() {
                   </button>
                 )}
 
-                {p.piecesPerCarton > 1 && (
+                {(p.piecesPerBox || 1) > 1 && (
                   <button 
-                    onClick={() => handleAddCarton(p.id, p.piecesPerCarton)} 
+                    onClick={() => handleAddCarton(p.id, p.piecesPerBox || 1)} 
                     className="w-9 h-9 flex items-center justify-center bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-2xl text-zinc-400 active:scale-95 transition-transform"
-                    title={`${t('add_carton')} (${p.piecesPerCarton} ${t('piece')})`}
+                    title={`${t('add_carton')} (${p.piecesPerBox} ${t('piece')})`}
                   >
                     <div className="flex flex-col items-center">
                       <Package size={14} className="mb-0" />
-                      <span className="text-[8px] font-black leading-none mt-0.5">+{p.piecesPerCarton}</span>
+                      <span className="text-[8px] font-black leading-none mt-0.5">+{(p.piecesPerBox || 1)}</span>
                     </div>
                   </button>
                 )}
@@ -890,7 +890,16 @@ export default function Inventory() {
                     type="number" 
                     inputMode="decimal"
                     value={inventoryData[p.id] ?? ''}
-                    onChange={(e) => setInventoryData({ ...inventoryData, [p.id]: safeParseFloat(e.target.value) })}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '') {
+                        const newInventory = { ...inventoryData };
+                        delete newInventory[p.id];
+                        setInventoryData(newInventory);
+                      } else {
+                        setInventoryData({ ...inventoryData, [p.id]: parseFloat(val) });
+                      }
+                    }}
                     className="w-16 h-9 text-center text-sm font-black bg-zinc-100/50 dark:bg-zinc-800 border border-zinc-100 dark:border-neutral-800 rounded-2xl outline-none focus:ring-2 focus:ring-brand-500/20 dark:text-white placeholder:text-zinc-300 transition-all font-mono"
                     placeholder={t('quantity')}
                   />
