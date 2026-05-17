@@ -79,7 +79,6 @@ const Dashboard = memo(() => {
 
     const purchasesQuery = query(
       collection(db, purchasesPath),
-      where('date', '>=', thirtyDaysAgo.toISOString()),
       orderBy('date', 'desc'),
       limit(300)
     );
