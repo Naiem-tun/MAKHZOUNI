@@ -52,7 +52,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
   };
 
   const profit = (product.sellingPrice || 0) - (product.purchasePrice || 0);
-  const profitMargin = (product.purchasePrice || 0) > 0 ? (profit / product.purchasePrice!) * 100 : 0;
+  const calcMethod = settings.profitCalculationMethod || 'markup'; // markup: profit/cost * 100, margin: profit/sell * 100
+  const profitMargin = calcMethod === 'margin' 
+    ? ((product.sellingPrice || 0) > 0 ? (profit / product.sellingPrice!) * 100 : 0)
+    : ((product.purchasePrice || 0) > 0 ? (profit / product.purchasePrice!) * 100 : 0);
 
   return (
     <div className="relative group/swipe touch-pan-y">

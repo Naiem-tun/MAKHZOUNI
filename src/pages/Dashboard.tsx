@@ -1,5 +1,5 @@
 import React, { useState, useMemo, memo, useEffect } from 'react';
-import { collection, onSnapshot, query, limit, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, limit, orderBy, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
 import { 
@@ -74,10 +74,14 @@ const Dashboard = memo(() => {
     const supplierTxPath = `users/${user.uid}/supplierTransactions`;
     
     const productsQuery = collection(db, productsPath);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
     const purchasesQuery = query(
       collection(db, purchasesPath),
+      where('date', '>=', thirtyDaysAgo.toISOString()),
       orderBy('date', 'desc'),
-      limit(1000)
+      limit(300)
     );
     const expensesQuery = collection(db, expensesPath);
     const debtsQuery = collection(db, debtsPath);

@@ -107,7 +107,10 @@ export default function Analytics() {
 
     return Object.entries(cats).map(([name, data]) => {
       const expectedProfit = data.totalSales - data.totalPurchase;
-      const profitMargin = data.totalPurchase > 0 ? (expectedProfit / data.totalPurchase) * 100 : 0;
+      const calcMethod = settings.profitCalculationMethod || 'markup';
+      const profitMargin = calcMethod === 'margin'
+        ? (data.totalSales > 0 ? (expectedProfit / data.totalSales) * 100 : 0)
+        : (data.totalPurchase > 0 ? (expectedProfit / data.totalPurchase) * 100 : 0);
       
       return {
         name,

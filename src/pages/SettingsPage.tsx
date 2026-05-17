@@ -47,7 +47,8 @@ import {
   Printer,
   Monitor,
   Smartphone,
-  Check
+  Check,
+  Percent
 } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { collection, getDocs, doc, setDoc, writeBatch, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
@@ -816,6 +817,43 @@ export default function SettingsPage() {
               className="absolute left-0 top-1 h-6 w-6 rounded-full bg-white shadow-sm"
             />
           </button>
+        </section>
+
+        {/* Profit Calculation Method Toggle */}
+        <section className="bg-white p-6 rounded-[24px] shadow-sm border border-zinc-100 flex flex-col gap-4 dark:bg-zinc-800/50 dark:border-zinc-800">
+          <div className="flex justify-between items-center w-full">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
+                <Percent size={24} />
+              </div>
+              <div className="text-right flex-1">
+                <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{t('profit_calculation_method')}</h3>
+                <p className="text-xs text-zinc-400 mt-1">{t('profit_calc_desc')}</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2 w-full mt-2 bg-zinc-50 dark:bg-zinc-900/50 p-1 rounded-2xl">
+            <button
+              onClick={() => updateSettings({ profitCalculationMethod: 'markup' })}
+              className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${
+                (settings.profitCalculationMethod || 'markup') === 'markup' 
+                  ? 'bg-white text-brand-600 shadow-sm dark:bg-zinc-800 dark:text-white' 
+                  : 'text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800/50'
+              }`}
+            >
+              {t('profit_calc_markup')}
+            </button>
+            <button
+              onClick={() => updateSettings({ profitCalculationMethod: 'margin' })}
+              className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${
+                settings.profitCalculationMethod === 'margin' 
+                  ? 'bg-white text-brand-600 shadow-sm dark:bg-zinc-800 dark:text-white' 
+                  : 'text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800/50'
+              }`}
+            >
+              {t('profit_calc_margin')}
+            </button>
+          </div>
         </section>
 
         {/* Supplier Session Button Toggle */}
