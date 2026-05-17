@@ -52,6 +52,7 @@ export default function Inventory() {
   const { categories } = useCategories();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [showUninventoriedOnly, setShowUninventoriedOnly] = useState(false);
   const [inventoryData, setInventoryData] = useState<Record<string, number>>(() => {
     const saved = localStorage.getItem('current_inventory_data');
     return saved ? JSON.parse(saved) : {};
@@ -224,7 +225,8 @@ export default function Inventory() {
     const filtered = products.filter(p => {
       const matchSearch = p.name?.toLowerCase().includes(s) || p.barcode?.includes(s) || p.barcode2?.includes(s);
       const matchCat = categoryFilter === 'all' || p.category === categoryFilter;
-      return matchSearch && matchCat;
+      const matchUninventoried = !showUninventoriedOnly || inventoryData[p.id] === undefined;
+      return matchSearch && matchCat && matchUninventoried;
     });
 
     return [...filtered].sort((a, b) => {
@@ -232,7 +234,7 @@ export default function Inventory() {
       if (categoryCompare !== 0) return categoryCompare;
       return (a.name || '').localeCompare(b.name || '', settings.language);
     });
-  }, [products, searchTerm, categoryFilter]);
+  }, [products, searchTerm, categoryFilter, showUninventoriedOnly, inventoryData]);
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
   const sortedProducts = filteredProducts.slice(
@@ -797,20 +799,33 @@ export default function Inventory() {
             />
           </div>
         </div>
-        <div className="relative group/filter">
-          <select 
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="w-full appearance-none py-2.5 px-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[13px] font-bold text-zinc-600 dark:text-zinc-400 text-center outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors shadow-sm focus:border-brand-500/50"
-          >
-            <option value="all">{t('all_categories_filter')}</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.name}>{t(c.key || c.name)}</option>
-            ))}
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-4 text-zinc-400">
-            <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+        <div className="flex gap-2">
+          <div className="relative group/filter flex-1">
+            <select 
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="w-full appearance-none py-2.5 px-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[13px] font-bold text-zinc-600 dark:text-zinc-400 text-center outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors shadow-sm focus:border-brand-500/50"
+            >
+              <option value="all">{t('all_categories_filter')}</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.name}>{t(c.key || c.name)}</option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-4 text-zinc-400">
+              <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+            </div>
           </div>
+          <button
+            onClick={() => setShowUninventoriedOnly(!showUninventoriedOnly)}
+            className={cn(
+              "px-4 py-2.5 rounded-2xl border text-[13px] font-bold transition-all whitespace-nowrap",
+              showUninventoriedOnly 
+                ? "bg-brand-500 border-brand-500 text-white shadow-md shadow-brand-500/20" 
+                : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+            )}
+          >
+            {t('not_inventoried')}
+          </button>
         </div>
       </div>
 
