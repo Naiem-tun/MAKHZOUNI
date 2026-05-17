@@ -190,7 +190,12 @@ export default function Expenses() {
                       </div>
                       {expense.category && (
                         <div className="text-[8px] text-amber-600 font-black bg-amber-50 dark:bg-amber-950/30 px-1.5 py-0.5 rounded-md">
-                          {expense.category}
+                          {expense.category === 'عام' ? t('general_cat') : 
+                           expense.category === 'فواتير' ? t('bills_cat') : 
+                           expense.category === 'كراء' ? t('rent_cat') : 
+                           expense.category === 'سلع' ? t('goods_transport_cat') : 
+                           expense.category === 'أخرى' ? t('other_cat') : 
+                           expense.category}
                         </div>
                       )}
                     </div>

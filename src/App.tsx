@@ -177,7 +177,7 @@ function AppContent() {
                 
                 <div className="text-center space-y-2">
                   <h1 className="text-5xl font-black tracking-tighter text-zinc-900 dark:text-white uppercase">
-                    {settings?.storeName || 'مخزوني'}
+                    {settings?.storeName || t('makhzouni')}
                   </h1>
                 </div>
               </motion.div>

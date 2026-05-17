@@ -185,7 +185,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const toggleDarkMode = () => {
     const nextMode = !settings.darkMode;
     updateSettings({ darkMode: nextMode });
-    showToast(nextMode ? 'تم تفعيل الوضع الليلي' : 'تم تفعيل الوضع النهاري', 'info');
+    showToast(nextMode ? i18n.t('night_mode_on') : i18n.t('day_mode_on'), 'info');
   };
 
   const setLanguage = (lang: 'ar' | 'en') => {

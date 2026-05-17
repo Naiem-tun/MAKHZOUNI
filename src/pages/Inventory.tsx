@@ -442,6 +442,7 @@ export default function Inventory() {
       // @ts-ignore - html2pdf might have different default export signature depending on version
       const html2pdfModule = html2pdf.default || html2pdf;
 
+      // @ts-ignore
       await html2pdfModule().set(opt).from(element).save();
 
       // Restore
@@ -479,7 +480,7 @@ export default function Inventory() {
           </div>
 
           <div className="flex justify-between items-center border-b-2 border-[#e0e0e0] pb-4 mb-6 sm:mb-8">
-            <div className="text-[18px] sm:text-[22px] font-bold text-[#021024]">{settings.storeName || (settings.language === 'ar' ? 'متجر حميدة' : 'Hamida Store')}</div>
+            <div className="text-[18px] sm:text-[22px] font-bold text-[#021024]">{settings.storeName || t('makhzouni')}</div>
             <div className="text-[20px] sm:text-[24px] font-bold text-center flex-grow">{t('sales_report')}</div>
             <div className="text-[16px] sm:text-[18px] text-[#555555]" dir="ltr">
               {currentReport.date?.toDate ? currentReport.date.toDate().toLocaleDateString('ar-TN') : (currentReport.date ? new Date(currentReport.date).toLocaleDateString('ar-TN') : '—')}

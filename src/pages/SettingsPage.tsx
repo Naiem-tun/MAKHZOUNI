@@ -224,43 +224,43 @@ function GuideView({ onBack }: { onBack: () => void }) {
   
   const sections = [
     {
-      title: "نظرة عامة على التطبيق",
-      content: "تطبيق 'مخزوني' هو أداة متكاملة لإدارة المحلات التجارية والمخازن. يهدف التطبيق إلى تبسيط عملية تتبع المخزون، المبيعات، المشتريات، والديون في مكان واحد وبشكل ذكي.",
+      title: t('guide_1_title'),
+      content: t('guide_1_content'),
       icon: Home
     },
     {
-      title: "إدارة المنتجات (الكرتونة والقطع)",
-      content: "يمكنك إضافة المنتجات وتحديد ما إذا كنت تشتريها بالقطعة أو بالكرتونة. التطبيق يدعم الباركود (يمكنك إضافة أكثر من باركود لنفس المنتج). عند البيع أو الشراء، يقوم التطبيق تلقائياً بحساب عدد القطع الإجمالي بناءً على 'عدد القطع في الكرتونة'.",
+      title: t('guide_2_title'),
+      content: t('guide_2_content'),
       icon: Package
     },
     {
-      title: "عملية الجرد الذكي",
-      content: "في قسم 'الجرد'، يمكنك إدخال الكميات الفعلية الموجودة في المحل. يدعم التطبيق 'الوضع التفصيلي' الذي يتيح لك إدخال عدد الكراتين والقطع الزائدة (مثلاً: 2 كرتونة + 5 قطع) ليقوم بحساب الإجمالي فوراً. بعد الحفظ، يقوم التطبيق بمقارنة المخزن المسجل مع المدخل وحساب الأرباح.",
+      title: t('guide_3_title'),
+      content: t('guide_3_content'),
       icon: Clipboard
     },
     {
-      title: "الموردون وأداة التفاوض",
-      content: "عند تسجيل مشتريات جديدة من مورد، ستحصل على 'أداة التفاوض' التي تعرض لك تاريخ أسعار هذا المنتج من قبل. هذا يساعدك على معرفة ما إذا كان المورد قد رفع السعر عليك مقارنة بالمرة السابقة أو مقارنة بموردين آخرين.",
+      title: t('guide_4_title'),
+      content: t('guide_4_content'),
       icon: Truck
     },
     {
-      title: "دفتر الديون (الكريدي)",
-      content: "يتيح لك دفتر الديون تسجيل المبالغ التي 'لنا' (على الزبائن) أو 'علينا' (للموردين). يمكنك تسجيل دفعات جزئية وتتبع السجل الكامل لكل شخص بوضوح.",
+      title: t('guide_5_title'),
+      content: t('guide_5_content'),
       icon: Wallet
     },
     {
-      title: "المصاريف اليومية",
-      content: "سجل كل مصاريف المحل (نقل، فاتورة ضوء، كراء...) في قسم المصاريف. هذه البيانات ضرورية ليقوم التطبيق بحساب 'الربح الصافي' الحقيقي بعد خصم تكلفة التشغيل.",
+      title: t('guide_6_title'),
+      content: t('guide_6_content'),
       icon: Coffee
     },
     {
-      title: "التقارير المالية والـ PDF",
-      content: "يوفر قسم التقارير تحليلاً بيانياً للأرباح، الإيرادات، وقيمة السلع الموجودة حالياً. يمكنك تحميل تقرير مفصل بصيغة PDF يتضمن حالة كل منتج والأرباح المحققة.",
+      title: t('guide_7_title'),
+      content: t('guide_7_content'),
       icon: Printer
     },
     {
-      title: "حماية البيانات (التصدير والاستيراد)",
-      content: "بما أن بياناتك تُخزن محلياً وسحابياً، ننصح دائماً بعمل 'تصدير نسخة احتياطية' من الإعدادات بشكل دوري. يمكنك استعادة بياناتك على أي هاتف آخر بمجرد لصق 'كود النسخة الاحتياطية' أو رفع ملف الـ JSON.",
+      title: t('guide_8_title'),
+      content: t('guide_8_content'),
       icon: Database
     }
   ];
@@ -312,9 +312,9 @@ function GuideView({ onBack }: { onBack: () => void }) {
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
         <div className="relative z-10">
           <Zap className="mx-auto mb-4 opacity-50" size={32} />
-          <h4 className="text-xl font-black mb-2">هل تحتاج لمساعدة إضافية؟</h4>
+          <h4 className="text-xl font-black mb-2">{t('guide_help_title')}</h4>
           <p className="text-sm opacity-80 font-medium">
-            نحن هنا لضمان أفضل تجربة لك. يمكنك دائماً مراجعة الأسئلة الشائعة أو التواصل معنا عبر البريد الإلكتروني.
+            {t('guide_help_content')}
           </p>
         </div>
       </div>
@@ -738,8 +738,8 @@ export default function SettingsPage() {
                 onChange={(e) => setTempSettings(prev => ({ ...prev, language: e.target.value as 'ar' | 'en' }))}
                 className="w-full h-12 px-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none text-sm font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center appearance-none cursor-pointer"
               >
-                <option value="ar">العربية</option>
-                <option value="en">English</option>
+                <option value="ar">{t('arabic')}</option>
+                <option value="en">{t('english')}</option>
               </select>
             </div>
           </div>

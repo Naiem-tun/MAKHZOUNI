@@ -63,7 +63,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
       {!showBoxInfo && (
         <div className="absolute inset-0 bg-brand-50 dark:bg-brand-900/20 rounded-2xl flex items-center justify-end px-4 overflow-hidden" dir="ltr">
           <div className="flex flex-col items-end opacity-90 transition-opacity">
-            <span className="text-[10px] font-bold text-brand-600 dark:text-brand-400">نسبة الربح</span>
+            <span className="text-[10px] font-bold text-brand-600 dark:text-brand-400">{t('profit_margin')}</span>
             <span className="text-sm font-black text-brand-700 dark:text-brand-300">
                {formatCurrency(profit, settings.currency, language)}
             </span>

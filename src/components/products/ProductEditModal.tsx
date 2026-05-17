@@ -214,7 +214,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                   <div className="relative">
                     <select 
                       name="category" 
-                      defaultValue={product?.category || "مواد غذائية عامة"} 
+                      defaultValue={product?.category || (categories[0]?.name || "")} 
                       className="w-full appearance-none rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-right font-medium outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white"
                     >
                       {categories.map((c) => (
