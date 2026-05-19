@@ -499,9 +499,19 @@ export default function Inventory() {
         }}
       />
       {/* Header Section */}
-      <div className="text-right pt-2 space-y-1 px-4">
-        <h1 className="text-3xl font-bold text-black dark:text-white leading-tight">{t('jard_monthly')}</h1>
-        <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium">{t('enter_actual_quantity')}</p>
+      <div className="flex items-center justify-between pt-2 px-4 gap-4 min-w-0">
+        <div className="text-right space-y-1 shrink-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-white leading-tight">{t('jard_monthly')}</h1>
+          <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium">{t('enter_actual_quantity')}</p>
+        </div>
+        <button 
+          onClick={handleCompleteInventory} 
+          className="h-11 px-4 shadow-xl shadow-[#4A6FA5]/20 rounded-2xl text-sm font-black bg-[#4A6FA5] text-white flex items-center justify-center gap-2 active:scale-95 transition-all"
+        >
+          <ClipboardCheck size={20} />
+          <span className="hidden sm:inline">{t('save_inventory')}</span>
+          <span className="sm:hidden">{t('save')}</span>
+        </button>
       </div>
 
       <div className="flex justify-start gap-2 px-4">
@@ -715,16 +725,7 @@ export default function Inventory() {
         )}
       </AnimatePresence>
 
-      {/* Save Button */}
-      <div className="fixed bottom-28 left-6 right-6 z-40 flex justify-center max-w-2xl mx-auto">
-        <motion.button 
-          onClick={handleCompleteInventory} 
-          className="w-full py-4 shadow-2xl rounded-2xl text-base font-black bg-[#4A6FA5] dark:bg-[#4A6FA5] text-white flex items-center justify-center gap-3"
-        >
-          <ClipboardCheck size={22} />
-          <span>{t('save_inventory')}</span>
-        </motion.button>
-      </div>
+
 
       <BarcodeScanner 
         isOpen={isScannerOpen}
