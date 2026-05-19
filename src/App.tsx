@@ -328,7 +328,7 @@ function AppContent() {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-4 pt-4 pb-28 mb-safe sm:px-6 lg:px-8 min-h-[500px] relative">
+      <main className="mx-auto max-w-7xl px-4 pt-4 pb-36 mb-safe sm:px-6 lg:px-8 min-h-[500px] relative">
         <Suspense fallback={
           <div className="flex flex-col items-center justify-center p-12 text-zinc-400">
             <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} className="h-8 w-8 rounded-full border-2 border-zinc-200 border-t-brand-500 mb-4" />

@@ -376,7 +376,7 @@ export default function Suppliers() {
       </div>
 
       {/* Total Summary */}
-      <div className="fixed bottom-24 left-0 right-0 z-40 flex justify-center pointer-events-none px-4">
+      <div className="fixed bottom-28 left-0 right-0 z-40 flex justify-center pointer-events-none px-4">
         <motion.div 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

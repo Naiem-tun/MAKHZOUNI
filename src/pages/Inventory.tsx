@@ -716,7 +716,7 @@ export default function Inventory() {
       </AnimatePresence>
 
       {/* Save Button */}
-      <div className="fixed bottom-6 left-6 right-6 z-40 flex justify-center">
+      <div className="fixed bottom-28 left-6 right-6 z-40 flex justify-center max-w-2xl mx-auto">
         <motion.button 
           onClick={handleCompleteInventory} 
           className="w-full py-4 shadow-2xl rounded-2xl text-base font-black bg-[#4A6FA5] dark:bg-[#4A6FA5] text-white flex items-center justify-center gap-3"
