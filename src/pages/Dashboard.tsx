@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Card } from '../components/UI';
-import { cn, formatCurrency, safeParseFloat, safeDispatchEvent } from '../lib/utils';
+import { cn, formatCurrency, safeParseFloat, safeDispatchEvent, safeParseDate, formatAppDate } from '../lib/utils';
 import { Product, Transaction, OperationType } from '../types';
 import { handleFirestoreError } from '../lib/utils';
 
@@ -45,7 +45,8 @@ const Dashboard = memo(() => {
     const groupsMap = new Map<string, any>();
 
     allPurchases.slice(0, 100).forEach((p: any) => {
-      const dateStr = new Date(p.date).toLocaleDateString(settings.language === 'ar' ? 'ar-TN' : 'en-GB');
+      const parsedDate = safeParseDate(p.date);
+      const dateStr = formatAppDate(parsedDate, settings.language, t);
       const supplierName = p.supplierName || t('unknown_supplier');
       const groupKey = `${supplierName}-${dateStr}`;
 
@@ -95,6 +96,8 @@ const Dashboard = memo(() => {
     const unsubPurchases = onSnapshot(purchasesQuery, (snap) => {
       setAllPurchases(snap.docs.map(doc => {
         const data = doc.data();
+        const parsedDate = safeParseDate(data.date);
+        
         return { 
           id: doc.id, 
           productName: data.productName,
@@ -103,9 +106,9 @@ const Dashboard = memo(() => {
           price: data.qtyAdded > 0 ? (data.amount / data.qtyAdded) : 0,
           supplierId: data.supplierId || null,
           supplierName: data.supplierName || null,
-          date: data.date?.toDate ? data.date.toDate() : (data.date || new Date())
+          date: parsedDate
         } as any;
-      }));
+      }).sort((a, b) => b.date.getTime() - a.date.getTime()));
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, purchasesPath);
     });
@@ -148,13 +151,13 @@ const Dashboard = memo(() => {
 
     const totalSupplierPurchasesValue = supplierTransactions.reduce((acc, t) => acc + (t.amount || 0), 0);
 
-    const todayStr = new Date().toDateString();
-    const todayPurchases = allPurchases.filter(p => new Date(p.date).toDateString() === todayStr);
+    const todayStr = safeParseDate(new Date()).toDateString();
+    const todayPurchases = allPurchases.filter(p => safeParseDate(p.date).toDateString() === todayStr);
     const todayPurchasesTotal = todayPurchases.reduce((acc, p) => acc + (p.amount || 0), 0);
 
     // Group purchases by date for movement list
     const dailyMovements = allPurchases.reduce((acc: any, p) => {
-      const dateKey = new Date(p.date).toDateString();
+      const dateKey = safeParseDate(p.date).toDateString();
       if (!acc[dateKey]) acc[dateKey] = 0;
       acc[dateKey] += p.amount || 0;
       return acc;
@@ -284,7 +287,7 @@ const Dashboard = memo(() => {
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-zinc-400 mb-1">
-                      {new Date(day.date).toLocaleDateString(settings.language === 'ar' ? 'ar-TN' : 'en-GB', { day: 'numeric', month: 'short' })}
+                      {formatAppDate(new Date(day.date), settings.language, t, { day: 'numeric', month: 'short' })}
                     </p>
                     <p className="text-sm font-black text-brand-800 dark:text-white font-sans leading-none">
                       {formatPrivateValue(day.total).split(' ')[0]}

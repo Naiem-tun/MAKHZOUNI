@@ -12,6 +12,7 @@ import {
   updateDoc, 
   doc, 
   serverTimestamp,
+  deleteDoc,
   query,
   where,
   getDocs,
@@ -19,36 +20,24 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
-import { cn, safeParseFloat, handleFirestoreError, formatCurrency } from '../lib/utils';
+import { cn, safeParseFloat, handleFirestoreError, formatCurrency, safeParseDate, formatAppDate } from '../lib/utils';
 import { OperationType } from '../types';
 import { ProductPagination } from '../components/products/ProductPagination';
 import { useCategories, categoryIcons } from '../hooks/useCategories';
 import { BarcodeScanner } from '../components/common/BarcodeScanner';
 import { Logo } from '../components/UI';
-import jsPDF from 'jspdf';
-import * as html2pdf from 'html2pdf.js';
+import { InventoryReportView } from '../components/inventory/InventoryReportView';
+import { HistoryModal } from '../components/inventory/HistoryModal';
+import { ExpensesModal } from '../components/inventory/ExpensesModal';
 
+import { InventoryItem } from '../components/inventory/InventoryItem';
 import { useTranslation } from 'react-i18next';
 
-const ProductIcon = ({ category: catName, className }: { category?: string, className?: string }) => {
-  const { categories } = useCategories();
-  const category = categories.find(c => c.name === catName);
-  const iconName = category?.icon || 'Package';
-  const Icon = categoryIcons[iconName] || Package;
 
-  return (
-    <div className={cn(
-      "w-9 h-9 rounded-2xl bg-brand-50 text-brand-600 dark:bg-brand-950/20 border border-brand-100/20 dark:border-brand-900/10 flex items-center justify-center shrink-0 shadow-sm", 
-      className
-    )}>
-      <Icon size={16} />
-    </div>
-  );
-};
 
 export default function Inventory() {
   const { t } = useTranslation();
-  const { settings, showToast } = useAppContext();
+  const { user, settings, showToast } = useAppContext();
   const { categories } = useCategories();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -61,8 +50,14 @@ export default function Inventory() {
     const saved = localStorage.getItem('checked_inventory_products');
     return saved ? JSON.parse(saved) : {};
   });
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<any[]>(() => {
+    if (!user) return [];
+    try {
+      const cached = localStorage.getItem(`products_cache_${user.uid}`);
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
+  const [loading, setLoading] = useState(products.length === 0);
   
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
@@ -139,8 +134,6 @@ export default function Inventory() {
     });
   };
 
-  const user = auth.currentUser;
-
   const fetchCurrentMonthExpenses = async () => {
     if (!user) return;
     setLoadingExpenses(true);
@@ -205,6 +198,7 @@ export default function Inventory() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const prods = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setProducts(prods);
+      localStorage.setItem(`products_cache_${user.uid}`, JSON.stringify(prods));
       setLoading(false);
     }, (error) => {
       console.error("Fetch products failed:", error);
@@ -225,7 +219,7 @@ export default function Inventory() {
     const filtered = products.filter(p => {
       const matchSearch = p.name?.toLowerCase().includes(s) || p.barcode?.includes(s) || p.barcode2?.includes(s);
       const matchCat = categoryFilter === 'all' || p.category === categoryFilter;
-      const matchUninventoried = !showUninventoriedOnly || inventoryData[p.id] === undefined;
+      const matchUninventoried = !showUninventoriedOnly || !checkedProducts[p.id];
       return matchSearch && matchCat && matchUninventoried;
     });
 
@@ -430,7 +424,7 @@ export default function Inventory() {
       });
 
       const storeName = settings.storeName || 'Store';
-      const reportDate = report.date?.toDate ? report.date.toDate().toLocaleDateString('en-GB') : (report.date ? new Date(report.date).toLocaleDateString('en-GB') : '—');
+      const reportDate = safeParseDate(report.date).toLocaleDateString('en-GB');
       const filename = `inventory-${reportDate.replace(/\//g, '-')}.pdf`;
       
       const opt = {
@@ -461,258 +455,49 @@ export default function Inventory() {
   };
 
   if (showReportView && currentReport) {
-    const sortedItems = [...(currentReport.items || [])].sort((a: any, b: any) => (b.salesCalculated || 0) - (a.salesCalculated || 0));
-
     return (
-      <motion.div 
-        id="pdf-report-content"
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="pb-40 min-h-screen bg-white" dir="rtl"
-      >
-        <div className="p-4 sm:p-6 text-black" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, system-ui" }}>
-          
-          <div className="print-hidden mb-6">
-            <button 
-              onClick={() => setShowReportView(false)}
-              className="w-10 h-10 flex items-center justify-center bg-zinc-100 border border-zinc-200 rounded-2xl text-zinc-600"
-            >
-              <ArrowRight size={20} />
-            </button>
-          </div>
-
-          <div className="flex justify-between items-center border-b-2 border-[#e0e0e0] pb-4 mb-6 sm:mb-8">
-            <div className="text-[18px] sm:text-[22px] font-bold text-[#021024]">{settings.storeName || t('makhzouni')}</div>
-            <div className="text-[20px] sm:text-[24px] font-bold text-center flex-grow">{t('sales_report')}</div>
-            <div className="text-[16px] sm:text-[18px] text-[#555555]" dir="ltr">
-              {currentReport.date?.toDate ? currentReport.date.toDate().toLocaleDateString('ar-TN') : (currentReport.date ? new Date(currentReport.date).toLocaleDateString('ar-TN') : '—')}
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 mb-6 sm:mb-8">
-            <div className="flex-1 p-5 rounded-[12px] bg-[#004eff] text-white shadow-sm">
-              <div className="text-[18px] mb-2 opacity-90">{t('total_profits')}</div>
-              <div className="text-[24px] sm:text-[28px] font-bold inline-block" dir="ltr">
-                {formatCurrency(currentReport.totalProfit || 0, settings.currency, settings.language)}
-              </div>
-            </div>
-            <div className="flex-1 p-5 rounded-[12px] bg-[#021024] text-white shadow-sm">
-              <div className="text-[18px] mb-2 opacity-90">{t('total_remaining_value')}</div>
-              <div className="text-[24px] sm:text-[28px] font-bold inline-block" dir="ltr">
-                {formatCurrency(currentReport.totalRemainingValue !== undefined ? currentReport.totalRemainingValue : currentReport.items?.reduce((sum: number, item: any) => sum + (((products.find(p => p.name === item.productName)?.purchasePrice || products.find(p => p.name === item.productName)?.costPrice) || 0) * (item.quantityAfter || 0)), 0) || 0, settings.currency, settings.language)}
-              </div>
-            </div>
-          </div>
-
-          <div className="text-[14px] text-[#666666] mb-3">
-            * {t('sorted_by_sales_desc')}
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-[14px]">
-              <thead>
-                <tr>
-                  <th className="px-3 py-3 text-right border-b border-[#eeeeee] bg-[#e6f0ff] text-[#021024] font-bold text-[16px]">{t('product')}</th>
-                  <th className="px-3 py-3 text-right border-b border-[#eeeeee] bg-[#e6f0ff] text-[#021024] font-bold text-[16px]">{t('sold')}</th>
-                  <th className="px-3 py-3 text-right border-b border-[#eeeeee] bg-[#e6f0ff] text-[#021024] font-bold text-[16px]">{t('profit')}</th>
-                  <th className="px-3 py-3 text-right border-b border-[#eeeeee] bg-[#e6f0ff] text-[#021024] font-bold text-[16px]">{t('remaining_qty')}</th>
-                  <th className="px-3 py-3 text-right border-b border-[#eeeeee] bg-[#e6f0ff] text-[#021024] font-bold text-[16px]">{t('remaining_value')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedItems.map((item: any, i: number) => (
-                  <tr key={i} className="even:bg-[#fafbfc]">
-                    <td className="px-3 py-3 text-right border-b border-[#eeeeee]">{item.productName}</td>
-                    <td className="px-3 py-3 text-right border-b border-[#eeeeee]">{item.salesCalculated}</td>
-                    <td className="px-3 py-3 text-right border-b border-[#eeeeee]" dir="ltr">
-                      <div className="inline-block">{formatCurrency(item.profit || 0, settings.currency, settings.language)}</div>
-                    </td>
-                    <td className="px-3 py-3 text-right border-b border-[#eeeeee]">{item.quantityAfter ?? '—'}</td>
-                    <td className="px-3 py-3 text-right border-b border-[#eeeeee]" dir="ltr">
-                      <div className="inline-block">{formatCurrency(item.remainingValue !== undefined ? item.remainingValue : ((products.find(p => p.name === item.productName)?.purchasePrice || products.find(p => p.name === item.productName)?.costPrice) || 0) * (item.quantityAfter || 0), settings.currency, settings.language)}</div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* PDF Button */}
-        <div className="print-hidden fixed bottom-6 left-6 right-6 z-40">
-          <button 
-            onClick={() => generatePDF(currentReport)}
-            className="w-full py-4 shadow-2xl rounded-2xl text-base font-black bg-[#4A6FA5] text-white flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
-          >
-            <Download size={20} />
-            <span>{t('download_pdf_report')}</span>
-          </button>
-        </div>
-      </motion.div>
+      <InventoryReportView
+        report={currentReport}
+        products={products}
+        onClose={() => setShowReportView(false)}
+      />
     );
   }
 
   return (
     <div className="space-y-6 pb-40 min-h-screen -mx-2 sm:mx-0 relative" dir="rtl">
-      {/* Expenses Modal */}
-      <AnimatePresence>
-        {showExpensesModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowExpensesModal(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden shadow-2xl border border-zinc-100 dark:border-zinc-800"
-            >
-              <div className="p-6 space-y-6">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center text-amber-600">
-                      <Wallet size={20} />
-                    </div>
-                    <h3 className="font-bold text-lg">{t('expenses_month')}</h3>
-                  </div>
-                  <button onClick={() => setShowExpensesModal(false)} className="text-zinc-400 hover:text-zinc-600">
-                    <X size={20} />
-                  </button>
-                </div>
+      <ExpensesModal
+        show={showExpensesModal}
+        onClose={() => setShowExpensesModal(false)}
+        loading={loadingExpenses}
+        amount={expensesAmount}
+        shouldDeduct={shouldDeductExpenses}
+        onToggleDeduct={() => setShouldDeductExpenses(!shouldDeductExpenses)}
+      />
 
-                <div className="space-y-2 text-center py-4 bg-amber-50/30 dark:bg-amber-950/10 rounded-2xl border border-amber-50 dark:border-amber-950/20">
-                  <div className="text-4xl font-black text-zinc-900 dark:text-white">
-                    {loadingExpenses ? "..." : formatCurrency(expensesAmount, settings.currency, settings.language)}
-                  </div>
-                  <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{t('total_expenses_recorded')}</div>
-                </div>
-
-                <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">{t('deduct_from_inventory_profit')}</span>
-                      <span className="text-[10px] text-zinc-400 font-medium leading-tight">{t('deduct_expenses_profit_desc')}</span>
-                    </div>
-                    <button 
-                      onClick={() => setShouldDeductExpenses(!shouldDeductExpenses)}
-                      className={cn(
-                        "w-12 h-6 rounded-full transition-all relative",
-                        shouldDeductExpenses ? "bg-[#B34C36]" : "bg-zinc-300 dark:bg-zinc-700"
-                      )}
-                    >
-                      <motion.div 
-                        animate={{ x: shouldDeductExpenses ? 24 : 4 }}
-                        className="absolute top-1 left-0 w-4 h-4 bg-white rounded-full shadow-sm"
-                      />
-                    </button>
-                  </div>
-                </div>
-                
-                <p className="text-[10px] text-zinc-400 text-center px-4 leading-relaxed font-medium">
-                  {t('expenses_auto_fetched_desc')}
-                </p>
-
-                <button 
-                  onClick={() => setShowExpensesModal(false)}
-                  className="w-full py-4 bg-zinc-900 dark:bg-brand-600 text-white rounded-2xl font-black shadow-lg shadow-zinc-500/20 active:scale-95 transition-all"
-                >
-                  {t('close')}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* History Modal */}
-      <AnimatePresence>
-        {showHistoryModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowHistoryModal(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-lg bg-zinc-50 dark:bg-zinc-900 rounded-2xl overflow-hidden shadow-2xl border border-zinc-100 dark:border-zinc-800"
-            >
-              <div className="p-6 space-y-6 max-h-[85vh] overflow-y-auto">
-                <div className="flex justify-between items-center sticky top-0 bg-inherit pt-2 pb-4 z-10">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center text-blue-600">
-                      <History size={20} />
-                    </div>
-                    <h3 className="font-bold text-lg">{t('inventory_log')}</h3>
-                  </div>
-                  <button onClick={() => setShowHistoryModal(false)} className="text-zinc-400 hover:text-zinc-600">
-                    <X size={20} />
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  {loadingHistory ? (
-                    <div className="py-12 flex flex-col items-center gap-3">
-                      <div className="w-8 h-8 border-2 border-brand-600 border-t-transparent animate-spin rounded-full" />
-                      <span className="text-xs text-zinc-400 font-bold">{t('loading_history')}</span>
-                    </div>
-                  ) : historyReports.length === 0 ? (
-                    <div className="py-12 text-center text-zinc-400 text-xs font-bold">{t('no_inventory_records')}</div>
-                  ) : (
-                    historyReports.map((report) => (
-                      <div 
-                        key={report.id} 
-                        onClick={() => {
-                          setCurrentReport(report);
-                          setShowReportView(true);
-                          setShowHistoryModal(false);
-                        }}
-                        className="p-4 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 space-y-3 cursor-pointer active:scale-[0.98] transition-all hover:border-brand-500/50"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="text-[10px] font-black text-brand-600 uppercase tracking-widest leading-none mb-1">
-                              {report.date?.toDate ? report.date.toDate().toLocaleDateString('ar-TN', { day: 'numeric', month: 'long', year: 'numeric' }) : (report.date ? new Date(report.date).toLocaleDateString('ar-TN', { day: 'numeric', month: 'long', year: 'numeric' }) : '—')}
-                            </div>
-                            <div className="text-[8px] text-zinc-400 font-bold">
-                              {report.date?.toDate ? report.date.toDate().toLocaleTimeString('ar-TN', { hour: '2-digit', minute: '2-digit' }) : (report.date ? new Date(report.date).toLocaleTimeString('ar-TN', { hour: '2-digit', minute: '2-digit' }) : '')}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-xs font-black text-emerald-600">+{formatCurrency(report.netProfit || 0, settings.currency, settings.language)}</div>
-                            <div className="text-[8px] text-zinc-400 font-medium whitespace-nowrap leading-none">{t('net_profit')}</div>
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-50 dark:border-zinc-700/50">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-[9px] text-zinc-400 font-bold">{t('total_sales')}</span>
-                            <span className="text-[11px] font-black">{formatCurrency(report.totalRevenue || 0, settings.currency, settings.language)}</span>
-                          </div>
-                          <div className="flex flex-col gap-0.5 text-right">
-                            <span className="text-[9px] text-zinc-400 font-bold">{t('expenses')}</span>
-                            <span className={cn("text-[11px] font-black", report.totalExpenses > 0 ? "text-amber-600" : "")}>
-                              {formatCurrency(report.totalExpenses || 0, settings.currency, settings.language)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <HistoryModal
+        show={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
+        loading={loadingHistory}
+        reports={historyReports}
+        showConfirm={showConfirm}
+        onSelectReport={(report) => {
+          setCurrentReport(report);
+          setShowReportView(true);
+          setShowHistoryModal(false);
+        }}
+        onDeleteReport={async (reportId) => {
+          if (!user) return;
+          try {
+            await deleteDoc(doc(db, `users/${user.uid}/reports`, reportId));
+            setHistoryReports(prev => prev.filter(r => r.id !== reportId));
+            showToast(t('report_deleted_successfully') || 'Report deleted successfully', 'success');
+          } catch (error) {
+            console.error("Error deleting report", error);
+            showToast(t('error_deleting_report') || 'Error deleting report', 'error');
+          }
+        }}
+      />
       {/* Header Section */}
       <div className="text-right pt-2 space-y-1 px-4">
         <h1 className="text-3xl font-bold text-black dark:text-white leading-tight">{t('jard_monthly')}</h1>
@@ -768,14 +553,14 @@ export default function Inventory() {
       {/* Progress Bar */}
       <div className="space-y-1.5 px-4">
         <div className="flex justify-between items-center text-[9px] font-black text-zinc-400 uppercase tracking-widest">
-          <span className="text-zinc-300 dark:text-zinc-800">{progress}%</span>
+          <span className="text-brand-500">{progress}%</span>
           <span>{t('overall_progress')}</span>
         </div>
-        <div className="h-1 w-full bg-zinc-50 dark:bg-zinc-900 rounded-full overflow-hidden">
+        <div className="h-1.5 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
           <motion.div 
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
-            className="h-full bg-zinc-200 dark:bg-zinc-700" 
+            className="h-full bg-brand-500 rounded-full" 
           />
         </div>
       </div>
@@ -831,103 +616,40 @@ export default function Inventory() {
 
       {/* Product List */}
       <div className="grid grid-cols-1 gap-2 px-2">
-        <AnimatePresence mode="popLayout">
-          {sortedProducts.map((p) => (
-            <motion.div 
-              layout
-              key={p.id} 
-              className={cn(
-                "flex items-center justify-between gap-3 py-2.5 px-3.5 bg-white dark:bg-zinc-900 border rounded-2xl min-h-[70px] transition-all relative",
-                checkedProducts[p.id] ? "opacity-50 grayscale-[0.5]" : "",
-                inventoryData[p.id] !== undefined ? "border-brand-500/20 bg-brand-50/5 shadow-sm" : "border-neutral-100 dark:border-neutral-800"
-              )}
-            >
-              {/* Product Info (Right) */}
-              <div className="flex items-center gap-3 flex-1 min-w-0" onClick={() => toggleChecked(p.id)}>
-                <div className="relative">
-                  <ProductIcon category={p.category} />
-                  {checkedProducts[p.id] && (
-                    <div className="absolute -top-1 -right-1 bg-brand-500 text-white rounded-full p-0.5 shadow-sm">
-                      <Check size={8} strokeWidth={4} />
-                    </div>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1 flex flex-col">
-                  <h3 className="text-[13px] font-medium text-black dark:text-white leading-tight mb-1 truncate">
-                    {p.name || t('product')}
-                  </h3>
-                  <div className="flex items-center gap-1 mb-1.5 opacity-60">
-                    <span className="text-[10px] text-zinc-400 dark:text-zinc-500">{t('stock')}:</span>
-                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold">{p.quantity || 0} {t('piece')}</span>
-                  </div>
-                  {inventoryData[p.id] > 0 && (
-                    <div className="flex items-center gap-1">
-                      <div className="inline-flex items-center gap-1 bg-brand-500 text-white px-2 py-0.5 rounded-full text-[9px] font-black shadow-sm ring-2 ring-white dark:ring-zinc-900">
-
-                        <Check size={8} strokeWidth={4} />
-                        <span className="truncate">{getCountBreakdown(inventoryData[p.id], p.piecesPerBox || 1)}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Controls (Left) */}
-              <div className="flex items-center gap-2 shrink-0 mr-auto">
-                {showDetailedControls && (
-                  <button 
-                    onClick={() => handleAddPiece(p.id)} 
-                    className="w-9 h-9 flex items-center justify-center bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-2xl text-zinc-600 dark:text-zinc-400 active:scale-95 transition-transform shadow-sm"
-                    title={t('add_piece')}
-                  >
-                    <div className="flex flex-col items-center">
-                      <PlusCircle size={14} className="text-brand-500" />
-                      <span className="text-[8px] font-black leading-none mt-0.5">+1</span>
-                    </div>
-                  </button>
-                )}
-
-                {(p.piecesPerBox || 1) > 1 && (
-                  <button 
-                    onClick={() => handleAddCarton(p.id, p.piecesPerBox || 1)} 
-                    className="w-9 h-9 flex items-center justify-center bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-2xl text-zinc-400 active:scale-95 transition-transform"
-                    title={`${t('add_carton')} (${p.piecesPerBox} ${t('piece')})`}
-                  >
-                    <div className="flex flex-col items-center">
-                      <Package size={14} className="mb-0" />
-                      <span className="text-[8px] font-black leading-none mt-0.5">+{(p.piecesPerBox || 1)}</span>
-                    </div>
-                  </button>
-                )}
-
-                <div className="relative">
-                  <input 
-                    type="number" 
-                    inputMode="decimal"
-                    value={inventoryData[p.id] ?? ''}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === '') {
-                        const newInventory = { ...inventoryData };
-                        delete newInventory[p.id];
-                        setInventoryData(newInventory);
-                      } else {
-                        setInventoryData({ ...inventoryData, [p.id]: parseFloat(val) });
-                      }
-                    }}
-                    className="w-16 h-9 text-center text-sm font-black bg-zinc-100/50 dark:bg-zinc-800 border border-zinc-100 dark:border-neutral-800 rounded-2xl outline-none focus:ring-2 focus:ring-brand-500/20 dark:text-white placeholder:text-zinc-300 transition-all font-mono"
-                    placeholder={t('quantity')}
-                  />
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-        
-        {filteredProducts.length === 0 && (
-          <div className="text-center py-20 text-zinc-300 text-sm">
-            {t('no_products_found')}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
+        ) : (
+          <>
+            {sortedProducts.map((p) => (
+              <InventoryItem
+                key={p.id}
+                product={p}
+                inventoryQuantity={inventoryData[p.id]}
+                isChecked={!!checkedProducts[p.id]}
+                showDetailedControls={showDetailedControls}
+                onToggleCheck={toggleChecked}
+                onAddPiece={handleAddPiece}
+                onAddCarton={handleAddCarton}
+                onChangeQuantity={(id, val) => {
+                  if (val === '') {
+                    const newInventory = { ...inventoryData };
+                    delete newInventory[id];
+                    setInventoryData(newInventory);
+                  } else {
+                    setInventoryData({ ...inventoryData, [id]: parseFloat(val) });
+                  }
+                }}
+              />
+            ))}
+            
+            {filteredProducts.length === 0 && (
+              <div className="text-center py-20 text-zinc-300 text-sm">
+                {t('no_products_found')}
+              </div>
+            )}
+          </>
         )}
       </div>
 

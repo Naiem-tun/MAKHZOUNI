@@ -6,7 +6,7 @@ import { db } from '../lib/firebase';
 import { Expense } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Wallet, Plus, Trash2, X, ReceiptText, Calendar, Tag, CheckCheck, Clock } from 'lucide-react';
-import { formatCurrency, cn } from '../lib/utils';
+import { formatCurrency, cn, safeParseDate, formatAppDate } from '../lib/utils';
 
 export default function Expenses() {
   const { t } = useTranslation();
@@ -68,7 +68,7 @@ export default function Expenses() {
 
   const totalThisMonth = expenses.reduce((acc, curr) => {
     if (curr.audited) return acc;
-    const expenseDate = curr.date?.toDate ? curr.date.toDate() : new Date(curr.date);
+    const expenseDate = safeParseDate(curr.date);
     const now = new Date();
     if (expenseDate && expenseDate.getMonth() === now.getMonth() && expenseDate.getFullYear() === now.getFullYear()) {
       return acc + curr.amount;
@@ -186,7 +186,7 @@ export default function Expenses() {
                     <div className="flex items-center gap-2 mt-0.5">
                       <div className="flex items-center gap-1 text-[9px] text-zinc-400 font-bold">
                         <Calendar size={9} />
-                        {expense.date?.toDate ? expense.date.toDate().toLocaleDateString('ar-TN') : '...'}
+                        {formatAppDate(safeParseDate(expense.date), settings.language, t)}
                       </div>
                       {expense.category && (
                         <div className="text-[8px] text-amber-600 font-black bg-amber-50 dark:bg-amber-950/30 px-1.5 py-0.5 rounded-md">

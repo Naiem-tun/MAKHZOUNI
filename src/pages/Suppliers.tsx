@@ -6,7 +6,7 @@ import { db } from '../lib/firebase';
 import { Supplier, SupplierTransaction, Debt, OperationType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Truck, Plus, Phone, Trash2, Edit2, X, RotateCcw, UserPlus, Eye, Receipt, History, CirclePlus, Calendar, Search, Play, Square } from 'lucide-react';
-import { formatCurrency, handleFirestoreError } from '../lib/utils';
+import { formatCurrency, handleFirestoreError, safeParseDate, formatAppDate } from '../lib/utils';
 
 export default function Suppliers() {
   const { t } = useTranslation();
@@ -86,7 +86,7 @@ export default function Suppliers() {
 
       const hasTxForDay = transactions.some(t => {
         if (t.supplierId !== s.id) return false;
-        const txDate = t.date?.toDate ? t.date.toDate() : new Date(t.date);
+        const txDate = safeParseDate(t.date);
         return txDate.toDateString() === targetDate.toDateString();
       });
 
@@ -554,8 +554,8 @@ export default function Suppliers() {
                 {transactions
                   .filter(t => t.supplierId === selectedSupplier.id)
                   .sort((a, b) => {
-                    const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
-                    const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+                    const dateA = safeParseDate(a.date);
+                    const dateB = safeParseDate(b.date);
                     return dateB.getTime() - dateA.getTime();
                   })
                   .map((tx) => (
@@ -567,9 +567,7 @@ export default function Suppliers() {
                         <div>
                           <div className="font-bold text-zinc-900 dark:text-white">{formatCurrency(tx.amount, settings.currency, settings.language)}</div>
                     <div className="text-[10px] text-zinc-400 capitalize">
-                      {tx.date?.toDate 
-                        ? tx.date.toDate().toLocaleDateString(settings.language === 'ar' ? 'ar-TN' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' }) 
-                        : new Date(tx.date).toLocaleDateString(settings.language === 'ar' ? 'ar-TN' : 'en-US')}
+                      {formatAppDate(safeParseDate(tx.date), settings.language, t, { day: 'numeric', month: 'long', year: 'numeric' })}
                     </div>
                           {tx.note && <div className="text-[10px] text-zinc-500 mt-0.5">{tx.note}</div>}
                         </div>

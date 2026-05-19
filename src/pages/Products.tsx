@@ -17,14 +17,16 @@ import {
   Shield,
   X
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { ProductCard } from '../components/products/ProductCard';
 import { ProductPagination } from '../components/products/ProductPagination';
 import { DeleteConfirmationModal } from '../components/products/DeleteConfirmationModal';
 import { AddQuantityModal } from '../components/products/AddQuantityModal';
 import { ProductEditModal } from '../components/products/ProductEditModal';
 import { PriceNegotiationModal } from '../components/products/PriceNegotiationModal';
+import { ProductsHeader } from '../components/products/ProductsHeader';
+import { ProductsFilters } from '../components/products/ProductsFilters';
+import { ProductsList } from '../components/products/ProductsList';
+import { CustomConfirmModal } from '../components/common/CustomConfirmModal';
 import { useCategories } from '../hooks/useCategories';
 
 import { BarcodeScanner } from '../components/common/BarcodeScanner';
@@ -67,6 +69,17 @@ export default function Products() {
   
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
+
+  const [modalConfig, setModalConfig] = useState<{
+    show: boolean;
+    message: string;
+    type: 'alert' | 'confirm';
+    onConfirm?: () => void;
+  }>({ show: false, message: '', type: 'alert' });
+
+  const showConfirm = (message: string, onConfirm: () => void) => {
+    setModalConfig({ show: true, message, type: 'confirm', onConfirm });
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -288,11 +301,11 @@ export default function Products() {
           handleProductChoice(matching[0]);
         }
       } else {
-        if (window.confirm(t('product_not_found_add'))) {
+        showConfirm(t('product_not_found_add') || 'Product not found. Do you want to add it?', () => {
           setScannedBarcode(decodedText);
           setEditingProduct(null);
           setIsModalOpen(true);
-        }
+        });
       }
     } else if (scannerTarget === 'barcode-field') {
       setScannedBarcode(decodedText);
@@ -358,119 +371,43 @@ export default function Products() {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-center justify-between gap-2">
-        <div className="text-right">
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('products')}</h1>
-          <p className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400">{t('products_list_subtitle')}</p>
-        </div>
-        <div>
-          <button 
-            onClick={() => {
-              setEditingProduct(null);
-              setIsModalOpen(true);
-            }}
-            className="flex items-center gap-1.5 rounded-2xl bg-[#4A6FA5] px-3 py-2 sm:px-4 sm:py-2 text-sm font-bold text-white transition-all hover:bg-[#4A6FA5]/90 shadow-lg shadow-[#4A6FA5]/20 active:scale-95 whitespace-nowrap"
-          >
-            <Plus size={16} strokeWidth={3} />
-            {t('add_product')}
-          </button>
-        </div>
-      </header>
+      <ProductsHeader 
+        onAddProduct={() => {
+          setEditingProduct(null);
+          setIsModalOpen(true);
+        }} 
+      />
 
       {/* Search & Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1 group">
-          <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-brand-500 transition-colors">
-            <Search size={20} />
-          </div>
-          <input 
-            type="text" 
-            placeholder={t('search_product_placeholder')}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full rounded-2xl border border-zinc-200 bg-white py-3 pr-12 pl-12 outline-none focus:ring-2 focus:ring-brand-500 transition-all dark:bg-zinc-900 dark:border-zinc-800 dark:text-white"
-          />
-          <div className="absolute inset-y-0 left-2 flex items-center pr-2">
-            <button 
-              type="button"
-              onClick={() => {
-                setScannerTarget('search');
-                setIsScannerOpen(true);
-              }}
-              className="flex h-9 w-9 items-center justify-center rounded-2xl text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-all active:scale-90 dark:text-zinc-500 dark:hover:bg-zinc-800"
-            >
-              <ScanBarcode size={20} />
-            </button>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <div className="relative group">
-            <select 
-              value={stockFilter}
-              onChange={(e) => setStockFilter(e.target.value)}
-              className="appearance-none flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white pr-8 pl-3 py-2 text-sm font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 cursor-pointer min-w-[110px]"
-            >
-              <option value="all">{t('all_stock')}</option>
-              <option value="available">{t('available_stock')}</option>
-              <option value="low">{t('low_stock')}</option>
-              <option value="out">{t('out_of_stock')}</option>
-            </select>
-            <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-zinc-400">
-              <Layers size={16} />
-            </div>
-          </div>
-
-          <div className="relative group">
-            <select 
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="appearance-none flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white pr-8 pl-3 py-2 text-sm font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 cursor-pointer min-w-[130px]"
-            >
-              <option value="all">{t('all_categories')}</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.name}>{t(c.key || c.name)}</option>
-              ))}
-            </select>
-            <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-zinc-400">
-              <Filter size={16} />
-            </div>
-          </div>
-
-          <button
-            onClick={() => setShowBoxInfo(!showBoxInfo)}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-2xl border transition-all text-sm font-bold",
-              showBoxInfo 
-                ? "bg-brand-600 border-brand-700 text-white shadow-lg shadow-brand-500/20 scale-105" 
-                : "bg-white border-zinc-200 text-zinc-500 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-500"
-            )}
-            title={showBoxInfo ? t('price_negotiation_tool') : t('box')}
-          >
-            {showBoxInfo ? <Shield size={18} fill="currentColor" fillOpacity={0.2} /> : <Package size={18} />}
-            <span>{t('box')}</span>
-          </button>
-        </div>
-      </div>
+      <ProductsFilters
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        stockFilter={stockFilter}
+        setStockFilter={setStockFilter}
+        categoryFilter={categoryFilter}
+        setCategoryFilter={setCategoryFilter}
+        showBoxInfo={showBoxInfo}
+        setShowBoxInfo={setShowBoxInfo}
+        categories={categories}
+        onOpenScanner={() => {
+          setScannerTarget('search');
+          setIsScannerOpen(true);
+        }}
+      />
 
       {/* Products List */}
-      <div className="grid grid-cols-1 gap-4">
-        {paginatedProducts.map((p, idx) => (
-          <ProductCard
-            key={p.id}
-            product={p}
-            index={idx}
-            showBoxInfo={showBoxInfo}
-            onEdit={(product) => {
-              setEditingProduct(product);
-              setIsModalOpen(true);
-            }}
-            onAddQuantity={(product) => {
-              setQuantityProduct(product);
-              setIsQuantityModalOpen(true);
-            }}
-          />
-        ))}
-      </div>
+      <ProductsList 
+        products={paginatedProducts} 
+        showBoxInfo={showBoxInfo}
+        onEdit={(product) => {
+          setEditingProduct(product);
+          setIsModalOpen(true);
+        }}
+        onAddQuantity={(product) => {
+          setQuantityProduct(product);
+          setIsQuantityModalOpen(true);
+        }}
+      />
 
       <ProductPagination 
         currentPage={currentPage}
@@ -526,6 +463,15 @@ export default function Products() {
           setIsNegotiationModalOpen(false);
           setNegotiationProducts([]);
         }}
+      />
+
+      {/* Custom Alert/Confirm Modal */}
+      <CustomConfirmModal 
+        show={modalConfig.show}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        onConfirm={modalConfig.onConfirm}
+        onCancel={() => setModalConfig(prev => ({ ...prev, show: false }))}
       />
     </div>
   );

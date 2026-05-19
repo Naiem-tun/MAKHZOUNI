@@ -15,7 +15,7 @@ import {
 import { collection, query, getDocs, orderBy, limit, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
-import { formatCurrency } from '../lib/utils';
+import { formatCurrency, safeParseDate, formatAppDate } from '../lib/utils';
 
 export default function Analytics() {
   const { t } = useTranslation();
@@ -75,7 +75,7 @@ export default function Analytics() {
     const groups: Record<string, { date: Date, total: number }> = {};
     
     purchases.forEach(p => {
-      const date = p.date?.toDate ? p.date.toDate() : new Date();
+      const date = safeParseDate(p.date);
       const dateKey = date.toLocaleDateString('en-GB'); // Use DD/MM/YYYY for consistent keying
       
       if (!groups[dateKey]) {
@@ -146,7 +146,7 @@ export default function Analytics() {
 
   // 4. Chart Data (Analysis of Profit/Revenue/Expenses)
   const chartData = inventoryReports.slice().reverse().map((report, i) => ({
-    name: report.date?.toDate ? report.date.toDate().toLocaleDateString('ar-TN', { day: 'numeric', month: 'short' }) : `Day ${i+1}`,
+    name: formatAppDate(safeParseDate(report.date), 'ar', t, { day: 'numeric', month: 'short' }),
     revenues: Number((report.totalRevenue || 0).toFixed(3)),
     profit: Number((report.netProfit || 0).toFixed(3)),
     expenses: Number((report.totalExpenses || 0).toFixed(3)),
