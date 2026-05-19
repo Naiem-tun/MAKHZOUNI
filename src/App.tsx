@@ -8,7 +8,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import { AppProvider, useAppContext } from './AppContext';
 import { Logo } from './components/UI';
 import { useTranslation } from 'react-i18next';
@@ -50,16 +50,18 @@ import { db } from './lib/firebase';
 import { handleFirestoreError, safeDispatchEvent } from './lib/utils';
 import { OperationType, Supplier } from './types';
 
-// Pages
+// Fast/Core Pages (Static Import)
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
+import ShoppingList from './pages/ShoppingList';
+import Expenses from './pages/Expenses';
+import Inventory from './pages/Inventory';
 import Suppliers from './pages/Suppliers';
 import Debts from './pages/Debts';
-import Inventory from './pages/Inventory';
-import SettingsPage from './pages/SettingsPage';
-import Analytics from './pages/Analytics';
-import Expenses from './pages/Expenses';
-import ShoppingList from './pages/ShoppingList';
+
+// Heavy Pages (Lazy loaded)
+const Analytics = lazy(() => import('./pages/Analytics'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 function AppContent() {
   const { user, loading, isOffline, isDataLoaded, settings, toggleDarkMode, setLanguage, updateSettings, activeSupplier, setActiveSupplier } = useAppContext();
@@ -348,26 +350,33 @@ function AppContent() {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            {activeTab === 'dashboard' && <Dashboard />}
-            {activeTab === 'products' && <Products />}
-            {activeTab === 'suppliers' && <Suppliers />}
-            {activeTab === 'debts' && <Debts />}
-            {activeTab === 'inventory' && <Inventory />}
-            {activeTab === 'reports' && <Analytics />}
-            {activeTab === 'expenses' && <Expenses />}
-            {activeTab === 'shopping-list' && <ShoppingList />}
-            {activeTab === 'settings' && <SettingsPage />}
-          </motion.div>
-        </AnimatePresence>
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 min-h-[500px] relative">
+        <Suspense fallback={
+          <div className="flex flex-col items-center justify-center p-12 text-zinc-400">
+            <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} className="h-8 w-8 rounded-full border-2 border-zinc-200 border-t-brand-500 mb-4" />
+            <span className="text-sm font-medium">{t('loading')}</span>
+          </div>
+        }>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {activeTab === 'dashboard' && <Dashboard />}
+              {activeTab === 'products' && <Products />}
+              {activeTab === 'suppliers' && <Suppliers />}
+              {activeTab === 'debts' && <Debts />}
+              {activeTab === 'inventory' && <Inventory />}
+              {activeTab === 'reports' && <Analytics />}
+              {activeTab === 'expenses' && <Expenses />}
+              {activeTab === 'shopping-list' && <ShoppingList />}
+              {activeTab === 'settings' && <SettingsPage />}
+            </motion.div>
+          </AnimatePresence>
+        </Suspense>
       </main>
 
       {/* Floating Action Buttons Unified (Matches Dashboard screenshot style) */}
