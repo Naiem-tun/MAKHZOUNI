@@ -130,22 +130,24 @@ export default function Suppliers() {
       data.transactionCount = 0;
     }
 
-    try {
-      if (editingSupplier) {
-        await updateDoc(doc(db, `users/${user.uid}/suppliers`, editingSupplier.id!), data);
-        showToast(t('supplier_updated_success'));
-      } else {
-        await addDoc(collection(db, `users/${user.uid}/suppliers`), data);
-        showToast(t('supplier_added_success'));
-      }
-      setIsModalOpen(false);
-      setEditingSupplier(null);
-    } catch (err) {
-      console.error("Failed to save supplier:", err);
-      handleFirestoreError(err, editingSupplier ? OperationType.UPDATE : OperationType.CREATE, `users/${user.uid}/suppliers`);
-    } finally {
-      setIsSaving(false);
+    setIsModalOpen(false);
+
+    if (editingSupplier) {
+      showToast(t('supplier_updated_success'));
+      updateDoc(doc(db, `users/${user.uid}/suppliers`, editingSupplier.id!), data).catch(err => {
+        console.error("Failed to update supplier:", err);
+        handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/suppliers/${editingSupplier.id}`);
+      });
+    } else {
+      showToast(t('supplier_added_success'));
+      addDoc(collection(db, `users/${user.uid}/suppliers`), data).catch(err => {
+        console.error("Failed to append supplier:", err);
+        handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}/suppliers`);
+      });
     }
+    
+    setEditingSupplier(null);
+    setIsSaving(false);
   };
 
   const handleDeleteSupplier = async () => {
@@ -202,15 +204,14 @@ export default function Suppliers() {
       updatedAt: serverTimestamp(),
     };
 
-    try {
-      await addDoc(collection(db, `users/${user.uid}/supplierTransactions`), data);
-      showToast(t('supplier_transaction_added_success'));
-      setIsAddTxModalOpen(false);
-    } catch (err) {
+    setIsAddTxModalOpen(false);
+    showToast(t('supplier_transaction_added_success'));
+    
+    addDoc(collection(db, `users/${user.uid}/supplierTransactions`), data).catch(err => {
       handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}/supplierTransactions`);
-    } finally {
+    }).finally(() => {
       setIsSaving(false);
-    }
+    });
   };
 
   const [deleteTxConfirmId, setDeleteTxConfirmId] = useState<string | null>(null);

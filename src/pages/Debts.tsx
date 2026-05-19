@@ -60,22 +60,24 @@ export default function Debts() {
       updatedAt: serverTimestamp(),
     };
 
-    try {
-      if (editingDebt) {
-        await updateDoc(doc(db, `users/${user.uid}/debts`, editingDebt.id!), data);
-        showToast(t('debt_updated_success'));
-      } else {
-        await addDoc(collection(db, `users/${user.uid}/debts`), data);
-        showToast(t('debt_added_success'));
-      }
-      setIsModalOpen(false);
-      setEditingDebt(null);
-    } catch (err) {
-      console.error("Failed to save debt:", err);
-      handleFirestoreError(err, editingDebt ? OperationType.UPDATE : OperationType.CREATE, `users/${user.uid}/debts`);
-    } finally {
-      setIsSaving(false);
+    setIsModalOpen(false);
+    
+    if (editingDebt) {
+      showToast(t('debt_updated_success'));
+      updateDoc(doc(db, `users/${user.uid}/debts`, editingDebt.id!), data).catch((err) => {
+        console.error("Failed to update debt:", err);
+        handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/debts`);
+      });
+    } else {
+      showToast(t('debt_added_success'));
+      addDoc(collection(db, `users/${user.uid}/debts`), data).catch((err) => {
+        console.error("Failed to save debt:", err);
+        handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}/debts`);
+      });
     }
+    
+    setEditingDebt(null);
+    setIsSaving(false);
   };
 
   const addPayment = (debt: Debt, amount: number) => {

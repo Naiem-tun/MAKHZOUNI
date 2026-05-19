@@ -27,36 +27,32 @@ export const CategoriesManager = ({ onBack }: { onBack: () => void }) => {
 
   const SelectedIconComp = categoryIcons[selectedIcon] || Package;
 
-  const handleAddCategory = async () => {
+  const handleAddCategory = () => {
     if (!user || !newCatName.trim()) return;
-    setIsAdding(true);
-    try {
-      await addDoc(collection(db, `users/${user.uid}/categories`), {
-        name: newCatName.trim(),
-        icon: selectedIcon,
-        createdAt: serverTimestamp()
-      });
-      setNewCatName('');
-      setSelectedIcon('Package');
-    } catch (err) {
+    
+    const name = newCatName.trim();
+    const icon = selectedIcon;
+    setNewCatName('');
+    setSelectedIcon('Package');
+
+    addDoc(collection(db, `users/${user.uid}/categories`), {
+      name,
+      icon,
+      createdAt: serverTimestamp()
+    }).catch(err => {
       handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}/categories`);
-    } finally {
-      setIsAdding(false);
-    }
+    });
   };
 
-  const handleDeleteCategory = async (id: string) => {
+  const handleDeleteCategory = (id: string) => {
     if (!user) return;
-    try {
-      if (id.startsWith('default_')) {
-        await updateSettings({ deletedCategories: [...(settings.deletedCategories || []), id] });
-      } else {
-        await deleteDoc(doc(db, `users/${user.uid}/categories`, id));
-      }
-    } catch (err) {
-      if (!id.startsWith('default_')) {
+    
+    if (id.startsWith('default_')) {
+      updateSettings({ deletedCategories: [...(settings.deletedCategories || []), id] });
+    } else {
+      deleteDoc(doc(db, `users/${user.uid}/categories`, id)).catch(err => {
         handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/categories/${id}`);
-      }
+      });
     }
   };
 

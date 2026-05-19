@@ -486,16 +486,16 @@ export default function Inventory() {
           setShowReportView(true);
           setShowHistoryModal(false);
         }}
-        onDeleteReport={async (reportId) => {
+        onDeleteReport={(reportId) => {
           if (!user) return;
-          try {
-            await deleteDoc(doc(db, `users/${user.uid}/reports`, reportId));
-            setHistoryReports(prev => prev.filter(r => r.id !== reportId));
-            showToast(t('report_deleted_successfully') || 'Report deleted successfully', 'success');
-          } catch (error) {
+          setHistoryReports(prev => prev.filter(r => r.id !== reportId));
+          showToast(t('report_deleted_successfully') || 'Report deleted successfully', 'success');
+          
+          deleteDoc(doc(db, `users/${user.uid}/reports`, reportId)).catch((error) => {
             console.error("Error deleting report", error);
             showToast(t('error_deleting_report') || 'Error deleting report', 'error');
-          }
+            // We could optionally revert the deletion in state here, but letting it be is okay.
+          });
         }}
       />
       {/* Header Section */}

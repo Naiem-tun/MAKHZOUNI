@@ -9,8 +9,9 @@ import {
   Wallet, 
   Plus, 
   ScanBarcode,
-  Users,
   Truck,
+  Store,
+  CreditCard,
   ChevronDown,
   ChevronUp,
   History,
@@ -20,7 +21,8 @@ import {
   Sun,
   Moon,
   Clock,
-  Coins
+  ArrowDownToLine,
+  ArrowUpFromLine
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Card } from '../components/UI';
@@ -248,9 +250,9 @@ const Dashboard = memo(() => {
         {/* SECTION 2: FINANCIAL SUMMARY (COMPACT GRID) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: t('customer_debts'), value: stats.totalCustomerDebts, color: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400', icon: Users },
-            { label: t('supplier_debts'), value: stats.totalSupplierDebts, color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400', icon: Truck },
-            { label: t('expenses'), value: stats.totalExpenses, color: 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400', icon: Coins },
+            { label: t('customer_debts'), value: stats.totalCustomerDebts, color: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400', icon: CreditCard },
+            { label: t('supplier_debts'), value: stats.totalSupplierDebts, color: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400', icon: Truck },
+            { label: t('expenses'), value: stats.totalExpenses, color: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400', icon: Wallet },
             { label: t('total_supplier_purchases'), value: stats.totalSupplierPurchasesValue, color: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400', icon: ShoppingCart },
           ].map((item, idx) => (
             <div key={idx} className="bg-white dark:bg-zinc-800/80 rounded-[24px] p-5 border border-zinc-100/80 dark:border-zinc-700/50 shadow-sm relative overflow-hidden group hover:translate-y-[-2px] hover:shadow-md transition-all flex flex-col items-start">
@@ -315,7 +317,7 @@ const Dashboard = memo(() => {
                 <div className="flex items-center justify-between px-2">
                   <div className="flex items-center gap-2">
                     <div className="h-7 w-7 rounded-full bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-brand-600 dark:text-brand-400">
-                      <Truck size={12} />
+                      <Store size={12} />
                     </div>
                     <span className="text-sm font-bold text-brand-800 dark:text-brand-400">
                       {group.supplierName || t('unknown_supplier')}

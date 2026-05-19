@@ -72,7 +72,10 @@ export default function SettingsPage() {
 
   const handleClearAllData = async () => {
     if (!user) return;
+    setIsClearDataModalOpen(false); // Close first so UI is unblocked
+    setStatus({ type: 'success', msg: t('clear_data_success') }); // Optimistically show success
     setIsClearing(true);
+    
     try {
       const colNames = [
         'products', 
@@ -97,8 +100,6 @@ export default function SettingsPage() {
             await batch.commit();
         }
       }
-      setIsClearDataModalOpen(false);
-      setStatus({ type: 'success', msg: t('clear_data_success') });
       
       // Also clear settings locally
       await updateSettings({ deletedCategories: [] });

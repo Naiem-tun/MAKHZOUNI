@@ -134,32 +134,31 @@ export default function ShoppingList() {
     }
   };
 
-  const addItem = async (textToUse?: string) => {
+  const addItem = (textToUse?: string) => {
     const finalItemText = typeof textToUse === 'string' ? textToUse : inputText;
     if (!user || !finalItemText.trim()) return;
 
-    try {
-      const path = `users/${user.uid}/smart_list`;
-      await addDoc(collection(db, path), {
-        text: finalItemText.trim(),
-        type: activeTab === 'products' ? 'product' : 'note',
-        createdAt: serverTimestamp()
-      });
-      setInputText('');
-      setSuggestions([]);
-    } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}/smart_list`);
-    }
+    const path = `users/${user.uid}/smart_list`;
+    const data = {
+      text: finalItemText.trim(),
+      type: activeTab === 'products' ? 'product' : 'note',
+      createdAt: serverTimestamp()
+    };
+    
+    setInputText('');
+    setSuggestions([]);
+
+    addDoc(collection(db, path), data).catch(err => {
+      handleFirestoreError(err, OperationType.WRITE, path);
+    });
   };
 
-  const deleteItem = async (id: string) => {
+  const deleteItem = (id: string) => {
     if (!user) return;
-    try {
-      const itemRef = doc(db, `users/${user.uid}/smart_list`, id);
-      await deleteDoc(itemRef);
-    } catch (err) {
+    const itemRef = doc(db, `users/${user.uid}/smart_list`, id);
+    deleteDoc(itemRef).catch(err => {
       handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/smart_list`);
-    }
+    });
   };
 
   const listToDisplay = activeTab === 'products' ? items.filter(i => i.type === 'product') : items.filter(i => i.type === 'note');
