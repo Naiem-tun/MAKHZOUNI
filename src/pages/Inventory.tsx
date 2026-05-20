@@ -98,6 +98,14 @@ export default function Inventory() {
     localStorage.setItem('detailed_inventory_mode', String(showDetailedControls));
   }, [showDetailedControls]);
 
+  useEffect(() => {
+    const scannerHandler = () => {
+      setIsScannerOpen(true);
+    };
+    window.addEventListener('open-barcode-scanner', scannerHandler);
+    return () => window.removeEventListener('open-barcode-scanner', scannerHandler);
+  }, []);
+
   const handleScan = (decodedText: string) => {
     setIsScannerOpen(false);
     

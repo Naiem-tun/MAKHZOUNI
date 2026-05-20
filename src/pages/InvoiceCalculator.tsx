@@ -6,12 +6,18 @@ import {
   Trash2, 
   Plus, 
   Search,
-  ChevronDown
+  ChevronDown,
+  Copy,
+  CheckCheck,
+  MessageCircle,
+  RotateCcw
 } from 'lucide-react';
 import { useAppContext } from '../AppContext';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Product } from '../types';
+
+import { BarcodeScanner } from '../components/common/BarcodeScanner';
 
 interface InvoiceItem {
   id: string; // unique instance ID
@@ -23,7 +29,7 @@ interface InvoiceItem {
 
 export default function InvoiceCalculator() {
   const { t } = useTranslation();
-  const { user } = useAppContext();
+  const { user, showToast } = useAppContext();
   
   const [products, setProducts] = useState<Product[]>(() => {
     if (!user) return [];
@@ -49,6 +55,16 @@ export default function InvoiceCalculator() {
   const [inputText, setInputText] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [items, setItems] = useState<InvoiceItem[]>([]);
+  const [isCopied, setIsCopied] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  useEffect(() => {
+    const scannerHandler = () => {
+      setIsScannerOpen(true);
+    };
+    window.addEventListener('open-barcode-scanner', scannerHandler);
+    return () => window.removeEventListener('open-barcode-scanner', scannerHandler);
+  }, []);
 
   useEffect(() => {
     if (inputText.trim().length > 1) {
@@ -80,6 +96,10 @@ export default function InvoiceCalculator() {
     setItems(items.filter(item => item.id !== id));
   };
 
+  const clearAll = () => {
+    setItems([]);
+  };
+
   const updateItem = (id: string, field: 'price' | 'quantity', value: number) => {
     setItems(items.map(item => {
       if (item.id === id) {
@@ -93,17 +113,70 @@ export default function InvoiceCalculator() {
     return items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   };
 
+  const generateInvoiceText = () => {
+    let text = `*فاتورة مشتريات*\n\n`;
+    items.forEach((item, index) => {
+      text += `${index + 1}. *${item.name}*\n`;
+      text += `الكمية: ${item.quantity} | السعر: ${item.price.toFixed(3)}\n`;
+      text += `المجموع: ${(item.price * item.quantity).toFixed(3)} د.ت\n`;
+      text += `-----------------\n`;
+    });
+    text += `\n*المجموع الكلي: ${calculateTotal().toFixed(3)} د.ت*`;
+    return text;
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(generateInvoiceText());
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
+
+  const handleWhatsApp = () => {
+    const text = encodeURIComponent(generateInvoiceText());
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  };
+
+  const handleScan = (decodedText: string) => {
+    setIsScannerOpen(false);
+    
+    // Find product matching the scanned barcode
+    const matchedProduct = products.find(p => p.barcode === decodedText || p.barcode2 === decodedText);
+    
+    if (matchedProduct) {
+      addItem(matchedProduct);
+      showToast('تمت إضافة المنتج بنجاح');
+    } else {
+      showToast('المنتج غير موجود في قائمة المنتجات');
+    }
+  };
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-32 pt-6 px-4" dir="rtl">
+    <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6 pb-24 pt-4 sm:pt-6 px-2 sm:px-4" dir="rtl">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <div className="h-12 w-12 rounded-2xl bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center text-brand-600 dark:text-brand-400">
-          <Calculator size={24} />
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-12 rounded-2xl bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center text-brand-600 dark:text-brand-400">
+            <Calculator size={24} />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-1">{t('invoice_calculator')}</h1>
+            <p className="text-xs text-zinc-500 font-medium">{t('invoice_desc')}</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-1">{t('invoice_calculator')}</h1>
-          <p className="text-xs text-zinc-500 font-medium">{t('invoice_desc')}</p>
-        </div>
+        
+        {items.length > 0 && (
+          <button
+            onClick={clearAll}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors dark:bg-red-500/10 dark:hover:bg-red-500/20"
+          >
+            <RotateCcw size={16} />
+            <span className="hidden sm:inline">مسح الكل</span>
+          </button>
+        )}
       </div>
 
       {/* Input Section */}
@@ -166,34 +239,34 @@ export default function InvoiceCalculator() {
                 <h3 className="font-bold text-lg text-zinc-900 dark:text-white">{item.name}</h3>
               </div>
               
-              <div className="p-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4 flex-1">
+              <div className="p-3 sm:p-4 flex items-center justify-between gap-2 sm:gap-4">
+                <div className="flex items-center gap-2 sm:gap-4 flex-1">
                   {/* Price */}
-                  <div className="w-24">
-                    <label className="block text-[10px] font-bold text-zinc-400 mb-1">{t('purchase_price')}</label>
+                  <div className="flex-[1.2]">
+                    <label className="block text-[10px] sm:text-xs font-bold text-zinc-400 mb-1 truncate">{t('purchase_price')}</label>
                     <input
                       type="number"
                       value={item.price || ''}
                       onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value) || 0)}
-                      className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-xl py-2 px-3 text-sm font-bold text-zinc-900 dark:text-white text-center focus:ring-2 focus:ring-brand-500"
+                      className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-xl py-2 px-1 sm:px-3 text-sm sm:text-base font-bold text-zinc-900 dark:text-white text-center focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
 
                   {/* Quantity */}
-                  <div className="w-20">
-                    <label className="block text-[10px] font-bold text-zinc-400 mb-1">{t('quantity')} ({t('box')})</label>
+                  <div className="flex-1">
+                    <label className="block text-[10px] sm:text-xs font-bold text-zinc-400 mb-1 truncate">{t('quantity')} ({t('box')})</label>
                     <input
                       type="number"
                       value={item.quantity || ''}
                       onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 0)}
-                      className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-xl py-2 px-3 text-sm font-bold text-zinc-900 dark:text-white text-center focus:ring-2 focus:ring-brand-500"
+                      className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-xl py-2 px-1 sm:px-3 text-sm sm:text-base font-bold text-zinc-900 dark:text-white text-center focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
 
                   {/* Total */}
-                  <div className="px-2 flex-1 text-left">
-                    <label className="block text-[10px] font-bold text-zinc-400 mb-1">المجموع</label>
-                    <div className="text-base font-black text-brand-600 dark:text-brand-400">
+                  <div className="flex-[1.2] text-left pl-1 sm:pl-2">
+                    <label className="block text-[10px] sm:text-xs font-bold text-zinc-400 mb-1 truncate">المجموع</label>
+                    <div className="text-sm sm:text-base font-black text-brand-600 dark:text-brand-400 truncate">
                       {(item.price * item.quantity).toFixed(3)}
                     </div>
                   </div>
@@ -219,27 +292,52 @@ export default function InvoiceCalculator() {
         )}
       </div>
 
-      {/* Floating Total */}
+      {/* Total Card */}
       <AnimatePresence>
         {items.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-28 left-4 right-4 max-w-2xl mx-auto z-40 block"
+            className="mt-6 block"
           >
-            <div className="bg-brand-600 text-white rounded-2xl p-5 shadow-2xl flex items-center justify-between border-2 border-brand-500/50 backdrop-blur-xl">
-              <div>
-                <span className="block text-brand-200 text-sm font-bold mb-1">المجموع الكلي</span>
-                <span className="text-xs text-brand-300 opacity-80">{items.length} منتجات مضافة</span>
+            <div className="bg-brand-600 text-white rounded-2xl p-4 shadow-2xl flex flex-col gap-3 border-2 border-brand-500/50 backdrop-blur-xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="block text-brand-200 text-sm font-bold mb-1">المجموع الكلي</span>
+                  <span className="text-xs text-brand-300 opacity-80">{items.length} منتجات مضافة</span>
+                </div>
+                <div className="text-3xl font-black">
+                  {calculateTotal().toFixed(3)} <span className="text-lg text-brand-200 ml-1">د.ت</span>
+                </div>
               </div>
-              <div className="text-3xl font-black">
-                {calculateTotal().toFixed(3)} <span className="text-lg text-brand-200 ml-1">د.ت</span>
+              
+              <div className="flex items-center gap-2 pt-2 border-t border-brand-500/30">
+                <button
+                  onClick={handleCopy}
+                  className="flex-1 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 active:bg-white/30 py-2.5 rounded-xl transition-colors font-bold text-sm"
+                >
+                  {isCopied ? <CheckCheck size={18} /> : <Copy size={18} />}
+                  <span>{isCopied ? 'تم النسخ' : 'نسخ الفاتورة'}</span>
+                </button>
+                <button
+                  onClick={handleWhatsApp}
+                  className="flex-1 flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] active:bg-[#1da851] py-2.5 rounded-xl transition-colors font-bold text-sm"
+                >
+                  <MessageCircle size={18} />
+                  <span>شارك عبر واتساب</span>
+                </button>
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      <BarcodeScanner 
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScan={handleScan}
+      />
     </div>
   );
 }

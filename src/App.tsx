@@ -148,11 +148,13 @@ function AppContent() {
     }
   };
 
+  const isScannerTab = activeTab === 'products' || activeTab === 'invoice-calculator' || activeTab === 'inventory';
+
   const handleScannerClick = () => {
-    if (activeTab === 'products') {
+    if (isScannerTab) {
       safeDispatchEvent('open-barcode-scanner');
     } else {
-      setIsScannerOpen(true);
+      setActiveTab('invoice-calculator');
     }
   };
 
@@ -370,7 +372,7 @@ function AppContent() {
             className="flex-shrink-0 w-14 h-14 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-[20px] shadow-sm flex items-center justify-center relative active:scale-95 transition-all"
             aria-label={t('scan_barcode') || 'Scan Barcode'}
           >
-            <ScanBarcode size={24} />
+            {isScannerTab ? <ScanBarcode size={24} /> : <Calculator size={24} />}
           </button>
 
           {/* Scrollable Tabs */}
