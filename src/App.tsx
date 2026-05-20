@@ -38,6 +38,7 @@ import {
   WifiOff,
   UserCheck,
   Play,
+  Calculator,
   Square
 } from 'lucide-react';
 import { signInWithGoogle, auth } from './lib/firebase';
@@ -58,6 +59,7 @@ import Expenses from './pages/Expenses';
 import Inventory from './pages/Inventory';
 import Suppliers from './pages/Suppliers';
 import Debts from './pages/Debts';
+import InvoiceCalculator from './pages/InvoiceCalculator';
 
 // Heavy Pages (Lazy loaded)
 const Analytics = lazy(() => import('./pages/Analytics'));
@@ -126,6 +128,7 @@ function AppContent() {
     { id: 'reports', label: t('reports'), icon: BarChart3 },
     { id: 'expenses', label: t('expenses'), icon: Wallet },
     { id: 'shopping-list', label: t('shopping_list'), icon: ShoppingCart },
+    { id: 'invoice-calculator', label: t('invoice_calculator'), icon: Calculator },
     { id: 'settings', label: t('settings'), icon: Settings },
   ];
 
@@ -351,6 +354,7 @@ function AppContent() {
               {activeTab === 'reports' && <Analytics />}
               {activeTab === 'expenses' && <Expenses />}
               {activeTab === 'shopping-list' && <ShoppingList />}
+              {activeTab === 'invoice-calculator' && <InvoiceCalculator />}
               {activeTab === 'settings' && <SettingsPage />}
             </motion.div>
           </AnimatePresence>
