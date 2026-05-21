@@ -16,7 +16,7 @@ interface InventoryItemProps {
   onChangeQuantity: (id: string, val: string) => void;
 }
 
-export const InventoryItem: React.FC<InventoryItemProps> = ({
+export const InventoryItem = React.memo(({
   product,
   inventoryQuantity,
   isChecked,
@@ -25,7 +25,7 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({
   onAddPiece,
   onAddCarton,
   onChangeQuantity,
-}) => {
+}: InventoryItemProps) => {
   const { t } = useTranslation();
 
   const getCountBreakdown = (total: number, piecesPerBox: number) => {
@@ -120,4 +120,4 @@ export const InventoryItem: React.FC<InventoryItemProps> = ({
       </div>
     </motion.div>
   );
-}
+});

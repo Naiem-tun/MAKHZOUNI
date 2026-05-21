@@ -120,9 +120,53 @@ export default function SettingsPage() {
   const [tempSettings, setTempSettings] = useState({
     storeName: settings.storeName || 'H.STORE',
     currency: settings.currency || 'د.ت',
-    language: settings.language || 'ar'
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleGenerateMockData = async () => {
+    if (!user) return;
+    setIsGenerating(true);
+    setStatus({ type: 'info', msg: 'جاري إنشاء 1000 منتج للاختبار...' });
+    
+    try {
+      let currentBatch = writeBatch(db);
+      let count = 0;
+      const productsRef = collection(db, `users/${user.uid}/products`);
+      
+      for (let i = 1; i <= 1000; i++) {
+        const newDocRef = doc(productsRef);
+        currentBatch.set(newDocRef, {
+          name: `منتج تجريبي ${i}`,
+          category: '',
+          quantity: Math.floor(Math.random() * 100) + 1,
+          minQuantity: 5,
+          purchasePrice: Math.floor(Math.random() * 50) + 10,
+          sellingPrice: Math.floor(Math.random() * 100) + 60,
+          barcode: `1000000${i}`,
+          updatedAt: serverTimestamp()
+        });
+        
+        count++;
+        if (count === 400) {
+          await currentBatch.commit();
+          currentBatch = writeBatch(db);
+          count = 0;
+        }
+      }
+      if (count > 0) {
+        await currentBatch.commit();
+      }
+      
+      setStatus({ type: 'success', msg: 'تم إنشاء 1000 منتج بنجاح!' });
+    } catch (e) {
+      console.error('Mock data error:', e);
+      setStatus({ type: 'error', msg: 'حدث خطأ أثناء الإنشاء' });
+    } finally {
+      setIsGenerating(false);
+      setTimeout(() => setStatus(null), 3000);
+    }
+  };
 
   const handleSaveStoreSettings = async () => {
     setIsSaving(true);
@@ -208,29 +252,15 @@ export default function SettingsPage() {
                 placeholder={t('store_name_placeholder')}
                 className="w-full h-12 px-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none text-sm font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center"
               />
-            </div>
-
-            <div className="space-y-1.5">
+            </div>            <div className="space-y-1.5">
               <label className="text-[11px] font-bold text-zinc-500 mr-2">{t('currency')}</label>
               <input 
-                type="text"
+                type="text" 
                 value={tempSettings.currency}
                 onChange={(e) => setTempSettings(prev => ({ ...prev, currency: e.target.value }))}
                 placeholder={t('currency_placeholder')}
                 className="w-full h-12 px-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none text-sm font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center"
               />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-zinc-500 mr-2">{t('lang')}</label>
-              <select 
-                value={tempSettings.language}
-                onChange={(e) => setTempSettings(prev => ({ ...prev, language: e.target.value as 'ar' | 'en' }))}
-                className="w-full h-12 px-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none text-sm font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center appearance-none cursor-pointer"
-              >
-                <option value="ar">{t('arabic')}</option>
-                <option value="en">{t('english')}</option>
-              </select>
             </div>
           </div>
 
@@ -387,6 +417,23 @@ export default function SettingsPage() {
             <ChevronLeft className="text-zinc-400 group-hover:text-brand-500 transition-transform group-hover:-translate-x-1" />
           </button>
         ))}
+
+        {/* Developer Tool: Generate Mock data */}
+        <button 
+          onClick={handleGenerateMockData}
+          disabled={isGenerating}
+          className="w-full flex items-center justify-between p-6 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-bold transition-all active:scale-95 disabled:opacity-50"
+        >
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-white dark:bg-zinc-700 flex items-center justify-center">
+              {isGenerating ? <div className="h-5 w-5 border-2 border-zinc-900 dark:border-white border-t-transparent rounded-full animate-spin" /> : <Database size={24} />}
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-zinc-500">أدوات المطور / Developer Tools</p>
+              <h3 className="text-lg font-bold">إنشاء 1000 منتج للاختبار</h3>
+            </div>
+          </div>
+        </button>
 
         <button 
           onClick={() => setIsClearDataModalOpen(true)}

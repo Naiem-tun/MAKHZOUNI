@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, ScanBarcode, CheckCircle2, Check,
@@ -128,9 +128,9 @@ export default function Inventory() {
     localStorage.setItem('checked_inventory_products', JSON.stringify(checkedProducts));
   }, [checkedProducts]);
 
-  const toggleChecked = (id: string) => {
+  const toggleChecked = useCallback((id: string) => {
     setCheckedProducts(prev => ({ ...prev, [id]: !prev[id] }));
-  };
+  }, []);
 
   const handleClearInventory = () => {
     if (Object.keys(inventoryData).length === 0 && Object.keys(checkedProducts).length === 0) return;
@@ -264,17 +264,29 @@ export default function Inventory() {
     return parts.join(' + ');
   };
 
-  const handleMatch = (id: string, qty: number) => {
+  const handleMatch = useCallback((id: string, qty: number) => {
     setInventoryData(prev => ({ ...prev, [id]: qty }));
-  };
+  }, []);
 
-  const handleAddCarton = (id: string, pieces: number) => {
+  const handleAddCarton = useCallback((id: string, pieces: number) => {
     setInventoryData(prev => ({ ...prev, [id]: (Number(prev[id]) || 0) + pieces }));
-  };
+  }, []);
 
-  const handleAddPiece = (id: string) => {
+  const handleAddPiece = useCallback((id: string) => {
     setInventoryData(prev => ({ ...prev, [id]: (Number(prev[id]) || 0) + 1 }));
-  };
+  }, []);
+
+  const handleChangeQuantity = useCallback((id: string, val: string) => {
+    if (val === '') {
+      setInventoryData(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    } else {
+      setInventoryData(prev => ({ ...prev, [id]: parseFloat(val) }));
+    }
+  }, []);
 
   const handleCompleteInventory = async () => {
     if (!user) return;
@@ -650,15 +662,7 @@ export default function Inventory() {
                 onToggleCheck={toggleChecked}
                 onAddPiece={handleAddPiece}
                 onAddCarton={handleAddCarton}
-                onChangeQuantity={(id, val) => {
-                  if (val === '') {
-                    const newInventory = { ...inventoryData };
-                    delete newInventory[id];
-                    setInventoryData(newInventory);
-                  } else {
-                    setInventoryData({ ...inventoryData, [id]: parseFloat(val) });
-                  }
-                }}
+                onChangeQuantity={handleChangeQuantity}
               />
             ))}
             

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { History, X, Trash2 } from 'lucide-react';
+import { History, X, Trash2, Download } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { formatAppDate, safeParseDate, formatCurrency, cn } from '../../lib/utils';
 import { useAppContext } from '../../AppContext';
@@ -63,18 +63,30 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ show, onClose, loadi
                       key={report.id} 
                       className="p-4 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 space-y-3 relative group"
                     >
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          showConfirm(t('confirm_delete') || 'Are you sure?', () => {
-                            onDeleteReport(report.id);
-                          });
-                        }}
-                        className="absolute top-4 left-4 p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors z-10"
-                        title={t('delete')}
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <div className="absolute top-4 left-4 flex gap-2 z-10">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            showConfirm(t('confirm_delete') || 'Are you sure?', () => {
+                              onDeleteReport(report.id);
+                            });
+                          }}
+                          className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors"
+                          title={t('delete')}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectReport(report);
+                          }}
+                          className="p-2 text-zinc-400 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10 rounded-xl transition-colors"
+                          title={t('download')}
+                        >
+                          <Download size={16} />
+                        </button>
+                      </div>
                       <div className="flex justify-between items-start cursor-pointer" onClick={() => onSelectReport(report)}>
                         <div>
                           <div className="text-[10px] font-black text-brand-600 uppercase tracking-widest leading-none mb-1 pr-10">

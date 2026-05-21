@@ -72,12 +72,20 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
     >
       <div className="p-4 sm:p-6 text-black" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, system-ui" }}>
         
-        <div className="print-hidden mb-6">
+        <div className="print-hidden mb-6 flex items-center justify-between">
           <button 
             onClick={onClose}
             className="w-10 h-10 flex items-center justify-center bg-zinc-100 border border-zinc-200 rounded-2xl text-zinc-600 active:scale-95 transition-transform"
           >
             <ArrowRight size={20} />
+          </button>
+          
+          <button 
+            onClick={generatePDF}
+            className="h-10 px-4 bg-[#4A6FA5] text-white rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-transform text-sm font-bold shadow-sm"
+          >
+            <Download size={16} />
+            <span>{t('download')}</span>
           </button>
         </div>
 

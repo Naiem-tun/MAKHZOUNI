@@ -18,6 +18,7 @@ export function BarcodeScanner({ isOpen, onClose, onScan, title }: BarcodeScanne
 
   useEffect(() => {
     let html5QrCode: Html5Qrcode | null = null;
+    let isMounted = true;
 
     if (isOpen) {
       const startScanner = async () => {
@@ -48,6 +49,11 @@ export function BarcodeScanner({ isOpen, onClose, onScan, title }: BarcodeScanne
             () => {} // ignore errors
           );
 
+          if (!isMounted) {
+            html5QrCode.stop().then(() => html5QrCode?.clear()).catch(console.error);
+            return;
+          }
+
           // Force the video element to fill the container and use object-cover
           const videoElement = document.querySelector('#scanner-reader video') as HTMLVideoElement;
           if (videoElement) {
@@ -57,19 +63,47 @@ export function BarcodeScanner({ isOpen, onClose, onScan, title }: BarcodeScanne
           }
         } catch (err) {
           console.error("Scanner error:", err);
-          onClose();
+          if (isMounted) onClose();
         }
       };
 
-      startScanner();
+      // Add a slight delay to ensure DOM is ready
+      setTimeout(startScanner, 100);
     }
 
     return () => {
+      isMounted = false;
+      
+      // Cleanup QR code instance
       if (html5QrCode) {
-        if (html5QrCode.isScanning) {
-          html5QrCode.stop().catch(console.error);
+        try {
+          if (html5QrCode.isScanning) {
+            html5QrCode.stop().then(() => {
+              html5QrCode?.clear();
+            }).catch(console.error);
+          } else {
+            html5QrCode.clear();
+          }
+        } catch (e) {
+          console.error("Error clearing scanner:", e);
         }
       }
+      
+      // Aggressively kill media tracks to prevent camera from hovering in background
+      setTimeout(() => {
+        try {
+          const videoElement = document.querySelector('#scanner-reader video') as HTMLVideoElement;
+          if (videoElement && videoElement.srcObject) {
+            const stream = videoElement.srcObject as MediaStream;
+            stream.getTracks().forEach(track => {
+              track.stop();
+            });
+            videoElement.srcObject = null;
+          }
+        } catch (e) {
+          console.error("Error stopping video stream:", e);
+        }
+      }, 300);
     };
   }, [isOpen, onScan, onClose]);
 
