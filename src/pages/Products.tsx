@@ -56,6 +56,8 @@ export default function Products() {
     const reportsQuery = query(collection(db, reportsPath), where('type', '==', 'inventory'), orderBy('date', 'desc'), limit(1));
     const unsub = onSnapshot(reportsQuery, (snap) => {
       setInventoryReports(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => {
+      console.error("Error fetching inventory reports for sorting:", error);
     });
     return unsub;
   }, [user, sortBy]);
