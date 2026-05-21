@@ -19,9 +19,9 @@ interface ProductEditModalProps {
 export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, scannedBarcode, scannedBarcode2 = '', onScan }: ProductEditModalProps) {
   const { t } = useTranslation();
   const { categories } = useCategories();
-  const [piecesPerBox, setPiecesPerBox] = useState(1);
-  const [boxPrice, setBoxPrice] = useState(0);
-  const [piecePrice, setPiecePrice] = useState(0);
+  const [piecesPerBox, setPiecesPerBox] = useState<number | string>(1);
+  const [boxPrice, setBoxPrice] = useState<number | string>('');
+  const [piecePrice, setPiecePrice] = useState<number | string>('');
   const [barcode, setBarcode] = useState('');
   const [barcode2, setBarcode2] = useState('');
   const [showBarcode2, setShowBarcode2] = useState(false);
@@ -30,12 +30,12 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
     if (isOpen) {
       if (product) {
         setPiecesPerBox(product.piecesPerBox || 1);
-        setBoxPrice(product.boxPurchasePrice || 0);
-        setPiecePrice(product.purchasePrice || 0);
+        setBoxPrice(product.boxPurchasePrice || '');
+        setPiecePrice(product.purchasePrice || '');
       } else {
         setPiecesPerBox(1);
-        setBoxPrice(0);
-        setPiecePrice(0);
+        setBoxPrice('');
+        setPiecePrice('');
       }
       setBarcode(product?.barcode || scannedBarcode || '');
       setBarcode2(product?.barcode2 || scannedBarcode2 || '');
@@ -54,22 +54,34 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
     }
   }, [scannedBarcode2, isOpen]);
 
-  const handleBoxPriceChange = (val: number) => {
-    setBoxPrice(val);
-    if (piecesPerBox > 0) {
-      setPiecePrice(val / piecesPerBox);
+  const handleBoxPriceChange = (valStr: string) => {
+    setBoxPrice(valStr);
+    const parsed = parseFloat(valStr) || 0;
+    const pieces = parseFloat(String(piecesPerBox)) || 0;
+    if (pieces > 0 && parsed > 0) {
+      setPiecePrice(parsed / pieces);
+    } else if (parsed === 0) {
+      setPiecePrice('');
     }
   };
 
-  const handlePiecePriceChange = (val: number) => {
-    setPiecePrice(val);
-    setBoxPrice(val * piecesPerBox);
+  const handlePiecePriceChange = (valStr: string) => {
+    setPiecePrice(valStr);
+    const parsed = parseFloat(valStr) || 0;
+    const pieces = parseFloat(String(piecesPerBox)) || 0;
+    if (parsed > 0) {
+      setBoxPrice(parsed * pieces);
+    } else if (parsed === 0) {
+      setBoxPrice('');
+    }
   };
 
-  const handlePiecesChange = (val: number) => {
-    setPiecesPerBox(val);
-    if (val > 0) {
-      setPiecePrice(boxPrice / val);
+  const handlePiecesChange = (valStr: string) => {
+    setPiecesPerBox(valStr);
+    const parsed = parseFloat(valStr) || 0;
+    const currentBoxPrice = parseFloat(String(boxPrice)) || 0;
+    if (parsed > 0 && currentBoxPrice > 0) {
+      setPiecePrice(currentBoxPrice / parsed);
     }
   };
 
@@ -246,7 +258,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                     name="piecesPerBox" 
                     type="number" 
                     value={piecesPerBox}
-                    onChange={(e) => handlePiecesChange(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => handlePiecesChange(e.target.value)}
                     onKeyDown={handleKeyDown}
                     className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
                   />
@@ -258,7 +270,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                     type="number" 
                     step="0.001"
                     value={boxPrice}
-                    onChange={(e) => handleBoxPriceChange(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => handleBoxPriceChange(e.target.value)}
                     onKeyDown={handleKeyDown}
                     className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
                   />
@@ -274,7 +286,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                     type="number" 
                     step="0.001" 
                     value={piecePrice}
-                    onChange={(e) => handlePiecePriceChange(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => handlePiecePriceChange(e.target.value)}
                     required 
                     onKeyDown={handleKeyDown}
                     className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 

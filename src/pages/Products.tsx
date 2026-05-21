@@ -178,6 +178,7 @@ export default function Products() {
     setIsModalOpen(false);
     setEditingProduct(null);
     setScannedBarcode('');
+    setScannedBarcode2('');
     showToast(t('product_saved_success'));
 
     try {
@@ -355,6 +356,8 @@ export default function Products() {
   useEffect(() => {
     const productHandler = () => {
       setEditingProduct(null);
+      setScannedBarcode('');
+      setScannedBarcode2('');
       setIsModalOpen(true);
     };
     const scannerHandler = () => {
@@ -374,6 +377,8 @@ export default function Products() {
       <ProductsHeader 
         onAddProduct={() => {
           setEditingProduct(null);
+          setScannedBarcode('');
+          setScannedBarcode2('');
           setIsModalOpen(true);
         }} 
       />
@@ -435,7 +440,11 @@ export default function Products() {
       <ProductEditModal
         product={editingProduct}
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setScannedBarcode('');
+          setScannedBarcode2('');
+        }}
         onSave={handleSaveProduct}
         onDelete={(product) => {
           setIsModalOpen(false);
