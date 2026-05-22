@@ -340,14 +340,7 @@ function AppContent() {
             <span className="text-sm font-medium">{t('loading')}</span>
           </div>
         }>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
+          <div>
               {activeTab === 'dashboard' && <Dashboard />}
               {activeTab === 'products' && <Products />}
               {activeTab === 'suppliers' && <Suppliers />}
@@ -358,8 +351,7 @@ function AppContent() {
               {activeTab === 'shopping-list' && <ShoppingList />}
               {activeTab === 'invoice-calculator' && <InvoiceCalculator />}
               {activeTab === 'settings' && <SettingsPage />}
-            </motion.div>
-          </AnimatePresence>
+          </div>
         </Suspense>
       </main>
 

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion, useAnimation, PanInfo } from 'motion/react';
+import { motion } from 'motion/react';
 import { Package, Plus } from 'lucide-react';
 import { Product } from '../../types';
 import { useAppContext } from '../../AppContext';
@@ -32,24 +32,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
   const { t, i18n } = useTranslation();
   const { settings } = useAppContext();
   const language = i18n.language;
-  
-  const [isSwiped, setIsSwiped] = useState(false);
-  const controls = useAnimation();
-
-  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    if (showBoxInfo) return;
-    
-    // Check swipe threshold
-    if (!isSwiped && info.offset.x < -50) {
-      setIsSwiped(true);
-      controls.start({ x: -100 });
-    } else if (isSwiped && info.offset.x > 50) {
-      setIsSwiped(false);
-      controls.start({ x: 0 });
-    } else {
-      controls.start({ x: isSwiped ? -100 : 0 });
-    }
-  };
 
   const profit = (product.sellingPrice || 0) - (product.purchasePrice || 0);
   const calcMethod = settings.profitCalculationMethod || 'markup'; // markup: profit/cost * 100, margin: profit/sell * 100
@@ -58,10 +40,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
     : ((product.purchasePrice || 0) > 0 ? (profit / product.purchasePrice!) * 100 : 0);
 
   return (
-    <div className="relative group/swipe touch-pan-y">
+    <div className="relative group overflow-hidden rounded-2xl">
       {/* Background layer for profit (Revealed when swiped left/right) */}
       {!showBoxInfo && (
-        <div className="absolute inset-0 bg-brand-50 dark:bg-brand-900/20 rounded-2xl flex items-center justify-end px-4 overflow-hidden" dir="ltr">
+        <div className="absolute inset-y-0 right-0 flex items-center pr-4 z-0 w-28 justify-end bg-brand-50 dark:bg-brand-900/20" dir="ltr">
           <div className="flex flex-col items-end opacity-90 transition-opacity">
             <span className="text-[10px] font-bold text-brand-600 dark:text-brand-400">{t('profit_margin')}</span>
             <span className="text-sm font-black text-brand-700 dark:text-brand-300">
@@ -77,23 +59,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
       {/* Foreground card */}
       <motion.div
         drag={!showBoxInfo ? "x" : false}
-        dragConstraints={{ left: -100, right: 0 }}
+        dragConstraints={{ left: -112, right: 0 }}
         dragElastic={0.1}
-        onDragEnd={handleDragEnd}
-        animate={controls}
-        className="relative z-10 flex items-center justify-between gap-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 py-2 px-3 rounded-2xl cursor-pointer active:scale-[0.99] transition-transform"
+        className="relative z-10 flex items-center justify-between gap-3 bg-white p-3 shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 rounded-2xl cursor-pointer"
         onClick={(e) => {
-          // Prevent triggering edit if it's currently swiped open and being tapped
-          if (isSwiped) {
-             e.preventDefault();
-             setIsSwiped(false);
-             controls.start({ x: 0 });
-             return;
-          }
           onEdit(product);
-        }}
-        onPanStart={(e, info) => {
-          // Optional: handle panning styling
         }}
       >
         <div className="flex items-center gap-3 flex-1 min-w-0">
