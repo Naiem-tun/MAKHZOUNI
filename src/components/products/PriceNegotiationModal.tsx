@@ -77,14 +77,17 @@ export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegoti
   
   // 1. Add current prices from the products themselves
   products.forEach(p => {
-    if (p.purchasePrice > 0) {
-      const sName = t('unknown_supplier');
-      const key = `${sName}_${p.purchasePrice.toFixed(3)}`;
+    const boxQty = p.piecesPerBox || 1;
+    const unitPrice = (p.boxPurchasePrice && p.boxPurchasePrice > 0) ? (p.boxPurchasePrice / boxQty) : (p.purchasePrice || 0);
+
+    if (unitPrice > 0) {
+      const sName = p.name || t('unknown_supplier');
+      const key = `${sName}_${unitPrice.toFixed(3)}`;
       pricePointsMap[key] = {
-        price: p.purchasePrice,
+        price: unitPrice,
         lastDate: { seconds: Date.now() / 1000 },
         supplierName: sName,
-        boxQty: p.piecesPerBox || 1,
+        boxQty: boxQty,
         isCurrent: true
       };
     }
@@ -92,18 +95,23 @@ export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegoti
 
   // 2. Add prices from history (overwriting or adding if better/newer)
   history.forEach(h => {
-    const sName = h.supplierName || t('unknown_supplier');
-    const unitPrice = h.price || (h.amount && h.qtyAdded ? h.amount / h.qtyAdded : 0);
+    const relatedProduct = products.find(p => p.id === h.productId) || mainProduct;
+    const boxQty = relatedProduct.piecesPerBox || 1;
+    let unitPrice = h.price || (h.amount && h.qtyAdded ? h.amount / h.qtyAdded : 0);
+    if (h.boxPurchasePrice && h.boxPurchasePrice > 0) {
+      unitPrice = h.boxPurchasePrice / boxQty;
+    }
+    
+    const sName = h.supplierName || relatedProduct.name || t('unknown_supplier');
     if (unitPrice > 0) {
       const key = `${sName}_${unitPrice.toFixed(3)}`;
       // Only add if not exists or if this history record is newer than what we have
       if (!pricePointsMap[key] || (h.date?.seconds > (pricePointsMap[key].lastDate?.seconds || 0))) {
-        const relatedProduct = products.find(p => p.id === h.productId) || mainProduct;
         pricePointsMap[key] = {
           price: unitPrice,
           lastDate: h.date,
           supplierName: sName,
-          boxQty: relatedProduct.piecesPerBox || 1
+          boxQty: boxQty
         };
       }
     }
