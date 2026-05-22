@@ -118,6 +118,7 @@ export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegoti
   });
 
   const sortedSuppliers = Object.values(pricePointsMap).sort((a, b) => a.price - b.price);
+  const bestSupplierName = sortedSuppliers.length > 0 ? sortedSuppliers[0].supplierName : mainProduct.name;
 
   return (
     <AnimatePresence>
@@ -152,7 +153,7 @@ export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegoti
                     <span className="text-[10px] font-black uppercase tracking-widest text-white/90">{t('price_negotiation_tool')}</span>
                   </div>
                   <h2 className="text-2xl font-black leading-tight drop-shadow-sm">{mainProduct.name}</h2>
-                  <p className="text-[11px] font-bold text-white/70 tracking-widest drop-shadow-sm">{mainProduct.barcode}</p>
+                  <p className="text-[11px] font-bold text-white/70 tracking-widest drop-shadow-sm">{mainProduct.barcode || mainProduct.barcode2}</p>
                 </div>
                 <button 
                   onClick={onClose}

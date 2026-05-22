@@ -272,9 +272,14 @@ export default function Products() {
 
     if (showBoxInfo) {
       const barcodeToMatch = product.barcode || product.barcode2;
-      const matchingProducts = barcodeToMatch 
+      const matching = barcodeToMatch 
         ? products.filter(p => p.barcode === barcodeToMatch || p.barcode2 === barcodeToMatch || p.id === product.id)
         : [product];
+      
+      const matchingProducts = [
+        product,
+        ...matching.filter(p => p.id !== product.id)
+      ];
       
       setNegotiationProducts(matchingProducts);
       setIsNegotiationModalOpen(true);
@@ -298,7 +303,7 @@ export default function Products() {
         if (showBoxInfo) {
           setNegotiationProducts(matching);
           setIsNegotiationModalOpen(true);
-        } else {
+        } else if (matching.length === 1) {
           handleProductChoice(matching[0]);
         }
       } else {
