@@ -51,15 +51,23 @@ export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegoti
   if (!products || products.length === 0) return null;
   const mainProduct = products[0];
 
-  // Aggregate all prices to find the absolute best
+  // Aggregate all prices to find the absolute best box price
   const allPrices: number[] = [];
   products.forEach(p => {
-    if (p.purchasePrice) allPrices.push(p.purchasePrice);
+    if (p.boxPurchasePrice && p.boxPurchasePrice > 0) {
+      allPrices.push(p.boxPurchasePrice);
+    } else if (p.purchasePrice) {
+      allPrices.push(p.purchasePrice * (p.piecesPerBox || 1));
+    }
   });
   
   history.forEach(h => {
-    const price = h.price || (h.amount && h.qtyAdded ? h.amount / h.qtyAdded : 0);
-    if (price > 0) allPrices.push(price);
+    const relatedProduct = products.find(p => p.id === h.productId) || mainProduct;
+    const boxQty = relatedProduct.piecesPerBox || 1;
+    const unitPrice = h.price || (h.amount && h.qtyAdded ? h.amount / h.qtyAdded : 0);
+    // If the history has a boxPrice explicitly saved, use it, otherwise unit * boxQty
+    const historyBoxPrice = h.boxPurchasePrice || (unitPrice * boxQty);
+    if (historyBoxPrice > 0) allPrices.push(historyBoxPrice);
   });
 
   const absoluteBestPrice = allPrices.length > 0 ? Math.min(...allPrices) : 0;
