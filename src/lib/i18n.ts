@@ -276,7 +276,6 @@ const resources = {
       "no_data_available": "لا توجد بيانات",
       "revenue_profit_cost": "الإيرادات، الأرباح، والتكلفة",
       "most_profitable_sold": "الأكثر ربحية ومبيعاً",
-      "default_sort": "الترتيب الافتراضي",
       "recent_purchases_log": "سجل المشتريات الأخيرة",
       "revenues_and_profits": "الإيرادات والأرباح",
       "revenues": "الإيرادات",

@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../AppContext';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, writeBatch, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Product, OperationType } from '../types';
 import { handleFirestoreError, cn } from '../lib/utils';
@@ -47,31 +47,6 @@ export default function Products() {
   });
   const [loading, setLoading] = useState(products.length === 0);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('default');
-  const [inventoryReports, setInventoryReports] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (!user || sortBy !== 'most_sold') return;
-    const reportsPath = `users/${user.uid}/reports`;
-    const reportsQuery = query(collection(db, reportsPath), where('type', '==', 'inventory'), orderBy('date', 'desc'), limit(1));
-    const unsub = onSnapshot(reportsQuery, (snap) => {
-      setInventoryReports(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (error) => {
-      console.error("Error fetching inventory reports for sorting:", error);
-    });
-    return unsub;
-  }, [user, sortBy]);
-
-  const salesMap = useMemo(() => {
-    if (inventoryReports.length === 0) return {};
-    const items = inventoryReports[0].items || [];
-    const map: Record<string, number> = {};
-    items.forEach((item: any) => {
-      if (item.productName) map[item.productName] = item.salesCalculated || 0;
-    });
-    return map;
-  }, [inventoryReports]);
-
   const [stockFilter, setStockFilter] = useState('all'); // 'all', 'available', 'low', 'out'
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [showBoxInfo, setShowBoxInfo] = useState(() => {
@@ -358,16 +333,6 @@ export default function Products() {
 
     return matchesSearch && matchesStock && matchesCategory;
   }).sort((a, b) => {
-    if (sortBy === 'most_sold') {
-      const salesA = salesMap[a.name] || 0;
-      const salesB = salesMap[b.name] || 0;
-      if (salesA !== salesB) return salesB - salesA;
-    } else if (sortBy === 'highest_profit') {
-      const profitA = (a.sellingPrice || 0) - (a.purchasePrice || 0);
-      const profitB = (b.sellingPrice || 0) - (b.purchasePrice || 0);
-      if (profitA !== profitB) return profitB - profitA;
-    }
-
     const catA = a.category || '';
     const catB = b.category || '';
     if (catA !== catB) {
@@ -426,8 +391,6 @@ export default function Products() {
         setStockFilter={setStockFilter}
         categoryFilter={categoryFilter}
         setCategoryFilter={setCategoryFilter}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
         showBoxInfo={showBoxInfo}
         setShowBoxInfo={setShowBoxInfo}
         categories={categories}

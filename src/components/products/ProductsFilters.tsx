@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, ScanBarcode, Layers, Filter, Package, Shield, ArrowDownUp } from 'lucide-react';
+import { Search, ScanBarcode, Layers, Filter, Package, Shield } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Category } from '../../types';
 
@@ -11,8 +11,6 @@ interface ProductsFiltersProps {
   setStockFilter: (filter: string) => void;
   categoryFilter: string;
   setCategoryFilter: (filter: string) => void;
-  sortBy: string;
-  setSortBy: (sort: string) => void;
   showBoxInfo: boolean;
   setShowBoxInfo: (show: boolean) => void;
   categories: Category[];
@@ -26,8 +24,6 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
   setStockFilter,
   categoryFilter,
   setCategoryFilter,
-  sortBy,
-  setSortBy,
   showBoxInfo,
   setShowBoxInfo,
   categories,
@@ -58,22 +54,24 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
           </button>
         </div>
       </div>
-      <div className="flex overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible gap-2 scrollbar-hide">
-        <button
-          onClick={() => setShowBoxInfo(!showBoxInfo)}
-          className={cn(
-            "shrink-0 flex items-center gap-2 px-4 py-2 rounded-2xl border transition-all text-sm font-bold",
-            showBoxInfo 
-              ? "bg-brand-600 border-brand-700 text-white shadow-lg shadow-brand-500/20 scale-105" 
-              : "bg-white border-zinc-200 text-zinc-500 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-500"
-          )}
-          title={showBoxInfo ? t('price_negotiation_tool') : t('box')}
-        >
-          {showBoxInfo ? <Shield size={18} fill="currentColor" fillOpacity={0.2} /> : <Package size={18} />}
-          <span>{t('box')}</span>
-        </button>
+      <div className="flex gap-2">
+        <div className="relative group">
+          <select 
+            value={stockFilter}
+            onChange={(e) => setStockFilter(e.target.value)}
+            className="appearance-none flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white pr-8 pl-3 py-2 text-sm font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 cursor-pointer min-w-[110px]"
+          >
+            <option value="all">{t('all_stock')}</option>
+            <option value="available">{t('available_stock')}</option>
+            <option value="low">{t('low_stock')}</option>
+            <option value="out">{t('out_of_stock')}</option>
+          </select>
+          <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-zinc-400">
+            <Layers size={16} />
+          </div>
+        </div>
 
-        <div className="relative group shrink-0">
+        <div className="relative group">
           <select 
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
@@ -89,36 +87,19 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
           </div>
         </div>
 
-        <div className="relative group shrink-0">
-          <select 
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="appearance-none flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white pr-8 pl-3 py-2 text-sm font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 cursor-pointer min-w-[130px]"
-          >
-            <option value="default">{t('default_sort', 'الترتيب الافتراضي')}</option>
-            <option value="most_sold">{t('most_sold_products')}</option>
-            <option value="highest_profit">{t('most_profitable_products')}</option>
-          </select>
-          <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-zinc-400">
-            <ArrowDownUp size={16} />
-          </div>
-        </div>
-
-        <div className="relative group shrink-0">
-          <select 
-            value={stockFilter}
-            onChange={(e) => setStockFilter(e.target.value)}
-            className="appearance-none flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white pr-8 pl-3 py-2 text-sm font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 cursor-pointer min-w-[110px]"
-          >
-            <option value="all">{t('all_stock')}</option>
-            <option value="available">{t('available_stock')}</option>
-            <option value="low">{t('low_stock')}</option>
-            <option value="out">{t('out_of_stock')}</option>
-          </select>
-          <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-zinc-400">
-            <Layers size={16} />
-          </div>
-        </div>
+        <button
+          onClick={() => setShowBoxInfo(!showBoxInfo)}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 rounded-2xl border transition-all text-sm font-bold",
+            showBoxInfo 
+              ? "bg-brand-600 border-brand-700 text-white shadow-lg shadow-brand-500/20 scale-105" 
+              : "bg-white border-zinc-200 text-zinc-500 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-500"
+          )}
+          title={showBoxInfo ? t('price_negotiation_tool') : t('box')}
+        >
+          {showBoxInfo ? <Shield size={18} fill="currentColor" fillOpacity={0.2} /> : <Package size={18} />}
+          <span>{t('box')}</span>
+        </button>
       </div>
     </div>
   );
