@@ -11,7 +11,7 @@ export const ProductIcon = ({ category: catName, className }: { category?: strin
 
   return (
     <div className={cn(
-      "w-9 h-9 rounded-2xl bg-brand-50 text-brand-600 dark:bg-brand-950/20 border border-brand-100/20 dark:border-brand-900/10 flex items-center justify-center shrink-0 shadow-sm", 
+      "w-9 h-9 rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-950/20 border border-brand-100/20 dark:border-brand-900/10 flex items-center justify-center shrink-0 shadow-sm", 
       className
     )}>
       <Icon size={16} />

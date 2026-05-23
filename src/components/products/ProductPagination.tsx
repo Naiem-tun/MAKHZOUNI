@@ -32,7 +32,7 @@ export function ProductPagination({ currentPage, totalPages, onPageChange }: Pag
       <button 
         disabled={currentPage === totalPages}
         onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-        className="flex h-8 w-8 items-center justify-center rounded-xl border border-zinc-100 bg-white text-zinc-900 shadow-sm transition-all hover:bg-zinc-50 active:scale-95 disabled:opacity-10 disabled:cursor-not-allowed dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400"
+        className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-100 bg-white text-zinc-900 shadow-sm transition-all hover:bg-zinc-50 active:scale-95 disabled:opacity-10 disabled:cursor-not-allowed dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400"
       >
         <ChevronLeft size={14} strokeWidth={2} />
       </button>
@@ -46,7 +46,7 @@ export function ProductPagination({ currentPage, totalPages, onPageChange }: Pag
             <button
               key={i}
               onClick={() => onPageChange(p as number)}
-              className={`flex h-8 w-8 items-center justify-center rounded-xl text-xs font-semibold transition-all ${
+              className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold transition-all ${
                 currentPage === p
                   ? 'bg-zinc-950 text-white shadow-md dark:bg-brand-600'
                   : 'text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
@@ -62,7 +62,7 @@ export function ProductPagination({ currentPage, totalPages, onPageChange }: Pag
       <button 
         disabled={currentPage === 1}
         onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-        className="flex h-8 w-8 items-center justify-center rounded-xl border border-zinc-100 bg-white text-zinc-900 shadow-sm transition-all hover:bg-zinc-50 active:scale-95 disabled:opacity-10 disabled:cursor-not-allowed dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400"
+        className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-100 bg-white text-zinc-900 shadow-sm transition-all hover:bg-zinc-50 active:scale-95 disabled:opacity-10 disabled:cursor-not-allowed dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400"
       >
         <ChevronRight size={14} strokeWidth={2} />
       </button>

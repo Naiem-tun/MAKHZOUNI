@@ -213,13 +213,13 @@ const Dashboard = memo(() => {
             <p className="text-sm font-bold tracking-tight">{greeting.text}</p>
           </div>
         </div>
-        <div className="h-12 w-12 rounded-[20px] bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 shadow-sm flex items-center justify-center text-brand-600 dark:text-brand-400">
+        <div className="h-12 w-12 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 shadow-sm flex items-center justify-center text-brand-600 dark:text-brand-400">
           <Clock size={20} />
         </div>
       </header>
 
       {/* SECTION 1: MASTER HERO CARD (Modeled after screenshot dark blue cards) */}
-      <div className="relative p-7 rounded-[32px] bg-brand-800 dark:bg-zinc-900 text-white shadow-xl shadow-brand-900/10 dark:shadow-none overflow-hidden">
+      <div className="relative p-7 rounded-lg bg-brand-800 dark:bg-zinc-900 text-white shadow-xl shadow-brand-900/10 dark:shadow-none overflow-hidden">
         {/* Soft geometric background details */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-brand-400/10 rounded-full blur-2xl translate-y-1/3 -translate-x-1/4" />
@@ -234,11 +234,11 @@ const Dashboard = memo(() => {
         </h2>
 
         <div className="relative z-10 grid grid-cols-2 gap-3">
-          <div className="p-4 rounded-[20px] bg-white/10 dark:bg-white/5 backdrop-blur-md flex flex-col items-center">
+          <div className="p-4 rounded-lg bg-white/10 dark:bg-white/5 backdrop-blur-md flex flex-col items-center">
             <p className="text-2xl font-black tracking-tight mb-1">{stats.totalProducts}</p>
             <p className="text-xs font-bold text-brand-200">{t('total_products')}</p>
           </div>
-          <div className="p-4 rounded-[20px] bg-white/10 dark:bg-white/5 backdrop-blur-md flex flex-col items-center">
+          <div className="p-4 rounded-lg bg-white/10 dark:bg-white/5 backdrop-blur-md flex flex-col items-center">
             <p className="text-2xl font-black tracking-tight mb-1">{stats.lowStock}</p>
             <p className="text-xs font-bold text-amber-300">{t('low_stock')}</p>
           </div>
@@ -254,8 +254,8 @@ const Dashboard = memo(() => {
             { label: t('expenses'), value: stats.totalExpenses, color: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400', icon: Wallet },
             { label: t('total_supplier_purchases'), value: stats.totalSupplierPurchasesValue, color: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400', icon: ShoppingCart },
           ].map((item, idx) => (
-            <div key={idx} className="bg-white dark:bg-zinc-800/80 rounded-[24px] p-5 border border-zinc-100/80 dark:border-zinc-700/50 shadow-sm relative overflow-hidden group flex flex-col items-start">
-              <div className={cn("h-10 w-10 rounded-[14px] flex items-center justify-center mb-4", item.color)}>
+            <div key={idx} className="bg-white dark:bg-zinc-800/80 rounded-lg p-5 border border-zinc-100/80 dark:border-zinc-700/50 shadow-sm relative overflow-hidden group flex flex-col items-start">
+              <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center mb-4", item.color)}>
                 <item.icon size={18} />
               </div>
               <h3 className="text-lg font-black font-sans text-zinc-900 dark:text-white tracking-tight leading-none mb-1 text-right">
@@ -277,12 +277,12 @@ const Dashboard = memo(() => {
 
           <div className="flex overflow-x-auto gap-3 pb-4 snap-x hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {stats.movementHistory.length === 0 ? (
-              <div className="w-full py-10 text-center text-zinc-400 font-bold bg-white dark:bg-zinc-800/50 rounded-[24px] border border-dashed border-zinc-200 dark:border-zinc-700 shadow-sm">
+              <div className="w-full py-10 text-center text-zinc-400 font-bold bg-white dark:bg-zinc-800/50 rounded-lg border border-dashed border-zinc-200 dark:border-zinc-700 shadow-sm">
                 {t('no_data_available')}
               </div>
             ) : (
               stats.movementHistory.slice(0, 14).map((day, idx) => (
-                <div key={idx} className="min-w-[110px] flex-shrink-0 snap-start p-4 rounded-[20px] bg-white dark:bg-zinc-800 shadow-sm border border-zinc-100 dark:border-zinc-700 text-center flex flex-col items-center justify-center gap-2 group">
+                <div key={idx} className="min-w-[110px] flex-shrink-0 snap-start p-4 rounded-lg bg-white dark:bg-zinc-800 shadow-sm border border-zinc-100 dark:border-zinc-700 text-center flex flex-col items-center justify-center gap-2 group">
                   <div className="h-8 w-8 rounded-full bg-zinc-50 dark:bg-zinc-700 flex items-center justify-center">
                     <History size={14} className="text-zinc-400 group-hover:text-brand-500" />
                   </div>
@@ -307,7 +307,7 @@ const Dashboard = memo(() => {
         <h2 className="text-sm font-black uppercase tracking-wider text-zinc-900 dark:text-white pr-2 mb-4">{t('last_purchases')}</h2>
         <div className="space-y-6">
           {groupedPurchases.length === 0 ? (
-            <div className="py-12 text-center text-zinc-400 font-bold text-sm bg-white dark:bg-zinc-800/50 rounded-[24px] border border-dashed border-zinc-200 dark:border-zinc-700 shadow-sm">
+            <div className="py-12 text-center text-zinc-400 font-bold text-sm bg-white dark:bg-zinc-800/50 rounded-lg border border-dashed border-zinc-200 dark:border-zinc-700 shadow-sm">
               {t('no_data_available')}
             </div>
           ) : (
@@ -327,7 +327,7 @@ const Dashboard = memo(() => {
                   </span>
                 </div>
                 
-                <div className="bg-white dark:bg-zinc-800/80 rounded-[24px] border border-zinc-100/80 dark:border-zinc-700/50 overflow-hidden shadow-sm flex flex-col gap-px bg-zinc-100 dark:bg-zinc-700/50">
+                <div className="bg-white dark:bg-zinc-800/80 rounded-lg border border-zinc-100/80 dark:border-zinc-700/50 overflow-hidden shadow-sm flex flex-col gap-px bg-zinc-100 dark:bg-zinc-700/50">
                   {group.items.map((p: any) => (
                     <div key={p.id} className="flex justify-between items-center p-4 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
                       <div className="flex flex-col text-right flex-1">

@@ -22,7 +22,7 @@ const ProductIcon = ({ category: catName, className }: { category?: string, clas
   const Icon = categoryIcons[iconName] || Package;
   
   return (
-    <div className={cn("flex items-center justify-center rounded-2xl bg-brand-50 text-brand-600 dark:bg-brand-950/20", className)}>
+    <div className={cn("flex items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-950/20", className)}>
       <Icon size={16} />
     </div>
   );
@@ -40,7 +40,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
     : ((product.purchasePrice || 0) > 0 ? (profit / product.purchasePrice!) * 100 : 0);
 
   return (
-    <div className="relative group overflow-hidden rounded-2xl">
+    <div className="relative group overflow-hidden rounded-lg">
       {/* Background layer for profit (Revealed when swiped left/right) */}
       {!showBoxInfo && (
         <div className="absolute inset-y-0 right-0 flex items-center pr-4 z-0 w-28 justify-end bg-brand-50 dark:bg-brand-900/20" dir="ltr">
@@ -61,7 +61,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
         drag={!showBoxInfo ? "x" : false}
         dragConstraints={{ left: -112, right: 0 }}
         dragElastic={0.1}
-        className="relative z-10 flex items-center justify-between gap-3 bg-white p-3 shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 rounded-2xl cursor-pointer"
+        className="relative z-10 flex items-center justify-between gap-3 bg-white p-3 shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 rounded-lg cursor-pointer"
         onClick={(e) => {
           onEdit(product);
         }}
@@ -109,7 +109,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
               e.stopPropagation();
               onAddQuantity(product);
             }}
-            className="flex items-center gap-1 px-4 py-2 bg-brand-600 text-white rounded-2xl text-[11px] font-bold transition-all hover:bg-brand-700 shrink-0 h-9 shadow-sm"
+            className="flex items-center gap-1 px-4 py-2 bg-brand-600 text-white rounded-lg text-[11px] font-bold transition-all hover:bg-brand-700 shrink-0 h-9 shadow-sm"
           >
             <Plus size={12} />
             <span>{t('add_quantity')}</span>

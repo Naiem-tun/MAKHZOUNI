@@ -159,7 +159,7 @@ export default function InvoiceCalculator() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center text-brand-600 dark:text-brand-400">
+          <div className="h-12 w-12 rounded-lg bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center text-brand-600 dark:text-brand-400">
             <Calculator size={24} />
           </div>
           <div>
@@ -171,7 +171,7 @@ export default function InvoiceCalculator() {
         {items.length > 0 && (
           <button
             onClick={clearAll}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors dark:bg-red-500/10 dark:hover:bg-red-500/20"
+            className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors dark:bg-red-500/10 dark:hover:bg-red-500/20"
           >
             <RotateCcw size={16} />
             <span className="hidden sm:inline">مسح الكل</span>
@@ -181,7 +181,7 @@ export default function InvoiceCalculator() {
 
       {/* Input Section */}
       <div className="relative z-30">
-        <div className="flex items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-1.5 focus-within:ring-2 focus-within:ring-brand-500/20 focus-within:border-brand-500/30 transition-all shadow-sm">
+        <div className="flex items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-1.5 focus-within:ring-2 focus-within:ring-brand-500/20 focus-within:border-brand-500/30 transition-all shadow-sm">
           <div className="flex items-center justify-center pl-2 pr-3 text-zinc-400">
             <Search size={20} />
           </div>
@@ -201,7 +201,7 @@ export default function InvoiceCalculator() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute left-0 right-0 top-full z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl overflow-hidden mt-2"
+              className="absolute left-0 right-0 top-full z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl overflow-hidden mt-2"
             >
               {suggestions.map((p) => (
                 <button
@@ -233,7 +233,7 @@ export default function InvoiceCalculator() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               layout
-              className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden"
+              className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden"
             >
               <div className="p-4 bg-zinc-50 dark:bg-zinc-800/20 border-b border-zinc-100 dark:border-zinc-800">
                 <h3 className="font-bold text-lg text-zinc-900 dark:text-white">{item.name}</h3>
@@ -248,7 +248,7 @@ export default function InvoiceCalculator() {
                       type="number"
                       value={item.price || ''}
                       onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value) || 0)}
-                      className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-xl py-2 px-1 sm:px-3 text-sm sm:text-base font-bold text-zinc-900 dark:text-white text-center focus:ring-2 focus:ring-brand-500"
+                      className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg py-2 px-1 sm:px-3 text-sm sm:text-base font-bold text-zinc-900 dark:text-white text-center focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
 
@@ -259,7 +259,7 @@ export default function InvoiceCalculator() {
                       type="number"
                       value={item.quantity || ''}
                       onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 0)}
-                      className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-xl py-2 px-1 sm:px-3 text-sm sm:text-base font-bold text-zinc-900 dark:text-white text-center focus:ring-2 focus:ring-brand-500"
+                      className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg py-2 px-1 sm:px-3 text-sm sm:text-base font-bold text-zinc-900 dark:text-white text-center focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
 
@@ -275,7 +275,7 @@ export default function InvoiceCalculator() {
                 {/* Delete */}
                 <button
                   onClick={() => removeItem(item.id)}
-                  className="h-10 w-10 shrink-0 flex items-center justify-center rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                  className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                 >
                   <Trash2 size={18} />
                 </button>
@@ -301,7 +301,7 @@ export default function InvoiceCalculator() {
             exit={{ opacity: 0, y: 20 }}
             className="mt-6 block"
           >
-            <div className="bg-brand-600 text-white rounded-2xl p-4 shadow-2xl flex flex-col gap-3 border-2 border-brand-500/50 backdrop-blur-xl">
+            <div className="bg-brand-600 text-white rounded-lg p-4 shadow-2xl flex flex-col gap-3 border-2 border-brand-500/50 backdrop-blur-xl">
               <div className="flex items-center justify-between">
                 <div>
                   <span className="block text-brand-200 text-sm font-bold mb-1">المجموع الكلي</span>
@@ -315,14 +315,14 @@ export default function InvoiceCalculator() {
               <div className="flex items-center gap-2 pt-2 border-t border-brand-500/30">
                 <button
                   onClick={handleCopy}
-                  className="flex-1 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 active:bg-white/30 py-2.5 rounded-xl transition-colors font-bold text-sm"
+                  className="flex-1 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 active:bg-white/30 py-2.5 rounded-lg transition-colors font-bold text-sm"
                 >
                   {isCopied ? <CheckCheck size={18} /> : <Copy size={18} />}
                   <span>{isCopied ? 'تم النسخ' : 'نسخ الفاتورة'}</span>
                 </button>
                 <button
                   onClick={handleWhatsApp}
-                  className="flex-1 flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] active:bg-[#1da851] py-2.5 rounded-xl transition-colors font-bold text-sm"
+                  className="flex-1 flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] active:bg-[#1da851] py-2.5 rounded-lg transition-colors font-bold text-sm"
                 >
                   <MessageCircle size={18} />
                   <span>شارك عبر واتساب</span>

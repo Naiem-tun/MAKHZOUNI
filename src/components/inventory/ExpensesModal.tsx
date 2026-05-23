@@ -40,7 +40,7 @@ export const ExpensesModal: React.FC<ExpensesModalProps> = ({
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden shadow-2xl border border-zinc-100 dark:border-zinc-800"
+            className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-2xl border border-zinc-100 dark:border-zinc-800"
           >
             <div className="p-6 space-y-6">
               <div className="flex justify-between items-center">
@@ -55,14 +55,14 @@ export const ExpensesModal: React.FC<ExpensesModalProps> = ({
                 </button>
               </div>
 
-              <div className="space-y-2 text-center py-4 bg-amber-50/30 dark:bg-amber-950/10 rounded-2xl border border-amber-50 dark:border-amber-950/20">
+              <div className="space-y-2 text-center py-4 bg-amber-50/30 dark:bg-amber-950/10 rounded-lg border border-amber-50 dark:border-amber-950/20">
                 <div className="text-4xl font-black text-zinc-900 dark:text-white">
                   {loading ? "..." : formatCurrency(amount, settings.currency, settings.language)}
                 </div>
                 <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{t('total_expenses_recorded')}</div>
               </div>
 
-              <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl space-y-4">
+              <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">{t('deduct_from_inventory_profit')}</span>
@@ -89,7 +89,7 @@ export const ExpensesModal: React.FC<ExpensesModalProps> = ({
 
               <button 
                 onClick={onClose}
-                className="w-full py-4 bg-zinc-900 dark:bg-brand-600 text-white rounded-2xl font-black shadow-lg shadow-zinc-500/20 active:scale-95 transition-all"
+                className="w-full py-4 bg-zinc-900 dark:bg-brand-600 text-white rounded-lg font-black shadow-lg shadow-zinc-500/20 active:scale-95 transition-all"
               >
                 {t('close')}
               </button>

@@ -152,7 +152,7 @@ export default function Debts() {
           <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('debts_book')}</h1>
           <p className="text-zinc-500 dark:text-zinc-400">{t('debts_subtitle')}</p>
         </div>
-        <button onClick={() => { setEditingDebt(null); setIsModalOpen(true); }} className="flex items-center gap-2 rounded-2xl bg-brand-600 px-6 py-3 font-semibold text-white shadow-lg shadow-brand-500/20">
+        <button onClick={() => { setEditingDebt(null); setIsModalOpen(true); }} className="flex items-center gap-2 rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white shadow-lg shadow-brand-500/20">
           <UserPlus size={20} />
           {t('add_person')}
         </button>
@@ -160,19 +160,19 @@ export default function Debts() {
 
       <div className="grid grid-cols-1 gap-4">
         {debts.map((d) => (
-          <div key={d.id} className="relative group overflow-hidden rounded-2xl">
+          <div key={d.id} className="relative group overflow-hidden rounded-lg">
             {/* Hidden Actions Layer */}
             <div className="absolute inset-y-0 right-0 flex items-center pr-1 gap-1 z-0">
               <button 
                 onClick={() => { setEditingDebt(d); setIsModalOpen(true); }}
-                className="h-[calc(100%-8px)] w-16 bg-edit-bg border border-edit-border rounded-2xl flex flex-col items-center justify-center gap-1 text-edit-text"
+                className="h-[calc(100%-8px)] w-16 bg-edit-bg border border-edit-border rounded-lg flex flex-col items-center justify-center gap-1 text-edit-text"
               >
                 <Edit2 size={18} />
                 <span className="text-[10px] font-bold">{t('edit')}</span>
               </button>
               <button 
                 onClick={() => { setDeleteConfirmId(d.id!); setDeleteConfirmName(d.customerName || ''); }}
-                className="h-[calc(100%-8px)] w-16 bg-delete-bg border border-delete-border flex flex-col items-center justify-center gap-1 text-delete-text rounded-2xl"
+                className="h-[calc(100%-8px)] w-16 bg-delete-bg border border-delete-border flex flex-col items-center justify-center gap-1 text-delete-text rounded-lg"
               >
                 <Trash2 size={18} />
                 <span className="text-[10px] font-bold">{t('delete')}</span>
@@ -185,10 +185,10 @@ export default function Debts() {
               dragConstraints={{ left: -140, right: 0 }}
               dragElastic={0.1}
               onClick={() => setActiveDebt(d)}
-              className="relative z-10 flex cursor-pointer items-center justify-between rounded-2xl bg-white p-3 shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800"
+              className="relative z-10 flex cursor-pointer items-center justify-between rounded-lg bg-white p-3 shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800"
             >
               <div className="flex items-center gap-3">
-                <div className={`h-10 w-10 rounded-2xl bg-zinc-50 flex items-center justify-center text-zinc-400 shrink-0`}>
+                <div className={`h-10 w-10 rounded-lg bg-zinc-50 flex items-center justify-center text-zinc-400 shrink-0`}>
                   {d.type === 'payable' ? <Truck size={20} /> : <BookOpen size={20} />}
                 </div>
                 <div className="min-w-0">
@@ -211,7 +211,7 @@ export default function Debts() {
                     setActionType('select');
                     setActionAmount('');
                   }}
-                  className="w-10 h-10 flex items-center justify-center rounded-2xl bg-zinc-50 text-brand-600 border border-zinc-100 hover:bg-zinc-100 dark:bg-zinc-800 dark:border-zinc-700 dark:text-brand-400 dark:hover:bg-zinc-700 transition-colors"
+                  className="w-10 h-10 flex items-center justify-center rounded-lg bg-zinc-50 text-brand-600 border border-zinc-100 hover:bg-zinc-100 dark:bg-zinc-800 dark:border-zinc-700 dark:text-brand-400 dark:hover:bg-zinc-700 transition-colors"
                 >
                   <ArrowRightLeft size={18}/>
                 </button>
@@ -225,24 +225,24 @@ export default function Debts() {
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
-            <motion.div key={editingDebt?.id || 'new'} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-2xl bg-white p-8 dark:bg-zinc-900 text-right">
+            <motion.div key={editingDebt?.id || 'new'} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-lg bg-white p-8 dark:bg-zinc-900 text-right text-black dark:text-white">
               <h2 className="mb-6 text-2xl font-bold text-zinc-900 dark:text-white">
                 {editingDebt ? t('edit_debt_data') : t('add_new_debt')}
               </h2>
               <form onSubmit={handleSaveDebt} className="space-y-4">
                 {!editingDebt && (
-                  <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-2xl mb-4">
+                  <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg mb-4">
                     <button 
                       type="button" 
                       onClick={() => setDebtType('receivable')} 
-                      className={`flex-1 py-3 text-sm font-bold rounded-2xl transition-all ${debtType === 'receivable' ? 'bg-emerald-500 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                      className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${debtType === 'receivable' ? 'bg-emerald-500 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
                     >
                       {t('receivable_debt')}
                     </button>
                     <button 
                       type="button" 
                       onClick={() => setDebtType('payable')} 
-                      className={`flex-1 py-3 text-sm font-bold rounded-2xl transition-all ${debtType === 'payable' ? 'bg-[#B34C36] text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                      className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${debtType === 'payable' ? 'bg-[#B34C36] text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
                     >
                       {t('payable_debt')}
                     </button>
@@ -260,7 +260,7 @@ export default function Debts() {
                   } 
                   defaultValue={editingDebt?.customerName} 
                   required 
-                  className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800" 
+                  className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800" 
                 />
                 
                 {debtType === 'payable' && !editingDebt && (
@@ -271,10 +271,10 @@ export default function Debts() {
                   </datalist>
                 )}
 
-                <input name="phone" type="tel" placeholder={t('phone_optional_placeholder')} defaultValue={editingDebt?.phone} className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 text-left dir-ltr" style={{ direction: 'ltr' }} />
+                <input name="phone" type="tel" placeholder={t('phone_optional_placeholder')} defaultValue={editingDebt?.phone} className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 text-left dir-ltr" style={{ direction: 'ltr' }} />
                 <div className="flex gap-3 pt-4">
-                  <button type="button" onClick={closeModal} className="flex-1 rounded-2xl bg-zinc-100 py-3 font-semibold text-zinc-600 border border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700">{t('cancel')}</button>
-                  <button type="submit" disabled={isSaving} className="flex-1 rounded-2xl bg-brand-600 py-3 font-semibold text-white disabled:opacity-50">
+                  <button type="button" onClick={closeModal} className="flex-1 rounded-lg bg-zinc-100 py-3 font-semibold text-zinc-600 border border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700">{t('cancel')}</button>
+                  <button type="submit" disabled={isSaving} className="flex-1 rounded-lg bg-brand-600 py-3 font-semibold text-white disabled:opacity-50">
                     {isSaving ? t('saving') : (editingDebt ? t('update') : t('add'))}
                   </button>
                 </div>
@@ -289,7 +289,7 @@ export default function Debts() {
         {actionDebt && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:items-end">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActionDebt(null)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }} className="relative w-full max-w-md rounded-2xl bg-white p-6 dark:bg-zinc-900 text-right">
+            <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }} className="relative w-full max-w-md rounded-lg bg-white p-6 dark:bg-zinc-900 text-right overflow-hidden border border-zinc-100 dark:border-zinc-800">
               <div className="flex items-center justify-between mb-6">
                 <button onClick={() => setActionDebt(null)} className="p-2 -ml-2 text-zinc-500 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800"><X size={20} /></button>
                 <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
@@ -301,14 +301,14 @@ export default function Debts() {
                 <div className="space-y-3">
                   <button 
                     onClick={() => setActionType('payment')}
-                    className="w-full flex items-center justify-between p-4 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/30 transition-colors"
+                    className="w-full flex items-center justify-between p-4 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/30 transition-colors"
                   >
                     <Plus size={24} />
                     <span className="font-bold text-lg">{t('record_payment')}</span>
                   </button>
                   <button 
                     onClick={() => setActionType('debt')}
-                    className="w-full flex items-center justify-between p-4 rounded-2xl bg-[#B34C36]/5 text-[#B34C36] border border-[#B34C36]/10 dark:bg-[#B34C36]/10 dark:border-[#B34C36]/20 transition-colors"
+                    className="w-full flex items-center justify-between p-4 rounded-lg bg-[#B34C36]/5 text-[#B34C36] border border-[#B34C36]/10 dark:bg-[#B34C36]/10 dark:border-[#B34C36]/20 transition-colors"
                   >
                     <Minus size={24} />
                     <span className="font-bold text-lg">{t('record_new_debt')}</span>
@@ -336,13 +336,13 @@ export default function Debts() {
                     placeholder={t('enter_amount_placeholder')} 
                     autoFocus
                     required 
-                    className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-right text-xl font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white" 
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-right text-xl font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white" 
                   />
                   <div className="flex gap-3 pt-2">
-                    <button type="submit" disabled={!actionAmount || isSaving} className={`flex-1 rounded-2xl py-3 font-semibold text-white transition-opacity ${actionType === 'payment' ? 'bg-emerald-500' : 'bg-[#B34C36]'} disabled:opacity-50`}>
+                    <button type="submit" disabled={!actionAmount || isSaving} className={`flex-1 rounded-lg py-3 font-semibold text-white transition-opacity ${actionType === 'payment' ? 'bg-emerald-500' : 'bg-[#B34C36]'} disabled:opacity-50`}>
                       {t('confirm')}
                     </button>
-                    <button type="button" onClick={() => setActionType('select')} className="flex-1 rounded-2xl bg-zinc-100 py-3 font-semibold text-zinc-600 border border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700">{t('cancel')}</button>
+                    <button type="button" onClick={() => setActionType('select')} className="flex-1 rounded-lg bg-zinc-100 py-3 font-semibold text-zinc-600 border border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700">{t('cancel')}</button>
                   </div>
                 </form>
               )}
@@ -356,7 +356,7 @@ export default function Debts() {
         {activeDebt && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActiveDebt(null)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }} className="relative w-full max-w-xl rounded-2xl bg-white p-8 dark:bg-zinc-900 max-h-[80vh] overflow-y-auto">
+            <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }} className="relative w-full max-w-xl rounded-lg bg-white p-8 dark:bg-zinc-900 max-h-[80vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-8">
                 <button onClick={() => setActiveDebt(null)}><X size={24} className="text-zinc-500" /></button>
                 <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">{t('operations_log')} {t('debts')} {activeDebt.customerName}</h2>
@@ -371,7 +371,7 @@ export default function Debts() {
                   }
                   
                   return sortedHistory.map((item, i) => (
-                    <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800">
+                    <div key={i} className="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-800">
                       <div className="flex items-center gap-3">
                         <div className={`h-10 w-10 rounded-full flex items-center justify-center ${item.type === 'payment' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30' : 'bg-[#B34C36]/10 text-[#B34C36] dark:bg-[#B34C36]/20'}`}>
                           {item.type === 'payment' ? <Plus size={20} /> : <Minus size={20} />}
@@ -399,7 +399,7 @@ export default function Debts() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.95, y: 10 }} 
-              className="relative w-full max-w-[280px] rounded-2xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
+              className="relative w-full max-w-[280px] rounded-lg bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
               <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
                 {t('confirm_delete_debt_desc')} <span className="text-[#B34C36]">"{deleteConfirmName}"</span> {settings.language === 'ar' ? '؟' : '?'}
@@ -408,14 +408,14 @@ export default function Debts() {
                 <button 
                   onClick={handleDeleteDebt}
                   disabled={isSaving}
-                  className="flex-1 py-2.5 rounded-2xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-lg font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
                   style={{ backgroundColor: '#B34C36' }}
                 >
                   {t('confirm')}
                 </button>
                 <button 
                   onClick={() => setDeleteConfirmId(null)}
-                  className="flex-1 py-2.5 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 text-[12px] font-bold active:scale-95 transition-all"
+                  className="flex-1 py-2.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-500 text-[12px] font-bold active:scale-95 transition-all"
                 >
                   {t('cancel')}
                 </button>

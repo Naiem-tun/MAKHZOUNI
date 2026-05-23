@@ -173,7 +173,7 @@ export default function Analytics() {
           {activeTab !== 'menu' && (
             <button 
               onClick={() => setActiveTab('menu')}
-              className="h-10 w-10 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200"
+              className="h-10 w-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200"
             >
               <ArrowDownRight className="rotate-180" size={20} />
             </button>
@@ -200,9 +200,9 @@ export default function Analytics() {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id as any)}
-                className="group flex items-center gap-4 p-5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl text-right transition-all hover:scale-[1.02] active:scale-95 shadow-sm"
+                className="group flex items-center gap-4 p-5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg text-right transition-all hover:scale-[1.02] active:scale-95 shadow-sm"
               >
-                <div className={`h-14 w-14 rounded-2xl ${item.bg} flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform`}>
+                <div className={`h-14 w-14 rounded-lg ${item.bg} flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform`}>
                   <item.icon size={28} />
                 </div>
                 <div className="flex-1">
@@ -220,13 +220,13 @@ export default function Analytics() {
         {activeTab === 'financial' && (
           <>
             {/* Main Chart */}
-            <section className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-6 shadow-sm overflow-hidden">
+            <section className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg p-6 shadow-sm overflow-hidden">
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <div className="text-[10px] font-black text-brand-600 uppercase tracking-widest mb-1">{t('reports')}</div>
                   <h2 className="text-xl font-black text-zinc-900 dark:text-white">{t('revenues_and_profits')}</h2>
                 </div>
-                <div className="h-10 w-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center text-emerald-600">
+                <div className="h-10 w-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center text-emerald-600">
                   <BarChart3 size={20} />
                 </div>
               </div>
@@ -264,7 +264,7 @@ export default function Analytics() {
                     <YAxis fontSize={10} axisLine={false} tickLine={false} tick={{fill: '#94a3b8'}} hide />
                     <Tooltip 
                       contentStyle={{ 
-                        borderRadius: '16px', 
+                        borderRadius: '8px', 
                         border: 'none', 
                         boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
                         textAlign: 'right' 
@@ -289,9 +289,9 @@ export default function Analytics() {
                 { label: t('inventory_value_selling_price'), value: totalSalesValue, icon: Package, color: 'text-zinc-600', bg: 'bg-zinc-100 dark:bg-zinc-800' },
                 { label: t('expected_profit'), value: expectedProfit, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-950/20' },
               ].map((stat, i) => (
-                <div key={i} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-4 rounded-2xl shadow-sm">
+                <div key={i} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-4 rounded-lg shadow-sm">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className={`h-8 w-8 rounded-xl ${stat.bg} flex items-center justify-center ${stat.color}`}>
+                    <div className={`h-8 w-8 rounded-lg ${stat.bg} flex items-center justify-center ${stat.color}`}>
                       <stat.icon size={16} />
                     </div>
                     <span className="text-[10px] font-bold text-zinc-500">{stat.label}</span>
@@ -307,7 +307,7 @@ export default function Analytics() {
 
         {activeTab === 'rankings' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg p-6 shadow-sm">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-black text-xl text-zinc-900 dark:text-white flex items-center gap-2">
                   <TrendingUp size={22} className="text-emerald-500" />
@@ -316,9 +316,9 @@ export default function Analytics() {
               </div>
               <div className="space-y-4">
                 {topProfitableProducts.length > 0 ? topProfitableProducts.map((item: any, i: number) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl">
+                  <div key={i} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
                     <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-xl bg-white dark:bg-zinc-800 flex items-center justify-center text-sm font-black text-zinc-500 shadow-sm">
+                      <div className="h-10 w-10 rounded-lg bg-white dark:bg-zinc-800 flex items-center justify-center text-sm font-black text-zinc-500 shadow-sm">
                         {i + 1}
                       </div>
                       <span className="font-bold text-zinc-900 dark:text-white leading-none">{item.productName}</span>
@@ -333,7 +333,7 @@ export default function Analytics() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg p-6 shadow-sm">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-black text-xl text-zinc-900 dark:text-white flex items-center gap-2">
                   <ShoppingCart size={22} className="text-brand-500" />
@@ -342,9 +342,9 @@ export default function Analytics() {
               </div>
               <div className="space-y-4">
                 {topSellingProducts.length > 0 ? topSellingProducts.map((item: any, i: number) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl">
+                  <div key={i} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
                     <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-xl bg-white dark:bg-zinc-800 flex items-center justify-center text-sm font-black text-zinc-500 shadow-sm">
+                      <div className="h-10 w-10 rounded-lg bg-white dark:bg-zinc-800 flex items-center justify-center text-sm font-black text-zinc-500 shadow-sm">
                         {i + 1}
                       </div>
                       <span className="font-bold text-zinc-900 dark:text-white leading-none">{item.productName}</span>
@@ -378,7 +378,7 @@ export default function Analytics() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
                   key={i}
-                  className="flex items-center justify-between p-5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl shadow-sm transition-all hover:scale-[1.01] active:scale-95 group"
+                  className="flex items-center justify-between p-5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg shadow-sm transition-all hover:scale-[1.01] active:scale-95 group"
                 >
                   <div className="flex flex-col items-start gap-1">
                     <span className="text-lg font-black text-zinc-900 dark:text-white">
@@ -409,7 +409,7 @@ export default function Analytics() {
 
         {activeTab === 'categories' && (
           <section className="space-y-6">
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg p-6 shadow-sm">
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h3 className="font-black text-xl text-zinc-900 dark:text-white flex items-center gap-2">
@@ -448,7 +448,7 @@ export default function Analytics() {
                             name === 'other_cat' ? t('other') : t(String(name))
                           ]}
                           contentStyle={{ 
-                            borderRadius: '16px', 
+                            borderRadius: '8px', 
                             border: 'none', 
                             boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
                             textAlign: 'right'
@@ -472,7 +472,7 @@ export default function Analytics() {
                     const catColor = COLORS[i % COLORS.length];
                     
                     return (
-                    <div key={i} className="flex flex-col p-5 bg-zinc-50 dark:bg-zinc-800/40 rounded-3xl border border-zinc-100 dark:border-zinc-800 transition-colors">
+                    <div key={i} className="flex flex-col p-5 bg-zinc-50 dark:bg-zinc-800/40 rounded-lg border border-zinc-100 dark:border-zinc-800 transition-colors">
                       <div className="flex justify-between items-center mb-5 pb-4 border-b border-zinc-200/60 dark:border-zinc-700/60">
                         <div className="flex items-center gap-3">
                            <div className="w-3.5 h-3.5 rounded-full shadow-sm" style={{ backgroundColor: catColor }} />

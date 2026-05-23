@@ -526,7 +526,7 @@ export default function Inventory() {
         </div>
         <button 
           onClick={handleCompleteInventory} 
-          className="h-11 px-4 shadow-xl shadow-[#4A6FA5]/20 rounded-2xl text-sm font-black bg-[#4A6FA5] text-white flex items-center justify-center gap-2 active:scale-95 transition-all"
+          className="h-11 px-4 shadow-xl shadow-[#4A6FA5]/20 rounded-lg text-sm font-black bg-[#4A6FA5] text-white flex items-center justify-center gap-2 active:scale-95 transition-all"
         >
           <ClipboardCheck size={20} />
           <span className="hidden sm:inline">{t('save_inventory')}</span>
@@ -537,7 +537,7 @@ export default function Inventory() {
       <div className="flex justify-start gap-2 px-4">
         <button 
           onClick={() => setShowHistoryModal(true)}
-          className="w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl shadow-sm text-zinc-600 dark:text-zinc-400 active:scale-95 transition-transform"
+          className="w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg shadow-sm text-zinc-600 dark:text-zinc-400 active:scale-95 transition-transform"
           title={t('inventory_log')}
         >
           <FileText size={18} />
@@ -545,7 +545,7 @@ export default function Inventory() {
         <button 
           onClick={() => setShowExpensesModal(true)}
           className={cn(
-            "h-10 px-3 flex items-center gap-2 bg-white dark:bg-zinc-900 border rounded-2xl shadow-sm active:scale-95 transition-all text-xs font-bold",
+            "h-10 px-3 flex items-center gap-2 bg-white dark:bg-zinc-900 border rounded-lg shadow-sm active:scale-95 transition-all text-xs font-bold",
             expensesAmount > 0 ? "border-[#B34C36]/20 text-[#B34C36] bg-[#B34C36]/5" : "border-zinc-100 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 w-10 justify-center px-0"
           )}
           title={t('expenses')}
@@ -556,7 +556,7 @@ export default function Inventory() {
         <button 
           onClick={() => setShowDetailedControls(!showDetailedControls)}
           className={cn(
-            "w-10 h-10 flex items-center justify-center border rounded-2xl shadow-sm active:scale-95 transition-all",
+            "w-10 h-10 flex items-center justify-center border rounded-lg shadow-sm active:scale-95 transition-all",
             showDetailedControls 
               ? "bg-brand-600 border-brand-600 text-white shadow-brand-500/20" 
               : "bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800 text-zinc-400"
@@ -568,7 +568,7 @@ export default function Inventory() {
         <button 
           onClick={handleClearInventory}
           className={cn(
-            "w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border rounded-2xl shadow-sm active:scale-95 transition-transform",
+            "w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border rounded-lg shadow-sm active:scale-95 transition-transform",
             Object.keys(inventoryData).length > 0 
               ? "text-white shadow-lg shadow-[#B34C36]/20" 
               : "border-zinc-100 dark:border-zinc-800 text-zinc-300 dark:text-zinc-700"
@@ -600,14 +600,14 @@ export default function Inventory() {
         <div className="flex gap-2">
           <button 
             onClick={() => setIsScannerOpen(true)}
-            className="w-11 h-11 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm active:scale-95"
+            className="w-11 h-11 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm active:scale-95"
           >
             <ScanBarcode size={20} className="text-zinc-400" />
           </button>
           <div className="relative flex-1">
             <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-300" size={16} />
             <input 
-              className="w-full h-11 pr-10 pl-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl outline-none text-[13px] placeholder:text-zinc-300"
+              className="w-full h-11 pr-10 pl-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg outline-none text-[13px] placeholder:text-zinc-300"
               placeholder={t('search_product_inventory_placeholder')} 
               value={searchTerm} 
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -619,7 +619,7 @@ export default function Inventory() {
             <select 
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full appearance-none py-2.5 px-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[13px] font-bold text-zinc-600 dark:text-zinc-400 text-center outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors shadow-sm focus:border-brand-500/50"
+              className="w-full appearance-none py-2.5 px-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[13px] font-bold text-zinc-600 dark:text-zinc-400 text-center outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors shadow-sm focus:border-brand-500/50"
             >
               <option value="all">{t('all_categories_filter')}</option>
               {categories.map((c) => (
@@ -633,7 +633,7 @@ export default function Inventory() {
           <button
             onClick={() => setShowUninventoriedOnly(!showUninventoriedOnly)}
             className={cn(
-              "px-4 py-2.5 rounded-2xl border text-[13px] font-bold transition-all whitespace-nowrap",
+              "px-4 py-2.5 rounded-lg border text-[13px] font-bold transition-all whitespace-nowrap",
               showUninventoriedOnly 
                 ? "bg-brand-500 border-brand-500 text-white shadow-md shadow-brand-500/20" 
                 : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
@@ -697,7 +697,7 @@ export default function Inventory() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-[280px] bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-2xl border border-zinc-100 dark:border-zinc-800 text-center"
+              className="relative w-full max-w-[280px] bg-white dark:bg-zinc-900 rounded-lg p-6 shadow-2xl border border-zinc-100 dark:border-zinc-800 text-center"
             >
               <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
                 {modalConfig.message}
@@ -711,14 +711,14 @@ export default function Inventory() {
                         setModalConfig(prev => ({ ...prev, show: false }));
                         modalConfig.onConfirm?.();
                       }}
-                      className="flex-1 py-2.5 text-white rounded-2xl text-[12px] font-black active:scale-95 transition-all shadow-lg shadow-[#B34C36]/20"
+                      className="flex-1 py-2.5 text-white rounded-lg text-[12px] font-black active:scale-95 transition-all shadow-lg shadow-[#B34C36]/20"
                       style={{ backgroundColor: '#B34C36' }}
                     >
                       {t('confirm')}
                     </button>
                     <button 
                       onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
-                      className="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-2xl text-[12px] font-bold active:scale-95 transition-all"
+                      className="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-lg text-[12px] font-bold active:scale-95 transition-all"
                     >
                       {t('cancel')}
                     </button>
@@ -726,7 +726,7 @@ export default function Inventory() {
                 ) : (
                   <button 
                     onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
-                    className="w-full py-2.5 bg-brand-600 text-white rounded-2xl text-[12px] font-black active:scale-95 transition-all"
+                    className="w-full py-2.5 bg-brand-600 text-white rounded-lg text-[12px] font-black active:scale-95 transition-all"
                   >
                     {t('ok')}
                   </button>

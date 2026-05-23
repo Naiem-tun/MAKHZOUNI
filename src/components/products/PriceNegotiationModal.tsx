@@ -135,7 +135,7 @@ export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegoti
             initial={{ opacity: 0, scale: 0.95, y: 20 }} 
             animate={{ opacity: 1, scale: 1, y: 0 }} 
             exit={{ opacity: 0, scale: 0.95, y: 20 }} 
-            className="relative w-full max-w-md overflow-hidden rounded-[40px] bg-zinc-50/95 backdrop-blur-xl dark:bg-zinc-950/95 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.3)] border border-white/20 dark:border-zinc-800 flex flex-col max-h-[90vh]"
+            className="relative w-full max-w-md overflow-hidden rounded-lg bg-zinc-50/95 backdrop-blur-xl dark:bg-zinc-950/95 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.3)] border border-white/20 dark:border-zinc-800 flex flex-col max-h-[90vh]"
           >
             {/* Top Banner - Absolute Best */}
             <div className="bg-gradient-to-br from-brand-500 via-brand-600 to-brand-800 p-8 text-white relative shrink-0 overflow-hidden">
@@ -147,7 +147,7 @@ export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegoti
               <div className="relative z-10 flex items-start justify-between mb-8">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="bg-white/20 backdrop-blur-md p-1.5 rounded-xl shadow-sm">
+                    <div className="bg-white/20 backdrop-blur-md p-1.5 rounded-lg shadow-sm">
                       <Shield size={12} className="text-white" />
                     </div>
                     <span className="text-[10px] font-black uppercase tracking-widest text-white/90">{t('price_negotiation_tool')}</span>
@@ -157,7 +157,7 @@ export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegoti
                 </div>
                 <button 
                   onClick={onClose}
-                  className="h-10 w-10 shrink-0 flex items-center justify-center rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-md transition-all text-white border border-white/10 shadow-sm active:scale-95"
+                  className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-md transition-all text-white border border-white/10 shadow-sm active:scale-95"
                 >
                   <X size={20} />
                 </button>
@@ -176,7 +176,7 @@ export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegoti
                     </div>
                   </div>
                 </div>
-                <div className="bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-xl text-[10px] font-black text-white/90 border border-white/10 flex items-center gap-1.5 shadow-inner">
+                <div className="bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-lg text-[10px] font-black text-white/90 border border-white/10 flex items-center gap-1.5 shadow-inner">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                   {history.length} {t('purchases') || 'مشتريات'}
                 </div>
@@ -200,7 +200,7 @@ export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegoti
                         key={idx}
                         whileHover={{ scale: 1.02, y: -2 }}
                         className={cn(
-                          "min-w-[180px] snap-center p-5 rounded-[32px] shrink-0 transition-all relative flex flex-col justify-between overflow-hidden",
+                          "min-w-[180px] snap-center p-5 rounded-lg shrink-0 transition-all relative flex flex-col justify-between overflow-hidden",
                           idx === 0 
                             ? "bg-gradient-to-br from-emerald-400 to-emerald-600 border border-emerald-400/50 text-white shadow-[0_10px_30px_-10px_rgba(16,185,129,0.5)]" 
                             : "bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 text-zinc-900 dark:text-white hover:border-brand-200 dark:hover:border-brand-800 shadow-sm hover:shadow-md"
@@ -256,7 +256,7 @@ export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegoti
                               </span>
                             </div>
                             <div className={cn(
-                                "inline-flex items-center gap-1.5 mt-3 px-2.5 py-1.5 rounded-xl transition-colors",
+                                "inline-flex items-center gap-1.5 mt-3 px-2.5 py-1.5 rounded-lg transition-colors",
                                 idx === 0 ? "bg-black/10 backdrop-blur-sm" : "bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800"
                             )}>
                                <Package size={10} className={idx === 0 ? "text-white" : "text-zinc-400"} />
@@ -281,7 +281,7 @@ export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegoti
             <div className="p-6 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-md border-t border-white/20 dark:border-zinc-800/50 shrink-0">
                <button 
                 onClick={onClose}
-                className="w-full py-4 rounded-[20px] bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black text-sm tracking-widest uppercase active:scale-[0.98] transition-all shadow-[0_10px_20px_-10px_rgba(0,0,0,0.3)] hover:shadow-xl hover:bg-zinc-800 dark:hover:bg-zinc-100 flex items-center justify-center"
+                className="w-full py-4 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black text-sm tracking-widest uppercase active:scale-[0.98] transition-all shadow-[0_10px_20px_-10px_rgba(0,0,0,0.3)] hover:shadow-xl hover:bg-zinc-800 dark:hover:bg-zinc-100 flex items-center justify-center"
               >
                 {t('back')}
               </button>

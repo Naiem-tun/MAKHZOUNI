@@ -45,7 +45,7 @@ export const InventoryItem = React.memo(({
   return (
     <motion.div 
       className={cn(
-        "flex items-center justify-between gap-3 py-2.5 px-3.5 bg-white dark:bg-zinc-900 border rounded-2xl min-h-[70px] transition-all relative",
+        "flex items-center justify-between gap-3 py-2.5 px-3.5 bg-white dark:bg-zinc-900 border rounded-lg min-h-[70px] transition-all relative",
         isChecked ? "opacity-50 grayscale-[0.5]" : "",
         inventoryQuantity !== undefined ? "border-brand-500/20 bg-brand-50/5 shadow-sm" : "border-neutral-100 dark:border-neutral-800"
       )}
@@ -84,7 +84,7 @@ export const InventoryItem = React.memo(({
         {showDetailedControls && (
           <button 
             onClick={() => onAddPiece(product.id)} 
-            className="w-9 h-9 flex items-center justify-center bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-2xl text-zinc-600 dark:text-zinc-400 active:scale-95 transition-transform shadow-sm"
+            className="w-9 h-9 flex items-center justify-center bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-lg text-zinc-600 dark:text-zinc-400 active:scale-95 transition-transform shadow-sm"
             title={t('add_piece')}
           >
             <div className="flex flex-col items-center">
@@ -97,7 +97,7 @@ export const InventoryItem = React.memo(({
         {(product.piecesPerBox || 1) > 1 && (
           <button 
             onClick={() => onAddCarton(product.id, product.piecesPerBox || 1)} 
-            className="w-9 h-9 flex items-center justify-center bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-2xl text-zinc-400 active:scale-95 transition-transform"
+            className="w-9 h-9 flex items-center justify-center bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-lg text-zinc-400 active:scale-95 transition-transform"
             title={`${t('add_carton')} (${product.piecesPerBox} ${t('piece')})`}
           >
             <div className="flex flex-col items-center">
@@ -113,7 +113,7 @@ export const InventoryItem = React.memo(({
             inputMode="decimal"
             value={inventoryQuantity ?? ''}
             onChange={(e) => onChangeQuantity(product.id, e.target.value)}
-            className="w-16 h-9 text-center text-sm font-black bg-zinc-100/50 dark:bg-zinc-800 border border-zinc-100 dark:border-neutral-800 rounded-2xl outline-none focus:ring-2 focus:ring-brand-500/20 dark:text-white placeholder:text-zinc-300 transition-all font-mono"
+            className="w-16 h-9 text-center text-sm font-black bg-zinc-100/50 dark:bg-zinc-800 border border-zinc-100 dark:border-neutral-800 rounded-lg outline-none focus:ring-2 focus:ring-brand-500/20 dark:text-white placeholder:text-zinc-300 transition-all font-mono"
             placeholder={t('quantity')}
           />
         </div>

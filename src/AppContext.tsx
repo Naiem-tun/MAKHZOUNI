@@ -217,7 +217,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             <div 
               key={toast.id}
               className={cn(
-                "p-4 rounded-2xl shadow-2xl border text-sm font-bold text-center animate-in fade-in slide-in-from-top-4 duration-300",
+                "p-4 rounded-lg shadow-2xl border text-sm font-bold text-center animate-in fade-in slide-in-from-top-4 duration-300",
                 toast.type === 'success' ? "bg-emerald-600 text-white border-emerald-500" : 
                 toast.type === 'error' ? "bg-[#B34C36] text-white border-[#B34C36]/50" :
                 "bg-brand-600 text-white border-brand-500"

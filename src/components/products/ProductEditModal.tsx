@@ -132,7 +132,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-900"
+            className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-2xl dark:bg-zinc-900"
           >
             <button 
               onClick={onClose}
@@ -153,7 +153,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                   defaultValue={product?.name} 
                   required 
                   onKeyDown={handleKeyDown}
-                  className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-right font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
+                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-right font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
                 />
               </div>
 
@@ -178,7 +178,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                       value={barcode}
                       onChange={(e) => setBarcode(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 pl-10 text-sm text-right outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-700 dark:text-white block" 
+                      className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 pl-10 text-sm text-right outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-700 dark:text-white block" 
                       placeholder={t('scan_barcode_placeholder')}
                     />
                     <div className="absolute inset-y-0 left-1 flex items-center pl-1">
@@ -202,7 +202,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                         value={barcode2}
                         onChange={(e) => setBarcode2(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 pl-10 text-sm text-right outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-700 dark:text-white block" 
+                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 pl-10 text-sm text-right outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-700 dark:text-white block" 
                         placeholder={t('scan_barcode_placeholder')}
                       />
                       <div className="absolute inset-y-0 left-1 flex items-center pl-1">
@@ -227,7 +227,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                     <select 
                       name="category" 
                       defaultValue={product?.category || (categories[0]?.name || "")} 
-                      className="w-full appearance-none rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-right font-medium outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white"
+                      className="w-full appearance-none rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-right font-medium outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white"
                     >
                       {categories.map((c) => (
                         <option key={c.id} value={c.name}>{t(c.key || c.name)}</option>
@@ -245,7 +245,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                     type="number" 
                     defaultValue={product?.minQuantity ?? 0} 
                     onKeyDown={handleKeyDown}
-                    className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
                   />
                 </div>
               </div>
@@ -260,7 +260,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                     value={piecesPerBox}
                     onChange={(e) => handlePiecesChange(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
                   />
                 </div>
                 <div className="space-y-1">
@@ -272,7 +272,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                     value={boxPrice}
                     onChange={(e) => handleBoxPriceChange(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
                   />
                 </div>
               </div>
@@ -289,7 +289,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                     onChange={(e) => handlePiecePriceChange(e.target.value)}
                     required 
                     onKeyDown={handleKeyDown}
-                    className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
                   />
                 </div>
                 <div className="space-y-1">
@@ -301,7 +301,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                     defaultValue={product?.sellingPrice} 
                     required 
                     onKeyDown={handleKeyDown}
-                    className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
                   />
                 </div>
               </div>
@@ -309,7 +309,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
               <div className="pt-3">
                 <button 
                   type="submit" 
-                  className="w-full rounded-2xl bg-brand-600 py-3 text-sm font-bold text-white transition-all hover:bg-brand-700 active:scale-95 shadow-lg shadow-brand-600/10"
+                  className="w-full rounded-lg bg-brand-600 py-3 text-sm font-bold text-white transition-all hover:bg-brand-700 active:scale-95 shadow-lg shadow-brand-600/10"
                 >
                   {t('save')}
                 </button>
@@ -321,7 +321,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                   <button
                     type="button"
                     onClick={() => onDelete(product)}
-                    className="w-full flex items-center justify-center gap-2 rounded-2xl py-2.5 text-sm font-bold text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95"
+                    className="w-full flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95"
                     style={{ backgroundColor: '#B34C36' }}
                   >
                     <Trash2 size={16} />

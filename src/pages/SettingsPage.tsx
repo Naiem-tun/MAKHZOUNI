@@ -205,7 +205,7 @@ export default function SettingsPage() {
         {/* Account Card */}
         <div 
           onClick={() => setIsLogoutModalOpen(true)}
-          className="p-2 rounded-2xl bg-white border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 shadow-sm flex items-center gap-3 cursor-pointer active:scale-95 transition-all"
+          className="p-2 rounded-lg bg-white border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 shadow-sm flex items-center gap-3 cursor-pointer active:scale-95 transition-all"
         >
           <div className="text-left">
             <p className="text-[9px] text-zinc-400 font-bold mb-0.5 leading-none uppercase">{t('linked_account')}</p>
@@ -217,11 +217,11 @@ export default function SettingsPage() {
             <img 
               src={user.photoURL} 
               alt="Profile" 
-              className="w-10 h-10 rounded-2xl object-cover border-2 border-brand-50"
+              className="w-10 h-10 rounded-lg object-cover border-2 border-brand-50"
               referrerPolicy="no-referrer"
             />
           ) : (
-            <div className="w-10 h-10 rounded-2xl bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-brand-600 dark:text-brand-400 font-black text-xs border-2 border-brand-50 dark:border-brand-900/50">
+            <div className="w-10 h-10 rounded-lg bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-brand-600 dark:text-brand-400 font-black text-xs border-2 border-brand-50 dark:border-brand-900/50">
               {(user?.email || user?.displayName || '?')[0].toUpperCase()}
             </div>
           )}
@@ -230,12 +230,12 @@ export default function SettingsPage() {
 
       <div className="space-y-4">
         {/* Store Settings Form */}
-        <section className="p-6 rounded-2xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-6">
+        <section className="p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-6">
           {status && (
             <motion.div 
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`p-3 rounded-2xl flex items-center gap-2 text-xs font-bold ${status.type === 'success' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' : 'bg-rose-50 text-rose-600 dark:bg-rose-900/20'}`}
+              className={`p-3 rounded-lg flex items-center gap-2 text-xs font-bold ${status.type === 'success' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' : 'bg-rose-50 text-rose-600 dark:bg-rose-900/20'}`}
             >
               {status.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
               {status.msg}
@@ -250,7 +250,7 @@ export default function SettingsPage() {
                 value={tempSettings.storeName}
                 onChange={(e) => setTempSettings(prev => ({ ...prev, storeName: e.target.value }))}
                 placeholder={t('store_name_placeholder')}
-                className="w-full h-12 px-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none text-sm font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center"
+                className="w-full h-12 px-4 rounded-lg bg-zinc-50 dark:bg-zinc-800 border-none text-sm font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center"
               />
             </div>            <div className="space-y-1.5">
               <label className="text-[11px] font-bold text-zinc-500 mr-2">{t('currency')}</label>
@@ -259,7 +259,7 @@ export default function SettingsPage() {
                 value={tempSettings.currency}
                 onChange={(e) => setTempSettings(prev => ({ ...prev, currency: e.target.value }))}
                 placeholder={t('currency_placeholder')}
-                className="w-full h-12 px-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800 border-none text-sm font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center"
+                className="w-full h-12 px-4 rounded-lg bg-zinc-50 dark:bg-zinc-800 border-none text-sm font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center"
               />
             </div>
           </div>
@@ -267,16 +267,16 @@ export default function SettingsPage() {
           <button 
             onClick={handleSaveStoreSettings}
             disabled={isSaving}
-            className="w-full h-14 rounded-2xl bg-brand-600 text-white font-black shadow-lg shadow-brand-500/20 flex items-center justify-center transition-all hover:bg-brand-700 active:scale-[0.98] disabled:opacity-50"
+            className="w-full h-14 rounded-lg bg-brand-600 text-white font-black shadow-lg shadow-brand-500/20 flex items-center justify-center transition-all hover:bg-brand-700 active:scale-[0.98] disabled:opacity-50"
           >
             {isSaving ? t('saving') : t('save')}
           </button>
         </section>
 
         {/* Dark Mode Toggle */}
-        <section className="flex items-center justify-between p-6 rounded-2xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
+        <section className="flex items-center justify-between p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
           <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
+            <div className="h-12 w-12 rounded-lg bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
               <Moon size={24} />
             </div>
             <div className="text-right">
@@ -296,9 +296,9 @@ export default function SettingsPage() {
         </section>
 
         {/* Financials Toggle */}
-        <section className="flex items-center justify-between p-6 rounded-2xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
+        <section className="flex items-center justify-between p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
           <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
+            <div className="h-12 w-12 rounded-lg bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
               <Eye size={24} />
             </div>
             <div className="text-right">
@@ -318,9 +318,9 @@ export default function SettingsPage() {
         </section>
 
         {/* Floating Totals Toggle */}
-        <section className="flex items-center justify-between p-6 rounded-2xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
+        <section className="flex items-center justify-between p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
           <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
+            <div className="h-12 w-12 rounded-lg bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
               <Eye size={24} />
             </div>
             <div className="text-right">
@@ -340,10 +340,10 @@ export default function SettingsPage() {
         </section>
 
         {/* Profit Calculation Method Toggle */}
-        <section className="bg-white p-6 rounded-[24px] shadow-sm border border-zinc-100 flex flex-col gap-4 dark:bg-zinc-800/50 dark:border-zinc-800">
+        <section className="bg-white p-6 rounded-lg shadow-sm border border-zinc-100 flex flex-col gap-4 dark:bg-zinc-800/50 dark:border-zinc-800">
           <div className="flex justify-between items-center w-full">
             <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-2xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
+              <div className="h-12 w-12 rounded-lg bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
                 <Percent size={24} />
               </div>
               <div className="text-right flex-1">
@@ -352,10 +352,10 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-          <div className="flex gap-2 w-full mt-2 bg-zinc-50 dark:bg-zinc-900/50 p-1 rounded-2xl">
+          <div className="flex gap-2 w-full mt-2 bg-zinc-50 dark:bg-zinc-900/50 p-1 rounded-lg">
             <button
               onClick={() => updateSettings({ profitCalculationMethod: 'markup' })}
-              className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${
+              className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${
                 (settings.profitCalculationMethod || 'markup') === 'markup' 
                   ? 'bg-white text-brand-600 shadow-sm dark:bg-zinc-800 dark:text-white' 
                   : 'text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800/50'
@@ -365,7 +365,7 @@ export default function SettingsPage() {
             </button>
             <button
               onClick={() => updateSettings({ profitCalculationMethod: 'margin' })}
-              className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${
+              className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${
                 settings.profitCalculationMethod === 'margin' 
                   ? 'bg-white text-brand-600 shadow-sm dark:bg-zinc-800 dark:text-white' 
                   : 'text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800/50'
@@ -377,9 +377,9 @@ export default function SettingsPage() {
         </section>
 
         {/* Supplier Session Button Toggle */}
-        <section className="flex items-center justify-between p-6 rounded-2xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
+        <section className="flex items-center justify-between p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
           <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
+            <div className="h-12 w-12 rounded-lg bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
               <Play size={24} />
             </div>
             <div className="text-right">
@@ -403,10 +403,10 @@ export default function SettingsPage() {
           <button 
             key={item.id} 
             onClick={() => setActiveView(item.id as View)}
-            className="group w-full flex items-center justify-between p-6 rounded-2xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 transition-all hover:shadow-md"
+            className="group w-full flex items-center justify-between p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 transition-all hover:shadow-md"
           >
             <div className="flex items-center gap-4">
-              <div className={`h-12 w-12 rounded-2xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center ${item.color}`}>
+              <div className={`h-12 w-12 rounded-lg bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center ${item.color}`}>
                 <item.icon size={24} />
               </div>
               <div className="text-right">
@@ -422,10 +422,10 @@ export default function SettingsPage() {
         <button 
           onClick={handleGenerateMockData}
           disabled={isGenerating}
-          className="w-full flex items-center justify-between p-6 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-bold transition-all active:scale-95 disabled:opacity-50"
+          className="w-full flex items-center justify-between p-6 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-bold transition-all active:scale-95 disabled:opacity-50"
         >
           <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-white dark:bg-zinc-700 flex items-center justify-center">
+            <div className="h-12 w-12 rounded-lg bg-white dark:bg-zinc-700 flex items-center justify-center">
               {isGenerating ? <div className="h-5 w-5 border-2 border-zinc-900 dark:border-white border-t-transparent rounded-full animate-spin" /> : <Database size={24} />}
             </div>
             <div className="text-right">
@@ -437,11 +437,11 @@ export default function SettingsPage() {
 
         <button 
           onClick={() => setIsClearDataModalOpen(true)}
-          className="w-full flex items-center justify-between p-6 rounded-2xl text-white font-bold transition-all shadow-lg shadow-[#B34C36]/20 active:scale-95"
+          className="w-full flex items-center justify-between p-6 rounded-lg text-white font-bold transition-all shadow-lg shadow-[#B34C36]/20 active:scale-95"
           style={{ backgroundColor: '#B34C36' }}
         >
           <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-white/20 flex items-center justify-center text-white">
+            <div className="h-12 w-12 rounded-lg bg-white/20 flex items-center justify-center text-white">
               <Trash2 size={24} />
             </div>
             <div className="text-right">
@@ -468,7 +468,7 @@ export default function SettingsPage() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.95, y: 10 }} 
-              className="relative w-full max-w-[280px] rounded-2xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
+              className="relative w-full max-w-[280px] rounded-lg bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
               <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
                 {t('confirm_clear_all_data_desc')} <span className="text-[#B34C36]">{t('irreversible_action')}</span>
@@ -478,7 +478,7 @@ export default function SettingsPage() {
                 <button 
                   onClick={handleClearAllData}
                   disabled={isClearing}
-                  className="flex-1 py-2.5 rounded-2xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-lg font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
                   style={{ backgroundColor: '#B34C36' }}
                 >
                   {t('confirm')}
@@ -486,7 +486,7 @@ export default function SettingsPage() {
                 <button 
                   onClick={() => setIsClearDataModalOpen(false)}
                   disabled={isClearing}
-                  className="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-2xl text-[12px] font-bold active:scale-95 transition-all text-[12px]"
+                  className="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-lg text-[12px] font-bold active:scale-95 transition-all text-[12px]"
                 >
                   {t('cancel')}
                 </button>
@@ -504,7 +504,7 @@ export default function SettingsPage() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.95, y: 10 }} 
-              className="relative w-full max-w-[280px] rounded-2xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
+              className="relative w-full max-w-[280px] rounded-lg bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
               <div className="mb-4 pt-2">
                 <p className="text-[10px] font-black text-zinc-400 mb-0.5 uppercase tracking-wider">{t('current_account')}</p>
@@ -518,14 +518,14 @@ export default function SettingsPage() {
               <div className="flex gap-2">
                 <button 
                   onClick={() => auth.signOut()}
-                  className="flex-1 py-2.5 rounded-2xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px]"
+                  className="flex-1 py-2.5 rounded-lg font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px]"
                   style={{ backgroundColor: '#B34C36' }}
                 >
                   {t('confirm_logout')}
                 </button>
                 <button 
                   onClick={() => setIsLogoutModalOpen(false)}
-                  className="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-2xl text-[12px] font-bold active:scale-95 transition-all"
+                  className="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-lg text-[12px] font-bold active:scale-95 transition-all"
                 >
                   {t('cancel')}
                 </button>

@@ -81,10 +81,10 @@ export function Login() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md rounded-2xl bg-white p-8 text-right shadow-2xl dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800"
+        className="w-full max-w-md rounded-lg bg-white p-8 text-right shadow-2xl dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800"
       >
         <div className="mb-8 flex justify-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-brand-800 text-white shadow-lg shadow-brand-800/20">
+          <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-brand-800 text-white shadow-lg shadow-brand-800/20">
             <Package size={40} />
           </div>
         </div>
@@ -115,7 +115,7 @@ export function Login() {
                   placeholder={t('phone_number') + ' ' + t('phone_example')}
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 py-4 pr-12 pl-4 text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:ring-2 focus:ring-brand-800 dark:border-zinc-800 dark:bg-zinc-800/50 dark:text-white"
+                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 py-4 pr-12 pl-4 text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:ring-2 focus:ring-brand-800 dark:border-zinc-800 dark:bg-zinc-800/50 dark:text-white"
                   required
                 />
               </div>
@@ -123,7 +123,7 @@ export function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-brand-800 px-6 py-4 font-bold text-white transition-all hover:bg-brand-900 disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-3 rounded-lg bg-brand-800 px-6 py-4 font-bold text-white transition-all hover:bg-brand-900 disabled:opacity-50"
               >
                 {loading ? t('loading') : t('send_code')}
                 {!loading && <ArrowRight size={20} className="rotate-180" />}
@@ -154,7 +154,7 @@ export function Login() {
                     setLoading(false);
                   }
                 }}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl border border-zinc-200 bg-white px-6 py-4 font-bold text-zinc-700 transition-all hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                className="flex w-full items-center justify-center gap-3 rounded-lg border border-zinc-200 bg-white px-6 py-4 font-bold text-zinc-700 transition-all hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
                 <Globe size={20} />
                 {t('login_with_google')}
@@ -178,7 +178,7 @@ export function Login() {
                   placeholder={t('verification_code')}
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value)}
-                  className="w-full rounded-2xl border border-zinc-200 bg-zinc-50 py-4 pr-12 pl-4 text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:ring-2 focus:ring-brand-800 dark:border-zinc-800 dark:bg-zinc-800/50 dark:text-white"
+                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 py-4 pr-12 pl-4 text-zinc-900 placeholder-zinc-400 outline-none transition-all focus:ring-2 focus:ring-brand-800 dark:border-zinc-800 dark:bg-zinc-800/50 dark:text-white"
                   required
                 />
               </div>
@@ -186,7 +186,7 @@ export function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-brand-800 px-6 py-4 font-bold text-white transition-all hover:bg-brand-900 disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-3 rounded-lg bg-brand-800 px-6 py-4 font-bold text-white transition-all hover:bg-brand-900 disabled:opacity-50"
               >
                 {loading ? t('loading') : t('verify_code')}
               </button>
@@ -206,7 +206,7 @@ export function Login() {
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="mt-6 rounded-2xl bg-red-50 p-4 text-center text-sm font-medium text-red-600 dark:bg-red-900/20 dark:text-red-400 border border-red-100 dark:border-red-900/30"
+            className="mt-6 rounded-lg bg-red-50 p-4 text-center text-sm font-medium text-red-600 dark:bg-red-900/20 dark:text-red-400 border border-red-100 dark:border-red-900/30"
           >
             {error}
           </motion.div>

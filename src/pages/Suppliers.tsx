@@ -236,13 +236,13 @@ export default function Suppliers() {
           <p className="text-zinc-500 dark:text-zinc-400">{t('suppliers_subtitle')}</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => { setEditingSupplier(null); setSelectedVisitDays([]); setIsModalOpen(true); }} className="flex items-center gap-2 rounded-2xl bg-brand-600 px-6 py-3 font-semibold text-white shadow-lg shadow-brand-500/20">
+          <button onClick={() => { setEditingSupplier(null); setSelectedVisitDays([]); setIsModalOpen(true); }} className="flex items-center gap-2 rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white shadow-lg shadow-brand-500/20">
             <UserPlus size={20} />
             {t('add_supplier')}
           </button>
           <button 
             onClick={() => setIsClearAllConfirmOpen(true)}
-            className="p-3 rounded-2xl bg-zinc-100 text-zinc-500 hover:bg-[#B34C36]/5 hover:text-[#B34C36] transition-all dark:bg-zinc-800"
+            className="p-3 rounded-lg bg-zinc-100 text-zinc-500 hover:bg-[#B34C36]/5 hover:text-[#B34C36] transition-all dark:bg-zinc-800"
             title={t('clear_all_transactions')}
           >
             <RotateCcw size={20}/>
@@ -257,7 +257,7 @@ export default function Suppliers() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={t('search')} 
-          className="w-full rounded-2xl border border-zinc-100 bg-white py-3 pr-12 pl-4 outline-none focus:ring-2 focus:ring-brand-500 transition-all dark:bg-zinc-900 dark:border-zinc-800 dark:text-white"
+          className="w-full rounded-lg border border-zinc-100 bg-white py-3 pr-12 pl-4 outline-none focus:ring-2 focus:ring-brand-500 transition-all dark:bg-zinc-900 dark:border-zinc-800 dark:text-white"
           dir="rtl"
         />
         <div className="absolute inset-y-0 right-4 flex items-center pr-3 pointer-events-none text-zinc-400 group-focus-within:text-brand-500 transition-colors">
@@ -277,19 +277,19 @@ export default function Suppliers() {
         {filteredSuppliers.map((s) => {
           const isToday = s.visitDays?.includes(today);
           return (
-            <div key={s.id} className="relative group overflow-hidden rounded-2xl">
+            <div key={s.id} className="relative group overflow-hidden rounded-lg">
               {/* Hidden Actions Layer (Behind) */}
               <div className="absolute inset-y-0 right-0 flex items-center pr-1 gap-1 z-0">
                 <button 
                   onClick={() => { setEditingSupplier(s); setSelectedVisitDays(s.visitDays || []); setIsModalOpen(true); }}
-                  className="h-[calc(100%-8px)] w-16 bg-edit-bg border border-edit-border rounded-2xl flex flex-col items-center justify-center gap-1 text-edit-text"
+                  className="h-[calc(100%-8px)] w-16 bg-edit-bg border border-edit-border rounded-lg flex flex-col items-center justify-center gap-1 text-edit-text"
                 >
                   <Edit2 size={18} />
                   <span className="text-[10px] font-bold">{t('edit')}</span>
                 </button>
                 <button 
                   onClick={() => { setDeleteConfirmId(s.id!); setDeleteConfirmName(s.name || ''); }}
-                  className="h-[calc(100%-8px)] w-16 bg-delete-bg border border-delete-border flex flex-col items-center justify-center gap-1 text-delete-text rounded-2xl"
+                  className="h-[calc(100%-8px)] w-16 bg-delete-bg border border-delete-border flex flex-col items-center justify-center gap-1 text-delete-text rounded-lg"
                 >
                   <Trash2 size={18} />
                   <span className="text-[10px] font-bold">{t('delete')}</span>
@@ -302,7 +302,7 @@ export default function Suppliers() {
                 dragConstraints={{ left: -140, right: 0 }}
                 dragElastic={0.1}
                 onClick={() => { setSelectedSupplier(s); setIsHistoryModalOpen(true); }}
-                className={`relative z-10 flex cursor-pointer items-center justify-between rounded-2xl bg-white p-3 shadow-sm border transition-all ${
+                className={`relative z-10 flex cursor-pointer items-center justify-between rounded-lg bg-white p-3 shadow-sm border transition-all ${
                   isToday 
                     ? 'border-brand-500 ring-4 ring-brand-500/5 dark:bg-zinc-900' 
                     : s.isMissed
@@ -321,7 +321,7 @@ export default function Suppliers() {
                           )}
                         </div>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="inline-flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-1.5 py-0.5 rounded-xl text-[10px] font-bold border border-zinc-200 dark:border-zinc-700">
+                          <span className="inline-flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-1.5 py-0.5 rounded-lg text-[10px] font-bold border border-zinc-200 dark:border-zinc-700">
                             {s.txCount || 0} {t('operations')}
                           </span>
                         </div>
@@ -338,7 +338,7 @@ export default function Suppliers() {
                     <a 
                       href={`tel:${s.phone}`} 
                       onClick={(e) => e.stopPropagation()}
-                      className="w-10 h-10 flex items-center justify-center rounded-2xl bg-zinc-50 text-brand-600 border border-zinc-100 hover:bg-zinc-100 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-700 transition-colors"
+                      className="w-10 h-10 flex items-center justify-center rounded-lg bg-zinc-50 text-brand-600 border border-zinc-100 hover:bg-zinc-100 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-700 transition-colors"
                     >
                       <Phone size={18}/>
                     </a>
@@ -347,7 +347,7 @@ export default function Suppliers() {
                     activeSupplier?.id === s.id ? (
                       <button 
                         onClick={(e) => { e.stopPropagation(); setActiveSupplier(null); }} 
-                        className="w-10 h-10 flex items-center justify-center rounded-2xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:opacity-90 transition-all font-bold shadow-sm"
+                        className="w-10 h-10 flex items-center justify-center rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:opacity-90 transition-all font-bold shadow-sm"
                         title={t('end_supplier_session')}
                       >
                         <Square size={16} fill="currentColor" />
@@ -355,7 +355,7 @@ export default function Suppliers() {
                     ) : (
                       <button 
                         onClick={(e) => { e.stopPropagation(); setActiveSupplier({ id: s.id!, name: s.name }); }} 
-                        className="w-10 h-10 flex items-center justify-center rounded-2xl bg-brand-50 text-brand-600 hover:bg-brand-100 transition-all font-bold shadow-sm"
+                        className="w-10 h-10 flex items-center justify-center rounded-lg bg-brand-50 text-brand-600 hover:bg-brand-100 transition-all font-bold shadow-sm"
                         title={t('start_supplier_session')}
                       >
                         <Play size={16} fill="currentColor" />
@@ -364,7 +364,7 @@ export default function Suppliers() {
                   )}
                   <button 
                     onClick={(e) => { e.stopPropagation(); setSelectedSupplier(s); setIsAddTxModalOpen(true); }} 
-                    className="w-10 h-10 flex items-center justify-center rounded-2xl bg-brand-600 text-white hover:opacity-90 transition-all font-bold shadow-sm"
+                    className="w-10 h-10 flex items-center justify-center rounded-lg bg-brand-600 text-white hover:opacity-90 transition-all font-bold shadow-sm"
                   >
                     <Plus size={18} />
                   </button>
@@ -402,20 +402,20 @@ export default function Suppliers() {
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
-            <motion.div key={editingSupplier?.id || 'new'} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-2xl bg-white p-8 dark:bg-zinc-900">
+            <motion.div key={editingSupplier?.id || 'new'} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-lg bg-white p-8 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
               <h2 className="mb-6 text-2xl font-bold text-zinc-900 dark:text-white">{editingSupplier ? t('edit_supplier_data') : t('add_new_supplier')}</h2>
               <form onSubmit={handleSave} className="space-y-4 text-right">
                 <div>
                   <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('name')}</label>
-                  <input name="name" placeholder={t('supplier_name_placeholder')} defaultValue={editingSupplier?.name} required className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
+                  <input name="name" placeholder={t('supplier_name_placeholder')} defaultValue={editingSupplier?.name} required className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700 font-bold" />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('phone_number')}</label>
-                  <input name="phone" placeholder={t('supplier_phone_placeholder')} defaultValue={editingSupplier?.phone} className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
+                  <input name="phone" placeholder={t('supplier_phone_placeholder')} defaultValue={editingSupplier?.phone} className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('category')}</label>
-                  <input name="typeOfGoods" placeholder={t('supplier_goods_placeholder')} defaultValue={editingSupplier?.typeOfGoods} className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
+                  <input name="typeOfGoods" placeholder={t('supplier_goods_placeholder')} defaultValue={editingSupplier?.typeOfGoods} className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-zinc-400 mb-3 block">{t('weekly_visit_days')}</label>
@@ -436,7 +436,7 @@ export default function Suppliers() {
                                 setSelectedVisitDays([...selectedVisitDays, id]);
                               }
                             }}
-                            className={`py-3 rounded-2xl text-[11px] font-black transition-all ${
+                            className={`py-3 rounded-lg text-[11px] font-black transition-all ${
                               selectedVisitDays.includes(day.id)
                                 ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20'
                                 : 'bg-zinc-50 text-zinc-500 dark:bg-zinc-800/50 dark:text-zinc-400 border border-zinc-100 dark:border-zinc-800'
@@ -463,7 +463,7 @@ export default function Suppliers() {
                                 setSelectedVisitDays([...selectedVisitDays, id]);
                               }
                             }}
-                            className={`py-3 rounded-2xl text-[11px] font-black transition-all ${
+                            className={`py-3 rounded-lg text-[11px] font-black transition-all ${
                               selectedVisitDays.includes(day.id)
                                 ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20'
                                 : 'bg-zinc-50 text-zinc-500 dark:bg-zinc-800/50 dark:text-zinc-400 border border-zinc-100 dark:border-zinc-800'
@@ -477,8 +477,8 @@ export default function Suppliers() {
                   </div>
                 </div>
                 <div className="flex gap-3 pt-4">
-                  <button type="button" onClick={closeModal} className="flex-1 rounded-2xl bg-zinc-100 py-3 font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">{t('cancel')}</button>
-                  <button type="submit" disabled={isSaving} className="flex-1 rounded-2xl bg-brand-600 py-3 font-semibold text-white shadow-lg shadow-brand-500/20 disabled:opacity-50">
+                  <button type="button" onClick={closeModal} className="flex-1 rounded-lg bg-zinc-100 py-3 font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">{t('cancel')}</button>
+                  <button type="submit" disabled={isSaving} className="flex-1 rounded-lg bg-brand-600 py-3 font-semibold text-white shadow-lg shadow-brand-500/20 disabled:opacity-50">
                     {isSaving ? t('saving') : t('save_data')}
                   </button>
                 </div>
@@ -490,9 +490,9 @@ export default function Suppliers() {
         {isAddTxModalOpen && selectedSupplier && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAddTxModalOpen(false)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-2xl bg-white p-8 dark:bg-zinc-900">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-lg bg-white p-8 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
               <div className="flex items-center gap-3 mb-6">
-                <div className="h-12 w-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 flex items-center justify-center text-emerald-600">
+                <div className="h-12 w-12 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 flex items-center justify-center text-emerald-600">
                   <CirclePlus size={24} />
                 </div>
                 <div>
@@ -504,21 +504,21 @@ export default function Suppliers() {
                 <div>
                   <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('purchase_price')}</label>
                   <div className="relative">
-                    <input name="amount" type="number" step="0.001" placeholder="0.000" required className="w-full rounded-2xl border bg-zinc-50 p-4 pr-12 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700 font-mono text-lg" />
+                    <input name="amount" type="number" step="0.001" placeholder="0.000" required className="w-full rounded-lg border bg-zinc-50 p-4 pr-12 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700 font-mono text-lg" />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-zinc-400">{settings.currency}</span>
                   </div>
                 </div>
                 <div>
                   <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('date')}</label>
-                  <input name="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
+                  <input name="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('notes')}</label>
-                  <input name="note" placeholder={t('record_payment_note_placeholder')} className="w-full rounded-2xl border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
+                  <input name="note" placeholder={t('record_payment_note_placeholder')} className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
                 </div>
                 <div className="flex gap-3 pt-4">
-                  <button type="button" onClick={() => setIsAddTxModalOpen(false)} className="flex-1 rounded-2xl bg-zinc-100 py-3 font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">{t('cancel')}</button>
-                  <button type="submit" disabled={isSaving} className="flex-1 rounded-2xl py-3 font-semibold text-white shadow-lg shadow-[#B34C36]/20 disabled:opacity-50" style={{ backgroundColor: '#B34C36' }}>
+                  <button type="button" onClick={() => setIsAddTxModalOpen(false)} className="flex-1 rounded-lg bg-zinc-100 py-3 font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">{t('cancel')}</button>
+                  <button type="submit" disabled={isSaving} className="flex-1 rounded-lg py-3 font-semibold text-white shadow-lg shadow-[#B34C36]/20 disabled:opacity-50" style={{ backgroundColor: '#B34C36' }}>
                     {isSaving ? t('saving') : t('confirm_payment')}
                   </button>
                 </div>
@@ -530,23 +530,23 @@ export default function Suppliers() {
         {isHistoryModalOpen && selectedSupplier && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsHistoryModalOpen(false)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-lg rounded-2xl bg-white p-8 dark:bg-zinc-900">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-lg rounded-lg bg-white p-8 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-2xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-500">
+                  <div className="h-12 w-12 rounded-lg bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-500">
                     <History size={24} />
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-zinc-900 dark:text-white">{t('operations_log')}</h2>
                     <div className="flex items-center gap-2">
                       <p className="text-xs text-zinc-500">{selectedSupplier.name}</p>
-                      <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-xl text-zinc-500 font-bold">
+                      <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-lg text-zinc-500 font-bold">
                         {transactions.filter(t => t.supplierId === selectedSupplier.id).length} {t('operations')}
                       </span>
                     </div>
                   </div>
                 </div>
-                <button onClick={() => setIsHistoryModalOpen(false)} className="h-10 w-10 flex items-center justify-center rounded-2xl bg-zinc-100 text-zinc-500 dark:bg-zinc-800">
+                <button onClick={() => setIsHistoryModalOpen(false)} className="h-10 w-10 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
                   <X size={20} />
                 </button>
               </div>
@@ -560,9 +560,9 @@ export default function Suppliers() {
                     return dateB.getTime() - dateA.getTime();
                   })
                   .map((tx) => (
-                    <div key={tx.id} className="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800">
+                    <div key={tx.id} className="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-2xl bg-white dark:bg-zinc-800 flex items-center justify-center text-brand-600 shadow-sm">
+                        <div className="h-10 w-10 rounded-lg bg-white dark:bg-zinc-800 flex items-center justify-center text-brand-600 shadow-sm border border-zinc-100 dark:border-zinc-700">
                           <Calendar size={18} />
                         </div>
                         <div>
@@ -575,7 +575,7 @@ export default function Suppliers() {
                       </div>
                       <button 
                         onClick={() => setDeleteTxConfirmId(tx.id!)}
-                        className="p-2 rounded-xl text-[#B34C36] hover:bg-[#B34C36]/5 transition-colors"
+                        className="p-2 rounded-lg text-[#B34C36] hover:bg-[#B34C36]/5 transition-colors"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -608,7 +608,7 @@ export default function Suppliers() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.95, y: 10 }} 
-              className="relative w-full max-w-[280px] rounded-2xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
+              className="relative w-full max-w-[280px] rounded-lg bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
               <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
                 {t('confirm_delete_supplier_desc')} <span className="text-[#B34C36]">"{deleteConfirmName}"</span> {settings.language === 'ar' ? '؟' : '?'} {t('confirm_delete_supplier_warning')}
@@ -617,14 +617,14 @@ export default function Suppliers() {
                 <button 
                   onClick={handleDeleteSupplier}
                   disabled={isSaving}
-                  className="flex-1 py-2.5 rounded-2xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-lg font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
                   style={{ backgroundColor: '#B34C36' }}
                 >
                   {t('confirm')}
                 </button>
                 <button 
                   onClick={() => setDeleteConfirmId(null)}
-                  className="flex-1 py-2.5 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 text-[12px] font-bold active:scale-95 transition-all"
+                  className="flex-1 py-2.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-500 text-[12px] font-bold active:scale-95 transition-all"
                 >
                   {t('cancel')}
                 </button>
@@ -640,7 +640,7 @@ export default function Suppliers() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.95, y: 10 }} 
-              className="relative w-full max-w-[280px] rounded-2xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
+              className="relative w-full max-w-[280px] rounded-lg bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
               <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
                 {t('confirm_delete_operation')}
@@ -648,14 +648,14 @@ export default function Suppliers() {
               <div className="flex gap-2">
                 <button 
                   onClick={handleDeleteTransaction}
-                  className="flex-1 py-2.5 rounded-2xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px]"
+                  className="flex-1 py-2.5 rounded-lg font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px]"
                   style={{ backgroundColor: '#B34C36' }}
                 >
                   {t('confirm')}
                 </button>
                 <button 
                   onClick={() => setDeleteTxConfirmId(null)}
-                  className="flex-1 py-2.5 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 text-[12px] font-bold active:scale-95 transition-all"
+                  className="flex-1 py-2.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-500 text-[12px] font-bold active:scale-95 transition-all"
                 >
                   {t('cancel')}
                 </button>
@@ -671,7 +671,7 @@ export default function Suppliers() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.95, y: 10 }} 
-              className="relative w-full max-w-[280px] rounded-2xl bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
+              className="relative w-full max-w-[280px] rounded-lg bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
               <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
                 {t('confirm_delete_all_operations')}
@@ -680,14 +680,14 @@ export default function Suppliers() {
                 <button 
                   onClick={handleClearAllTransactions}
                   disabled={isSaving}
-                  className="flex-1 py-2.5 rounded-2xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-lg font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
                   style={{ backgroundColor: '#B34C36' }}
                 >
                   {t('confirm')}
                 </button>
                 <button 
                   onClick={() => setIsClearAllConfirmOpen(false)}
-                  className="flex-1 py-2.5 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 text-[12px] font-bold active:scale-95 transition-all"
+                  className="flex-1 py-2.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-500 text-[12px] font-bold active:scale-95 transition-all"
                 >
                   {t('cancel')}
                 </button>
@@ -703,7 +703,7 @@ export default function Suppliers() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.95, y: 10 }} 
-              className="relative w-full max-w-[320px] rounded-[32px] bg-white p-8 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
+              className="relative w-full max-w-[320px] rounded-lg bg-white p-8 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
               <h2 className="text-zinc-500 dark:text-zinc-400 font-bold mb-2">{t('total_expenses')}</h2>
               <div className="flex items-center justify-center gap-2 mb-8">
@@ -717,7 +717,7 @@ export default function Suppliers() {
               </div>
               <button 
                 onClick={() => setIsTotalModalOpen(false)}
-                className="w-full py-4 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-bold active:scale-95 transition-all"
+                className="w-full py-4 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-bold active:scale-95 transition-all border border-zinc-200 dark:border-zinc-700"
               >
                 {t('close')}
               </button>

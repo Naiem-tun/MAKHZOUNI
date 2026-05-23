@@ -145,7 +145,7 @@ export function BarcodeScanner({ isOpen, onClose, onScan, title }: BarcodeScanne
                 <div className="absolute -bottom-2 -right-2 w-12 h-12 border-b-4 border-r-4 border-brand-500 rounded-br-2xl shadow-[0_0_20px_rgba(var(--brand-500),0.3)]" />
                 
                 {/* Pulse Glow */}
-                <div className="absolute inset-0 bg-brand-500/5 animate-pulse rounded-2xl" />
+        <div className="absolute inset-0 bg-brand-500/5 animate-pulse rounded-lg" />
                 
                 {/* Scanning Line */}
                 <motion.div 

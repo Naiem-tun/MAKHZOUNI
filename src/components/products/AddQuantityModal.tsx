@@ -79,7 +79,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-900"
+            className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-2xl dark:bg-zinc-900"
           >
             <button 
               onClick={onClose}
@@ -94,7 +94,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
 
             <div className="space-y-6">
 
-              <div className="grid grid-cols-2 gap-3 rounded-2xl bg-zinc-50 p-4 dark:bg-zinc-800/50">
+              <div className="grid grid-cols-2 gap-3 rounded-lg bg-zinc-50 p-4 dark:bg-zinc-800/50">
                 <div className="text-center border-r border-zinc-200 dark:border-zinc-700">
                   <p className="text-[10px] font-bold text-zinc-400 mb-1">{t('current_stock')}</p>
                   <div className="flex items-baseline justify-center gap-1">
@@ -116,7 +116,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
                       type="number" 
                       value={numBoxes || ''}
                       onChange={(e) => setNumBoxes(parseFloat(e.target.value) || 0)}
-                      className="w-full rounded-2xl border border-zinc-200 bg-white py-4 text-center text-xl font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
+                      className="w-full rounded-lg border border-zinc-200 bg-white py-4 text-center text-xl font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
                       placeholder="0"
                       enterKeyHint="done"
                       inputMode="decimal"
@@ -129,7 +129,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
                       type="number" 
                       value={extraPieces || ''}
                       onChange={(e) => setExtraPieces(parseFloat(e.target.value) || 0)}
-                      className="w-full rounded-2xl border border-zinc-200 bg-white py-4 text-center text-xl font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
+                      className="w-full rounded-lg border border-zinc-200 bg-white py-4 text-center text-xl font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
                       placeholder="0"
                       enterKeyHint="done"
                       inputMode="decimal"
@@ -146,7 +146,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
                       step="0.001"
                       value={boxPrice || ''}
                       onChange={(e) => handleQtyBoxPriceChange(parseFloat(e.target.value) || 0)}
-                      className="w-full rounded-2xl border border-zinc-200 bg-white py-3 text-center font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
+                      className="w-full rounded-lg border border-zinc-200 bg-white py-3 text-center font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
                       enterKeyHint="done"
                       inputMode="decimal"
                       onKeyDown={handleKeyDown}
@@ -159,7 +159,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
                       step="0.001"
                       value={piecePrice || ''}
                       onChange={(e) => handleQtyPiecePriceChange(parseFloat(e.target.value) || 0)}
-                      className="w-full rounded-2xl border border-zinc-200 bg-white py-3 text-center font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
+                      className="w-full rounded-lg border border-zinc-200 bg-white py-3 text-center font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
                       enterKeyHint="done"
                       inputMode="decimal"
                       onKeyDown={handleKeyDown}
@@ -167,7 +167,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
                   </div>
                 </div>
 
-                <div className="rounded-2xl border-2 border-dashed border-zinc-100 p-4 dark:border-zinc-800 space-y-3">
+                <div className="rounded-lg border-2 border-dashed border-zinc-100 p-4 dark:border-zinc-800 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-baseline gap-1">
                       <span className="text-sm font-bold text-zinc-900 dark:text-white">{addedQty}</span>
@@ -188,7 +188,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
                 <button 
                   type="submit" 
                   disabled={addedQty <= 0}
-                  className="w-full rounded-2xl bg-brand-600 py-4 font-bold text-white transition-all hover:bg-brand-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-brand-600 dark:hover:bg-brand-700"
+                  className="w-full rounded-lg bg-brand-600 py-4 font-bold text-white transition-all hover:bg-brand-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-brand-600 dark:hover:bg-brand-700"
                 >
                   {t('confirm_purchase')}
                 </button>

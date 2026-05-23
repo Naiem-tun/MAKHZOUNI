@@ -64,14 +64,14 @@ export const GuideView = ({ onBack }: { onBack: () => void }) => {
   return (
     <div className="space-y-8 pb-12">
       <header className="flex items-center gap-4 border-b border-zinc-100 dark:border-zinc-800 pb-4">
-        <button onClick={onBack} className="h-10 w-10 rounded-2xl bg-white border border-zinc-100 flex items-center justify-center text-zinc-600 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400">
+        <button onClick={onBack} className="h-10 w-10 rounded-lg bg-white border border-zinc-100 flex items-center justify-center text-zinc-600 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400">
           <ChevronLeft size={20} />
         </button>
         <div className="flex-1 text-right">
           <h1 className="text-2xl font-black text-zinc-900 dark:text-white">{t('user_guide')}</h1>
           <p className="text-[10px] uppercase font-bold tracking-widest text-brand-500">{t('learn_store_management')}</p>
         </div>
-        <div className="h-12 w-12 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-600 dark:bg-brand-950/20">
+        <div className="h-12 w-12 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 dark:bg-brand-950/20">
           <BookOpen size={24} />
         </div>
       </header>
@@ -86,7 +86,7 @@ export const GuideView = ({ onBack }: { onBack: () => void }) => {
             className="flex gap-4 group"
           >
             <div className="flex flex-col items-center gap-2">
-              <div className="h-12 w-12 rounded-2xl bg-white border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-400 shadow-sm group-hover:border-brand-200 transition-all">
+              <div className="h-12 w-12 rounded-lg bg-white border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-400 shadow-sm group-hover:border-brand-200 transition-all">
                 <section.icon size={22} />
               </div>
               {idx < sections.length - 1 && <div className="w-px flex-1 bg-zinc-100 dark:bg-zinc-800" />}
@@ -104,7 +104,7 @@ export const GuideView = ({ onBack }: { onBack: () => void }) => {
         ))}
       </div>
 
-      <div className="bg-brand-500 rounded-[32px] p-8 text-white text-center relative overflow-hidden shadow-xl shadow-brand-500/20">
+      <div className="bg-brand-500 rounded-lg p-8 text-white text-center relative overflow-hidden shadow-xl shadow-brand-500/20">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
         <div className="relative z-10">
           <Zap className="mx-auto mb-4 opacity-50" size={32} />

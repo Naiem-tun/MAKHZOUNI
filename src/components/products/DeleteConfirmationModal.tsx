@@ -27,7 +27,7 @@ export function DeleteConfirmationModal({ isOpen, onClose, onConfirm }: DeleteCo
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            className="relative w-full max-w-[280px] rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-900 text-center border border-zinc-100 dark:border-zinc-800"
+            className="relative w-full max-w-[280px] rounded-lg bg-white p-6 shadow-2xl dark:bg-zinc-900 text-center border border-zinc-100 dark:border-zinc-800"
           >
             <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
               {t('confirm_delete_product')}
@@ -36,14 +36,14 @@ export function DeleteConfirmationModal({ isOpen, onClose, onConfirm }: DeleteCo
             <div className="flex gap-2">
               <button 
                 onClick={onConfirm}
-                className="flex-1 py-2.5 rounded-2xl font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px]"
+                className="flex-1 py-2.5 rounded-lg font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px]"
                 style={{ backgroundColor: '#B34C36' }}
               >
                 {t('confirm')}
               </button>
               <button 
                 onClick={onClose}
-                className="flex-1 rounded-2xl bg-zinc-100 py-2.5 font-bold text-zinc-500 transition-all active:scale-95 text-[12px] dark:bg-zinc-800 dark:text-zinc-400"
+                className="flex-1 rounded-lg bg-zinc-100 py-2.5 font-bold text-zinc-500 transition-all active:scale-95 text-[12px] dark:bg-zinc-800 dark:text-zinc-400"
               >
                 {t('cancel')}
               </button>

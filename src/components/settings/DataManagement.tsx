@@ -188,7 +188,7 @@ export const DataManagement: React.FC<DataManagementProps> = ({ onBack }) => {
   return (
     <div className="space-y-6 pb-12">
       <header className="flex items-center gap-4">
-        <button onClick={onBack} className="h-10 w-10 rounded-2xl bg-white border border-zinc-100 flex items-center justify-center text-zinc-600 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400">
+        <button onClick={onBack} className="h-10 w-10 rounded-lg bg-white border border-zinc-100 flex items-center justify-center text-zinc-600 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400">
           <ArrowRight size={20} />
         </button>
         <div>
@@ -201,7 +201,7 @@ export const DataManagement: React.FC<DataManagementProps> = ({ onBack }) => {
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`p-4 rounded-2xl flex items-center gap-3 ${status.type === 'success' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-rose-50 text-rose-700 dark:bg-rose-900/20 dark:text-rose-400'}`}
+          className={`p-4 rounded-lg flex items-center gap-3 ${status.type === 'success' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-rose-50 text-rose-700 dark:bg-rose-900/20 dark:text-rose-400'}`}
         >
           {status.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
           <span className="text-sm font-medium">{status.msg}</span>
@@ -210,8 +210,8 @@ export const DataManagement: React.FC<DataManagementProps> = ({ onBack }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Export section */}
-        <section className="p-6 rounded-2xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
-          <div className="h-12 w-12 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-600 dark:bg-brand-950/20">
+        <section className="p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
+          <div className="h-12 w-12 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 dark:bg-brand-950/20">
             <Download size={24} />
           </div>
           <div>
@@ -221,22 +221,22 @@ export const DataManagement: React.FC<DataManagementProps> = ({ onBack }) => {
           <button 
             onClick={handleExport}
             disabled={isExporting}
-            className="w-full py-4 rounded-2xl bg-brand-600 text-white font-bold shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2 transition-all hover:bg-brand-700 disabled:opacity-50"
+            className="w-full py-4 rounded-lg bg-brand-600 text-white font-bold shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2 transition-all hover:bg-brand-700 disabled:opacity-50"
           >
             {isExporting ? t('exporting') : <><Clipboard size={20} /> {t('export_now')}</>}
           </button>
         </section>
 
         {/* Import section */}
-        <section className="p-6 rounded-2xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
-          <div className="h-12 w-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 dark:bg-amber-950/20">
+        <section className="p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
+          <div className="h-12 w-12 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 dark:bg-amber-950/20">
             <Upload size={24} />
           </div>
           <div>
             <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{t('import_file')}</h3>
             <p className="text-sm text-zinc-500">{t('import_file_desc')}</p>
           </div>
-          <label className="cursor-pointer w-full py-4 rounded-2xl bg-zinc-100 text-zinc-600 font-bold border-2 border-dashed border-zinc-200 flex items-center justify-center gap-2 transition-all hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700 dark:hover:bg-zinc-700">
+          <label className="cursor-pointer w-full py-4 rounded-lg bg-zinc-100 text-zinc-600 font-bold border-2 border-dashed border-zinc-200 flex items-center justify-center gap-2 transition-all hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700 dark:hover:bg-zinc-700">
             <FileJson size={20} />
             {isImporting ? t('importing') : t('choose_file_import')}
             <input type="file" accept=".json" onChange={handleFileImport} className="hidden" disabled={isImporting} />
@@ -244,9 +244,9 @@ export const DataManagement: React.FC<DataManagementProps> = ({ onBack }) => {
         </section>
 
         {/* Manual Import section */}
-        <section className="md:col-span-2 p-6 rounded-2xl bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
+        <section className="md:col-span-2 p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+            <div className="h-10 w-10 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
               <Clipboard size={20} />
             </div>
             <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{t('manual_import')}</h3>
@@ -255,12 +255,12 @@ export const DataManagement: React.FC<DataManagementProps> = ({ onBack }) => {
             placeholder={t('paste_backup_placeholder')}
             value={manualCode}
             onChange={(e) => setManualCode(e.target.value)}
-            className="w-full h-32 rounded-2xl bg-zinc-50 border border-zinc-200 p-4 font-mono text-xs outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300"
+            className="w-full h-32 rounded-lg bg-zinc-50 border border-zinc-200 p-4 font-mono text-xs outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300"
           />
           <button 
             onClick={() => processImport(manualCode)}
             disabled={isImporting || !manualCode.trim()}
-            className="w-full py-3 rounded-2xl bg-zinc-900 text-white font-bold transition-all hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-zinc-900 shadow-xl"
+            className="w-full py-3 rounded-lg bg-zinc-900 text-white font-bold transition-all hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-zinc-900 shadow-xl"
           >
             {t('load_code_process_data')}
           </button>

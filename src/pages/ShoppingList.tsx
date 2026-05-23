@@ -171,7 +171,7 @@ export default function ShoppingList() {
           <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-1">{t('shopping_list')}</h1>
           <p className="text-xs text-zinc-500 font-medium">{t('needs_record_subtitle')}</p>
         </div>
-        <button className="h-9 w-9 flex items-center justify-center text-zinc-300 hover:text-zinc-500 transition-all bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700">
+        <button className="h-9 w-9 flex items-center justify-center text-zinc-300 hover:text-zinc-500 transition-all bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-100 dark:border-zinc-700">
           <X size={18} />
         </button>
       </div>
@@ -185,10 +185,10 @@ export default function ShoppingList() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6"
           >
-            <div className="w-full max-w-sm aspect-square bg-zinc-900 rounded-2xl overflow-hidden relative border-2 border-brand-500 shadow-2xl">
+            <div className="w-full max-w-sm aspect-square bg-zinc-900 rounded-lg overflow-hidden relative border-2 border-brand-500 shadow-2xl">
               <div id="scanner-region" className="w-full h-full" />
               <div className="absolute inset-0 border-[40px] border-black/40 pointer-events-none flex items-center justify-center">
-                <div className="w-full h-full border-2 border-brand-400 rounded-xl animate-pulse" />
+                <div className="w-full h-full border-2 border-brand-400 rounded-lg animate-pulse" />
               </div>
             </div>
             <div className="mt-12 text-center space-y-6">
@@ -208,17 +208,17 @@ export default function ShoppingList() {
       </AnimatePresence>
 
       {/* Custom Tabs */}
-      <div className="flex bg-zinc-50 dark:bg-zinc-800/50 p-1 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+      <div className="flex bg-zinc-50 dark:bg-zinc-800/50 p-1 rounded-lg border border-zinc-100 dark:border-zinc-800">
         <button 
           onClick={() => { setActiveTab('products'); setInputText(''); }}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'products' ? 'bg-white dark:bg-zinc-700 shadow-sm text-brand-600' : 'text-zinc-400'}`}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all ${activeTab === 'products' ? 'bg-white dark:bg-zinc-700 shadow-sm text-brand-600' : 'text-zinc-400'}`}
         >
           <ListTodo size={18} strokeWidth={2.5} />
           {t('purchases')}
         </button>
         <button 
           onClick={() => { setActiveTab('notes'); setInputText(''); }}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'notes' ? 'bg-white dark:bg-zinc-700 shadow-sm text-amber-600' : 'text-zinc-400'}`}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all ${activeTab === 'notes' ? 'bg-white dark:bg-zinc-700 shadow-sm text-amber-600' : 'text-zinc-400'}`}
         >
           <StickyNote size={18} strokeWidth={2.5} />
           {t('notes')}
@@ -227,7 +227,7 @@ export default function ShoppingList() {
 
       {/* Unified Input Section - Icons inside box */}
       <div className="relative">
-        <div className="flex items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-1.5 focus-within:ring-2 focus-within:ring-brand-500/20 focus-within:border-brand-500/30 transition-all shadow-sm">
+        <div className="flex items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-1.5 focus-within:ring-2 focus-within:ring-brand-500/20 focus-within:border-brand-500/30 transition-all shadow-sm">
           <input 
             type="text" 
             value={inputText}
@@ -241,7 +241,7 @@ export default function ShoppingList() {
             {activeTab === 'products' && (
               <button 
                 onClick={startScanner}
-                className="h-10 w-10 flex items-center justify-center text-zinc-400 hover:text-brand-600 transition-all rounded-2xl hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                className="h-10 w-10 flex items-center justify-center text-zinc-400 hover:text-brand-600 transition-all rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800"
               >
                 <ScanLine size={20} />
               </button>
@@ -249,7 +249,7 @@ export default function ShoppingList() {
             <button 
               onClick={() => addItem()}
               disabled={!inputText.trim()}
-              className="h-10 w-10 bg-brand-600 text-white rounded-2xl flex items-center justify-center active:scale-95 transition-all shadow-md shadow-brand-500/20 disabled:opacity-50 disabled:bg-zinc-200 dark:disabled:bg-zinc-800 disabled:text-zinc-400 disabled:shadow-none"
+              className="h-10 w-10 bg-brand-600 text-white rounded-lg flex items-center justify-center active:scale-95 transition-all shadow-md shadow-brand-500/20 disabled:opacity-50 disabled:bg-zinc-200 dark:disabled:bg-zinc-800 disabled:text-zinc-400 disabled:shadow-none"
             >
               <Plus size={20} strokeWidth={2.5} />
             </button>
@@ -263,7 +263,7 @@ export default function ShoppingList() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute left-0 right-0 top-16 z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl overflow-hidden mt-1"
+              className="absolute left-0 right-0 top-16 z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl overflow-hidden mt-1"
             >
               <div className="px-5 py-2 border-b border-zinc-50 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/20">
                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{t('match_from_stock')}</span>
@@ -297,9 +297,9 @@ export default function ShoppingList() {
               exit={{ opacity: 0, x: -20 }}
               className="group"
             >
-              <div className="bg-white dark:bg-zinc-900 p-2.5 flex items-center justify-between rounded-2xl border border-zinc-100 dark:border-zinc-800 transition-all hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+              <div className="bg-white dark:bg-zinc-900 p-2.5 flex items-center justify-between rounded-lg border border-zinc-100 dark:border-zinc-800 transition-all hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
                 <div className="flex items-center gap-3 flex-1 px-1">
-                  <div className={`h-8 w-8 rounded-xl flex items-center justify-center shrink-0 ${activeTab === 'products' ? 'bg-brand-50 text-brand-600 dark:bg-brand-950/20' : 'bg-amber-50 text-amber-600 dark:bg-amber-950/20'}`}>
+                  <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${activeTab === 'products' ? 'bg-brand-50 text-brand-600 dark:bg-brand-950/20' : 'bg-amber-50 text-amber-600 dark:bg-amber-950/20'}`}>
                     {activeTab === 'products' ? <ListTodo size={16} /> : <StickyNote size={16} />}
                   </div>
                   <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">
@@ -309,7 +309,7 @@ export default function ShoppingList() {
                 
                 <button 
                   onClick={() => deleteItem(item.id)}
-                  className="h-8 w-8 flex items-center justify-center text-zinc-300 hover:text-[#B34C36] hover:bg-[#B34C36]/5 rounded-xl transition-all"
+                  className="h-8 w-8 flex items-center justify-center text-zinc-300 hover:text-[#B34C36] hover:bg-[#B34C36]/5 rounded-lg transition-all"
                   title={t('delete')}
                 >
                   <Trash2 size={14} />

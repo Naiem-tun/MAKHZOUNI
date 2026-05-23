@@ -245,7 +245,7 @@ function AppContent() {
               {/* Supplier Session Icon Button */}
               <button 
                 onClick={() => activeSupplier ? setActiveSupplier(null) : setIsSupplierSelectorOpen(true)}
-                className={`transition-all h-9 px-3 rounded-xl flex items-center justify-center ${activeSupplier ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-md scale-105' : 'bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-900/40 shadow-sm transition-all'}`}
+                className={`transition-all h-9 px-3 rounded-lg flex items-center justify-center ${activeSupplier ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-md scale-105' : 'bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-900/40 shadow-sm transition-all'}`}
                 title={activeSupplier ? t('end_supplier_session') : t('start_supplier_session')}
               >
                 {activeSupplier ? (
@@ -309,7 +309,7 @@ function AppContent() {
                       setActiveTab(tab.id);
                       setMobileMenuOpen(false);
                     }}
-                    className={`flex w-full items-center gap-3 px-4 py-3 rounded-2xl transition-all ${
+                    className={`flex w-full items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                       activeTab === tab.id
                       ? 'bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400'
                       : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800'
@@ -322,7 +322,7 @@ function AppContent() {
 
                 <button
                   onClick={() => updateSettings({ showFinancials: !settings.showFinancials })}
-                  className="flex w-full items-center justify-between px-4 py-3 rounded-2xl transition-all text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                  className="flex w-full items-center justify-between px-4 py-3 rounded-lg transition-all text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
                 >
                   <div className="flex items-center gap-3">
                     <Wallet size={20} className={settings.showFinancials ? 'text-brand-600' : 'text-zinc-400'} />
@@ -390,7 +390,7 @@ function AppContent() {
           {/* Fixed Barcode Scanner */}
           <button 
             onClick={handleScannerClick} 
-            className="flex-shrink-0 w-14 h-14 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-[20px] shadow-sm flex items-center justify-center relative active:scale-95 transition-all"
+            className="flex-shrink-0 w-14 h-14 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-lg shadow-sm flex items-center justify-center relative active:scale-95 transition-all"
             aria-label={t('scan_barcode') || 'Scan Barcode'}
           >
             {isScannerTab ? <ScanBarcode size={24} /> : <Calculator size={24} />}
@@ -398,12 +398,12 @@ function AppContent() {
 
           {/* Scrollable Tabs */}
           <div className="flex-1 overflow-x-auto no-scrollbar">
-            <div className="flex items-center gap-1.5 p-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[20px] shadow-sm w-max">
+            <div className="flex items-center gap-1.5 p-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm w-max">
             {toolbarTabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex shrink-0 items-center justify-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold transition-all ${
+                className={`flex shrink-0 items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
                    activeTab === tab.id 
                   ? 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white shadow-sm' 
                   : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
@@ -452,13 +452,13 @@ function AppContent() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.95, y: 10 }} 
-              className="relative w-full max-w-sm rounded-[32px] bg-white p-8 dark:bg-zinc-900 shadow-2xl border border-zinc-100 dark:border-zinc-800"
+              className="relative w-full max-w-sm rounded-lg bg-white p-8 dark:bg-zinc-900 shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-xl font-black text-zinc-900 dark:text-white">{t('select_supplier')}</h2>
                 <button 
                   onClick={() => setIsSupplierSelectorOpen(false)}
-                  className="h-10 w-10 flex items-center justify-center rounded-xl bg-zinc-100 text-zinc-500 dark:bg-zinc-800"
+                  className="h-10 w-10 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 dark:bg-zinc-800"
                 >
                   <X size={20} />
                 </button>
@@ -484,9 +484,9 @@ function AppContent() {
                           setActiveSupplier({ id: s.id!, name: s.name });
                           setIsSupplierSelectorOpen(false);
                         }}
-                        className="w-full flex items-center gap-4 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 hover:bg-brand-50 dark:hover:bg-brand-900/10 hover:text-brand-600 transition-all text-right border border-transparent hover:border-brand-100 group"
+                        className="w-full flex items-center gap-4 p-4 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 hover:bg-brand-50 dark:hover:bg-brand-900/10 hover:text-brand-600 transition-all text-right border border-transparent hover:border-brand-100 group"
                       >
-                        <div className="h-12 w-12 rounded-xl bg-white dark:bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-brand-600 group-hover:scale-110 transition-all">
+                        <div className="h-12 w-12 rounded-lg bg-white dark:bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-brand-600 group-hover:scale-110 transition-all">
                           <Truck size={20} />
                         </div>
                         <div className="flex-1">

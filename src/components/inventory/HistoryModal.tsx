@@ -34,7 +34,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ show, onClose, loadi
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="relative w-full max-w-lg bg-zinc-50 dark:bg-zinc-900 rounded-2xl overflow-hidden shadow-2xl border border-zinc-100 dark:border-zinc-800"
+            className="relative w-full max-w-lg bg-zinc-50 dark:bg-zinc-900 rounded-lg overflow-hidden shadow-2xl border border-zinc-100 dark:border-zinc-800"
           >
             <div className="p-6 space-y-6 max-h-[85vh] overflow-y-auto">
               <div className="flex justify-between items-center sticky top-0 bg-inherit pt-2 pb-4 z-10">
@@ -61,7 +61,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ show, onClose, loadi
                   reports.map((report) => (
                     <div 
                       key={report.id} 
-                      className="p-4 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 space-y-3 relative group"
+                      className="p-4 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-100 dark:border-zinc-700 space-y-3 relative group"
                     >
                       <div className="absolute top-4 left-4 flex gap-2 z-10">
                         <button 
@@ -71,7 +71,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ show, onClose, loadi
                               onDeleteReport(report.id);
                             });
                           }}
-                          className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors"
+                          className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
                           title={t('delete')}
                         >
                           <Trash2 size={16} />
@@ -81,7 +81,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ show, onClose, loadi
                             e.stopPropagation();
                             onSelectReport(report);
                           }}
-                          className="p-2 text-zinc-400 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10 rounded-xl transition-colors"
+                          className="p-2 text-zinc-400 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10 rounded-lg transition-colors"
                           title={t('download')}
                         >
                           <Download size={16} />
