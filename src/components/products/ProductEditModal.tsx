@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion, AnimatePresence } from 'motion/react';
 import { X, ScanBarcode, Trash2 } from 'lucide-react';
 import { useCategories } from '../../hooks/useCategories';
 import { Product } from '../../types';
@@ -118,20 +117,14 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
   };
 
   return (
-    <AnimatePresence>
+    <>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <div 
             onClick={onClose}
             className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm"
           />
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          <div 
             className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-2xl dark:bg-zinc-900"
           >
             <button 
@@ -330,9 +323,9 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                 </>
               )}
             </form>
-          </motion.div>
+          </div>
         </div>
       )}
-    </AnimatePresence>
+    </>
   );
 }

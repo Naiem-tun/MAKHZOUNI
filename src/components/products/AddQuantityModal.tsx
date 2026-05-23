@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { X, History, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Product } from '../../types';
@@ -65,20 +64,14 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
   const newTotalQty = (product?.quantity || 0) + addedQty;
 
   return (
-    <AnimatePresence>
+    <>
       {isOpen && product && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <div 
             onClick={onClose}
             className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm"
           />
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          <div 
             className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-2xl dark:bg-zinc-900"
           >
             <button 
@@ -194,9 +187,9 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
                 </button>
               </form>
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
-    </AnimatePresence>
+    </>
   );
 }

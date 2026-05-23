@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { X, Shield, History, TrendingUp, TrendingDown, Minus, Truck, Calendar, Info, Package } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Product } from '../../types';
@@ -121,20 +120,14 @@ export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegoti
   const bestSupplierName = sortedSuppliers.length > 0 ? sortedSuppliers[0].supplierName : mainProduct.name;
 
   return (
-    <AnimatePresence>
+    <>
       {isOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }} 
+          <div 
             onClick={onClose} 
             className="absolute inset-0 bg-zinc-950/70 backdrop-blur-md" 
           />
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: 20 }} 
-            animate={{ opacity: 1, scale: 1, y: 0 }} 
-            exit={{ opacity: 0, scale: 0.95, y: 20 }} 
+          <div 
             className="relative w-full max-w-md overflow-hidden rounded-lg bg-zinc-50/95 backdrop-blur-xl dark:bg-zinc-950/95 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.3)] border border-white/20 dark:border-zinc-800 flex flex-col max-h-[90vh]"
           >
             {/* Top Banner - Absolute Best */}
@@ -196,11 +189,10 @@ export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegoti
                   
                   <div className="flex gap-4 overflow-x-auto pb-4 -mx-2 px-2 no-scrollbar snap-x">
                     {sortedSuppliers.map((s, idx) => (
-                      <motion.div
+                      <div
                         key={idx}
-                        whileHover={{ scale: 1.02, y: -2 }}
                         className={cn(
-                          "min-w-[180px] snap-center p-5 rounded-lg shrink-0 transition-all relative flex flex-col justify-between overflow-hidden",
+                          "min-w-[180px] snap-center p-5 rounded-lg shrink-0 transition-all relative flex flex-col justify-between overflow-hidden hover:scale-[1.02] hover:-translate-y-0.5",
                           idx === 0 
                             ? "bg-gradient-to-br from-emerald-400 to-emerald-600 border border-emerald-400/50 text-white shadow-[0_10px_30px_-10px_rgba(16,185,129,0.5)]" 
                             : "bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 text-zinc-900 dark:text-white hover:border-brand-200 dark:hover:border-brand-800 shadow-sm hover:shadow-md"
@@ -269,7 +261,7 @@ export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegoti
                             </div>
                           </div>
                         </div>
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -286,10 +278,10 @@ export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegoti
                 {t('back')}
               </button>
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
-    </AnimatePresence>
+    </>
   );
 }
 

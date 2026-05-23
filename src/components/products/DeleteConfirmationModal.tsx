@@ -1,6 +1,5 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
 
 interface DeleteConfirmationModalProps {
@@ -13,20 +12,14 @@ export function DeleteConfirmationModal({ isOpen, onClose, onConfirm }: DeleteCo
   const { t } = useTranslation();
 
   return (
-    <AnimatePresence>
+    <>
       {isOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <div 
             onClick={onClose}
             className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm"
           />
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+          <div 
             className="relative w-full max-w-[280px] rounded-lg bg-white p-6 shadow-2xl dark:bg-zinc-900 text-center border border-zinc-100 dark:border-zinc-800"
           >
             <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
@@ -48,9 +41,9 @@ export function DeleteConfirmationModal({ isOpen, onClose, onConfirm }: DeleteCo
                 {t('cancel')}
               </button>
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
-    </AnimatePresence>
+    </>
   );
 }
