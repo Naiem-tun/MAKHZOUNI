@@ -69,9 +69,18 @@ function AppContent() {
   const { user, loading, isOffline, isDataLoaded, settings, toggleDarkMode, setLanguage, updateSettings, activeSupplier, setActiveSupplier } = useAppContext();
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('products');
+  const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['products']));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSupplierSelectorOpen, setIsSupplierSelectorOpen] = useState(false);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+
+  useEffect(() => {
+    setMountedTabs(prev => {
+      const newSet = new Set(prev);
+      newSet.add(activeTab);
+      return newSet;
+    });
+  }, [activeTab]);
 
   useEffect(() => {
     if (!user) return;
@@ -340,17 +349,37 @@ function AppContent() {
             <span className="text-sm font-medium">{t('loading')}</span>
           </div>
         }>
-          <div>
-              {activeTab === 'dashboard' && <Dashboard />}
-              {activeTab === 'products' && <Products />}
-              {activeTab === 'suppliers' && <Suppliers />}
-              {activeTab === 'debts' && <Debts />}
-              {activeTab === 'inventory' && <Inventory />}
-              {activeTab === 'reports' && <Analytics />}
-              {activeTab === 'expenses' && <Expenses />}
-              {activeTab === 'shopping-list' && <ShoppingList />}
-              {activeTab === 'invoice-calculator' && <InvoiceCalculator />}
-              {activeTab === 'settings' && <SettingsPage />}
+          <div className="w-full h-full relative">
+            <div className={activeTab === 'dashboard' ? 'block' : 'hidden'}>
+              {mountedTabs.has('dashboard') && <Dashboard />}
+            </div>
+            <div className={activeTab === 'products' ? 'block' : 'hidden'}>
+              {mountedTabs.has('products') && <Products />}
+            </div>
+            <div className={activeTab === 'suppliers' ? 'block' : 'hidden'}>
+              {mountedTabs.has('suppliers') && <Suppliers />}
+            </div>
+            <div className={activeTab === 'debts' ? 'block' : 'hidden'}>
+              {mountedTabs.has('debts') && <Debts />}
+            </div>
+            <div className={activeTab === 'inventory' ? 'block' : 'hidden'}>
+              {mountedTabs.has('inventory') && <Inventory />}
+            </div>
+            <div className={activeTab === 'reports' ? 'block' : 'hidden'}>
+              {mountedTabs.has('reports') && <Analytics />}
+            </div>
+            <div className={activeTab === 'expenses' ? 'block' : 'hidden'}>
+              {mountedTabs.has('expenses') && <Expenses />}
+            </div>
+            <div className={activeTab === 'shopping-list' ? 'block' : 'hidden'}>
+              {mountedTabs.has('shopping-list') && <ShoppingList />}
+            </div>
+            <div className={activeTab === 'invoice-calculator' ? 'block' : 'hidden'}>
+              {mountedTabs.has('invoice-calculator') && <InvoiceCalculator />}
+            </div>
+            <div className={activeTab === 'settings' ? 'block' : 'hidden'}>
+              {mountedTabs.has('settings') && <SettingsPage />}
+            </div>
           </div>
         </Suspense>
       </main>

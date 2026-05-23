@@ -24,7 +24,6 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { Card } from '../components/UI';
 import { cn, formatCurrency, safeParseFloat, safeDispatchEvent, safeParseDate, formatAppDate } from '../lib/utils';
 import { Product, Transaction, OperationType } from '../types';
@@ -255,8 +254,8 @@ const Dashboard = memo(() => {
             { label: t('expenses'), value: stats.totalExpenses, color: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400', icon: Wallet },
             { label: t('total_supplier_purchases'), value: stats.totalSupplierPurchasesValue, color: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400', icon: ShoppingCart },
           ].map((item, idx) => (
-            <div key={idx} className="bg-white dark:bg-zinc-800/80 rounded-[24px] p-5 border border-zinc-100/80 dark:border-zinc-700/50 shadow-sm relative overflow-hidden group hover:translate-y-[-2px] hover:shadow-md transition-all flex flex-col items-start">
-              <div className={cn("h-10 w-10 rounded-[14px] flex items-center justify-center mb-4 transition-transform group-hover:scale-110", item.color)}>
+            <div key={idx} className="bg-white dark:bg-zinc-800/80 rounded-[24px] p-5 border border-zinc-100/80 dark:border-zinc-700/50 shadow-sm relative overflow-hidden group flex flex-col items-start">
+              <div className={cn("h-10 w-10 rounded-[14px] flex items-center justify-center mb-4", item.color)}>
                 <item.icon size={18} />
               </div>
               <h3 className="text-lg font-black font-sans text-zinc-900 dark:text-white tracking-tight leading-none mb-1 text-right">
@@ -283,8 +282,8 @@ const Dashboard = memo(() => {
               </div>
             ) : (
               stats.movementHistory.slice(0, 14).map((day, idx) => (
-                <div key={idx} className="min-w-[110px] flex-shrink-0 snap-start p-4 rounded-[20px] bg-white dark:bg-zinc-800 shadow-sm border border-zinc-100 dark:border-zinc-700 hover:border-brand-300 dark:hover:border-brand-500/50 transition-all text-center flex flex-col items-center justify-center gap-2 group">
-                  <div className="h-8 w-8 rounded-full bg-zinc-50 dark:bg-zinc-700 flex items-center justify-center group-hover:bg-brand-50 dark:group-hover:bg-brand-500/20 transition-colors">
+                <div key={idx} className="min-w-[110px] flex-shrink-0 snap-start p-4 rounded-[20px] bg-white dark:bg-zinc-800 shadow-sm border border-zinc-100 dark:border-zinc-700 text-center flex flex-col items-center justify-center gap-2 group">
+                  <div className="h-8 w-8 rounded-full bg-zinc-50 dark:bg-zinc-700 flex items-center justify-center">
                     <History size={14} className="text-zinc-400 group-hover:text-brand-500" />
                   </div>
                   <div>
@@ -330,7 +329,7 @@ const Dashboard = memo(() => {
                 
                 <div className="bg-white dark:bg-zinc-800/80 rounded-[24px] border border-zinc-100/80 dark:border-zinc-700/50 overflow-hidden shadow-sm flex flex-col gap-px bg-zinc-100 dark:bg-zinc-700/50">
                   {group.items.map((p: any) => (
-                    <div key={p.id} className="flex justify-between items-center p-4 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors">
+                    <div key={p.id} className="flex justify-between items-center p-4 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
                       <div className="flex flex-col text-right flex-1">
                         <span className="text-sm font-bold text-zinc-900 dark:text-white mb-2">{p.productName}</span>
                         <div className="flex items-center justify-start gap-2 text-[11px] font-sans font-bold text-zinc-500">
