@@ -24,8 +24,8 @@ interface AppContextType {
   setLanguage: (lang: 'ar' | 'en') => void;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   categories: Category[];
-  activeSupplier: { id: string; name: string } | null;
-  setActiveSupplier: (supplier: { id: string; name: string } | null) => void;
+  activeSupplier: { id: string; name: string; sessionTotal?: number } | null;
+  setActiveSupplier: React.Dispatch<React.SetStateAction<{ id: string; name: string; sessionTotal?: number } | null>>;
 }
 
 const defaultSettings: UserSettings = {
@@ -59,7 +59,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [activeSupplier, setActiveSupplier] = useState<{ id: string; name: string } | null>(() => {
+  const [activeSupplier, setActiveSupplier] = useState<{ id: string; name: string; sessionTotal?: number } | null>(() => {
     const saved = localStorage.getItem('active_supplier_session');
     return saved ? JSON.parse(saved) : null;
   });

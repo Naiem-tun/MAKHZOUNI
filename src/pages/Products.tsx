@@ -36,7 +36,7 @@ import { query, orderBy, limit, getDocs, where } from 'firebase/firestore';
 
 export default function Products() {
   const { t } = useTranslation();
-  const { user, settings, showToast, setIsDataLoaded, activeSupplier } = useAppContext();
+  const { user, settings, showToast, setIsDataLoaded, activeSupplier, setActiveSupplier } = useAppContext();
   const { categories } = useCategories();
   const [products, setProducts] = useState<Product[]>(() => {
     if (!user) return [];
@@ -162,6 +162,11 @@ export default function Products() {
         updatedAt: serverTimestamp(),
       });
 
+      // Update session total if active
+      if (activeSupplier) {
+        setActiveSupplier(prev => prev ? { ...prev, sessionTotal: (prev.sessionTotal || 0) + purchaseAmount } : null);
+      }
+
       // Commit in the background
       batch.commit().catch(err => {
         handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/products`);
@@ -211,8 +216,14 @@ export default function Products() {
             productName: productData.name,
             qtyAdded: productData.quantity,
             amount: purchaseAmount,
+            supplierId: activeSupplier?.id || null,
+            supplierName: activeSupplier?.name || null,
             date: serverTimestamp(),
           });
+
+          if (activeSupplier) {
+            setActiveSupplier(prev => prev ? { ...prev, sessionTotal: (prev.sessionTotal || 0) + purchaseAmount } : null);
+          }
         }
         
         batch.commit().catch(err => {

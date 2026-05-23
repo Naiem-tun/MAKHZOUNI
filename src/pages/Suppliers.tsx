@@ -570,7 +570,7 @@ export default function Suppliers() {
                     <div className="text-[10px] text-zinc-400 capitalize">
                       {formatAppDate(safeParseDate(tx.date), settings.language, t, { day: 'numeric', month: 'long', year: 'numeric' })}
                     </div>
-                          {tx.note && <div className="text-[10px] text-zinc-500 mt-0.5">{tx.note}</div>}
+                          {tx.note && <div className="text-[10px] text-zinc-500 mt-0.5">{tx.note === 'session_purchases_total' ? t('session_purchases_total') : tx.note}</div>}
                         </div>
                       </div>
                       <button 

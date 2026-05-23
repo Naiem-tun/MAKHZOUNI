@@ -48,7 +48,7 @@ import { ProductEditModal } from './components/products/ProductEditModal';
 import { BarcodeScanner } from './components/common/BarcodeScanner';
 import { collection, addDoc, serverTimestamp, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from './lib/firebase';
-import { handleFirestoreError, safeDispatchEvent } from './lib/utils';
+import { handleFirestoreError, safeDispatchEvent, formatCurrency } from './lib/utils';
 import { OperationType, Supplier } from './types';
 
 // Fast/Core Pages (Static Import)
@@ -72,6 +72,8 @@ function AppContent() {
   const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['products']));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSupplierSelectorOpen, setIsSupplierSelectorOpen] = useState(false);
+  const [isSessionSummaryOpen, setIsSessionSummaryOpen] = useState(false);
+  const [sessionFinalTotal, setSessionFinalTotal] = useState(0);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
   useEffect(() => {
@@ -124,6 +126,26 @@ function AppContent() {
     setIsScannerOpen(false);
     setGlobalScannedBarcode(barcode);
     setIsProductModalOpen(true);
+  };
+
+  const handleEndSessionConfirm = async () => {
+    if (!user || !activeSupplier) return;
+    try {
+      if (sessionFinalTotal > 0) {
+        const txPath = `users/${user.uid}/supplierTransactions`;
+        await addDoc(collection(db, txPath), {
+          supplierId: activeSupplier.id,
+          amount: sessionFinalTotal,
+          date: serverTimestamp(),
+          note: t('session_purchases_total') || 'إجمالي مشتريات الجلسة',
+          updatedAt: serverTimestamp(),
+        });
+      }
+      setActiveSupplier(null);
+      setIsSessionSummaryOpen(false);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}/supplierTransactions`);
+    }
   };
 
 
@@ -244,7 +266,14 @@ function AppContent() {
             <div className="flex items-center gap-4">
               {/* Supplier Session Icon Button */}
               <button 
-                onClick={() => activeSupplier ? setActiveSupplier(null) : setIsSupplierSelectorOpen(true)}
+                onClick={() => {
+                  if (activeSupplier) {
+                    setSessionFinalTotal(activeSupplier.sessionTotal || 0);
+                    setIsSessionSummaryOpen(true);
+                  } else {
+                    setIsSupplierSelectorOpen(true);
+                  }
+                }}
                 className={`transition-all h-9 px-3 rounded-lg flex items-center justify-center ${activeSupplier ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-md scale-105' : 'bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-900/40 shadow-sm transition-all'}`}
                 title={activeSupplier ? t('end_supplier_session') : t('start_supplier_session')}
               >
@@ -501,6 +530,80 @@ function AppContent() {
                       </button>
                     ))
                 )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isSessionSummaryOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => setIsSessionSummaryOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-sm rounded-lg bg-white p-8 dark:bg-zinc-900 shadow-2xl border border-zinc-100 dark:border-zinc-800"
+            >
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-xl font-black text-zinc-900 dark:text-white">{t('session_details')}</h2>
+                <button 
+                  onClick={() => setIsSessionSummaryOpen(false)}
+                  className="h-10 w-10 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 dark:bg-zinc-800"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">{t('total_purchases_auto')}</label>
+                  <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg text-2xl font-black text-zinc-900 dark:text-white text-center">
+                    {formatCurrency(activeSupplier?.sessionTotal || 0, settings.currency)}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">{t('final_amount_to_record')}</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    value={sessionFinalTotal || ''}
+                    onChange={(e) => setSessionFinalTotal(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg p-4 font-black text-lg focus:ring-2 focus:ring-brand-500 text-center transition-all"
+                  />
+                  <p className="mt-2 text-xs text-zinc-500 text-center">{t('edit_amount_hint')}</p>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    onClick={handleEndSessionConfirm}
+                    disabled={!sessionFinalTotal || sessionFinalTotal <= 0}
+                    className="w-full py-4 rounded-lg bg-brand-600 text-white font-black text-sm tracking-widest shadow-lg shadow-brand-500/20 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100"
+                  >
+                    {t('save_and_end_session')}
+                  </button>
+                    {(!sessionFinalTotal || sessionFinalTotal <= 0) && (
+                      <button
+                        onClick={() => {
+                           setActiveSupplier(null);
+                           setIsSessionSummaryOpen(false);
+                        }}
+                        className="w-full mt-2 py-4 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-bold text-sm transition-all hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                      >
+                         {t('end_session_without_saving') || 'إنهاء الجلسة بدون حفظ'}
+                      </button>
+                    )}
+                </div>
               </div>
             </motion.div>
           </div>
