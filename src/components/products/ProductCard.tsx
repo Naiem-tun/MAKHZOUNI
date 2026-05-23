@@ -82,7 +82,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1 font-mono font-bold text-[10px] text-neutral-700 dark:text-neutral-300">
+              <div className="flex items-center gap-1 font-mono font-bold text-[12px] text-neutral-700 dark:text-neutral-300">
                 {showBoxInfo ? (
                   <>
                     <span className="text-brand-600 dark:text-brand-400">
