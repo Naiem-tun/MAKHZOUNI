@@ -145,7 +145,9 @@ const Dashboard = memo(() => {
     const totalValue = products.reduce((acc, p) => acc + ((p.quantity || 0) * (p.purchasePrice || 0)), 0);
     const lowStock = products.filter(p => (p.quantity || 0) < (p.minQuantity || 10)).length;
     
-    const totalExpenses = expenses.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+    // Only calculate pending expenses (not yet audited in inventory)
+    const pendingExpenses = expenses.filter(e => !e.audited);
+    const totalExpenses = pendingExpenses.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
     
     const totalCustomerDebts = debts.filter(d => d.type !== 'payable').reduce((sum, d) => sum + (Number(d.totalAmount) || 0), 0);
     const totalSupplierDebts = debts.filter(d => d.type === 'payable').reduce((sum, d) => sum + (Number(d.totalAmount) || 0), 0);
