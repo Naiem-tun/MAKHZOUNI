@@ -4,13 +4,13 @@ import { motion } from 'motion/react';
 import { 
   ChevronLeft,
   BookOpen,
-  Home,
+  ScanBarcode,
   Package,
-  Clipboard,
-  Truck,
+  Play,
+  ClipboardList,
   Wallet,
-  Coffee,
-  Printer,
+  Receipt,
+  PieChart,
   Database,
   Zap
 } from 'lucide-react';
@@ -22,7 +22,7 @@ export const GuideView = ({ onBack }: { onBack: () => void }) => {
     {
       title: t('guide_1_title'),
       content: t('guide_1_content'),
-      icon: Home
+      icon: ScanBarcode
     },
     {
       title: t('guide_2_title'),
@@ -32,12 +32,12 @@ export const GuideView = ({ onBack }: { onBack: () => void }) => {
     {
       title: t('guide_3_title'),
       content: t('guide_3_content'),
-      icon: Clipboard
+      icon: Play
     },
     {
       title: t('guide_4_title'),
       content: t('guide_4_content'),
-      icon: Truck
+      icon: ClipboardList
     },
     {
       title: t('guide_5_title'),
@@ -47,12 +47,12 @@ export const GuideView = ({ onBack }: { onBack: () => void }) => {
     {
       title: t('guide_6_title'),
       content: t('guide_6_content'),
-      icon: Coffee
+      icon: Receipt
     },
     {
       title: t('guide_7_title'),
       content: t('guide_7_content'),
-      icon: Printer
+      icon: PieChart
     },
     {
       title: t('guide_8_title'),

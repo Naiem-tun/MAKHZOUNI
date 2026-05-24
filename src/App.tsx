@@ -112,13 +112,16 @@ function AppContent() {
     if (!user) return;
     try {
       const path = `users/${user.uid}/products`;
+      
+      // Close modal immediately for offline responsiveness
+      setIsProductModalOpen(false);
+      setGlobalScannedBarcode('');
+      
       await addDoc(collection(db, path), {
         ...productData,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
-      setIsProductModalOpen(false);
-      setGlobalScannedBarcode('');
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}/products`);
     }
@@ -135,16 +138,24 @@ function AppContent() {
     try {
       if (sessionFinalTotal > 0) {
         const txPath = `users/${user.uid}/supplierTransactions`;
+        const supplierId = activeSupplier.id;
+        const amount = sessionFinalTotal;
+        
+        // Close modal immediately for offline responsiveness
+        setActiveSupplier(null);
+        setIsSessionSummaryOpen(false);
+
         await addDoc(collection(db, txPath), {
-          supplierId: activeSupplier.id,
-          amount: sessionFinalTotal,
+          supplierId: supplierId,
+          amount: amount,
           date: serverTimestamp(),
           note: t('session_purchases_total') || 'إجمالي مشتريات الجلسة',
           updatedAt: serverTimestamp(),
         });
+      } else {
+        setActiveSupplier(null);
+        setIsSessionSummaryOpen(false);
       }
-      setActiveSupplier(null);
-      setIsSessionSummaryOpen(false);
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}/supplierTransactions`);
     }

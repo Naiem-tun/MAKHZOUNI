@@ -152,15 +152,18 @@ export default function Suppliers() {
 
   const handleDeleteSupplier = async () => {
     if (!user || !deleteConfirmId) return;
-    setIsSaving(true);
+    
+    // Optimistic UI update
+    const targetId = deleteConfirmId;
+    setDeleteConfirmId(null);
+    showToast(t('supplier_deleted_success'));
+    
     try {
-      await deleteDoc(doc(db, `users/${user.uid}/suppliers`, deleteConfirmId));
-      showToast(t('supplier_deleted_success'));
-      setDeleteConfirmId(null);
+      deleteDoc(doc(db, `users/${user.uid}/suppliers`, targetId)).catch(err => {
+        handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/suppliers/${targetId}`);
+      });
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/suppliers/${deleteConfirmId}`);
-    } finally {
-      setIsSaving(false);
+      console.error(err);
     }
   };
 
@@ -219,12 +222,17 @@ export default function Suppliers() {
   const handleDeleteTransaction = async () => {
     if (!user || !deleteTxConfirmId) return;
 
+    // Optimistic UI updates
+    const targetId = deleteTxConfirmId;
+    setDeleteTxConfirmId(null);
+    showToast(t('supplier_transaction_deleted_success'));
+
     try {
-      await deleteDoc(doc(db, `users/${user.uid}/supplierTransactions`, deleteTxConfirmId));
-      showToast(t('supplier_transaction_deleted_success'));
-      setDeleteTxConfirmId(null);
+      deleteDoc(doc(db, `users/${user.uid}/supplierTransactions`, targetId)).catch(err => {
+        handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/supplierTransactions`);
+      });
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/supplierTransactions`);
+      console.error(err);
     }
   };
 

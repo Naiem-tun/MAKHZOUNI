@@ -122,15 +122,18 @@ export default function Debts() {
 
   const handleDeleteDebt = async () => {
     if (!user || !deleteConfirmId) return;
-    setIsSaving(true);
+    
+    // Optimistic UI updates
+    const targetId = deleteConfirmId;
+    setDeleteConfirmId(null);
+    showToast(t('debt_deleted_success'));
+    
     try {
-      await deleteDoc(doc(db, `users/${user.uid}/debts`, deleteConfirmId));
-      showToast(t('debt_deleted_success'));
-      setDeleteConfirmId(null);
+      deleteDoc(doc(db, `users/${user.uid}/debts`, targetId)).catch(err => {
+        handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/debts/${targetId}`);
+      });
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/debts/${deleteConfirmId}`);
-    } finally {
-      setIsSaving(false);
+      console.error(err);
     }
   };
 
