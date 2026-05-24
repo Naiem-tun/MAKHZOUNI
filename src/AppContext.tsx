@@ -175,10 +175,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!user) return;
     const path = `users/${user.uid}/settings/config`;
     const settingsDoc = doc(db, path);
+    // Optimistic local update
+    setSettings(prev => ({ ...prev, ...newSettings }));
     try {
-      await setDoc(settingsDoc, { ...settings, ...newSettings }, { merge: true });
+      setDoc(settingsDoc, { ...settings, ...newSettings }, { merge: true }).catch(err => {
+        handleFirestoreError(err, OperationType.WRITE, path);
+      });
     } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, path);
+      console.error(err);
     }
   };
 

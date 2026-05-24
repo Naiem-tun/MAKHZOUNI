@@ -108,7 +108,7 @@ function AppContent() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [globalScannedBarcode, setGlobalScannedBarcode] = useState('');
 
-  const handleSaveProduct = async (productData: any) => {
+  const handleSaveProduct = (productData: any) => {
     if (!user) return;
     try {
       const path = `users/${user.uid}/products`;
@@ -117,13 +117,15 @@ function AppContent() {
       setIsProductModalOpen(false);
       setGlobalScannedBarcode('');
       
-      await addDoc(collection(db, path), {
+      addDoc(collection(db, path), {
         ...productData,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
+      }).catch(err => {
+        handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}/products`);
       });
     } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}/products`);
+      console.error(err);
     }
   };
 
@@ -133,7 +135,7 @@ function AppContent() {
     setIsProductModalOpen(true);
   };
 
-  const handleEndSessionConfirm = async () => {
+  const handleEndSessionConfirm = () => {
     if (!user || !activeSupplier) return;
     try {
       if (sessionFinalTotal > 0) {
@@ -145,19 +147,21 @@ function AppContent() {
         setActiveSupplier(null);
         setIsSessionSummaryOpen(false);
 
-        await addDoc(collection(db, txPath), {
+        addDoc(collection(db, txPath), {
           supplierId: supplierId,
           amount: amount,
           date: serverTimestamp(),
           note: t('session_purchases_total') || 'إجمالي مشتريات الجلسة',
           updatedAt: serverTimestamp(),
+        }).catch(err => {
+          handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}/supplierTransactions`);
         });
       } else {
         setActiveSupplier(null);
         setIsSessionSummaryOpen(false);
       }
     } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}/supplierTransactions`);
+      console.error(err);
     }
   };
 
