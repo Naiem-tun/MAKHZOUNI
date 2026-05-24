@@ -143,40 +143,38 @@ function AppContent() {
     isEndingSessionRef.current = true;
     setIsSavingSession(true);
     try {
-      const supplierId = activeSupplier.id;
-      const amount = sessionFinalTotal;
-      
-      // Optimistic UI update: Close modal and reset active supplier immediately.
-      // This guarantees the session is marked as closed on the client-side
-      // even if the user is completely offline and Firestore's write blocks or throws.
-      setActiveSupplier(null);
-      setIsSessionSummaryOpen(false);
-      setIsSavingSession(false);
-      
-      // Reset ref after a short delay to prevent double-clicks during unmount
-      setTimeout(() => {
-        isEndingSessionRef.current = false;
-      }, 500);
-
-      if (amount > 0) {
+      if (sessionFinalTotal > 0) {
         const txPath = `users/${user.uid}/supplierTransactions`;
+        const supplierId = activeSupplier.id;
+        const amount = sessionFinalTotal;
+        
+        // Optimistic UI update: Close modal and reset immediately
+        setActiveSupplier(null);
+        setIsSessionSummaryOpen(false);
+        setIsSavingSession(false);
+        
+        // Reset ref after a short delay to prevent double-clicks during unmount
+        setTimeout(() => {
+          isEndingSessionRef.current = false;
+        }, 500);
+
         addDoc(collection(db, txPath), {
           supplierId: supplierId,
           amount: amount,
-          // Use current local date so that it maps correctly offline in transaction lists.
-          // Otherwise serverTimestamp() is null offline, exhibiting as 1970/12/31 "unknown_date".
-          date: new Date(),
+          date: serverTimestamp(),
           note: t('session_purchases_total') || 'إجمالي مشتريات الجلسة',
           updatedAt: serverTimestamp(),
         }).catch(err => {
-          console.warn("Firestore offline write pending or failed:", err);
+          handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}/supplierTransactions`);
         });
+      } else {
+        setActiveSupplier(null);
+        setIsSessionSummaryOpen(false);
+        setIsSavingSession(false);
+        isEndingSessionRef.current = false;
       }
     } catch (err) {
-      console.error("Error ending supplier session:", err);
-      // Ensure we clean up state even if a synchronous exception was raised
-      setActiveSupplier(null);
-      setIsSessionSummaryOpen(false);
+      console.error(err);
       setIsSavingSession(false);
       isEndingSessionRef.current = false;
     }
