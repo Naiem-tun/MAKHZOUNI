@@ -380,20 +380,20 @@ export default function Suppliers() {
         <motion.div 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="max-w-fit bg-brand-50/80 dark:bg-brand-950/90 backdrop-blur-md border border-brand-100 dark:border-brand-900 px-6 py-2.5 rounded-full shadow-lg shadow-brand-500/10 pointer-events-auto relative cursor-pointer"
+          className="max-w-fit bg-brand-50 dark:bg-zinc-900 border border-brand-200/60 dark:border-zinc-800 px-8 py-3 rounded-xl shadow-lg shadow-brand-500/10 pointer-events-auto relative cursor-pointer"
           onClick={() => setIsTotalModalOpen(true)}
         >
           {/* Decorative handle at top */}
-          <div className="absolute -top-1 w-6 h-2 bg-white dark:bg-brand-900 left-1/2 -translate-x-1/2 rounded-t-md border-t border-x border-brand-100 dark:border-zinc-800" />
+          <div className="absolute -top-1.5 w-10 h-2 bg-brand-50 dark:bg-zinc-900 left-1/2 -translate-x-1/2 rounded-t-md border-t border-x border-brand-200/60 dark:border-zinc-800" />
           
-          <div className="flex items-center justify-center gap-2">
-            <span className="text-xl font-black text-brand-900 dark:text-white tracking-tight">
+          <div className="flex items-center justify-center gap-3">
+            <span className="text-[1.35rem] font-black text-brand-900 dark:text-white tracking-tight">
               {!(settings.showFinancials ?? true) ? '••••••' : grandTotal.toLocaleString(settings.language === 'ar' ? 'ar-TN' : 'en-US', { 
                 minimumFractionDigits: settings.currency === 'TND' || settings.currency === 'د.ت' ? 3 : 2, 
                 maximumFractionDigits: settings.currency === 'TND' || settings.currency === 'د.ت' ? 3 : 2 
               })}
             </span>
-            <span className="text-[10px] font-black text-brand-500/50 mt-1">{settings.currency}</span>
+            <span className="text-base font-bold text-brand-600 dark:text-zinc-500 mt-1">{settings.currency}</span>
           </div>
         </motion.div>
       </div>
