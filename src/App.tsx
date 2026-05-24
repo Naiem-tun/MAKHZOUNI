@@ -74,7 +74,9 @@ function AppContent() {
   const [isSupplierSelectorOpen, setIsSupplierSelectorOpen] = useState(false);
   const [isSessionSummaryOpen, setIsSessionSummaryOpen] = useState(false);
   const [sessionFinalTotal, setSessionFinalTotal] = useState(0);
+  const [sessionDifference, setSessionDifference] = useState<string>('0');
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [supplierSearchQuery, setSupplierSearchQuery] = useState('');
 
   useEffect(() => {
     setMountedTabs(prev => {
@@ -269,6 +271,7 @@ function AppContent() {
                 onClick={() => {
                   if (activeSupplier) {
                     setSessionFinalTotal(activeSupplier.sessionTotal || 0);
+                    setSessionDifference('0');
                     setIsSessionSummaryOpen(true);
                   } else {
                     setIsSupplierSelectorOpen(true);
@@ -493,11 +496,25 @@ function AppContent() {
                 </button>
               </div>
 
+              <div className="mb-4 relative">
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center justify-center pointer-events-none">
+                  <Search size={16} className="text-zinc-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder={t('search')}
+                  value={supplierSearchQuery}
+                  onChange={(e) => setSupplierSearchQuery(e.target.value)}
+                  className="w-full bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/50 rounded-lg py-3 pr-10 pl-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+              </div>
+
               <div className="max-h-[400px] overflow-y-auto pr-2 space-y-2">
                 {suppliers.length === 0 ? (
                   <div className="py-8 text-center text-zinc-400 font-bold">{t('no_suppliers_found')}</div>
                 ) : (
                   suppliers
+                    .filter(s => s.name?.toLowerCase().includes(supplierSearchQuery.toLowerCase()) || s.typeOfGoods?.toLowerCase().includes(supplierSearchQuery.toLowerCase()) || s.phone?.includes(supplierSearchQuery))
                     .sort((a, b) => {
                       const today = new Date().getDay();
                       const aIsToday = !!a.visitDays?.includes(today);
@@ -571,15 +588,42 @@ function AppContent() {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">{t('session_difference')}</label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    placeholder="0.000"
+                    value={sessionDifference}
+                    onChange={(e) => {
+                      const valStr = e.target.value;
+                      setSessionDifference(valStr);
+                      const valNum = parseFloat(valStr) || 0;
+                      const autoTotal = activeSupplier?.sessionTotal || 0;
+                      const newTotal = parseFloat((autoTotal + valNum).toFixed(3));
+                      setSessionFinalTotal(newTotal);
+                    }}
+                    className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg p-4 font-black text-lg focus:ring-2 focus:ring-brand-500 text-center transition-all focus:outline-none"
+                  />
+                  <p className="mt-2 text-xs text-zinc-500 text-center">{t('session_difference_hint')}</p>
+                </div>
+
+                <div>
                   <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">{t('final_amount_to_record')}</label>
                   <input
                     type="number"
-                    step="0.01"
+                    step="0.001"
                     min="0"
-                    placeholder="0.00"
+                    placeholder="0.000"
                     value={sessionFinalTotal || ''}
-                    onChange={(e) => setSessionFinalTotal(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg p-4 font-black text-lg focus:ring-2 focus:ring-brand-500 text-center transition-all"
+                    onChange={(e) => {
+                      const totalValStr = e.target.value;
+                      const totalValNum = parseFloat(totalValStr) || 0;
+                      setSessionFinalTotal(totalValNum);
+                      const autoTotal = activeSupplier?.sessionTotal || 0;
+                      const newDiff = parseFloat((totalValNum - autoTotal).toFixed(3));
+                      setSessionDifference(newDiff.toString());
+                    }}
+                    className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg p-4 font-black text-lg focus:ring-2 focus:ring-brand-500 text-center transition-all focus:outline-none"
                   />
                   <p className="mt-2 text-xs text-zinc-500 text-center">{t('edit_amount_hint')}</p>
                 </div>

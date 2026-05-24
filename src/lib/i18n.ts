@@ -156,6 +156,8 @@ const resources = {
       "session_details": "تفاصيل الجلسة",
       "total_purchases_auto": "إجمالي المشتريات (تلقائي)",
       "final_amount_to_record": "المبلغ النهائي للتسجيل",
+      "session_difference": "أداءة أو ضريبة",
+      "session_difference_hint": "سيتم تحديث المبلغ النهائي تلقائياً عند إدخال الفارق",
       "edit_amount_hint": "قم بتعديل المبلغ في حال وجود خصم أو إضافة",
       "save_and_end_session": "حفظ وإنهاء الجلسة",
       "end_session_without_saving": "إنهاء الجلسة بدون حفظ",
