@@ -52,7 +52,7 @@ export default defineConfig(({mode}) => {
           ]
         },
         manifest: {
-          name: 'H.STORE | مخزوني الذكي',
+          name: 'مخزوني',
           short_name: 'مخزوني',
           description: 'نظام إدارة المخازن والمستودعات الذكي',
           theme_color: '#023859',

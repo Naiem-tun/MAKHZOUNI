@@ -12,7 +12,7 @@ async function startServer() {
 
   // API routes
   app.get("/api/health", (req, res) => {
-    res.json({ status: "ok", message: "H.STORE API is running" });
+    res.json({ status: "ok", message: "makhzouni API is running" });
   });
 
   // Vite middleware for development

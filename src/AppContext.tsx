@@ -32,7 +32,7 @@ const defaultSettings: UserSettings = {
   currency: 'د.ت',
   language: 'ar',
   darkMode: false,
-  storeName: 'H.STORE',
+  storeName: 'مخزوني',
   showFinancials: true,
 };
 

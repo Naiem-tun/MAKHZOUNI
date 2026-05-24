@@ -118,7 +118,7 @@ export default function SettingsPage() {
   ];
 
   const [tempSettings, setTempSettings] = useState({
-    storeName: settings.storeName || 'H.STORE',
+    storeName: settings.storeName || 'مخزوني',
     currency: settings.currency || 'د.ت',
   });
   const [isSaving, setIsSaving] = useState(false);
