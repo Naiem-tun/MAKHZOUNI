@@ -97,8 +97,18 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
     }
   };
 
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsSaving(false);
+    }
+  }, [isOpen]);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isSaving) return;
+    setIsSaving(true);
     const formData = new FormData(e.currentTarget);
     const productData = {
       name: formData.get('name') as string,
@@ -302,9 +312,10 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
               <div className="pt-3">
                 <button 
                   type="submit" 
-                  className="w-full rounded-lg bg-brand-600 py-3 text-sm font-bold text-white transition-all hover:bg-brand-700 active:scale-95 shadow-lg shadow-brand-600/10"
+                  disabled={isSaving}
+                  className="w-full rounded-lg bg-brand-600 py-3 text-sm font-bold text-white transition-all hover:bg-brand-700 active:scale-95 shadow-lg shadow-brand-600/10 disabled:opacity-50"
                 >
-                  {t('save')}
+                  {isSaving ? <div className="animate-spin w-5 h-5 border-2 border-white rounded-full border-t-transparent mx-auto"></div> : t('save')}
                 </button>
               </div>
 

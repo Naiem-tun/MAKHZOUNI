@@ -8,7 +8,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, Suspense, lazy } from 'react';
+import { useState, useEffect, Suspense, lazy, useRef } from 'react';
 import { AppProvider, useAppContext } from './AppContext';
 import { Logo } from './components/UI';
 import { useTranslation } from 'react-i18next';
@@ -109,7 +109,7 @@ function AppContent() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [globalScannedBarcode, setGlobalScannedBarcode] = useState('');
 
-  const handleSaveProduct = (productData: any) => {
+  const handleSaveProduct = async (productData: any) => {
     if (!user) return;
     try {
       const path = `users/${user.uid}/products`;
@@ -136,8 +136,11 @@ function AppContent() {
     setIsProductModalOpen(true);
   };
 
+  const isEndingSessionRef = useRef(false);
+
   const handleEndSessionConfirm = () => {
-    if (!user || !activeSupplier || isSavingSession) return;
+    if (!user || !activeSupplier || isEndingSessionRef.current) return;
+    isEndingSessionRef.current = true;
     setIsSavingSession(true);
     try {
       if (sessionFinalTotal > 0) {
@@ -149,6 +152,11 @@ function AppContent() {
         setActiveSupplier(null);
         setIsSessionSummaryOpen(false);
         setIsSavingSession(false);
+        
+        // Reset ref after a short delay to prevent double-clicks during unmount
+        setTimeout(() => {
+          isEndingSessionRef.current = false;
+        }, 500);
 
         addDoc(collection(db, txPath), {
           supplierId: supplierId,
@@ -163,10 +171,12 @@ function AppContent() {
         setActiveSupplier(null);
         setIsSessionSummaryOpen(false);
         setIsSavingSession(false);
+        isEndingSessionRef.current = false;
       }
     } catch (err) {
       console.error(err);
       setIsSavingSession(false);
+      isEndingSessionRef.current = false;
     }
   };
 

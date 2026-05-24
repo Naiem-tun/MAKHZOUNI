@@ -21,14 +21,17 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
   const [boxPrice, setBoxPrice] = useState(0);
   const [piecePrice, setPiecePrice] = useState(0);
 
+  const [isSaving, setIsSaving] = useState(false);
+
   useEffect(() => {
     if (product) {
       setBoxPrice(product.boxPurchasePrice || 0);
       setPiecePrice(product.purchasePrice || 0);
       setNumBoxes(0);
       setExtraPieces(0);
+      setIsSaving(false);
     }
-  }, [product]);
+  }, [product, isOpen]);
 
   const handleQtyBoxPriceChange = (val: number) => {
     setBoxPrice(val);
@@ -44,10 +47,18 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
     }
   };
 
+  const addedQty = (numBoxes * (product?.piecesPerBox || 1)) + extraPieces;
+  const newTotalQty = (product?.quantity || 0) + addedQty;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (addedQty <= 0) return;
-    await onConfirm(numBoxes, extraPieces, boxPrice, piecePrice);
+    if (addedQty <= 0 || isSaving) return;
+    setIsSaving(true);
+    try {
+      await onConfirm(numBoxes, extraPieces, boxPrice, piecePrice);
+    } catch (err) {
+      setIsSaving(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -55,13 +66,11 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
       e.preventDefault();
       e.stopPropagation();
       e.currentTarget.blur();
-      if (addedQty <= 0) return;
-      onConfirm(numBoxes, extraPieces, boxPrice, piecePrice);
+      if (addedQty <= 0 || isSaving) return;
+      setIsSaving(true);
+      onConfirm(numBoxes, extraPieces, boxPrice, piecePrice).catch(() => setIsSaving(false));
     }
   };
-
-  const addedQty = (numBoxes * (product?.piecesPerBox || 1)) + extraPieces;
-  const newTotalQty = (product?.quantity || 0) + addedQty;
 
   return (
     <>
@@ -180,10 +189,10 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
 
                 <button 
                   type="submit" 
-                  disabled={addedQty <= 0}
+                  disabled={addedQty <= 0 || isSaving}
                   className="w-full rounded-lg bg-brand-600 py-4 font-bold text-white transition-all hover:bg-brand-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-brand-600 dark:hover:bg-brand-700"
                 >
-                  {t('confirm_purchase')}
+                  {isSaving ? <div className="animate-spin w-5 h-5 border-2 border-white rounded-full border-t-transparent mx-auto"></div> : t('confirm_purchase')}
                 </button>
               </form>
             </div>
