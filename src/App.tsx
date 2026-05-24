@@ -73,6 +73,7 @@ function AppContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSupplierSelectorOpen, setIsSupplierSelectorOpen] = useState(false);
   const [isSessionSummaryOpen, setIsSessionSummaryOpen] = useState(false);
+  const [isSavingSession, setIsSavingSession] = useState(false);
   const [sessionFinalTotal, setSessionFinalTotal] = useState(0);
   const [sessionDifference, setSessionDifference] = useState<string>('0');
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -136,16 +137,18 @@ function AppContent() {
   };
 
   const handleEndSessionConfirm = () => {
-    if (!user || !activeSupplier) return;
+    if (!user || !activeSupplier || isSavingSession) return;
+    setIsSavingSession(true);
     try {
       if (sessionFinalTotal > 0) {
         const txPath = `users/${user.uid}/supplierTransactions`;
         const supplierId = activeSupplier.id;
         const amount = sessionFinalTotal;
         
-        // Close modal immediately for offline responsiveness
+        // Optimistic UI update: Close modal and reset immediately
         setActiveSupplier(null);
         setIsSessionSummaryOpen(false);
+        setIsSavingSession(false);
 
         addDoc(collection(db, txPath), {
           supplierId: supplierId,
@@ -159,9 +162,11 @@ function AppContent() {
       } else {
         setActiveSupplier(null);
         setIsSessionSummaryOpen(false);
+        setIsSavingSession(false);
       }
     } catch (err) {
       console.error(err);
+      setIsSavingSession(false);
     }
   };
 
@@ -646,10 +651,10 @@ function AppContent() {
                 <div className="pt-2">
                   <button
                     onClick={handleEndSessionConfirm}
-                    disabled={!sessionFinalTotal || sessionFinalTotal <= 0}
+                    disabled={!sessionFinalTotal || sessionFinalTotal <= 0 || isSavingSession}
                     className="w-full py-4 rounded-lg bg-brand-600 text-white font-black text-sm tracking-widest shadow-lg shadow-brand-500/20 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100"
                   >
-                    {t('save_and_end_session')}
+                    {isSavingSession ? <div className="animate-spin w-5 h-5 border-2 border-white rounded-full border-t-transparent mx-auto"></div> : t('save_and_end_session')}
                   </button>
                     {(!sessionFinalTotal || sessionFinalTotal <= 0) && (
                       <button
