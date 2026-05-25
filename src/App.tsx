@@ -154,25 +154,28 @@ function AppContent() {
       // ✅ 1. أغلق الـ modal أولاً للحصول على استجابة فورية فائقة السرعة
       setIsSessionSummaryOpen(false);
       
+      if (amount > 0) {
+        const txPath = `users/${user.uid}/supplierTransactions`;
+        
+        // Use proper Timestamp to avoid offline/online mismatch with Suppliers page
+        addDoc(collection(db, txPath), {
+          supplierId: supplierId,
+          amount: amount,
+          date: Timestamp.now(),  // تضمن المزامنة وصحة التاريخ المحلي فوراً
+          note: t('session_purchases_total') || 'إجمالي مشتريات الجلسة',
+          updatedAt: serverTimestamp(),
+        }).catch(err => {
+          handleFirestoreError(err, OperationType.CREATE, txPath);
+          console.error("Firebase AddDoc Error:", err);
+        });
+      }
+      
       // ✅ 2. أخبر المستخدم فوراً بنجاح العملية محلياً
       showToast(t('session_saved_success') || 'تم حفظ الجلسة بنجاح ✅', 'success');
       
       // ✅ 3. تصفير وإكمال حالة الجلسة فوراً لمنع أي تأخير بالواجهة
       setActiveSupplier(null);
       setIsSavingSession(false);
-      
-      if (amount > 0) {
-        const txPath = `users/${user.uid}/supplierTransactions`;
-        
-        // Use proper Timestamp to avoid offline/online mismatch with Suppliers page
-        await addDoc(collection(db, txPath), {
-          supplierId: supplierId,
-          amount: amount,
-          date: serverTimestamp(),  // تضمن المزامنة وصحة التاريخ المحلي فوراً
-          note: t('session_purchases_total') || 'إجمالي مشتريات الجلسة',
-          updatedAt: serverTimestamp(),
-        });
-      }
 
     } catch (err) {
       console.error("Error ending supplier session:", err);
