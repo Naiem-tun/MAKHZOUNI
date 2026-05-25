@@ -10,7 +10,7 @@ import { formatCurrency, handleFirestoreError, safeParseDate, formatAppDate } fr
 
 export default function Suppliers() {
   const { t } = useTranslation();
-  const { user, showToast, settings, activeSupplier, setActiveSupplier } = useAppContext();
+  const { user, showToast, settings, activeSupplier, setActiveSupplier, setIsSessionSummaryOpen } = useAppContext();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [transactions, setTransactions] = useState<SupplierTransaction[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
@@ -354,7 +354,7 @@ export default function Suppliers() {
                   {(settings.showSupplierSessionButton ?? true) && (
                     activeSupplier?.id === s.id ? (
                       <button 
-                        onClick={(e) => { e.stopPropagation(); setActiveSupplier(null); }} 
+                        onClick={(e) => { e.stopPropagation(); setIsSessionSummaryOpen(true); }} 
                         className="w-10 h-10 flex items-center justify-center rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:opacity-90 transition-all font-bold shadow-sm"
                         title={t('end_supplier_session')}
                       >

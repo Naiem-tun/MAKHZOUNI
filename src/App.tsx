@@ -66,18 +66,24 @@ const Analytics = lazy(() => import('./pages/Analytics'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 function AppContent() {
-  const { user, loading, isOffline, isDataLoaded, settings, toggleDarkMode, setLanguage, updateSettings, activeSupplier, setActiveSupplier, showToast } = useAppContext();
+  const { user, loading, isOffline, isDataLoaded, settings, toggleDarkMode, setLanguage, updateSettings, activeSupplier, setActiveSupplier, showToast, isSessionSummaryOpen, setIsSessionSummaryOpen } = useAppContext();
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('products');
   const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['products']));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSupplierSelectorOpen, setIsSupplierSelectorOpen] = useState(false);
-  const [isSessionSummaryOpen, setIsSessionSummaryOpen] = useState(false);
   const [isSavingSession, setIsSavingSession] = useState(false);
   const [sessionFinalTotal, setSessionFinalTotal] = useState(0);
   const [sessionDifference, setSessionDifference] = useState<string>('0');
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [supplierSearchQuery, setSupplierSearchQuery] = useState('');
+
+  useEffect(() => {
+    if (isSessionSummaryOpen && activeSupplier) {
+      setSessionFinalTotal(activeSupplier.sessionTotal || 0);
+      setSessionDifference('0');
+    }
+  }, [isSessionSummaryOpen, activeSupplier]);
 
   useEffect(() => {
     setMountedTabs(prev => {
@@ -136,8 +142,8 @@ function AppContent() {
     setIsProductModalOpen(true);
   };
 
-  const handleEndSessionConfirm = () => {
-    if (!user || !activeSupplier) return;
+  const handleEndSessionConfirm = async () => {
+    if (!user || !activeSupplier || isSavingSession) return;
     
     setIsSavingSession(true);
     
@@ -159,21 +165,18 @@ function AppContent() {
         const txPath = `users/${user.uid}/supplierTransactions`;
         
         // Use proper Timestamp to avoid offline/online mismatch with Suppliers page
-        addDoc(collection(db, txPath), {
+        await addDoc(collection(db, txPath), {
           supplierId: supplierId,
           amount: amount,
-          date: Timestamp.now(),  // تضمن المزامنة وصحة التاريخ المحلي فوراً
+          date: serverTimestamp(),  // تضمن المزامنة وصحة التاريخ المحلي فوراً
           note: t('session_purchases_total') || 'إجمالي مشتريات الجلسة',
           updatedAt: serverTimestamp(),
-        }).catch(err => {
-          console.warn("Firestore offline write pending (will sync when online):", err);
         });
       }
 
     } catch (err) {
       console.error("Error ending supplier session:", err);
-      setActiveSupplier(null);
-      setIsSessionSummaryOpen(false);
+      // In case of error, restore local state optionally, but here we just ensure saving ends
       setIsSavingSession(false);
     }
   };

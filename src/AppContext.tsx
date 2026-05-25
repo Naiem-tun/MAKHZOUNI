@@ -26,6 +26,8 @@ interface AppContextType {
   categories: Category[];
   activeSupplier: { id: string; name: string; sessionTotal?: number } | null;
   setActiveSupplier: React.Dispatch<React.SetStateAction<{ id: string; name: string; sessionTotal?: number } | null>>;
+  isSessionSummaryOpen: boolean;
+  setIsSessionSummaryOpen: (val: boolean) => void;
 }
 
 const defaultSettings: UserSettings = {
@@ -63,6 +65,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem('active_supplier_session');
     return saved ? JSON.parse(saved) : null;
   });
+  const [isSessionSummaryOpen, setIsSessionSummaryOpen] = useState(false);
 
   useEffect(() => {
     if (activeSupplier) {
@@ -210,7 +213,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       showToast, 
       categories,
       activeSupplier,
-      setActiveSupplier
+      setActiveSupplier,
+      isSessionSummaryOpen,
+      setIsSessionSummaryOpen
     }}>
       <div className={settings.language === 'ar' ? 'rtl' : 'ltr'} dir={settings.language === 'ar' ? 'rtl' : 'ltr'}>
         {children}
