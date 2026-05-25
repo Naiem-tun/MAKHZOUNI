@@ -46,7 +46,7 @@ import { signInWithGoogle, auth } from './lib/firebase';
 import { Login } from './components/auth/Login';
 import { ProductEditModal } from './components/products/ProductEditModal';
 import { BarcodeScanner } from './components/common/BarcodeScanner';
-import { collection, addDoc, serverTimestamp, doc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from './lib/firebase';
 import { handleFirestoreError, safeDispatchEvent, formatCurrency } from './lib/utils';
 import { OperationType, Supplier } from './types';
@@ -151,24 +151,24 @@ function AppContent() {
       // ✅ 2. أخبر المستخدم فوراً بنجاح العملية محلياً
       showToast(t('session_saved_success') || 'تم حفظ الجلسة بنجاح ✅', 'success');
       
+      // ✅ 3. تصفير وإكمال حالة الجلسة فوراً لمنع أي تأخير بالواجهة
+      setActiveSupplier(null);
+      setIsSavingSession(false);
+      
       if (amount > 0) {
         const txPath = `users/${user.uid}/supplierTransactions`;
         
-        // ✅ 3. حفظ البيانات محلياً (باستخدام new Date لتفادي ظهور تاريخ 1970 بالأوفلاين)
+        // Use proper Timestamp to avoid offline/online mismatch with Suppliers page
         addDoc(collection(db, txPath), {
           supplierId: supplierId,
           amount: amount,
-          date: new Date(),  // تضمن المزامنة وصحة التاريخ المحلي فوراً
+          date: Timestamp.now(),  // تضمن المزامنة وصحة التاريخ المحلي فوراً
           note: t('session_purchases_total') || 'إجمالي مشتريات الجلسة',
           updatedAt: serverTimestamp(),
         }).catch(err => {
           console.warn("Firestore offline write pending (will sync when online):", err);
         });
       }
-
-      // ✅ 4. تصفير وإكمال حالة الجلسة
-      setActiveSupplier(null);
-      setIsSavingSession(false);
 
     } catch (err) {
       console.error("Error ending supplier session:", err);
