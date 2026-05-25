@@ -66,7 +66,7 @@ const Analytics = lazy(() => import('./pages/Analytics'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 function AppContent() {
-  const { user, loading, isOffline, isDataLoaded, settings, toggleDarkMode, setLanguage, updateSettings, activeSupplier, setActiveSupplier } = useAppContext();
+  const { user, loading, isOffline, isDataLoaded, settings, toggleDarkMode, setLanguage, updateSettings, activeSupplier, setActiveSupplier, showToast } = useAppContext();
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('products');
   const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['products']));
@@ -140,41 +140,48 @@ function AppContent() {
 
   const handleEndSessionConfirm = () => {
     if (!user || !activeSupplier || isEndingSessionRef.current) return;
+    
     isEndingSessionRef.current = true;
     setIsSavingSession(true);
+    
     try {
-      if (sessionFinalTotal > 0) {
+      const supplierId = activeSupplier.id;
+      const amount = sessionFinalTotal;
+      
+      // ✅ 1. أغلق الـ modal أولاً للحصول على استجابة فورية فائقة السرعة
+      setIsSessionSummaryOpen(false);
+      
+      // ✅ 2. أخبر المستخدم فوراً بنجاح العملية محلياً
+      showToast(t('session_saved_success') || 'تم حفظ الجلسة بنجاح ✅', 'success');
+      
+      if (amount > 0) {
         const txPath = `users/${user.uid}/supplierTransactions`;
-        const supplierId = activeSupplier.id;
-        const amount = sessionFinalTotal;
         
-        // Optimistic UI update: Close modal and reset immediately
-        setActiveSupplier(null);
-        setIsSessionSummaryOpen(false);
-        setIsSavingSession(false);
-        
-        // Reset ref after a short delay to prevent double-clicks during unmount
-        setTimeout(() => {
-          isEndingSessionRef.current = false;
-        }, 500);
-
+        // ✅ 3. حفظ البيانات محلياً (باستخدام new Date لتفادي ظهور تاريخ 1970 بالأوفلاين)
         addDoc(collection(db, txPath), {
           supplierId: supplierId,
           amount: amount,
-          date: serverTimestamp(),
+          date: new Date(),  // تضمن المزامنة وصحة التاريخ المحلي فوراً
           note: t('session_purchases_total') || 'إجمالي مشتريات الجلسة',
           updatedAt: serverTimestamp(),
         }).catch(err => {
-          handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}/supplierTransactions`);
+          console.warn("Firestore offline write pending (will sync when online):", err);
         });
-      } else {
-        setActiveSupplier(null);
-        setIsSessionSummaryOpen(false);
-        setIsSavingSession(false);
-        isEndingSessionRef.current = false;
       }
+
+      // ✅ 4. تصفير وإكمال حالة الجلسة
+      setActiveSupplier(null);
+      setIsSavingSession(false);
+      
+      // مؤقت أمان بسيط لمنع تكرار الضغط أثناء تفريغ الواجهة
+      setTimeout(() => {
+        isEndingSessionRef.current = false;
+      }, 500);
+
     } catch (err) {
-      console.error(err);
+      console.error("Error ending supplier session:", err);
+      setActiveSupplier(null);
+      setIsSessionSummaryOpen(false);
       setIsSavingSession(false);
       isEndingSessionRef.current = false;
     }

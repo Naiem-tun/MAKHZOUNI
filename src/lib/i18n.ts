@@ -385,6 +385,7 @@ const resources = {
       "import_invalid_data_error": "لم يتم العثور على بيانات صالحة للاستيراد في الملف",
       "import_success": "تم استيراد البيانات بنجاح",
       "settings_saved_success": "تم حفظ الإعدادات بنجاح",
+      "session_saved_success": "تم حفظ الجلسة وإنهاؤها بنجاح",
       "settings_save_error": "فشل حفظ الإعدادات",
       "night_mode_on": "تم تفعيل الوضع الليلي",
       "day_mode_on": "تم تفعيل الوضع النهاري",
