@@ -31,6 +31,7 @@ export interface UserSettings {
   email?: string;
   displayName?: string;
   deletedCategories?: string[];
+  catalogPin?: string;
 }
 
 export interface Product {

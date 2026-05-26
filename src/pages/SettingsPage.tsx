@@ -48,7 +48,9 @@ import {
   Monitor,
   Smartphone,
   Check,
-  Percent
+  Percent,
+  Lock,
+  Grid
 } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { collection, getDocs, doc, setDoc, writeBatch, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
@@ -63,7 +65,7 @@ import { DataManagement } from '../components/settings/DataManagement';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
-  const { settings, updateSettings, toggleDarkMode, setLanguage, user } = useAppContext();
+  const { settings, updateSettings, toggleDarkMode, setLanguage, user, setIsCatalogMode } = useAppContext();
   const [activeView, setActiveView] = useState<View>('main');
   const [isClearDataModalOpen, setIsClearDataModalOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -120,6 +122,7 @@ export default function SettingsPage() {
   const [tempSettings, setTempSettings] = useState({
     storeName: settings.storeName || 'مخزوني',
     currency: settings.currency || 'د.ت',
+    catalogPin: settings.catalogPin || '0000',
   });
   const [isSaving, setIsSaving] = useState(false);
   const handleSaveStoreSettings = async () => {
@@ -214,6 +217,19 @@ export default function SettingsPage() {
                 onChange={(e) => setTempSettings(prev => ({ ...prev, currency: e.target.value }))}
                 placeholder={t('currency_placeholder')}
                 className="w-full h-12 px-4 rounded-lg bg-zinc-50 dark:bg-zinc-800 border-none text-sm font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-zinc-500 mr-2">{t('catalog_pin') || 'رمز وضع الكتالوج'}</label>
+              <input 
+                type="text" 
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={4}
+                value={tempSettings.catalogPin}
+                onChange={(e) => setTempSettings(prev => ({ ...prev, catalogPin: e.target.value.replace(/[^0-9]/g, '') }))}
+                placeholder="0000"
+                className="w-full h-12 px-4 rounded-lg bg-zinc-50 dark:bg-zinc-800 border-none text-sm font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center tracking-[0.5em]"
               />
             </div>
           </div>
@@ -349,6 +365,28 @@ export default function SettingsPage() {
               animate={{ x: (settings.showSupplierSessionButton ?? true) ? 24 : 4 }}
               className="absolute left-0 top-1 h-6 w-6 rounded-full bg-white shadow-sm"
             />
+          </button>
+        </section>
+
+        {/* Catalog Mode Entry */}
+        <section className="bg-white p-6 rounded-lg shadow-sm border border-zinc-100 flex flex-col gap-4 dark:bg-zinc-800/50 dark:border-zinc-800">
+          <div className="flex justify-between items-center w-full">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-lg bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
+                <Grid size={24} />
+              </div>
+              <div className="text-right flex-1">
+                <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{t('catalog_mode') || 'وضع الكتالوج'}</h3>
+                <p className="text-xs text-zinc-400 mt-1">{t('catalog_mode_desc') || 'يعرض المنتجات والأسعار للعملاء'}</p>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsCatalogMode(true)}
+            className="w-full h-12 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-lg font-bold flex items-center justify-center gap-2 mt-2 transition-all hover:bg-zinc-800 dark:hover:bg-white active:scale-95 shadow-sm"
+          >
+            <Lock size={18} />
+            {t('enter_catalog_mode') || 'الدخول لوضع الكتالوج'}
           </button>
         </section>
 

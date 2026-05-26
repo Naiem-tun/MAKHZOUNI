@@ -19,11 +19,13 @@ import {
   ListTodo,
   X,
   ScanLine,
-  Camera
+  Camera,
+  PackagePlus,
+  Barcode
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Card } from '../components/UI';
-import { handleFirestoreError } from '../lib/utils';
+import { handleFirestoreError, safeDispatchEvent } from '../lib/utils';
 import { OperationType, Product } from '../types';
 import { Html5Qrcode } from 'html5-qrcode';
 
@@ -31,6 +33,7 @@ interface ListItem {
   id: string;
   text: string;
   type: 'product' | 'note';
+  barcode?: string;
   createdAt: any;
 }
 

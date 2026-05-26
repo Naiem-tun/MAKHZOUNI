@@ -60,13 +60,14 @@ import Inventory from './pages/Inventory';
 import Suppliers from './pages/Suppliers';
 import Debts from './pages/Debts';
 import InvoiceCalculator from './pages/InvoiceCalculator';
+import CatalogMode from './pages/CatalogMode';
 
 // Heavy Pages (Lazy loaded)
 const Analytics = lazy(() => import('./pages/Analytics'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 function AppContent() {
-  const { user, loading, isOffline, isDataLoaded, settings, toggleDarkMode, setLanguage, updateSettings, activeSupplier, setActiveSupplier, showToast, isSessionSummaryOpen, setIsSessionSummaryOpen } = useAppContext();
+  const { user, loading, isOffline, isDataLoaded, settings, toggleDarkMode, setLanguage, updateSettings, activeSupplier, setActiveSupplier, showToast, isSessionSummaryOpen, setIsSessionSummaryOpen, isCatalogMode } = useAppContext();
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('products');
   const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['products']));
@@ -226,6 +227,10 @@ function AppContent() {
   };
 
   const showSplash = loading || (!!user && !isDataLoaded);
+
+  if (user && isCatalogMode) {
+    return <CatalogMode />;
+  }
 
   return (
     <>

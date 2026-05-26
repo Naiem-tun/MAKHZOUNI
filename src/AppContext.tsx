@@ -28,6 +28,8 @@ interface AppContextType {
   setActiveSupplier: React.Dispatch<React.SetStateAction<{ id: string; name: string; sessionTotal?: number } | null>>;
   isSessionSummaryOpen: boolean;
   setIsSessionSummaryOpen: (val: boolean) => void;
+  isCatalogMode: boolean;
+  setIsCatalogMode: (val: boolean) => void;
 }
 
 const defaultSettings: UserSettings = {
@@ -66,6 +68,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : null;
   });
   const [isSessionSummaryOpen, setIsSessionSummaryOpen] = useState(false);
+  const [isCatalogMode, setIsCatalogModeState] = useState(() => {
+    return localStorage.getItem('isCatalogMode') === 'true';
+  });
+
+  const setIsCatalogMode = (val: boolean) => {
+    setIsCatalogModeState(val);
+    localStorage.setItem('isCatalogMode', String(val));
+  };
 
   useEffect(() => {
     if (activeSupplier) {
@@ -215,7 +225,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       activeSupplier,
       setActiveSupplier,
       isSessionSummaryOpen,
-      setIsSessionSummaryOpen
+      setIsSessionSummaryOpen,
+      isCatalogMode,
+      setIsCatalogMode
     }}>
       <div className={settings.language === 'ar' ? 'rtl' : 'ltr'} dir={settings.language === 'ar' ? 'rtl' : 'ltr'}>
         {children}

@@ -409,7 +409,17 @@ const resources = {
       "cat_tobacco": "تبغ وسجائر",
       "cat_dry_fruits": "فواكه جافة",
       "cat_veg": "خضر وغلال",
-      "cat_other": "أخرى"
+      "cat_other": "أخرى",
+      "catalog_mode": "وضع الكتالوج",
+      "catalog_mode_desc": "يعرض المنتجات والأسعار للعملاء",
+      "enter_catalog_mode": "الدخول لوضع الكتالوج",
+      "exit_catalog_mode": "خروج من وضع الكتالوج",
+      "enter_pin_to_exit": "أدخل الرمز السري للعودة",
+      "invalid_pin": "الرمز السري غير صحيح",
+      "search_products": "ابحث عن منتج...",
+      "exit_catalog": "خروج من وضع الكتالوج",
+      "no_products": "لا توجد منتجات",
+      "catalog_pin": "رمز وضع الكتالوج"
     }
   },
 };
