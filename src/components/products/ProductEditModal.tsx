@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, ScanBarcode, Trash2 } from 'lucide-react';
+import { X, ScanBarcode, Trash2, Camera, ImagePlus } from 'lucide-react';
 import { useCategories } from '../../hooks/useCategories';
 import { Product } from '../../types';
+import { getLocalImage } from '../../lib/localImages';
 
 interface ProductEditModalProps {
   product: Product | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (productData: any) => Promise<void>;
+  onSave: (productData: any, imageFile?: File | Blob | null, imageRemoved?: boolean) => Promise<void>;
   onDelete?: (product: Product) => void;
   scannedBarcode: string;
   scannedBarcode2?: string;
@@ -24,13 +25,28 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
   const [barcode, setBarcode] = useState('');
   const [barcode2, setBarcode2] = useState('');
   const [showBarcode2, setShowBarcode2] = useState(false);
+  
+  const [imageFile, setImageFile] = useState<File | Blob | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageRemoved, setImageRemoved] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    let url: string | null = null;
     if (isOpen) {
       if (product) {
         setPiecesPerBox(product.piecesPerBox || 1);
         setBoxPrice(product.boxPurchasePrice || '');
         setPiecePrice(product.purchasePrice || '');
+        if (product.hasLocalImage && product.id) {
+           getLocalImage(product.id).then(blob => {
+              if (blob) {
+                 url = URL.createObjectURL(blob);
+                 setImagePreview(url);
+              }
+           });
+        }
       } else {
         setPiecesPerBox(1);
         setBoxPrice('');
@@ -39,7 +55,13 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
       setBarcode(product?.barcode || scannedBarcode || '');
       setBarcode2(product?.barcode2 || scannedBarcode2 || '');
       setShowBarcode2(!!product?.barcode2 || !!scannedBarcode2);
+      setImageFile(null);
+      setImageRemoved(false);
+      if (!product?.hasLocalImage) setImagePreview(null);
     }
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
   }, [isOpen, product]);
 
   useEffect(() => {
@@ -105,6 +127,21 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
     }
   }, [isOpen]);
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+      setImageRemoved(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setImageRemoved(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (isSaving) return;
@@ -123,7 +160,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
       quantity: product?.quantity ?? 0,
       minQuantity: parseFloat(formData.get('minQuantity') as string) || 0,
     };
-    await onSave(productData);
+    await onSave(productData, imageFile, imageRemoved);
   };
 
   return (
@@ -135,7 +172,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
             className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm"
           />
           <div 
-            className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-2xl dark:bg-zinc-900"
+            className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-2xl dark:bg-zinc-900 max-h-[90vh] overflow-y-auto"
           >
             <button 
               onClick={onClose}
@@ -148,6 +185,64 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
             </h2>
             
             <form onSubmit={handleSubmit} className="space-y-3 text-right">
+              {/* Image Picker */}
+              <div className="flex justify-center mb-4">
+                <div className="relative group">
+                  <div className="w-24 h-24 rounded-[20px] bg-zinc-100 dark:bg-zinc-800 border-2 border-dashed border-zinc-300 dark:border-zinc-700 flex flex-col items-center justify-center overflow-hidden transition-colors hover:border-brand-500 overflow-hidden relative">
+                    {imagePreview ? (
+                      <div className="w-full h-full relative">
+                        <img src={imagePreview} alt="Product" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={handleRemoveImage}
+                          className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-black/70 backdrop-blur-sm"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-zinc-400 flex flex-col items-center gap-2">
+                        <ImagePlus size={24} />
+                        <span className="text-[10px] font-medium">{t('image') || 'صورة'}</span>
+                      </div>
+                    )}
+                  </div>
+                  {!imagePreview && (
+                    <div className="absolute -bottom-2 -right-2 flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => cameraInputRef.current?.click()}
+                        className="h-8 w-8 bg-brand-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-brand-600 active:scale-95 transition-all"
+                      >
+                        <Camera size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="h-8 w-8 bg-zinc-700 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-zinc-800 active:scale-95 transition-all"
+                      >
+                        <ImagePlus size={14} />
+                      </button>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    ref={cameraInputRef}
+                    onChange={handleImageChange}
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    ref={fileInputRef}
+                    onChange={handleImageChange}
+                  />
+                </div>
+              </div>
+
               {/* 1. Name */}
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-zinc-500">{t('name')}</label>

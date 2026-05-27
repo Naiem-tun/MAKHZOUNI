@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Search, Lock, Boxes, Package, AlertCircle, ScanLine, ArrowRightLeft, Folder, ChevronRight, ArrowRight, ArrowLeft } from 'lucide-react';
 import { formatCurrency, safeParseFloat } from '../lib/utils';
 import { BarcodeScanner } from '../components/common/BarcodeScanner';
+import { ProductImage } from '../components/products/ProductImage';
 import { Product } from '../types';
 
 export default function CatalogMode() {
@@ -76,23 +77,23 @@ export default function CatalogMode() {
   };
 
   return (
-    <div className="min-h-screen relative flex flex-col overflow-hidden bg-[#F5F8FA] dark:bg-[#0F172A]" dir={settings.language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="h-[100dvh] relative flex flex-col overflow-hidden bg-[#F5F8FA] dark:bg-[#0F172A]" dir={settings.language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Ambient Artistic Background */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-[#7C94B8]/40 to-[#2A4D88]/10 blur-[100px] animate-[pulse_10s_ease-in-out_infinite]" />
-        <div className="absolute bottom-[-10%] right-[-5%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tl from-[#2A4D88]/20 to-[#B1BBC8]/20 blur-[120px] animate-[pulse_14s_ease-in-out_infinite]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-[#7C94B8]/40 to-[#2A4D88]/10 blur-[100px]" />
+        <div className="absolute bottom-[-10%] right-[-5%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tl from-[#2A4D88]/20 to-[#B1BBC8]/20 blur-[120px]" />
         <div className="absolute top-[20%] right-[10%] w-[40vw] h-[40vw] rounded-full bg-[#D9D9D8]/40 dark:bg-[#1E293B]/60 blur-[90px]" />
-        <div className="absolute inset-0 bg-white/30 dark:bg-black/30 backdrop-blur-[1px]" />
+        <div className="absolute inset-0 bg-white/30 dark:bg-black/30" />
         <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%232A4D88' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }} />
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-xl border-b border-[#D9D9D8]/50 dark:border-[#1E293B] shadow-sm px-4 py-3 flex items-center gap-4">
+      <header className="order-last sticky bottom-0 z-30 mt-auto bg-white/80 dark:bg-[#0F172A]/80 backdrop-blur-md border-t border-[#D9D9D8]/50 dark:border-[#1E293B] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center gap-4">
         <div className="flex-1 max-w-2xl mx-auto flex items-center gap-3">
           {selectedCategory && !searchQuery && (
             <button
               onClick={() => setSelectedCategory(null)}
-              className="h-12 w-12 shrink-0 flex items-center justify-center rounded-xl bg-white dark:bg-[#1E293B] border border-[#D9D9D8] dark:border-[#334155] text-[#7C94B8] hover:text-[#2A4D88] dark:text-[#B1BBC8] dark:hover:text-white transition-all shadow-sm hover:border-[#B1BBC8]"
+              className="h-12 w-12 shrink-0 flex items-center justify-center rounded-xl bg-white dark:bg-[#1E293B] border border-[#D9D9D8] dark:border-[#334155] text-[#7C94B8] hover:text-[#2A4D88] dark:text-[#B1BBC8] dark:hover:text-white transition-colors shadow-sm"
             >
               <ArrowLeft size={24} className={settings.language === 'ar' ? 'rotate-180' : ''} />
             </button>
@@ -105,7 +106,7 @@ export default function CatalogMode() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('search_products') || 'ابحث عن منتج...'}
-              className={`w-full h-12 bg-white dark:bg-[#1E293B] border border-[#D9D9D8] dark:border-[#334155] rounded-xl ${settings.language === 'ar' ? 'pr-11 pl-12' : 'pl-11 pr-12'} text-[#2A4D88] dark:text-white placeholder:text-[#B1BBC8]/70 focus:outline-none focus:ring-4 focus:ring-[#7C94B8]/20 focus:border-[#7C94B8] transition-all duration-300 text-lg font-medium shadow-sm hover:border-[#B1BBC8]`}
+              className={`w-full h-12 bg-white dark:bg-[#1E293B] border border-[#D9D9D8] dark:border-[#334155] rounded-xl ${settings.language === 'ar' ? 'pr-11 pl-12' : 'pl-11 pr-12'} text-[#2A4D88] dark:text-white placeholder:text-[#B1BBC8]/70 focus:outline-none focus:ring-4 focus:ring-[#7C94B8]/20 focus:border-[#7C94B8] transition-colors text-lg font-medium shadow-sm`}
             />
             <button
               onClick={() => setIsScannerOpen(true)}
@@ -116,7 +117,7 @@ export default function CatalogMode() {
           </div>
           <button
             onClick={() => setDisplayMode(prev => prev === 'piece' ? 'box' : 'piece')}
-            className={`h-12 px-5 shrink-0 rounded-xl font-bold transition-all duration-300 flex items-center gap-2 border shadow-sm ${
+            className={`h-12 px-5 shrink-0 rounded-xl font-bold transition-colors flex items-center gap-2 border shadow-sm ${
               displayMode === 'box'
                 ? 'bg-gradient-to-br from-[#2A4D88] to-[#1e3b6e] border-[#2A4D88] text-white shadow-md shadow-[#2A4D88]/20'
                 : 'bg-white dark:bg-[#1E293B] border-[#D9D9D8] dark:border-[#334155] text-[#7C94B8] dark:text-[#B1BBC8] hover:border-[#B1BBC8] hover:text-[#2A4D88] dark:hover:text-white'
@@ -127,7 +128,7 @@ export default function CatalogMode() {
           </button>
           <button 
             onClick={handleExitRequest}
-            className="h-12 px-4 shrink-0 bg-white/50 dark:bg-[#1E293B]/50 backdrop-blur-sm border border-[#D9D9D8] dark:border-[#334155] rounded-xl text-[#B1BBC8] hover:text-[#2A4D88] dark:text-[#B1BBC8] dark:hover:text-white transition-all duration-300 flex items-center justify-center shadow-sm hover:bg-white hover:border-[#B1BBC8]"
+            className="h-12 px-4 shrink-0 bg-white/50 dark:bg-[#1E293B]/50 backdrop-blur-sm border border-[#D9D9D8] dark:border-[#334155] rounded-xl text-[#B1BBC8] hover:text-[#2A4D88] dark:text-[#B1BBC8] dark:hover:text-white transition-colors flex items-center justify-center shadow-sm hover:bg-white"
             title={t('exit_catalog') || 'خروج من وضع الكتالوج'}
           >
             <Lock size={20} />
@@ -136,7 +137,7 @@ export default function CatalogMode() {
       </header>
 
       {/* Main Catalog Area */}
-      <main className="relative z-10 flex-1 overflow-y-auto p-4 md:p-8 content-visibility-auto">
+      <main className="relative z-10 flex-1 overflow-y-auto p-4 md:p-8">
         <div className="max-w-6xl mx-auto">
           {!searchQuery && !selectedCategory ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -144,10 +145,10 @@ export default function CatalogMode() {
                 <button
                   key={category}
                   onClick={() => setSelectedCategory(category)}
-                  className="bg-white dark:bg-[#1E293B] rounded-[24px] border border-[#D9D9D8] dark:border-[#334155] overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-[#7C94B8] dark:hover:border-[#7C94B8]/50 transition-all duration-300 group flex flex-col text-right"
+                  className="bg-white dark:bg-[#1E293B] rounded-[24px] border border-[#D9D9D8] dark:border-[#334155] overflow-hidden shadow-sm hover:border-[#7C94B8] dark:hover:border-[#7C94B8]/50 transition-colors group flex flex-col text-right"
                 >
                   <div className="p-6 flex flex-col items-center justify-center gap-4 text-center">
-                    <div className="w-16 h-16 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <div className="w-16 h-16 flex items-center justify-center">
                       <Folder size={48} strokeWidth={1.5} className="text-[#2A4D88] dark:text-[#7C94B8]" />
                     </div>
                     <span className="font-bold text-xl text-[#2A4D88] dark:text-white group-hover:text-[#1e3b6e] transition-colors">
@@ -170,8 +171,17 @@ export default function CatalogMode() {
               {filteredProducts.map((product) => (
                 <div
                   key={product.id}
-                  className="bg-white dark:bg-[#1E293B] rounded-[20px] border border-[#D9D9D8] dark:border-[#334155] overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-[#7C94B8] dark:hover:border-[#7C94B8]/50 transition-all duration-300 group flex flex-col"
+                  className="bg-white dark:bg-[#1E293B] rounded-[20px] border border-[#D9D9D8] dark:border-[#334155] overflow-hidden shadow-sm hover:border-[#7C94B8] dark:hover:border-[#7C94B8]/50 transition-colors group flex flex-col"
                 >
+                  {product.hasLocalImage && (
+                    <div className="h-48 w-full border-b border-[#D9D9D8]/50 dark:border-[#334155]/50 overflow-hidden">
+                      <ProductImage 
+                        productId={product.id} 
+                        hasLocalImage={product.hasLocalImage} 
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                      />
+                    </div>
+                  )}
                   <div className="p-4 sm:p-5 flex-1 flex flex-col">
                     <h3 className="text-base sm:text-lg font-bold text-[#2A4D88] dark:text-[#E2E8F0] line-clamp-2 leading-tight mb-2 group-hover:text-[#1e3b6e] dark:group-hover:text-white transition-colors">
                         {product.name}
@@ -206,7 +216,7 @@ export default function CatalogMode() {
                             </span>
                           </div>
                         </div>
-                        <span className={`font-black text-xl sm:text-2xl tracking-tight text-[#2A4D88] dark:text-[#F1F5F9] transition-colors group-hover:scale-105 origin-left`}>
+                        <span className={`font-black text-xl sm:text-2xl tracking-tight text-[#2A4D88] dark:text-[#F1F5F9]`}>
                           {displayMode === 'box' && product.piecesPerBox && Number(product.piecesPerBox) > 1
                             ? formatCurrency(safeParseFloat(product.sellingPrice) * Number(product.piecesPerBox), settings.currency)
                             : formatCurrency(safeParseFloat(product.sellingPrice), settings.currency)}

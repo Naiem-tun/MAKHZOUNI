@@ -46,6 +46,7 @@ export interface Product {
   barcode2?: string;
   piecesPerBox?: number;
   boxPurchasePrice?: number;
+  hasLocalImage?: boolean;
   updatedAt: any;
 }
 

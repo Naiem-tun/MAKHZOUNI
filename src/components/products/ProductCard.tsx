@@ -6,6 +6,7 @@ import { Product } from '../../types';
 import { useAppContext } from '../../AppContext';
 import { useCategories, categoryIcons } from '../../hooks/useCategories';
 import { cn, formatCurrency } from '../../lib/utils';
+import { ProductImage } from './ProductImage';
 
 interface ProductCardProps {
   product: Product;
@@ -15,11 +16,19 @@ interface ProductCardProps {
   onAddQuantity: (product: Product) => void;
 }
 
-const ProductIcon = ({ category: catName, className }: { category?: string, className?: string }) => {
+const ProductIcon = ({ product, className }: { product: Product, className?: string }) => {
   const { categories } = useCategories();
-  const category = categories.find(c => c.name === catName);
+  const category = categories.find(c => c.name === product.category);
   const iconName = category?.icon || 'Package';
   const Icon = categoryIcons[iconName] || Package;
+  
+  if (product.hasLocalImage && product.id) {
+    return (
+      <div className={cn("overflow-hidden shrink-0", className)}>
+        <ProductImage productId={product.id} hasLocalImage={product.hasLocalImage} />
+      </div>
+    );
+  }
   
   return (
     <div className={cn("flex items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-950/20", className)}>
@@ -67,7 +76,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
         }}
       >
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <ProductIcon category={product.category} className="w-8 h-8 shrink-0" />
+          <ProductIcon product={product} className={cn("w-8 h-8 shrink-0", product.hasLocalImage ? "rounded-[12px]" : "")} />
           <div className="min-w-0 flex-1 flex flex-col">
             <h3 className="text-base font-medium text-black dark:text-white leading-tight mb-0.5 truncate">{product.name}</h3>
             <div className="flex flex-col gap-0.5 text-[10px] text-neutral-500 font-bold">

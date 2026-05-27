@@ -23,6 +23,8 @@ import { DeleteConfirmationModal } from '../components/products/DeleteConfirmati
 import { AddQuantityModal } from '../components/products/AddQuantityModal';
 import { ProductEditModal } from '../components/products/ProductEditModal';
 import { PriceNegotiationModal } from '../components/products/PriceNegotiationModal';
+import { deleteLocalImage, saveLocalImage } from '../lib/localImages';
+import { compressImage } from '../lib/imageCompressor';
 import { ProductsHeader } from '../components/products/ProductsHeader';
 import { ProductsFilters } from '../components/products/ProductsFilters';
 import { ProductsList } from '../components/products/ProductsList';
@@ -176,27 +178,36 @@ export default function Products() {
     }
   };
 
-  const handleSaveProduct = async (productData: any) => {
+  const handleSaveProduct = async (productData: any, imageFile?: File | Blob | null, imageRemoved?: boolean) => {
     if (!user) return;
     
     // UI feedback: close modal immediately
     setIsModalOpen(false);
-    setEditingProduct(null);
-    setScannedBarcode('');
-    setScannedBarcode2('');
     showToast(t('product_saved_success'));
 
     try {
       const batch = writeBatch(db);
       
+      const hasLocalImageValue = !!imageFile || (editingProduct?.hasLocalImage && !imageRemoved);
+
       if (editingProduct) {
         const path = `users/${user.uid}/products/${editingProduct.id}`;
         updateDoc(doc(db, path), {
           ...productData,
+          hasLocalImage: hasLocalImageValue,
           updatedAt: serverTimestamp(),
         }).catch(err => {
           handleFirestoreError(err, OperationType.UPDATE, path);
         });
+        
+        if (imageRemoved) {
+           await deleteLocalImage(editingProduct.id!).catch(console.error);
+        }
+        if (imageFile) {
+           const compressedBlob = await compressImage(imageFile);
+           await saveLocalImage(editingProduct.id!, compressedBlob).catch(console.error);
+        }
+
       } else {
         const path = `users/${user.uid}/products`;
         const purchasesPath = `users/${user.uid}/purchases`;
@@ -204,6 +215,7 @@ export default function Products() {
         const productRef = doc(collection(db, path));
         batch.set(productRef, {
           ...productData,
+          hasLocalImage: hasLocalImageValue,
           updatedAt: serverTimestamp(),
         });
 
@@ -229,9 +241,19 @@ export default function Products() {
         batch.commit().catch(err => {
           handleFirestoreError(err, OperationType.CREATE, path);
         });
+        
+        if (imageFile) {
+           const compressedBlob = await compressImage(imageFile);
+           await saveLocalImage(productRef.id, compressedBlob).catch(console.error);
+        }
       }
+      
     } catch (err) {
       handleFirestoreError(err, editingProduct ? OperationType.UPDATE : OperationType.CREATE, `users/${user.uid}/products`);
+    } finally {
+      setEditingProduct(null);
+      setScannedBarcode('');
+      setScannedBarcode2('');
     }
   };
 
