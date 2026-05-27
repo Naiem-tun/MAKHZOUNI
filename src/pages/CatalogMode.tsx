@@ -64,29 +64,18 @@ export default function CatalogMode() {
   };
 
   return (
-    <div className="h-[100dvh] w-full relative flex flex-col overflow-hidden bg-[#F5F8FA] dark:bg-[#0F172A]" dir={settings.language === 'ar' ? 'rtl' : 'ltr'}>
-      {/* Ocean Fluid Background */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-gradient-to-b from-[#F5F8FA] via-[#D9D9D8]/50 to-[#7C94B8]/30 dark:from-[#0F172A] dark:via-[#1e3b6e]/40 dark:to-[#2A4D88]/60">
-        <div 
-          className="absolute w-[150vw] h-[150vw] max-w-[1000px] max-h-[1000px] bg-[#7C94B8]/40 dark:bg-[#7C94B8]/20 blur-[80px] animate-[spin_30s_linear_infinite] mix-blend-multiply dark:mix-blend-screen"
-          style={{ top: '40%', left: '-30%', borderRadius: '43% 57% 41% 59% / 45% 53% 47% 55%' }}
-        />
-        <div 
-          className="absolute w-[160vw] h-[160vw] max-w-[1200px] max-h-[1200px] bg-[#2A4D88]/30 dark:bg-[#2A4D88]/40 blur-[100px] animate-[spin_35s_linear_infinite_reverse] mix-blend-color-burn dark:mix-blend-overlay"
-          style={{ top: '20%', right: '-30%', borderRadius: '54% 46% 62% 38% / 41% 65% 35% 59%' }}
-        />
-        <div 
-          className="absolute w-[120vw] h-[120vw] max-w-[800px] max-h-[800px] bg-[#B1BBC8]/50 dark:bg-[#B1BBC8]/20 blur-[70px] animate-[spin_25s_linear_infinite]"
-          style={{ top: '-20%', left: '20%', borderRadius: '35% 65% 45% 55% / 55% 40% 60% 45%' }}
-        />
-        {/* Glass overall overlay */}
-        <div className="absolute inset-0 backdrop-blur-[60px] bg-white/20 dark:bg-[#0F172A]/30" />
-        {/* Subtle Water Surface Noise */}
-        <div className="absolute inset-0 opacity-[0.15] dark:opacity-[0.05] mix-blend-overlay" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} />
+    <div className="min-h-screen relative flex flex-col overflow-hidden bg-[#F5F8FA] dark:bg-[#0F172A]" dir={settings.language === 'ar' ? 'rtl' : 'ltr'}>
+      {/* Ambient Artistic Background */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-[#7C94B8]/40 to-[#2A4D88]/10 blur-[100px] animate-[pulse_10s_ease-in-out_infinite]" />
+        <div className="absolute bottom-[-10%] right-[-5%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tl from-[#2A4D88]/20 to-[#B1BBC8]/20 blur-[120px] animate-[pulse_14s_ease-in-out_infinite]" />
+        <div className="absolute top-[20%] right-[10%] w-[40vw] h-[40vw] rounded-full bg-[#D9D9D8]/40 dark:bg-[#1E293B]/60 blur-[90px]" />
+        <div className="absolute inset-0 bg-white/30 dark:bg-black/30 backdrop-blur-[1px]" />
+        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%232A4D88' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }} />
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white/40 dark:bg-[#0F172A]/40 backdrop-blur-2xl border-b border-[#D9D9D8]/40 dark:border-[#1E293B]/70 shadow-sm px-4 py-3 flex items-center gap-4">
+      <header className="sticky top-0 z-30 bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-xl border-b border-[#D9D9D8]/50 dark:border-[#1E293B] shadow-sm px-4 py-3 flex items-center gap-4">
         <div className="flex-1 max-w-2xl mx-auto flex items-center gap-3">
           <div className="relative flex-1 group">
             <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#B1BBC8] group-focus-within:text-[#7C94B8] transition-colors" size={20} />
@@ -95,7 +84,7 @@ export default function CatalogMode() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('search_products') || 'ابحث عن منتج...'}
-              className="w-full h-12 bg-white/60 dark:bg-[#1E293B]/60 backdrop-blur-md border border-[#D9D9D8]/60 dark:border-[#334155]/60 rounded-xl pr-11 pl-12 text-[#2A4D88] dark:text-white placeholder:text-[#B1BBC8]/70 focus:outline-none focus:ring-4 focus:ring-[#7C94B8]/20 focus:border-[#7C94B8] transition-all duration-300 text-lg font-medium shadow-sm hover:border-[#B1BBC8]"
+              className="w-full h-12 bg-white dark:bg-[#1E293B] border border-[#D9D9D8] dark:border-[#334155] rounded-xl pr-11 pl-12 text-[#2A4D88] dark:text-white placeholder:text-[#B1BBC8]/70 focus:outline-none focus:ring-4 focus:ring-[#7C94B8]/20 focus:border-[#7C94B8] transition-all duration-300 text-lg font-medium shadow-sm hover:border-[#B1BBC8]"
             />
             <button
               onClick={() => setIsScannerOpen(true)}
@@ -106,10 +95,10 @@ export default function CatalogMode() {
           </div>
           <button
             onClick={() => setDisplayMode(prev => prev === 'piece' ? 'box' : 'piece')}
-            className={`h-12 px-5 shrink-0 rounded-xl font-bold transition-all duration-300 flex items-center gap-2 border shadow-sm backdrop-blur-md ${
+            className={`h-12 px-5 shrink-0 rounded-xl font-bold transition-all duration-300 flex items-center gap-2 border shadow-sm ${
               displayMode === 'box'
-                ? 'bg-gradient-to-br from-[#2A4D88]/90 to-[#1e3b6e]/90 border-[#2A4D88]/50 text-white shadow-md shadow-[#2A4D88]/30'
-                : 'bg-white/60 dark:bg-[#1E293B]/60 border-[#D9D9D8]/60 dark:border-[#334155]/60 text-[#7C94B8] dark:text-[#B1BBC8] hover:border-[#B1BBC8] hover:text-[#2A4D88] dark:hover:text-white'
+                ? 'bg-gradient-to-br from-[#2A4D88] to-[#1e3b6e] border-[#2A4D88] text-white shadow-md shadow-[#2A4D88]/20'
+                : 'bg-white dark:bg-[#1E293B] border-[#D9D9D8] dark:border-[#334155] text-[#7C94B8] dark:text-[#B1BBC8] hover:border-[#B1BBC8] hover:text-[#2A4D88] dark:hover:text-white'
             }`}
           >
             {displayMode === 'box' ? <Boxes size={20} /> : <Package size={20} />}
@@ -117,7 +106,7 @@ export default function CatalogMode() {
           </button>
           <button 
             onClick={handleExitRequest}
-            className="h-12 px-4 shrink-0 bg-white/40 dark:bg-[#1E293B]/40 backdrop-blur-md border border-[#D9D9D8]/60 dark:border-[#334155]/60 rounded-xl text-[#B1BBC8] hover:text-[#2A4D88] dark:text-[#B1BBC8] dark:hover:text-white transition-all duration-300 flex items-center justify-center shadow-sm hover:bg-white/70 hover:border-[#B1BBC8]"
+            className="h-12 px-4 shrink-0 bg-white/50 dark:bg-[#1E293B]/50 backdrop-blur-sm border border-[#D9D9D8] dark:border-[#334155] rounded-xl text-[#B1BBC8] hover:text-[#2A4D88] dark:text-[#B1BBC8] dark:hover:text-white transition-all duration-300 flex items-center justify-center shadow-sm hover:bg-white hover:border-[#B1BBC8]"
             title={t('exit_catalog') || 'خروج من وضع الكتالوج'}
           >
             <Lock size={20} />
@@ -126,8 +115,8 @@ export default function CatalogMode() {
       </header>
 
       {/* Main Catalog Area */}
-      <main className="relative z-10 flex-1 overflow-y-auto p-4 md:p-6 pb-20">
-        <div className="max-w-7xl mx-auto">
+      <main className="relative z-10 flex-1 overflow-y-auto p-4 content-visibility-auto">
+        <div className="max-w-6xl mx-auto">
           {filteredProducts.length === 0 ? (
            <div className="flex flex-col items-center justify-center p-12 text-zinc-400 text-center space-y-4">
              <AlertCircle size={48} className="opacity-20" />
@@ -138,7 +127,7 @@ export default function CatalogMode() {
               {filteredProducts.map((product) => (
                 <div
                   key={product.id}
-                  className="bg-white/60 dark:bg-[#1E293B]/60 backdrop-blur-xl rounded-[20px] border border-[#D9D9D8]/60 dark:border-[#334155]/60 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-[#7C94B8]/80 dark:hover:border-[#7C94B8]/50 hover:bg-white/80 dark:hover:bg-[#1E293B]/80 transition-all duration-300 group flex flex-col"
+                  className="bg-white dark:bg-[#1E293B] rounded-[20px] border border-[#D9D9D8] dark:border-[#334155] overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-[#7C94B8] dark:hover:border-[#7C94B8]/50 transition-all duration-300 group flex flex-col"
                 >
                   <div className="p-4 sm:p-5 flex-1 flex flex-col">
                     <h3 className="text-base sm:text-lg font-bold text-[#2A4D88] dark:text-[#E2E8F0] line-clamp-2 leading-tight mb-2 group-hover:text-[#1e3b6e] dark:group-hover:text-white transition-colors">
@@ -146,7 +135,7 @@ export default function CatalogMode() {
                     </h3>
                     
                     {product.barcode && (
-                      <div className="flex items-center gap-1.5 text-xs text-[#7C94B8] mb-4 bg-white/50 dark:bg-[#0F172A]/40 backdrop-blur-sm px-2.5 py-1 rounded-md inline-flex self-start border border-white/40 dark:border-[#0F172A]/30 group-hover:border-[#D9D9D8]/50 dark:group-hover:border-[#334155]/50 transition-colors">
+                      <div className="flex items-center gap-1.5 text-xs text-[#7C94B8] mb-4 bg-[#F5F8FA] dark:bg-[#0F172A]/50 px-2.5 py-1 rounded-md inline-flex self-start border border-[#F5F8FA] dark:border-[#0F172A]/50 group-hover:border-[#D9D9D8] dark:group-hover:border-[#334155] transition-colors">
                         <ScanLine size={12} />
                         <span className="font-mono tracking-wider">{product.barcode}</span>
                       </div>
@@ -188,11 +177,11 @@ export default function CatalogMode() {
       {isExitModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div 
-              className="absolute inset-0 bg-[#0F172A]/20 dark:bg-[#0F172A]/60 backdrop-blur-md"
+              className="absolute inset-0 bg-[#0F172A]/40 dark:bg-[#0F172A]/80 backdrop-blur-md"
               onClick={() => setIsExitModalOpen(false)}
             />
             <div 
-              className="bg-white/80 dark:bg-[#1E293B]/80 backdrop-blur-2xl w-full max-w-sm rounded-[24px] shadow-2xl border border-white/50 dark:border-[#334155]/50 p-8 relative z-10 overflow-hidden"
+              className="bg-white dark:bg-[#1E293B] w-full max-w-sm rounded-[24px] shadow-2xl border border-[#D9D9D8] dark:border-[#334155] p-8 relative z-10 overflow-hidden"
             >
               <div className="text-center mb-6">
                 <div className="w-16 h-16 bg-[#F5F8FA] dark:bg-[#0F172A] rounded-full flex items-center justify-center mx-auto mb-4 text-[#2A4D88] dark:text-[#7C94B8] border border-[#D9D9D8] dark:border-[#334155]">
@@ -217,7 +206,7 @@ export default function CatalogMode() {
                   onKeyDown={(e) => e.key === 'Enter' && verifyPinAndExit()}
                   placeholder="****"
                   autoFocus
-                  className="w-full h-14 bg-white/50 dark:bg-[#0F172A]/50 backdrop-blur-sm border border-[#D9D9D8]/80 dark:border-[#334155]/80 rounded-xl text-center text-3xl tracking-[1em] font-mono text-[#2A4D88] dark:text-white focus:outline-none focus:ring-4 focus:ring-[#7C94B8]/30 focus:border-[#7C94B8] transition-all shadow-inner"
+                  className="w-full h-14 bg-[#F5F8FA] dark:bg-[#0F172A] border border-[#D9D9D8] dark:border-[#334155] rounded-xl text-center text-3xl tracking-[1em] font-mono text-[#2A4D88] dark:text-white focus:outline-none focus:ring-4 focus:ring-[#7C94B8]/30 focus:border-[#7C94B8] transition-all shadow-inner"
                 />
                 
                 <div className="flex gap-3">
