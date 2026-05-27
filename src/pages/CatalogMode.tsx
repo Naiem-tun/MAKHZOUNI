@@ -64,32 +64,52 @@ export default function CatalogMode() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col" dir={settings.language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="h-[100dvh] w-full relative flex flex-col overflow-hidden bg-[#F5F8FA] dark:bg-[#0F172A]" dir={settings.language === 'ar' ? 'rtl' : 'ltr'}>
+      {/* Ocean Fluid Background */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-gradient-to-b from-[#F5F8FA] via-[#D9D9D8]/50 to-[#7C94B8]/30 dark:from-[#0F172A] dark:via-[#1e3b6e]/40 dark:to-[#2A4D88]/60">
+        <div 
+          className="absolute w-[150vw] h-[150vw] max-w-[1000px] max-h-[1000px] bg-[#7C94B8]/40 dark:bg-[#7C94B8]/20 blur-[80px] animate-[spin_30s_linear_infinite] mix-blend-multiply dark:mix-blend-screen"
+          style={{ top: '40%', left: '-30%', borderRadius: '43% 57% 41% 59% / 45% 53% 47% 55%' }}
+        />
+        <div 
+          className="absolute w-[160vw] h-[160vw] max-w-[1200px] max-h-[1200px] bg-[#2A4D88]/30 dark:bg-[#2A4D88]/40 blur-[100px] animate-[spin_35s_linear_infinite_reverse] mix-blend-color-burn dark:mix-blend-overlay"
+          style={{ top: '20%', right: '-30%', borderRadius: '54% 46% 62% 38% / 41% 65% 35% 59%' }}
+        />
+        <div 
+          className="absolute w-[120vw] h-[120vw] max-w-[800px] max-h-[800px] bg-[#B1BBC8]/50 dark:bg-[#B1BBC8]/20 blur-[70px] animate-[spin_25s_linear_infinite]"
+          style={{ top: '-20%', left: '20%', borderRadius: '35% 65% 45% 55% / 55% 40% 60% 45%' }}
+        />
+        {/* Glass overall overlay */}
+        <div className="absolute inset-0 backdrop-blur-[60px] bg-white/20 dark:bg-[#0F172A]/30" />
+        {/* Subtle Water Surface Noise */}
+        <div className="absolute inset-0 opacity-[0.15] dark:opacity-[0.05] mix-blend-overlay" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} />
+      </div>
+
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 shadow-sm px-4 py-3 flex items-center gap-4">
+      <header className="sticky top-0 z-30 bg-white/40 dark:bg-[#0F172A]/40 backdrop-blur-2xl border-b border-[#D9D9D8]/40 dark:border-[#1E293B]/70 shadow-sm px-4 py-3 flex items-center gap-4">
         <div className="flex-1 max-w-2xl mx-auto flex items-center gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400" size={20} />
+          <div className="relative flex-1 group">
+            <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#B1BBC8] group-focus-within:text-[#7C94B8] transition-colors" size={20} />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('search_products') || 'ابحث عن منتج...'}
-              className="w-full h-12 bg-zinc-100 dark:bg-zinc-800/50 border-transparent rounded-xl pr-11 pl-12 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 focus:bg-white dark:focus:bg-zinc-800 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500/30 transition-all text-lg font-medium"
+              className="w-full h-12 bg-white/60 dark:bg-[#1E293B]/60 backdrop-blur-md border border-[#D9D9D8]/60 dark:border-[#334155]/60 rounded-xl pr-11 pl-12 text-[#2A4D88] dark:text-white placeholder:text-[#B1BBC8]/70 focus:outline-none focus:ring-4 focus:ring-[#7C94B8]/20 focus:border-[#7C94B8] transition-all duration-300 text-lg font-medium shadow-sm hover:border-[#B1BBC8]"
             />
             <button
               onClick={() => setIsScannerOpen(true)}
-              className="absolute left-1.5 top-1/2 -translate-y-1/2 h-9 w-9 flex items-center justify-center text-zinc-400 hover:text-[#4A6FA5] transition-colors rounded-lg hover:bg-zinc-200/50 dark:hover:bg-zinc-700/50"
+              className="absolute left-1.5 top-1/2 -translate-y-1/2 h-9 w-9 flex items-center justify-center text-[#B1BBC8] hover:text-[#2A4D88] dark:hover:text-white transition-colors rounded-lg hover:bg-[#F5F8FA] dark:hover:bg-[#334155]/50"
             >
               <ScanLine size={18} />
             </button>
           </div>
           <button
             onClick={() => setDisplayMode(prev => prev === 'piece' ? 'box' : 'piece')}
-            className={`h-12 px-4 shrink-0 rounded-xl font-bold transition-all flex items-center gap-2 border shadow-sm ${
+            className={`h-12 px-5 shrink-0 rounded-xl font-bold transition-all duration-300 flex items-center gap-2 border shadow-sm backdrop-blur-md ${
               displayMode === 'box'
-                ? 'bg-[#4A6FA5] border-[#4A6FA5] text-white'
-                : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300'
+                ? 'bg-gradient-to-br from-[#2A4D88]/90 to-[#1e3b6e]/90 border-[#2A4D88]/50 text-white shadow-md shadow-[#2A4D88]/30'
+                : 'bg-white/60 dark:bg-[#1E293B]/60 border-[#D9D9D8]/60 dark:border-[#334155]/60 text-[#7C94B8] dark:text-[#B1BBC8] hover:border-[#B1BBC8] hover:text-[#2A4D88] dark:hover:text-white'
             }`}
           >
             {displayMode === 'box' ? <Boxes size={20} /> : <Package size={20} />}
@@ -97,7 +117,7 @@ export default function CatalogMode() {
           </button>
           <button 
             onClick={handleExitRequest}
-            className="h-12 px-4 shrink-0 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors flex items-center justify-center shadow-sm"
+            className="h-12 px-4 shrink-0 bg-white/40 dark:bg-[#1E293B]/40 backdrop-blur-md border border-[#D9D9D8]/60 dark:border-[#334155]/60 rounded-xl text-[#B1BBC8] hover:text-[#2A4D88] dark:text-[#B1BBC8] dark:hover:text-white transition-all duration-300 flex items-center justify-center shadow-sm hover:bg-white/70 hover:border-[#B1BBC8]"
             title={t('exit_catalog') || 'خروج من وضع الكتالوج'}
           >
             <Lock size={20} />
@@ -106,8 +126,8 @@ export default function CatalogMode() {
       </header>
 
       {/* Main Catalog Area */}
-      <main className="flex-1 overflow-y-auto p-4 content-visibility-auto">
-        <div className="max-w-6xl mx-auto">
+      <main className="relative z-10 flex-1 overflow-y-auto p-4 md:p-6 pb-20">
+        <div className="max-w-7xl mx-auto">
           {filteredProducts.length === 0 ? (
            <div className="flex flex-col items-center justify-center p-12 text-zinc-400 text-center space-y-4">
              <AlertCircle size={48} className="opacity-20" />
@@ -118,30 +138,30 @@ export default function CatalogMode() {
               {filteredProducts.map((product) => (
                 <div
                   key={product.id}
-                  className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow group flex flex-col"
+                  className="bg-white/60 dark:bg-[#1E293B]/60 backdrop-blur-xl rounded-[20px] border border-[#D9D9D8]/60 dark:border-[#334155]/60 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-[#7C94B8]/80 dark:hover:border-[#7C94B8]/50 hover:bg-white/80 dark:hover:bg-[#1E293B]/80 transition-all duration-300 group flex flex-col"
                 >
-                  <div className="p-4 flex-1 flex flex-col">
-                    <h3 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-zinc-100 line-clamp-2 leading-tight mb-2">
+                  <div className="p-4 sm:p-5 flex-1 flex flex-col">
+                    <h3 className="text-base sm:text-lg font-bold text-[#2A4D88] dark:text-[#E2E8F0] line-clamp-2 leading-tight mb-2 group-hover:text-[#1e3b6e] dark:group-hover:text-white transition-colors">
                         {product.name}
                     </h3>
                     
                     {product.barcode && (
-                      <div className="flex items-center gap-1.5 text-xs text-zinc-500 mb-4 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-1 rounded inline-flex self-start">
+                      <div className="flex items-center gap-1.5 text-xs text-[#7C94B8] mb-4 bg-white/50 dark:bg-[#0F172A]/40 backdrop-blur-sm px-2.5 py-1 rounded-md inline-flex self-start border border-white/40 dark:border-[#0F172A]/30 group-hover:border-[#D9D9D8]/50 dark:group-hover:border-[#334155]/50 transition-colors">
                         <ScanLine size={12} />
                         <span className="font-mono tracking-wider">{product.barcode}</span>
                       </div>
                     )}
                     
                     <div className="mt-auto space-y-3">
-                      <div className="flex items-center justify-between pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                      <div className="flex items-center justify-between pt-4 border-t border-[#D9D9D8]/50 dark:border-[#334155]/50 group-hover:border-[#D9D9D8] dark:group-hover:border-[#334155] transition-colors">
                         <div className={`flex flex-col`}>
-                          <div className={`flex items-center gap-1.5 ${displayMode === 'box' && product.piecesPerBox && Number(product.piecesPerBox) > 1 ? 'text-amber-600 dark:text-amber-500' : 'text-zinc-500 dark:text-zinc-400'}`}>
+                          <div className={`flex items-center gap-1.5 transition-colors ${displayMode === 'box' && product.piecesPerBox && Number(product.piecesPerBox) > 1 ? 'text-[#2A4D88] dark:text-[#7C94B8]' : 'text-[#7C94B8] dark:text-[#B1BBC8]'}`}>
                             {displayMode === 'box' && product.piecesPerBox && Number(product.piecesPerBox) > 1 ? <Boxes size={16} /> : <Package size={16} />}
-                            <span className="text-xs sm:text-sm font-medium">
+                            <span className="text-xs sm:text-sm font-medium tracking-wide">
                               {displayMode === 'box' && product.piecesPerBox && Number(product.piecesPerBox) > 1 ? (
                                 <>
                                   {t('box') || 'كرتونة'}
-                                  {` (${product.piecesPerBox})`}
+                                  <span className="opacity-70 ml-1">{`(${product.piecesPerBox})`}</span>
                                 </>
                               ) : (
                                 t('piece') || 'قطعة'
@@ -149,7 +169,7 @@ export default function CatalogMode() {
                             </span>
                           </div>
                         </div>
-                        <span className={`font-bold text-lg sm:text-xl text-[#4A6FA5] dark:text-[#6a90c1]`}>
+                        <span className={`font-black text-xl sm:text-2xl tracking-tight text-[#2A4D88] dark:text-[#F1F5F9] transition-colors group-hover:scale-105 origin-left`}>
                           {displayMode === 'box' && product.piecesPerBox && Number(product.piecesPerBox) > 1
                             ? formatCurrency(safeParseFloat(product.sellingPrice) * Number(product.piecesPerBox), settings.currency)
                             : formatCurrency(safeParseFloat(product.sellingPrice), settings.currency)}
@@ -168,25 +188,25 @@ export default function CatalogMode() {
       {isExitModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div 
-              className="absolute inset-0 bg-zinc-900/40 dark:bg-zinc-950/80 backdrop-blur-sm"
+              className="absolute inset-0 bg-[#0F172A]/20 dark:bg-[#0F172A]/60 backdrop-blur-md"
               onClick={() => setIsExitModalOpen(false)}
             />
             <div 
-              className="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-800 p-6 relative z-10 overflow-hidden"
+              className="bg-white/80 dark:bg-[#1E293B]/80 backdrop-blur-2xl w-full max-w-sm rounded-[24px] shadow-2xl border border-white/50 dark:border-[#334155]/50 p-8 relative z-10 overflow-hidden"
             >
               <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-red-50 dark:bg-red-950/30 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600 dark:text-red-400">
-                   <Lock size={32} />
+                <div className="w-16 h-16 bg-[#F5F8FA] dark:bg-[#0F172A] rounded-full flex items-center justify-center mx-auto mb-4 text-[#2A4D88] dark:text-[#7C94B8] border border-[#D9D9D8] dark:border-[#334155]">
+                   <Lock size={28} className="ml-1" />
                 </div>
-                <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
+                <h2 className="text-2xl font-bold text-[#2A4D88] dark:text-white mb-2 tracking-tight">
                   {t('exit_catalog_mode') || 'خروج من وضع الكتالوج'}
                 </h2>
-                <p className="text-sm text-zinc-500 mt-2">
+                <p className="text-sm font-medium text-[#7C94B8] dark:text-[#B1BBC8]">
                    {t('enter_pin_to_exit') || 'أدخل الرمز السري للعودة'}
                 </p>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <input
                   type="password"
                   inputMode="numeric"
@@ -197,20 +217,20 @@ export default function CatalogMode() {
                   onKeyDown={(e) => e.key === 'Enter' && verifyPinAndExit()}
                   placeholder="****"
                   autoFocus
-                  className="w-full h-14 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-center text-2xl tracking-[1em] font-mono text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
+                  className="w-full h-14 bg-white/50 dark:bg-[#0F172A]/50 backdrop-blur-sm border border-[#D9D9D8]/80 dark:border-[#334155]/80 rounded-xl text-center text-3xl tracking-[1em] font-mono text-[#2A4D88] dark:text-white focus:outline-none focus:ring-4 focus:ring-[#7C94B8]/30 focus:border-[#7C94B8] transition-all shadow-inner"
                 />
                 
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <button 
                     onClick={() => setIsExitModalOpen(false)}
-                    className="flex-1 h-12 rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 font-bold transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                    className="flex-1 h-12 rounded-xl text-[#7C94B8] dark:text-[#B1BBC8] font-bold transition-all hover:bg-[#F5F8FA] dark:hover:bg-[#334155]/50 border border-transparent hover:border-[#D9D9D8] dark:hover:border-[#334155]"
                   >
                     {t('cancel')}
                   </button>
                   <button 
                     onClick={verifyPinAndExit}
                     disabled={pinInput.length < 4 || isVerifying}
-                    className="flex-1 h-12 rounded-xl bg-brand-600 text-white font-bold transition-colors hover:bg-brand-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="flex-1 h-12 rounded-xl bg-gradient-to-br from-[#2A4D88] to-[#1e3b6e] text-white font-bold transition-all hover:opacity-90 hover:shadow-md hover:shadow-[#2A4D88]/20 disabled:opacity-50 flex items-center justify-center gap-2 border border-[#2A4D88]"
                   >
                     {isVerifying ? (
                       <div className="animate-spin">
