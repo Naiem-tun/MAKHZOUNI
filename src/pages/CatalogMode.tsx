@@ -3,7 +3,7 @@ import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
 import { useTranslation } from 'react-i18next';
-import { Search, Lock, Boxes, Package, AlertCircle, ScanLine, ArrowRightLeft } from 'lucide-react';
+import { Search, Lock, Boxes, Package, AlertCircle, ScanLine, ArrowRightLeft, Folder, ChevronRight, ArrowRight, ArrowLeft } from 'lucide-react';
 import { formatCurrency, safeParseFloat } from '../lib/utils';
 import { BarcodeScanner } from '../components/common/BarcodeScanner';
 import { Product } from '../types';
@@ -19,6 +19,7 @@ export default function CatalogMode() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [displayMode, setDisplayMode] = useState<'piece' | 'box'>('piece');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   
   useEffect(() => {
     if (!user) return;
@@ -29,15 +30,26 @@ export default function CatalogMode() {
     return unsub;
   }, [user]);
 
+  const categories = useMemo(() => {
+    const cats = new Set(products.map(p => p.category || 'other'));
+    return Array.from(cats);
+  }, [products]);
+
   const filteredProducts = useMemo(() => {
-    if (!searchQuery) return products;
-    const lowerQuery = searchQuery.toLowerCase();
-    return products.filter(p => 
-      p.name.toLowerCase().includes(lowerQuery) || 
-      (p.barcode && p.barcode.includes(lowerQuery)) ||
-      (p.category && p.category.toLowerCase().includes(lowerQuery))
-    );
-  }, [products, searchQuery]);
+    if (searchQuery) {
+      const lowerQuery = searchQuery.toLowerCase();
+      return products.filter(p => 
+        p.name.toLowerCase().includes(lowerQuery) || 
+        (p.barcode && p.barcode.includes(lowerQuery)) ||
+        (p.category && p.category.toLowerCase().includes(lowerQuery)) ||
+        (t(`cat_${p.category || 'other'}`).toLowerCase().includes(lowerQuery))
+      );
+    }
+    if (selectedCategory) {
+      return products.filter(p => (p.category || 'other') === selectedCategory);
+    }
+    return products;
+  }, [products, searchQuery, selectedCategory, t]);
 
   const handleExitRequest = () => {
     if (!settings.catalogPin) {
@@ -77,18 +89,27 @@ export default function CatalogMode() {
       {/* Header */}
       <header className="sticky top-0 z-30 bg-white/70 dark:bg-[#0F172A]/70 backdrop-blur-xl border-b border-[#D9D9D8]/50 dark:border-[#1E293B] shadow-sm px-4 py-3 flex items-center gap-4">
         <div className="flex-1 max-w-2xl mx-auto flex items-center gap-3">
+          {selectedCategory && !searchQuery && (
+            <button
+              onClick={() => setSelectedCategory(null)}
+              className="h-12 w-12 shrink-0 flex items-center justify-center rounded-xl bg-white dark:bg-[#1E293B] border border-[#D9D9D8] dark:border-[#334155] text-[#7C94B8] hover:text-[#2A4D88] dark:text-[#B1BBC8] dark:hover:text-white transition-all shadow-sm hover:border-[#B1BBC8]"
+            >
+              <ArrowLeft size={24} className={settings.language === 'ar' ? 'rotate-180' : ''} />
+            </button>
+          )}
+
           <div className="relative flex-1 group">
-            <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#B1BBC8] group-focus-within:text-[#7C94B8] transition-colors" size={20} />
+            <Search className={`absolute ${settings.language === 'ar' ? 'right-3.5' : 'left-3.5'} top-1/2 -translate-y-1/2 text-[#B1BBC8] group-focus-within:text-[#7C94B8] transition-colors`} size={20} />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('search_products') || 'ابحث عن منتج...'}
-              className="w-full h-12 bg-white dark:bg-[#1E293B] border border-[#D9D9D8] dark:border-[#334155] rounded-xl pr-11 pl-12 text-[#2A4D88] dark:text-white placeholder:text-[#B1BBC8]/70 focus:outline-none focus:ring-4 focus:ring-[#7C94B8]/20 focus:border-[#7C94B8] transition-all duration-300 text-lg font-medium shadow-sm hover:border-[#B1BBC8]"
+              className={`w-full h-12 bg-white dark:bg-[#1E293B] border border-[#D9D9D8] dark:border-[#334155] rounded-xl ${settings.language === 'ar' ? 'pr-11 pl-12' : 'pl-11 pr-12'} text-[#2A4D88] dark:text-white placeholder:text-[#B1BBC8]/70 focus:outline-none focus:ring-4 focus:ring-[#7C94B8]/20 focus:border-[#7C94B8] transition-all duration-300 text-lg font-medium shadow-sm hover:border-[#B1BBC8]`}
             />
             <button
               onClick={() => setIsScannerOpen(true)}
-              className="absolute left-1.5 top-1/2 -translate-y-1/2 h-9 w-9 flex items-center justify-center text-[#B1BBC8] hover:text-[#2A4D88] dark:hover:text-white transition-colors rounded-lg hover:bg-[#F5F8FA] dark:hover:bg-[#334155]/50"
+              className={`absolute ${settings.language === 'ar' ? 'left-1.5' : 'right-1.5'} top-1/2 -translate-y-1/2 h-9 w-9 flex items-center justify-center text-[#B1BBC8] hover:text-[#2A4D88] dark:hover:text-white transition-colors rounded-lg hover:bg-[#F5F8FA] dark:hover:bg-[#334155]/50`}
             >
               <ScanLine size={18} />
             </button>
@@ -115,9 +136,31 @@ export default function CatalogMode() {
       </header>
 
       {/* Main Catalog Area */}
-      <main className="relative z-10 flex-1 overflow-y-auto p-4 content-visibility-auto">
+      <main className="relative z-10 flex-1 overflow-y-auto p-4 md:p-8 content-visibility-auto">
         <div className="max-w-6xl mx-auto">
-          {filteredProducts.length === 0 ? (
+          {!searchQuery && !selectedCategory ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className="bg-white dark:bg-[#1E293B] rounded-[24px] border border-[#D9D9D8] dark:border-[#334155] overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-[#7C94B8] dark:hover:border-[#7C94B8]/50 transition-all duration-300 group flex flex-col text-right"
+                >
+                  <div className="p-6 flex flex-col items-center justify-center gap-4 text-center">
+                    <div className="w-16 h-16 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                      <Folder size={48} strokeWidth={1.5} className="text-[#2A4D88] dark:text-[#7C94B8]" />
+                    </div>
+                    <span className="font-bold text-xl text-[#2A4D88] dark:text-white group-hover:text-[#1e3b6e] transition-colors">
+                      {t(`cat_${category}`) || category || t('cat_other')}
+                    </span>
+                    <span className="text-sm font-medium text-[#7C94B8] bg-[#F5F8FA] dark:bg-[#0F172A] px-3 py-1 rounded-full">
+                      {products.filter(p => (p.category || 'other') === category).length} {t('products') || 'منتجات'}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : filteredProducts.length === 0 ? (
            <div className="flex flex-col items-center justify-center p-12 text-zinc-400 text-center space-y-4">
              <AlertCircle size={48} className="opacity-20" />
              <p className="text-lg">{t('no_products') || 'لا توجد منتجات'}</p>
