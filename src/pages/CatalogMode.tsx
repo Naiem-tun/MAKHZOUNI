@@ -134,10 +134,15 @@ export default function CatalogMode() {
                         {product.name}
                     </h3>
                     
-                    {product.barcode && (
+                    {product.barcode ? (
                       <div className="flex items-center gap-1.5 text-xs text-[#7C94B8] mb-4 bg-[#F5F8FA] dark:bg-[#0F172A]/50 px-2.5 py-1 rounded-md inline-flex self-start border border-[#F5F8FA] dark:border-[#0F172A]/50 group-hover:border-[#D9D9D8] dark:group-hover:border-[#334155] transition-colors">
                         <ScanLine size={12} />
                         <span className="font-mono tracking-wider">{product.barcode}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 text-xs text-[#7C94B8]/50 mb-4 px-2.5 py-1 rounded-md inline-flex self-start border border-dashed border-[#D9D9D8]/50 dark:border-[#334155]/50 group-hover:border-[#7C94B8]/40 transition-colors">
+                        <ScanLine size={12} className="opacity-50" />
+                        <span className="font-mono tracking-wider opacity-50">- - -</span>
                       </div>
                     )}
                     
