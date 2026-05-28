@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, ScanBarcode, Trash2, Camera, ImagePlus } from 'lucide-react';
+import { X, ScanBarcode, Trash2, Camera, ImagePlus, Copy } from 'lucide-react';
 import { useCategories } from '../../hooks/useCategories';
 import { Product } from '../../types';
 import { getLocalImage } from '../../lib/localImages';
@@ -14,9 +14,10 @@ interface ProductEditModalProps {
   scannedBarcode: string;
   scannedBarcode2?: string;
   onScan: (target: 'barcode' | 'barcode2') => void;
+  onCopy?: (product: Product) => void;
 }
 
-export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, scannedBarcode, scannedBarcode2 = '', onScan }: ProductEditModalProps) {
+export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, scannedBarcode, scannedBarcode2 = '', onScan, onCopy }: ProductEditModalProps) {
   const { t } = useTranslation();
   const { categories } = useCategories();
   const [piecesPerBox, setPiecesPerBox] = useState<number | string>(1);
@@ -39,11 +40,15 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
         setPiecesPerBox(product.piecesPerBox || 1);
         setBoxPrice(product.boxPurchasePrice || '');
         setPiecePrice(product.purchasePrice || '');
-        if (product.hasLocalImage && product.id) {
-           getLocalImage(product.id).then(blob => {
+        const fetchId = product.id || product._copiedFromId;
+        if (product.hasLocalImage && fetchId) {
+           getLocalImage(fetchId).then(blob => {
               if (blob) {
                  url = URL.createObjectURL(blob);
                  setImagePreview(url);
+                 if (product._copiedFromId) {
+                   setImageFile(blob);
+                 }
               }
            });
         }
@@ -180,8 +185,18 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
             >
               <X size={20} />
             </button>
+            {product && product.id && onCopy && (
+              <button 
+                type="button"
+                onClick={() => onCopy(product)}
+                title={t('copy_product') || 'نسخ المنتج'}
+                className="absolute top-4 left-12 text-zinc-400 hover:text-brand-500 p-1 transition-colors"
+              >
+                <Copy size={20} />
+              </button>
+            )}
             <h2 className="mb-4 text-lg font-bold text-zinc-900 dark:text-white pr-4">
-              {product ? t('edit') : t('add_product')}
+              {product && product.id ? t('edit') : t('add_product')}
             </h2>
             
             <form onSubmit={handleSubmit} className="space-y-3 text-right">
@@ -396,7 +411,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                     name="sellingPrice" 
                     type="number" 
                     step="0.001" 
-                    defaultValue={product?.sellingPrice} 
+                    defaultValue={product?.sellingPrice || ''} 
                     required 
                     onKeyDown={handleKeyDown}
                     className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 

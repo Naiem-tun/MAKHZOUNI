@@ -47,6 +47,7 @@ export interface Product {
   piecesPerBox?: number;
   boxPurchasePrice?: number;
   hasLocalImage?: boolean;
+  _copiedFromId?: string;
   updatedAt: any;
 }
 

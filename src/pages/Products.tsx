@@ -190,7 +190,7 @@ export default function Products() {
       
       const hasLocalImageValue = !!imageFile || !!(editingProduct?.hasLocalImage && !imageRemoved);
 
-      if (editingProduct) {
+      if (editingProduct?.id) {
         const path = `users/${user.uid}/products/${editingProduct.id}`;
         updateDoc(doc(db, path), {
           ...productData,
@@ -492,6 +492,21 @@ export default function Products() {
           }}
           scannedBarcode={scannedBarcode}
           scannedBarcode2={scannedBarcode2}
+          onCopy={(productToCopy) => {
+            setIsModalOpen(false);
+            setTimeout(() => {
+              setEditingProduct({
+                ...productToCopy,
+                id: undefined,
+                quantity: 0,
+                purchasePrice: 0,
+                sellingPrice: 0,
+                boxPurchasePrice: 0,
+                _copiedFromId: productToCopy.id,
+              });
+              setIsModalOpen(true);
+            }, 100);
+          }}
           onScan={(target) => {
             setScannerTarget(target === 'barcode2' ? 'barcode2-field' : 'barcode-field');
             setIsScannerOpen(true);
