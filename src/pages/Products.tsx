@@ -188,7 +188,7 @@ export default function Products() {
     try {
       const batch = writeBatch(db);
       
-      const hasLocalImageValue = !!imageFile || (editingProduct?.hasLocalImage && !imageRemoved);
+      const hasLocalImageValue = !!imageFile || !!(editingProduct?.hasLocalImage && !imageRemoved);
 
       if (editingProduct) {
         const path = `users/${user.uid}/products/${editingProduct.id}`;
@@ -475,27 +475,29 @@ export default function Products() {
         lastPurchase={lastPurchaseInfo}
       />
 
-      <ProductEditModal
-        product={editingProduct}
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setScannedBarcode('');
-          setScannedBarcode2('');
-        }}
-        onSave={handleSaveProduct}
-        onDelete={(product) => {
-          setIsModalOpen(false);
-          setProductToDelete(product);
-          setIsDeleteModalOpen(true);
-        }}
-        scannedBarcode={scannedBarcode}
-        scannedBarcode2={scannedBarcode2}
-        onScan={(target) => {
-          setScannerTarget(target === 'barcode2' ? 'barcode2-field' : 'barcode-field');
-          setIsScannerOpen(true);
-        }}
-      />
+      {isModalOpen && (
+        <ProductEditModal
+          product={editingProduct}
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setScannedBarcode('');
+            setScannedBarcode2('');
+          }}
+          onSave={handleSaveProduct}
+          onDelete={(product) => {
+            setIsModalOpen(false);
+            setProductToDelete(product);
+            setIsDeleteModalOpen(true);
+          }}
+          scannedBarcode={scannedBarcode}
+          scannedBarcode2={scannedBarcode2}
+          onScan={(target) => {
+            setScannerTarget(target === 'barcode2' ? 'barcode2-field' : 'barcode-field');
+            setIsScannerOpen(true);
+          }}
+        />
+      )}
 
       <BarcodeScanner 
         isOpen={isScannerOpen}

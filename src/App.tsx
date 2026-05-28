@@ -490,17 +490,19 @@ function AppContent() {
       </div>
 
       {/* Global Modals */}
-      <ProductEditModal 
-        isOpen={isProductModalOpen}
-        product={null}
-        onClose={() => setIsProductModalOpen(false)}
-        onSave={handleSaveProduct}
-        scannedBarcode={globalScannedBarcode}
-        onScan={() => {
-          setIsProductModalOpen(false);
-          setIsScannerOpen(true);
-        }}
-      />
+      {isProductModalOpen && (
+        <ProductEditModal 
+          isOpen={isProductModalOpen}
+          product={null}
+          onClose={() => setIsProductModalOpen(false)}
+          onSave={handleSaveProduct}
+          scannedBarcode={globalScannedBarcode}
+          onScan={() => {
+            setIsProductModalOpen(false);
+            setIsScannerOpen(true);
+          }}
+        />
+      )}
 
       <BarcodeScanner 
         isOpen={isScannerOpen}
