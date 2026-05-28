@@ -94,6 +94,34 @@ function AppContent() {
     });
   }, [activeTab]);
 
+  // Back button handling logic
+  const prevTabRef = useRef(activeTab);
+
+  useEffect(() => {
+    if (activeTab !== prevTabRef.current) {
+      if (activeTab === 'products') {
+        if (window.history.state?.isInnerTab) {
+          window.history.back();
+        }
+      } else if (prevTabRef.current === 'products') {
+        window.history.pushState({ isInnerTab: true }, '');
+      } else {
+        window.history.replaceState({ isInnerTab: true }, '');
+      }
+      prevTabRef.current = activeTab;
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (activeTab !== 'products') {
+        setActiveTab('products');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [activeTab]);
+
   useEffect(() => {
     if (!user) return;
     const unsub = onSnapshot(collection(db, `users/${user.uid}/suppliers`), (snap) => {
