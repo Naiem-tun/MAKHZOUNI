@@ -7,7 +7,6 @@ import { Supplier, SupplierTransaction, Debt, OperationType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Truck, Plus, Phone, Trash2, Edit2, X, RotateCcw, UserPlus, Eye, Receipt, History, CirclePlus, Calendar, Search, Play, Square } from 'lucide-react';
 import { formatCurrency, handleFirestoreError, safeParseDate, formatAppDate } from '../lib/utils';
-import { useModalBackButton } from '../hooks/useModalBackButton';
 
 export default function Suppliers() {
   const { t } = useTranslation();
@@ -28,13 +27,13 @@ export default function Suppliers() {
   const [isTotalModalOpen, setIsTotalModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  useModalBackButton(isModalOpen, () => setIsModalOpen(false));
-  useModalBackButton(isAddTxModalOpen, () => setIsAddTxModalOpen(false));
-  useModalBackButton(isHistoryModalOpen, () => setIsHistoryModalOpen(false));
-  useModalBackButton(!!selectedSupplier, () => setSelectedSupplier(null));
-  useModalBackButton(!!deleteConfirmId, () => setDeleteConfirmId(null));
-  useModalBackButton(isClearAllConfirmOpen, () => setIsClearAllConfirmOpen(false));
-  useModalBackButton(isTotalModalOpen, () => setIsTotalModalOpen(false));
+  
+  
+  
+  
+  
+  
+  
 
   const days = [
     { id: 0, name: t('sunday') },

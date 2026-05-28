@@ -8,7 +8,6 @@ import { formatCurrency, safeParseFloat } from '../lib/utils';
 import { BarcodeScanner } from '../components/common/BarcodeScanner';
 import { ProductImage } from '../components/products/ProductImage';
 import { Product } from '../types';
-import { useModalBackButton } from '../hooks/useModalBackButton';
 
 export default function CatalogMode() {
   const { user, settings, setIsCatalogMode, showToast } = useAppContext();
@@ -23,9 +22,9 @@ export default function CatalogMode() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  useModalBackButton(isExitModalOpen, () => setIsExitModalOpen(false));
-  useModalBackButton(isScannerOpen, () => setIsScannerOpen(false));
-  useModalBackButton(!!selectedCategory && !searchQuery, () => setSelectedCategory(null));
+  
+  
+  
 
   useEffect(() => {
     if (!user) return;

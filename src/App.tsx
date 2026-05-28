@@ -13,7 +13,8 @@ import { AppProvider, useAppContext } from './AppContext';
 import { Logo } from './components/UI';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
+
+import {
   LayoutDashboard, 
   Package, 
   Truck, 
@@ -62,7 +63,6 @@ import Debts from './pages/Debts';
 import InvoiceCalculator from './pages/InvoiceCalculator';
 import CatalogMode from './pages/CatalogMode';
 
-import { useModalBackButton } from './hooks/useModalBackButton';
 
 // Heavy Pages (Lazy loaded)
 const Analytics = lazy(() => import('./pages/Analytics'));
@@ -151,11 +151,11 @@ function AppContent() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [globalScannedBarcode, setGlobalScannedBarcode] = useState('');
 
-  useModalBackButton(mobileMenuOpen, () => setMobileMenuOpen(false));
-  useModalBackButton(isSupplierSelectorOpen, () => setIsSupplierSelectorOpen(false));
-  useModalBackButton(isSessionSummaryOpen, () => setIsSessionSummaryOpen(false));
-  useModalBackButton(isProductModalOpen, () => setIsProductModalOpen(false));
-  useModalBackButton(isScannerOpen, () => setIsScannerOpen(false));
+  
+  
+  
+  
+  
 
   const handleSaveProduct = async (productData: any) => {
     if (!user) return;

@@ -4,7 +4,6 @@ import { Wallet, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency, cn } from '../../lib/utils';
 import { useAppContext } from '../../AppContext';
-import { useModalBackButton } from '../../hooks/useModalBackButton';
 
 interface ExpensesModalProps {
   show: boolean;
@@ -24,7 +23,7 @@ export const ExpensesModal: React.FC<ExpensesModalProps> = ({
   onToggleDeduct
 }) => {
   const { t } = useTranslation();
-  useModalBackButton(show, onClose);
+  
   const { settings } = useAppContext();
 
   return (

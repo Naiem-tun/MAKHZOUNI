@@ -4,7 +4,6 @@ import { History, X, Trash2, Download } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { formatAppDate, safeParseDate, formatCurrency, cn } from '../../lib/utils';
 import { useAppContext } from '../../AppContext';
-import { useModalBackButton } from '../../hooks/useModalBackButton';
 
 interface HistoryModalProps {
   show: boolean;
@@ -18,7 +17,7 @@ interface HistoryModalProps {
 
 export const HistoryModal: React.FC<HistoryModalProps> = ({ show, onClose, loading, reports, onSelectReport, onDeleteReport, showConfirm }) => {
   const { t } = useTranslation();
-  useModalBackButton(show, onClose);
+  
   const { settings } = useAppContext();
 
   return (

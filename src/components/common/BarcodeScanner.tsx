@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, QrCode } from 'lucide-react';
 
 import { useTranslation } from 'react-i18next';
-import { useModalBackButton } from '../../hooks/useModalBackButton';
 
 interface BarcodeScannerProps {
   isOpen: boolean;
@@ -15,7 +14,7 @@ interface BarcodeScannerProps {
 
 export function BarcodeScanner({ isOpen, onClose, onScan, title }: BarcodeScannerProps) {
   const { t } = useTranslation();
-  useModalBackButton(isOpen, onClose);
+  
   
   const displayTitle = title || t('scan_barcode_title');
 

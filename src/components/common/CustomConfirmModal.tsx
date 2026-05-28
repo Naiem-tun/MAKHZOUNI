@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
-import { useModalBackButton } from '../../hooks/useModalBackButton';
 
 interface CustomConfirmModalProps {
   show: boolean;
@@ -19,7 +18,7 @@ export const CustomConfirmModal: React.FC<CustomConfirmModalProps> = ({
   onCancel
 }) => {
   const { t } = useTranslation();
-  useModalBackButton(show, onCancel);
+  
 
   return (
     <AnimatePresence>
