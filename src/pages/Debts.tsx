@@ -29,10 +29,7 @@ export default function Debts() {
 
   useModalBackButton(isModalOpen, () => setIsModalOpen(false));
   useModalBackButton(!!activeDebt, () => setActiveDebt(null));
-  useModalBackButton(!!actionDebt, () => {
-    if (actionType !== 'select') setActionType('select');
-    else setActionDebt(null);
-  });
+  useModalBackButton(!!actionDebt, () => setActionDebt(null));
   useModalBackButton(!!deleteConfirmId, () => setDeleteConfirmId(null));
 
   useEffect(() => {
