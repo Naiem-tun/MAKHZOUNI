@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
+import { useModalBackButton } from '../../hooks/useModalBackButton';
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ interface DeleteConfirmationModalProps {
 
 export function DeleteConfirmationModal({ isOpen, onClose, onConfirm }: DeleteConfirmationModalProps) {
   const { t } = useTranslation();
+  useModalBackButton(isOpen, onClose);
 
   return (
     <>

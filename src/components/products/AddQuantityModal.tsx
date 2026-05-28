@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Product } from '../../types';
 import { formatCurrency, cn } from '../../lib/utils';
 import { useAppContext } from '../../AppContext';
+import { useModalBackButton } from '../../hooks/useModalBackButton';
 
 interface AddQuantityModalProps {
   product: Product | null;
@@ -15,6 +16,7 @@ interface AddQuantityModalProps {
 
 export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurchase }: AddQuantityModalProps) {
   const { t } = useTranslation();
+  useModalBackButton(isOpen, onClose);
   const { settings } = useAppContext();
   const [numBoxes, setNumBoxes] = useState(0);
   const [extraPieces, setExtraPieces] = useState(0);

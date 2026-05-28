@@ -7,6 +7,7 @@ import { Debt, Supplier, OperationType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { BookOpen, UserPlus, Trash2, Eye, Plus, Minus, X, CheckCircle2, History, Edit2, ArrowRightLeft, Truck } from 'lucide-react';
 import { formatCurrency, cn, handleFirestoreError } from '../lib/utils';
+import { useModalBackButton } from '../hooks/useModalBackButton';
 
 export default function Debts() {
   const { t } = useTranslation();
@@ -25,6 +26,14 @@ export default function Debts() {
   const [actionDebt, setActionDebt] = useState<Debt | null>(null);
   const [actionType, setActionType] = useState<'debt' | 'payment' | 'select'>('select');
   const [actionAmount, setActionAmount] = useState('');
+
+  useModalBackButton(isModalOpen, () => setIsModalOpen(false));
+  useModalBackButton(!!activeDebt, () => setActiveDebt(null));
+  useModalBackButton(!!actionDebt, () => {
+    if (actionType !== 'select') setActionType('select');
+    else setActionDebt(null);
+  });
+  useModalBackButton(!!deleteConfirmId, () => setDeleteConfirmId(null));
 
   useEffect(() => {
     if (!user) return;

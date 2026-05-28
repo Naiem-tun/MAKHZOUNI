@@ -7,6 +7,7 @@ import { Expense } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Wallet, Plus, Trash2, X, ReceiptText, Calendar, Tag, CheckCheck, Clock } from 'lucide-react';
 import { formatCurrency, cn, safeParseDate, formatAppDate } from '../lib/utils';
+import { useModalBackButton } from '../hooks/useModalBackButton';
 
 export default function Expenses() {
   const { t } = useTranslation();
@@ -15,6 +16,8 @@ export default function Expenses() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'pending' | 'audited' | 'all'>('pending');
+
+  useModalBackButton(isModalOpen, () => setIsModalOpen(false));
 
   useEffect(() => {
     if (!user) return;

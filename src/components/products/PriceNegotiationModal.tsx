@@ -6,6 +6,7 @@ import { formatCurrency, cn } from '../../lib/utils';
 import { useAppContext } from '../../AppContext';
 import { query, collection, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { useModalBackButton } from '../../hooks/useModalBackButton';
 
 interface PriceNegotiationModalProps {
   products: Product[];
@@ -15,6 +16,7 @@ interface PriceNegotiationModalProps {
 
 export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegotiationModalProps) {
   const { t } = useTranslation();
+  useModalBackButton(isOpen, onClose);
   const { settings, user } = useAppContext();
   const [history, setHistory] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);

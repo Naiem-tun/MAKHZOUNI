@@ -62,6 +62,8 @@ import Debts from './pages/Debts';
 import InvoiceCalculator from './pages/InvoiceCalculator';
 import CatalogMode from './pages/CatalogMode';
 
+import { useModalBackButton } from './hooks/useModalBackButton';
+
 // Heavy Pages (Lazy loaded)
 const Analytics = lazy(() => import('./pages/Analytics'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
@@ -104,18 +106,23 @@ function AppContent() {
           window.history.back();
         }
       } else if (prevTabRef.current === 'products') {
-        window.history.pushState({ isInnerTab: true }, '');
+        window.history.pushState({ isInnerTab: true, activeTab }, '');
       } else {
-        window.history.replaceState({ isInnerTab: true }, '');
+        window.history.replaceState({ isInnerTab: true, activeTab }, '');
       }
       prevTabRef.current = activeTab;
+    } else if (!window.history.state?.activeTab) {
+      window.history.replaceState({ activeTab: 'products' }, '');
     }
   }, [activeTab]);
 
   useEffect(() => {
-    const handlePopState = () => {
-      if (activeTab !== 'products') {
-        setActiveTab('products');
+    const handlePopState = (e: PopStateEvent) => {
+      // When back is pressed, read the target tab from history state.
+      // If we are returning from a modal, the state will be the tab we were on!
+      const targetTab = e.state?.activeTab || 'products';
+      if (activeTab !== targetTab) {
+        setActiveTab(targetTab);
       }
     };
     window.addEventListener('popstate', handlePopState);
@@ -143,6 +150,12 @@ function AppContent() {
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [globalScannedBarcode, setGlobalScannedBarcode] = useState('');
+
+  useModalBackButton(mobileMenuOpen, () => setMobileMenuOpen(false));
+  useModalBackButton(isSupplierSelectorOpen, () => setIsSupplierSelectorOpen(false));
+  useModalBackButton(isSessionSummaryOpen, () => setIsSessionSummaryOpen(false));
+  useModalBackButton(isProductModalOpen, () => setIsProductModalOpen(false));
+  useModalBackButton(isScannerOpen, () => setIsScannerOpen(false));
 
   const handleSaveProduct = async (productData: any) => {
     if (!user) return;
