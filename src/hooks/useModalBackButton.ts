@@ -2,6 +2,11 @@ import { useEffect, useRef } from 'react';
 
 export function useModalBackButton(isOpen: boolean, onClose: () => void) {
   const hashRef = useRef<string>('');
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (isOpen) {
@@ -13,7 +18,7 @@ export function useModalBackButton(isOpen: boolean, onClose: () => void) {
       
       const handlePopState = () => {
         if (window.location.hash !== hash) {
-          onClose();
+          onCloseRef.current();
         }
       };
 
@@ -21,10 +26,10 @@ export function useModalBackButton(isOpen: boolean, onClose: () => void) {
 
       return () => {
         window.removeEventListener('popstate', handlePopState);
-        if (window.location.hash === hash) {
+        if (window.location.hash === hashRef.current) {
           window.history.back();
         }
       };
     }
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 }
