@@ -21,11 +21,7 @@ export default function CatalogMode() {
   const [displayMode, setDisplayMode] = useState<'piece' | 'box'>('piece');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
   
-  
-  
-
   useEffect(() => {
     if (!user) return;
     const q = query(collection(db, `users/${user.uid}/products`), orderBy('name'));

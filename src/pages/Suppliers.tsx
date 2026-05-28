@@ -27,14 +27,6 @@ export default function Suppliers() {
   const [isTotalModalOpen, setIsTotalModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  
-  
-  
-  
-  
-  
-  
-
   const days = [
     { id: 0, name: t('sunday') },
     { id: 1, name: t('monday') },

@@ -15,7 +15,6 @@ interface PriceNegotiationModalProps {
 
 export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegotiationModalProps) {
   const { t } = useTranslation();
-  
   const { settings, user } = useAppContext();
   const [history, setHistory] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(false);

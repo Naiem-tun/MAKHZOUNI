@@ -2,8 +2,7 @@ import React, { useState, useMemo, memo, useEffect } from 'react';
 import { collection, onSnapshot, query, limit, orderBy, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
-
-import {
+import { 
   Package, 
   AlertTriangle, 
   TrendingUp, 

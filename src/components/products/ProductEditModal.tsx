@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, ScanBarcode, Trash2, Camera, ImagePlus } from 'lucide-react';
 import { useCategories } from '../../hooks/useCategories';
-
 import { Product } from '../../types';
 import { getLocalImage } from '../../lib/localImages';
 
@@ -20,8 +19,6 @@ interface ProductEditModalProps {
 export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, scannedBarcode, scannedBarcode2 = '', onScan }: ProductEditModalProps) {
   const { t } = useTranslation();
   const { categories } = useCategories();
-  
-  
   const [piecesPerBox, setPiecesPerBox] = useState<number | string>(1);
   const [boxPrice, setBoxPrice] = useState<number | string>('');
   const [piecePrice, setPiecePrice] = useState<number | string>('');

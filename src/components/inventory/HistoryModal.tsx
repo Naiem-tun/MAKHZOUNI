@@ -17,7 +17,6 @@ interface HistoryModalProps {
 
 export const HistoryModal: React.FC<HistoryModalProps> = ({ show, onClose, loading, reports, onSelectReport, onDeleteReport, showConfirm }) => {
   const { t } = useTranslation();
-  
   const { settings } = useAppContext();
 
   return (

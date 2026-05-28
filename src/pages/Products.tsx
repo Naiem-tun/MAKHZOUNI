@@ -5,8 +5,7 @@ import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimest
 import { db } from '../lib/firebase';
 import { Product, OperationType } from '../types';
 import { handleFirestoreError, cn } from '../lib/utils';
-
-import {
+import { 
   Plus, 
   Search, 
   Filter, 

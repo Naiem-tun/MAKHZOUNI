@@ -14,8 +14,6 @@ interface BarcodeScannerProps {
 
 export function BarcodeScanner({ isOpen, onClose, onScan, title }: BarcodeScannerProps) {
   const { t } = useTranslation();
-  
-  
   const displayTitle = title || t('scan_barcode_title');
 
   useEffect(() => {

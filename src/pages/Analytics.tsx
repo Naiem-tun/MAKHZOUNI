@@ -1,15 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
-
-import {
+import { 
   TrendingUp, Coins, Package, ShoppingCart, 
   ArrowUpRight, ArrowDownRight, Calendar, 
   BarChart3, LineChart, Activity,
   Info, ChevronDown, Filter, History, PieChart as PieChartIcon
 } from 'lucide-react';
-
-import {
+import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, BarChart, Bar, 
   Cell, PieChart, Pie, Legend

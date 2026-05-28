@@ -13,8 +13,7 @@ import { AppProvider, useAppContext } from './AppContext';
 import { Logo } from './components/UI';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
-
-import {
+import { 
   LayoutDashboard, 
   Package, 
   Truck, 
@@ -63,7 +62,6 @@ import Debts from './pages/Debts';
 import InvoiceCalculator from './pages/InvoiceCalculator';
 import CatalogMode from './pages/CatalogMode';
 
-
 // Heavy Pages (Lazy loaded)
 const Analytics = lazy(() => import('./pages/Analytics'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
@@ -106,23 +104,18 @@ function AppContent() {
           window.history.back();
         }
       } else if (prevTabRef.current === 'products') {
-        window.history.pushState({ isInnerTab: true, activeTab }, '');
+        window.history.pushState({ isInnerTab: true }, '');
       } else {
-        window.history.replaceState({ isInnerTab: true, activeTab }, '');
+        window.history.replaceState({ isInnerTab: true }, '');
       }
       prevTabRef.current = activeTab;
-    } else if (!window.history.state?.activeTab) {
-      window.history.replaceState({ activeTab: 'products' }, '');
     }
   }, [activeTab]);
 
   useEffect(() => {
-    const handlePopState = (e: PopStateEvent) => {
-      // When back is pressed, read the target tab from history state.
-      // If we are returning from a modal, the state will be the tab we were on!
-      const targetTab = e.state?.activeTab || 'products';
-      if (activeTab !== targetTab) {
-        setActiveTab(targetTab);
+    const handlePopState = () => {
+      if (activeTab !== 'products') {
+        setActiveTab('products');
       }
     };
     window.addEventListener('popstate', handlePopState);
@@ -150,12 +143,6 @@ function AppContent() {
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [globalScannedBarcode, setGlobalScannedBarcode] = useState('');
-
-  
-  
-  
-  
-  
 
   const handleSaveProduct = async (productData: any) => {
     if (!user) return;

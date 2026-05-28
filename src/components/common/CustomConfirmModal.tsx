@@ -18,7 +18,6 @@ export const CustomConfirmModal: React.FC<CustomConfirmModalProps> = ({
   onCancel
 }) => {
   const { t } = useTranslation();
-  
 
   return (
     <AnimatePresence>

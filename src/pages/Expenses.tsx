@@ -16,8 +16,6 @@ export default function Expenses() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'pending' | 'audited' | 'all'>('pending');
 
-  
-
   useEffect(() => {
     if (!user) return;
     const expensesPath = `users/${user.uid}/expenses`;

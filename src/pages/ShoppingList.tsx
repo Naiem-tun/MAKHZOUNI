@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-
-import {
+import { 
   collection, 
   onSnapshot, 
   addDoc, 
@@ -13,8 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
-
-import {
+import { 
   Plus, 
   Trash2, 
   StickyNote,

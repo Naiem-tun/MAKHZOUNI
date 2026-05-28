@@ -10,7 +10,6 @@ interface DeleteConfirmationModalProps {
 
 export function DeleteConfirmationModal({ isOpen, onClose, onConfirm }: DeleteConfirmationModalProps) {
   const { t } = useTranslation();
-  
 
   return (
     <>

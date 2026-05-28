@@ -26,11 +26,6 @@ export default function Debts() {
   const [actionType, setActionType] = useState<'debt' | 'payment' | 'select'>('select');
   const [actionAmount, setActionAmount] = useState('');
 
-  
-  
-  
-  
-
   useEffect(() => {
     if (!user) return;
     const q = collection(db, `users/${user.uid}/debts`);

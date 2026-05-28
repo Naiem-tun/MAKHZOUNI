@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
-
-import {
+import { 
   ChevronLeft,
   LayoutList,
   Package,

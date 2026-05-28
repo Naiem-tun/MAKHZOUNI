@@ -15,7 +15,6 @@ interface AddQuantityModalProps {
 
 export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurchase }: AddQuantityModalProps) {
   const { t } = useTranslation();
-  
   const { settings } = useAppContext();
   const [numBoxes, setNumBoxes] = useState(0);
   const [extraPieces, setExtraPieces] = useState(0);

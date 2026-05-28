@@ -1,13 +1,11 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-
-import {
+import { 
   Search, ScanBarcode, CheckCircle2, Check,
   Package, Wallet, FileText, ClipboardCheck, Trash2, History,
   X, PlusCircle, MinusCircle, ArrowRight, Download, Receipt, FileBarChart, TrendingUp
 } from 'lucide-react';
-
-import {
+import { 
   collection, 
   onSnapshot, 
   addDoc, 

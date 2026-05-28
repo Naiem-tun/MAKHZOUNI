@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../AppContext';
 import { motion, AnimatePresence } from 'motion/react';
-
-import {
+import { 
   Globe, 
   Moon, 
   Wallet, 

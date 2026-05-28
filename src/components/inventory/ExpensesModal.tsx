@@ -23,7 +23,6 @@ export const ExpensesModal: React.FC<ExpensesModalProps> = ({
   onToggleDeduct
 }) => {
   const { t } = useTranslation();
-  
   const { settings } = useAppContext();
 
   return (
