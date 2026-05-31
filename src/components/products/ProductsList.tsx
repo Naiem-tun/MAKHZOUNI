@@ -7,13 +7,15 @@ interface ProductsListProps {
   showBoxInfo: boolean;
   onEdit: (product: Product) => void;
   onAddQuantity: (product: Product) => void;
+  onCardClick?: (product: Product) => void;
 }
 
 export const ProductsList: React.FC<ProductsListProps> = ({
   products,
   showBoxInfo,
   onEdit,
-  onAddQuantity
+  onAddQuantity,
+  onCardClick
 }) => {
   return (
     <div className="grid grid-cols-1 gap-4">
@@ -25,6 +27,7 @@ export const ProductsList: React.FC<ProductsListProps> = ({
           showBoxInfo={showBoxInfo}
           onEdit={onEdit}
           onAddQuantity={onAddQuantity}
+          onCardClick={onCardClick}
         />
       ))}
     </div>

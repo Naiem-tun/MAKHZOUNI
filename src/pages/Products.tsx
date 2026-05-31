@@ -450,6 +450,14 @@ export default function Products() {
           setQuantityProduct(product);
           setIsQuantityModalOpen(true);
         }}
+        onCardClick={(product) => {
+          if (showBoxInfo) {
+            handleProductChoice(product);
+          } else {
+            setEditingProduct(product);
+            setIsModalOpen(true);
+          }
+        }}
       />
 
       <ProductPagination 

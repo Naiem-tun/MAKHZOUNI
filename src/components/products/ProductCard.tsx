@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
-import { Package, Plus } from 'lucide-react';
+import { Package, Plus, Pencil } from 'lucide-react';
 import { Product } from '../../types';
 import { useAppContext } from '../../AppContext';
 import { useCategories, categoryIcons } from '../../hooks/useCategories';
@@ -14,6 +14,7 @@ interface ProductCardProps {
   showBoxInfo?: boolean;
   onEdit: (product: Product) => void;
   onAddQuantity: (product: Product) => void;
+  onCardClick?: (product: Product) => void;
 }
 
 const ProductIcon = ({ product, className }: { product: Product, className?: string }) => {
@@ -37,7 +38,7 @@ const ProductIcon = ({ product, className }: { product: Product, className?: str
   );
 };
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBoxInfo, onEdit, onAddQuantity }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBoxInfo, onEdit, onAddQuantity, onCardClick }) => {
   const { t, i18n } = useTranslation();
   const { settings } = useAppContext();
   const language = i18n.language;
@@ -57,7 +58,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
             <span className="text-[10px] font-bold text-brand-600 dark:text-brand-400">{t('profit_margin')}</span>
             <span className="text-sm font-black text-brand-700 dark:text-brand-300">
                {formatCurrency(profit, settings.currency, language)}
-            </span>
+             </span>
             <span className="text-[10px] font-bold text-brand-600 bg-brand-100 dark:bg-brand-800/50 px-1 rounded mt-0.5">
               {profitMargin.toFixed(1)}%
             </span>
@@ -72,7 +73,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
         dragElastic={0.1}
         className="relative z-10 flex items-center justify-between gap-3 bg-white p-3 shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 rounded-lg cursor-pointer"
         onClick={(e) => {
-          onEdit(product);
+          if (onCardClick) {
+            onCardClick(product);
+          } else {
+            onEdit(product);
+          }
         }}
       >
         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -113,6 +118,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          {showBoxInfo && (
+            <button 
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(product);
+              }}
+              className="flex items-center justify-center w-9 h-9 border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all shrink-0 shadow-sm"
+              title={t('edit') || 'Edit'}
+            >
+              <Pencil size={14} />
+            </button>
+          )}
           <button 
             onClick={(e) => {
               e.stopPropagation();
