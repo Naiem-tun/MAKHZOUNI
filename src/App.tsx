@@ -81,7 +81,7 @@ function AppContent() {
 
   useEffect(() => {
     if (isSessionSummaryOpen && activeSupplier) {
-      setSessionFinalTotal(activeSupplier.sessionTotal || 0);
+      setSessionFinalTotal(parseFloat((activeSupplier.sessionTotal || 0).toFixed(3)));
       setSessionDifference('0');
     }
   }, [isSessionSummaryOpen, activeSupplier]);
@@ -683,10 +683,10 @@ function AppContent() {
                     step="0.001"
                     min="0"
                     placeholder="0.000"
-                    value={sessionFinalTotal || ''}
+                    value={sessionFinalTotal ? parseFloat(sessionFinalTotal.toFixed(3)) : sessionFinalTotal === 0 ? '0' : ''}
                     onChange={(e) => {
                       const totalValStr = e.target.value;
-                      const totalValNum = parseFloat(totalValStr) || 0;
+                      const totalValNum = parseFloat(parseFloat(totalValStr).toFixed(3)) || 0;
                       setSessionFinalTotal(totalValNum);
                       const autoTotal = activeSupplier?.sessionTotal || 0;
                       const newDiff = parseFloat((totalValNum - autoTotal).toFixed(3));
