@@ -20,6 +20,7 @@ export default function Debts() {
   const [isSaving, setIsSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleteConfirmName, setDeleteConfirmName] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'receivable' | 'payable'>('receivable');
   
   // New action modal states
   const [actionDebt, setActionDebt] = useState<Debt | null>(null);
@@ -155,14 +156,31 @@ export default function Debts() {
           <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('debts_book')}</h1>
           <p className="text-zinc-500 dark:text-zinc-400">{t('debts_subtitle')}</p>
         </div>
-        <button onClick={() => { setEditingDebt(null); setIsModalOpen(true); }} className="flex items-center gap-2 rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white shadow-lg shadow-brand-500/20">
+        <button onClick={() => { setEditingDebt(null); setDebtType(activeTab); setIsModalOpen(true); }} className="flex items-center gap-2 rounded-lg bg-brand-600 px-6 py-3 font-semibold text-white shadow-lg shadow-brand-500/20">
           <UserPlus size={20} />
           {t('add_person')}
         </button>
       </header>
 
+      <div className="flex bg-zinc-50 dark:bg-zinc-800/50 p-1 rounded-lg border border-zinc-100 dark:border-zinc-800">
+        <button 
+          onClick={() => setActiveTab('receivable')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all ${activeTab === 'receivable' ? 'bg-white dark:bg-zinc-700 shadow-sm text-brand-600' : 'text-zinc-400'}`}
+        >
+          <BookOpen size={18} strokeWidth={2.5} />
+          {t('receivable_debt')}
+        </button>
+        <button 
+          onClick={() => setActiveTab('payable')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all ${activeTab === 'payable' ? 'bg-white dark:bg-zinc-700 shadow-sm text-[#B34C36]' : 'text-zinc-400'}`}
+        >
+          <Truck size={18} strokeWidth={2.5} />
+          {t('payable_debt')}
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 gap-4">
-        {debts.map((d) => (
+        {debts.filter(d => d.type === activeTab || (activeTab === 'receivable' && !d.type)).map((d) => (
           <div key={d.id} className="relative group overflow-hidden rounded-lg">
             {/* Hidden Actions Layer */}
             <div className="absolute inset-y-0 right-0 flex items-center pr-1 gap-1 z-0">
