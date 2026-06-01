@@ -44,8 +44,9 @@ import {
 import { signInWithGoogle, auth } from './lib/firebase';
 
 import { Login } from './components/auth/Login';
-import { ProductEditModal } from './components/products/ProductEditModal';
-import { BarcodeScanner } from './components/common/BarcodeScanner';
+import { ProductForm } from './components/ProductForm';
+import { SupplierSelector } from './components/SupplierSelector';
+import { SessionSummaryModal } from './components/SessionSummaryModal';
 import { collection, addDoc, serverTimestamp, doc, updateDoc, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from './lib/firebase';
 import { handleFirestoreError, safeDispatchEvent, formatCurrency } from './lib/utils';
@@ -72,19 +73,6 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState('products');
   const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['products']));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isSupplierSelectorOpen, setIsSupplierSelectorOpen] = useState(false);
-  const [isSavingSession, setIsSavingSession] = useState(false);
-  const [sessionFinalTotal, setSessionFinalTotal] = useState(0);
-  const [sessionDifference, setSessionDifference] = useState<string>('0');
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [supplierSearchQuery, setSupplierSearchQuery] = useState('');
-
-  useEffect(() => {
-    if (isSessionSummaryOpen && activeSupplier) {
-      setSessionFinalTotal(parseFloat((activeSupplier.sessionTotal || 0).toFixed(3)));
-      setSessionDifference('0');
-    }
-  }, [isSessionSummaryOpen, activeSupplier]);
 
   useEffect(() => {
     setMountedTabs(prev => {
@@ -122,14 +110,6 @@ function AppContent() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [activeTab]);
 
-  useEffect(() => {
-    if (!user) return;
-    const unsub = onSnapshot(collection(db, `users/${user.uid}/suppliers`), (snap) => {
-      setSuppliers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Supplier)));
-    });
-    return unsub;
-  }, [user]);
-
   // Dark mode effect
   useEffect(() => {
     if (settings.darkMode) {
@@ -138,82 +118,6 @@ function AppContent() {
       document.documentElement.classList.remove('dark');
     }
   }, [settings.darkMode]);
-
-  // Global Modal States
-  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [globalScannedBarcode, setGlobalScannedBarcode] = useState('');
-
-  const handleSaveProduct = async (productData: any) => {
-    if (!user) return;
-    try {
-      const path = `users/${user.uid}/products`;
-      
-      // Close modal immediately for offline responsiveness
-      setIsProductModalOpen(false);
-      setGlobalScannedBarcode('');
-      
-      addDoc(collection(db, path), {
-        ...productData,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      }).catch(err => {
-        handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}/products`);
-      });
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleScannerResult = (barcode: string) => {
-    setIsScannerOpen(false);
-    setGlobalScannedBarcode(barcode);
-    setIsProductModalOpen(true);
-  };
-
-  const handleEndSessionConfirm = async () => {
-    if (!user || !activeSupplier || isSavingSession) return;
-    
-    setIsSavingSession(true);
-    
-    try {
-      const supplierId = activeSupplier.id;
-      const amount = Number(sessionFinalTotal) || 0;
-      
-      // ✅ 1. أغلق الـ modal أولاً للحصول على استجابة فورية فائقة السرعة
-      setIsSessionSummaryOpen(false);
-      
-      if (amount > 0) {
-        const txPath = `users/${user.uid}/supplierTransactions`;
-        
-        // Use proper Timestamp to avoid offline/online mismatch with Suppliers page
-        addDoc(collection(db, txPath), {
-          supplierId: supplierId,
-          amount: amount,
-          date: Timestamp.now(),  // تضمن المزامنة وصحة التاريخ المحلي فوراً
-          note: t('session_purchases_total') || 'إجمالي مشتريات الجلسة',
-          updatedAt: serverTimestamp(),
-        }).catch(err => {
-          handleFirestoreError(err, OperationType.CREATE, txPath);
-          console.error("Firebase AddDoc Error:", err);
-        });
-      }
-      
-      // ✅ 2. أخبر المستخدم فوراً بنجاح العملية محلياً
-      showToast(t('session_saved_success') || 'تم حفظ الجلسة بنجاح ✅', 'success');
-      
-      // ✅ 3. تصفير وإكمال حالة الجلسة فوراً لمنع أي تأخير بالواجهة
-      setActiveSupplier(null);
-      setIsSavingSession(false);
-
-    } catch (err) {
-      console.error("Error ending supplier session:", err);
-      // In case of error, restore local state optionally, but here we just ensure saving ends
-      setIsSavingSession(false);
-    }
-  };
-
-
 
   const allTabs = [
     { id: 'dashboard', label: t('dashboard'), icon: LayoutDashboard },
@@ -238,7 +142,7 @@ function AppContent() {
     };
     
     if (activeTab === 'dashboard' || activeTab === 'products') {
-      setIsProductModalOpen(true);
+      safeDispatchEvent('open-product-modal');
     } else if (eventMap[activeTab]) {
       safeDispatchEvent(eventMap[activeTab]);
     }
@@ -337,11 +241,9 @@ function AppContent() {
               <button 
                 onClick={() => {
                   if (activeSupplier) {
-                    setSessionFinalTotal(activeSupplier.sessionTotal || 0);
-                    setSessionDifference('0');
                     setIsSessionSummaryOpen(true);
                   } else {
-                    setIsSupplierSelectorOpen(true);
+                    safeDispatchEvent('open-supplier-selector');
                   }
                 }}
                 className={`transition-all h-9 px-3 rounded-lg flex items-center justify-center ${activeSupplier ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-md scale-105' : 'bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-900/40 shadow-sm transition-all'}`}
@@ -517,211 +419,10 @@ function AppContent() {
         </div>
       </div>
 
-      {/* Global Modals */}
-      {isProductModalOpen && (
-        <ProductEditModal 
-          isOpen={isProductModalOpen}
-          product={null}
-          onClose={() => setIsProductModalOpen(false)}
-          onSave={handleSaveProduct}
-          scannedBarcode={globalScannedBarcode}
-          onScan={() => {
-            setIsProductModalOpen(false);
-            setIsScannerOpen(true);
-          }}
-        />
-      )}
-
-      <BarcodeScanner 
-        isOpen={isScannerOpen}
-        onClose={() => setIsScannerOpen(false)}
-        onScan={handleScannerResult}
-      />
-
-      {/* Supplier Selector Modal */}
-      <AnimatePresence>
-        {isSupplierSelectorOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }} 
-              onClick={() => setIsSupplierSelectorOpen(false)} 
-              className="absolute inset-0 bg-zinc-950/40 backdrop-blur-sm" 
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 10 }} 
-              animate={{ opacity: 1, scale: 1, y: 0 }} 
-              exit={{ opacity: 0, scale: 0.95, y: 10 }} 
-              className="relative w-full max-w-sm rounded-lg bg-white p-8 dark:bg-zinc-900 shadow-2xl border border-zinc-100 dark:border-zinc-800"
-            >
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-xl font-black text-zinc-900 dark:text-white">{t('select_supplier')}</h2>
-                <button 
-                  onClick={() => setIsSupplierSelectorOpen(false)}
-                  className="h-10 w-10 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 dark:bg-zinc-800"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="mb-4 relative">
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center justify-center pointer-events-none">
-                  <Search size={16} className="text-zinc-400" />
-                </div>
-                <input
-                  type="text"
-                  placeholder={t('search')}
-                  value={supplierSearchQuery}
-                  onChange={(e) => setSupplierSearchQuery(e.target.value)}
-                  className="w-full bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/50 rounded-lg py-3 pr-10 pl-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-              </div>
-
-              <div className="max-h-[400px] overflow-y-auto pr-2 space-y-2">
-                {suppliers.length === 0 ? (
-                  <div className="py-8 text-center text-zinc-400 font-bold">{t('no_suppliers_found')}</div>
-                ) : (
-                  suppliers
-                    .filter(s => s.name?.toLowerCase().includes(supplierSearchQuery.toLowerCase()) || s.typeOfGoods?.toLowerCase().includes(supplierSearchQuery.toLowerCase()) || s.phone?.includes(supplierSearchQuery))
-                    .sort((a, b) => {
-                      const today = new Date().getDay();
-                      const aIsToday = !!a.visitDays?.includes(today);
-                      const bIsToday = !!b.visitDays?.includes(today);
-                      if (aIsToday && !bIsToday) return -1;
-                      if (!aIsToday && bIsToday) return 1;
-                      return a.name.localeCompare(b.name, 'ar');
-                    })
-                    .map((s) => (
-                      <button
-                        key={s.id}
-                        onClick={() => {
-                          setActiveSupplier({ id: s.id!, name: s.name });
-                          setIsSupplierSelectorOpen(false);
-                        }}
-                        className="w-full flex items-center gap-4 p-4 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 hover:bg-brand-50 dark:hover:bg-brand-900/10 hover:text-brand-600 transition-all text-right border border-transparent hover:border-brand-100 group"
-                      >
-                        <div className="h-12 w-12 rounded-lg bg-white dark:bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-brand-600 group-hover:scale-110 transition-all">
-                          <Truck size={20} />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <p className="font-bold text-zinc-900 dark:text-white group-hover:text-brand-600">{s.name}</p>
-                            {s.visitDays?.includes(new Date().getDay()) && (
-                              <span className="text-[10px] font-black text-brand-600 bg-brand-50 dark:bg-brand-900/40 px-1.5 py-0.5 rounded-lg">{t('visits_today')}</span>
-                            )}
-                          </div>
-                          <p className="text-xs text-zinc-400 font-mono">{s.typeOfGoods}</p>
-                        </div>
-                      </button>
-                    ))
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {isSessionSummaryOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-              onClick={() => setIsSessionSummaryOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-sm rounded-lg bg-white p-8 dark:bg-zinc-900 shadow-2xl border border-zinc-100 dark:border-zinc-800"
-            >
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-xl font-black text-zinc-900 dark:text-white">{t('session_details')}</h2>
-                <button 
-                  onClick={() => setIsSessionSummaryOpen(false)}
-                  className="h-10 w-10 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 dark:bg-zinc-800"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">{t('total_purchases_auto')}</label>
-                  <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg text-2xl font-black text-zinc-900 dark:text-white text-center">
-                    {formatCurrency(activeSupplier?.sessionTotal || 0, settings.currency)}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">{t('session_difference')}</label>
-                  <input
-                    type="number"
-                    step="0.001"
-                    placeholder="0.000"
-                    value={sessionDifference}
-                    onChange={(e) => {
-                      const valStr = e.target.value;
-                      setSessionDifference(valStr);
-                      const valNum = parseFloat(valStr) || 0;
-                      const autoTotal = activeSupplier?.sessionTotal || 0;
-                      const newTotal = parseFloat((autoTotal + valNum).toFixed(3));
-                      setSessionFinalTotal(newTotal);
-                    }}
-                    className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg p-4 font-black text-lg focus:ring-2 focus:ring-brand-500 text-center transition-all focus:outline-none"
-                  />
-                  <p className="mt-2 text-xs text-zinc-500 text-center">{t('session_difference_hint')}</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">{t('final_amount_to_record')}</label>
-                  <input
-                    type="number"
-                    step="0.001"
-                    min="0"
-                    placeholder="0.000"
-                    value={sessionFinalTotal ? parseFloat(sessionFinalTotal.toFixed(3)) : sessionFinalTotal === 0 ? '0' : ''}
-                    onChange={(e) => {
-                      const totalValStr = e.target.value;
-                      const totalValNum = parseFloat(parseFloat(totalValStr).toFixed(3)) || 0;
-                      setSessionFinalTotal(totalValNum);
-                      const autoTotal = activeSupplier?.sessionTotal || 0;
-                      const newDiff = parseFloat((totalValNum - autoTotal).toFixed(3));
-                      setSessionDifference(newDiff.toString());
-                    }}
-                    className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg p-4 font-black text-lg focus:ring-2 focus:ring-brand-500 text-center transition-all focus:outline-none"
-                  />
-                  <p className="mt-2 text-xs text-zinc-500 text-center">{t('edit_amount_hint')}</p>
-                </div>
-
-                <div className="pt-2">
-                  <button
-                    onClick={handleEndSessionConfirm}
-                    disabled={isSavingSession}
-                    className="w-full py-4 rounded-lg bg-brand-600 text-white font-black text-sm tracking-widest shadow-lg shadow-brand-500/20 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100"
-                  >
-                    {isSavingSession ? <div className="animate-spin w-5 h-5 border-2 border-white rounded-full border-t-transparent mx-auto"></div> : t('save_and_end_session')}
-                  </button>
-                    {(!sessionFinalTotal || sessionFinalTotal <= 0) && (
-                      <button
-                        onClick={() => {
-                           setActiveSupplier(null);
-                           setIsSessionSummaryOpen(false);
-                        }}
-                        className="w-full mt-2 py-4 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-bold text-sm transition-all hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                      >
-                         {t('end_session_without_saving') || 'إنهاء الجلسة بدون حفظ'}
-                      </button>
-                    )}
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <ProductForm user={user} />
+      <SupplierSelector />
+      
+      <SessionSummaryModal />
     </div>
       )}
     </>
