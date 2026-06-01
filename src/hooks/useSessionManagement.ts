@@ -5,14 +5,14 @@ import { handleFirestoreError } from '../lib/utils';
 import { OperationType } from '../types';
 
 export function useSessionManagement(user: any, activeSupplier: any, setActiveSupplier: any, isSessionSummaryOpen: boolean, setIsSessionSummaryOpen: any, showToast: any, t: any) {
-  const [sessionFinalTotal, setSessionFinalTotal] = useState(0);
-  const [sessionDifference, setSessionDifference] = useState<string>('0');
+  const [sessionFinalTotal, setSessionFinalTotal] = useState<string>('');
+  const [sessionDifference, setSessionDifference] = useState<string>('');
   const [isSavingSession, setIsSavingSession] = useState(false);
 
   useEffect(() => {
     if (isSessionSummaryOpen && activeSupplier) {
-      setSessionFinalTotal(parseFloat((activeSupplier.sessionTotal || 0).toFixed(3)));
-      setSessionDifference('0');
+      setSessionFinalTotal((activeSupplier.sessionTotal || 0).toFixed(3));
+      setSessionDifference((0).toFixed(3));
     }
   }, [isSessionSummaryOpen, activeSupplier]);
 

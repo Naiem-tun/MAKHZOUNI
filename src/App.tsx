@@ -39,7 +39,12 @@ import {
   UserCheck,
   Play,
   Calculator,
-  Square
+  Square,
+  ChevronDown,
+  TrendingUp,
+  PieChart as PieChartIcon,
+  History,
+  LineChart
 } from 'lucide-react';
 import { signInWithGoogle, auth } from './lib/firebase';
 
@@ -73,6 +78,8 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState('products');
   const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['products']));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMainPagesOpen, setIsMainPagesOpen] = useState(false);
+  const [isReportsOpen, setIsReportsOpen] = useState(false);
 
   useEffect(() => {
     setMountedTabs(prev => {
@@ -132,7 +139,16 @@ function AppContent() {
     { id: 'settings', label: t('settings'), icon: Settings },
   ];
 
+  const mainPagesTabs = allTabs.filter(tab => ['dashboard', 'products', 'suppliers', 'debts', 'inventory', 'expenses'].includes(tab.id));
   const toolbarTabs = allTabs.filter(tab => ['dashboard', 'products', 'suppliers', 'debts', 'inventory'].includes(tab.id));
+  const otherTabs = allTabs.filter(tab => !['dashboard', 'products', 'suppliers', 'debts', 'inventory', 'expenses', 'reports'].includes(tab.id));
+
+  const reportsSubpages = [
+    { id: 'financial', label: t('analytics_financial') || 'إحصائيات المال', icon: LineChart },
+    { id: 'rankings', label: t('analytics_rankings') || 'المنتجات الأفضل', icon: TrendingUp },
+    { id: 'categories', label: t('category_analysis') || 'تحليل الفئات الاستراتيجي', icon: PieChartIcon },
+    { id: 'purchases', label: t('analytics_purchases') || 'حركة المشتريات', icon: History }
+  ];
 
   const handlePlusClick = () => {
     const eventMap: Record<string, string> = {
@@ -303,7 +319,97 @@ function AppContent() {
                 </button>
               </div>
               <nav className="p-4 space-y-2">
-                {allTabs.map((tab) => (
+                <div className="space-y-1">
+                  <button
+                    onClick={() => setIsMainPagesOpen(!isMainPagesOpen)}
+                    className="flex w-full items-center justify-between px-4 py-3 rounded-lg text-zinc-900 border border-zinc-200/60 dark:text-white dark:border-zinc-800 transition-all font-bold"
+                  >
+                    <div className="flex items-center gap-3">
+                      <LayoutDashboard size={20} className="text-zinc-500" />
+                      <span>{t('main_pages') || 'الصفحات الرئيسية'}</span>
+                    </div>
+                    <motion.div animate={{ rotate: isMainPagesOpen ? 180 : 0 }}>
+                      <ChevronDown size={20} className="text-zinc-500" />
+                    </motion.div>
+                  </button>
+                  <AnimatePresence>
+                    {isMainPagesOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden space-y-1 pl-2"
+                      >
+                        {mainPagesTabs.map((tab) => (
+                          <button
+                            key={tab.id}
+                            onClick={() => {
+                              setActiveTab(tab.id);
+                              setMobileMenuOpen(false);
+                            }}
+                            className={`flex w-full items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                              activeTab === tab.id
+                              ? 'bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400'
+                              : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                            }`}
+                          >
+                            <tab.icon size={20} />
+                            <span className="font-medium">{tab.label}</span>
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+                
+                <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-2" />
+
+                <div className="space-y-1">
+                  <button
+                    onClick={() => setIsReportsOpen(!isReportsOpen)}
+                    className="flex w-full items-center justify-between px-4 py-3 rounded-lg text-zinc-900 border border-zinc-200/60 dark:text-white dark:border-zinc-800 transition-all font-bold"
+                  >
+                    <div className="flex items-center gap-3">
+                      <BarChart3 size={20} className="text-zinc-500" />
+                      <span>{t('reports') || 'التقارير'}</span>
+                    </div>
+                    <motion.div animate={{ rotate: isReportsOpen ? 180 : 0 }}>
+                      <ChevronDown size={20} className="text-zinc-500" />
+                    </motion.div>
+                  </button>
+                  <AnimatePresence>
+                    {isReportsOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden space-y-1 pl-2"
+                      >
+                        {reportsSubpages.map((tab) => (
+                          <button
+                            key={tab.id}
+                            onClick={() => {
+                              setActiveTab('reports');
+                              // Dispatch event to analytics component
+                              setTimeout(() => {
+                                window.dispatchEvent(new CustomEvent('open-analytics-tab', { detail: tab.id }));
+                              }, 100);
+                              setMobileMenuOpen(false);
+                            }}
+                            className={`flex w-full items-center gap-3 px-4 py-3 rounded-lg transition-all text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800`}
+                          >
+                            <tab.icon size={20} />
+                            <span className="font-medium">{tab.label}</span>
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-2" />
+
+                {otherTabs.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => {

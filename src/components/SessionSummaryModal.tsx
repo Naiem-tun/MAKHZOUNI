@@ -82,7 +82,7 @@ export function SessionSummaryModal() {
                     setSessionDifference(valStr);
                     const valNum = parseFloat(valStr) || 0;
                     const autoTotal = activeSupplier?.sessionTotal || 0;
-                    const newTotal = parseFloat((autoTotal + valNum).toFixed(3));
+                    const newTotal = (autoTotal + valNum).toFixed(3);
                     setSessionFinalTotal(newTotal);
                   }}
                   className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg p-4 font-black text-lg focus:ring-2 focus:ring-brand-500 text-center transition-all focus:outline-none"
@@ -97,14 +97,14 @@ export function SessionSummaryModal() {
                   step="0.001"
                   min="0"
                   placeholder="0.000"
-                  value={sessionFinalTotal ? parseFloat(sessionFinalTotal.toFixed(3)) : sessionFinalTotal === 0 ? '0' : ''}
+                  value={sessionFinalTotal}
                   onChange={(e) => {
                     const totalValStr = e.target.value;
-                    const totalValNum = parseFloat(parseFloat(totalValStr).toFixed(3)) || 0;
-                    setSessionFinalTotal(totalValNum);
+                    setSessionFinalTotal(totalValStr);
+                    const totalValNum = parseFloat(totalValStr) || 0;
                     const autoTotal = activeSupplier?.sessionTotal || 0;
-                    const newDiff = parseFloat((totalValNum - autoTotal).toFixed(3));
-                    setSessionDifference(newDiff.toString());
+                    const newDiff = (totalValNum - autoTotal).toFixed(3);
+                    setSessionDifference(newDiff);
                   }}
                   className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg p-4 font-black text-lg focus:ring-2 focus:ring-brand-500 text-center transition-all focus:outline-none"
                 />
@@ -119,7 +119,7 @@ export function SessionSummaryModal() {
                 >
                   {isSavingSession ? <div className="animate-spin w-5 h-5 border-2 border-white rounded-full border-t-transparent mx-auto"></div> : t('save_and_end_session')}
                 </button>
-                  {(!sessionFinalTotal || sessionFinalTotal <= 0) && (
+                  {(!sessionFinalTotal || parseFloat(sessionFinalTotal) <= 0) && (
                     <button
                       onClick={() => {
                          setActiveSupplier(null);

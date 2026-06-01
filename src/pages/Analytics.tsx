@@ -30,6 +30,16 @@ export default function Analytics() {
   const showFinancials = settings.showFinancials ?? true;
 
   useEffect(() => {
+    const handleOpenAnalyticsTab = (e: any) => {
+      if (e.detail) {
+        setActiveTab(e.detail);
+      }
+    };
+    window.addEventListener('open-analytics-tab', handleOpenAnalyticsTab);
+    return () => window.removeEventListener('open-analytics-tab', handleOpenAnalyticsTab);
+  }, []);
+
+  useEffect(() => {
     const uid = user?.uid;
     if (!uid) return;
 

@@ -13,6 +13,7 @@ const resources = {
       "invoice_calculator": "حساب الفاتورة",
       "invoice_desc": "أداة سريعة لحساب تكلفة المشتريات من الموردين",
       "reports": "التقارير",
+      "main_pages": "الصفحات الرئيسية",
       "settings": "الإعدادات",
       "total_products": "إجمالي المنتجات",
       "low_stock": "نواقص المخزون",
