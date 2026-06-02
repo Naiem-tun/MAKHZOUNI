@@ -11,6 +11,7 @@ const resources = {
       "debts": "الديون",
       "inventory": "الجرد",
       "invoice_calculator": "حساب الفاتورة",
+      "ai_assistant": "الوكيل الذكي ✨",
       "invoice_desc": "أداة سريعة لحساب تكلفة المشتريات من الموردين",
       "reports": "التقارير",
       "main_pages": "الصفحات الرئيسية",

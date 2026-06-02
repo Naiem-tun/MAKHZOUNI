@@ -23,6 +23,7 @@ import {
   LogOut,
   Moon,
   Sun,
+  Sparkles,
   Globe,
   Bell,
   Wallet,
@@ -67,6 +68,7 @@ import Suppliers from './pages/Suppliers';
 import Debts from './pages/Debts';
 import InvoiceCalculator from './pages/InvoiceCalculator';
 import CatalogMode from './pages/CatalogMode';
+import AiAssistant from './pages/AiAssistant';
 
 // Heavy Pages (Lazy loaded)
 const Analytics = lazy(() => import('./pages/Analytics'));
@@ -136,6 +138,7 @@ function AppContent() {
     { id: 'expenses', label: t('expenses'), icon: Wallet },
     { id: 'shopping-list', label: t('shopping_list'), icon: ShoppingCart },
     { id: 'invoice-calculator', label: t('invoice_calculator'), icon: Calculator },
+    { id: 'ai-assistant', label: t('ai_assistant') || 'الوكيل الذكي ✨', icon: Sparkles },
     { id: 'settings', label: t('settings'), icon: Settings },
   ];
 
@@ -483,6 +486,9 @@ function AppContent() {
             </div>
             <div className={activeTab === 'invoice-calculator' ? 'block' : 'hidden'}>
               {mountedTabs.has('invoice-calculator') && <InvoiceCalculator />}
+            </div>
+            <div className={activeTab === 'ai-assistant' ? 'block' : 'hidden'}>
+              {mountedTabs.has('ai-assistant') && <AiAssistant />}
             </div>
             <div className={activeTab === 'settings' ? 'block' : 'hidden'}>
               {mountedTabs.has('settings') && <SettingsPage />}
