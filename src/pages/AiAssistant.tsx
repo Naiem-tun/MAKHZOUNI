@@ -153,13 +153,22 @@ export default function AiAssistant() {
       const totalRemainingDebt = debts.reduce((sum, d) => sum + (Number(d.remainingAmount !== undefined ? d.remainingAmount : d.amount) || 0), 0);
       const availableCategories = categories.map(c => c.name).join(', ') || 'عام، ألبان، مواد غذائية';
 
+      const fullStockDetails = products.map(p => 
+        `- '${p.name}' (التصنيف: ${p.category || 'عام'}) | جرد: ${p.quantity || 0} | شراء: ${p.purchasePrice || 0} | بيع: ${p.sellingPrice || 0} | تنبيه المخزون: ${p.minQuantity || 5}`
+      ).join('\n');
+
       const contextString = `
 البيانات الحالية لمتجر المستخدم:
 - عدد الأصناف المسجلة: ${products.length} منتج.
-- المنتجات التي قاربت على النفاد (الكمية أقل من أو تساوي حد التنبيه): ${lowStockList.map(p => `${p.name} (المتبقي: ${p.quantity} قطع - حد التنبيه: ${p.minQuantity || 5})`).slice(0, 10).join(', ') || 'لا يوجد نواقص حالياً.'}
+- الفئات والمجموعات المتاحة لتصنيف المنتجات: ${availableCategories}.
 - إجمالي المصاريف المسجلة: ${expenses.length} مصروف بقيمة إجمالية ${totalExpensesAmount} دينار.
 - إجمالي الديون المتبقية: ${debts.length} دين بقيمة إجمالية ${totalRemainingDebt} دينار.
-- الفئات والمجموعات المتاحة لتصنيف المنتجات: ${availableCategories}.
+
+قائمة المنتجات الكاملة مع التفاصيل المالية للتحليل والمقارنة (أسعار الشراء والبيع والجرد):
+${fullStockDetails || 'لا يوجد منتجات مسجلة بعد.'}
+
+المنتجات المنخفضة والمتوقع نفادها قريباً:
+${lowStockList.map(p => `- ${p.name} (المتبقي: ${p.quantity})`).join('\n') || 'لا يوجد نواقص حالياً.'}
       `;
 
       // Make API call to backend server
