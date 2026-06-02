@@ -23,6 +23,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { useCategories } from '../hooks/useCategories';
+import { safeParseDate } from '../lib/utils';
 
 interface Message {
   role: 'user' | 'model';
@@ -96,10 +97,19 @@ export default function AiAssistant() {
     const purchasesQuery = query(
       collection(db, `users/${user.uid}/purchases`),
       orderBy('date', 'desc'),
-      limit(30)
+      limit(200)
     );
     const unsubPurchases = onSnapshot(purchasesQuery, (snap) => {
-      setPurchases(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const parsed = snap.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          id: doc.id, 
+          ...data,
+          parsedDate: safeParseDate(data.date).getTime() 
+        };
+      });
+      parsed.sort((a, b) => b.parsedDate - a.parsedDate);
+      setPurchases(parsed.slice(0, 30));
     });
 
     return () => {
@@ -180,8 +190,8 @@ export default function AiAssistant() {
 
       const recentPurchasesStr = purchases.map(p => {
         let dateStr = '';
-        if (p.date && p.date.toDate) {
-          dateStr = p.date.toDate().toLocaleDateString('ar-TN');
+        if (p.parsedDate) {
+          dateStr = new Date(p.parsedDate).toLocaleDateString('ar-TN');
         }
         return `- ${p.productName || 'غير معروف'} | المورد: ${p.supplierName || 'غير مسجل'} | الكمية: ${p.qtyAdded || 0} | الإجمالي: ${p.amount || 0} | التاريخ: ${dateStr}`;
       }).join('\n');
