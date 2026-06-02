@@ -201,10 +201,6 @@ const Dashboard = memo(() => {
     safeDispatchEvent('open-product-modal');
   };
 
-  const handleScannerOpen = () => {
-    safeDispatchEvent('open-barcode-scanner');
-  };
-
   return (
     <div className="pb-24 space-y-6" dir="rtl">
       <header className="flex items-center justify-between mb-4 pt-2 text-right">

@@ -103,7 +103,7 @@ ${context}
 `;
 
       const response = await client.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.5-flash",
         contents: contents,
         config: {
           systemInstruction: systemInstruction,
@@ -114,7 +114,17 @@ ${context}
       res.json({ content: response.text });
     } catch (error: any) {
       console.error("Gemini Proxy Route Error:", error);
-      res.status(500).json({ error: error.message || "فشلت معالجة ذكاء مساعد مخزوني" });
+      
+      let errorMessage = "فشلت معالجة ذكاء مساعد مخزوني";
+      const errString = error.message || String(error);
+      
+      if (error.status === 429 || errString.includes("429") || errString.includes("quota") || errString.includes("exceeded")) {
+        errorMessage = "عذراً، لقد استنفدت الحد المجاني للأسئلة المسموح بها حالياً (Rate Limit). يرجى الانتظار لمدة دقيقة والمحاولة مرة أخرى، أو التحقق من خطة الحساب الخاصة بك.";
+      } else {
+        errorMessage = error.message || errorMessage;
+      }
+
+      res.status(500).json({ error: errorMessage });
     }
   });
 

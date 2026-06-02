@@ -171,7 +171,7 @@ function AppContent() {
 
   const handleScannerClick = () => {
     if (isScannerTab) {
-      safeDispatchEvent('open-barcode-scanner');
+      safeDispatchEvent(`open-barcode-scanner-${activeTab}`);
     } else {
       setActiveTab('invoice-calculator');
     }

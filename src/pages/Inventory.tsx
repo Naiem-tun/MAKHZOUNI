@@ -102,8 +102,8 @@ export default function Inventory() {
     const scannerHandler = () => {
       setIsScannerOpen(true);
     };
-    window.addEventListener('open-barcode-scanner', scannerHandler);
-    return () => window.removeEventListener('open-barcode-scanner', scannerHandler);
+    window.addEventListener('open-barcode-scanner-inventory', scannerHandler);
+    return () => window.removeEventListener('open-barcode-scanner-inventory', scannerHandler);
   }, []);
 
   const handleScan = (decodedText: string) => {

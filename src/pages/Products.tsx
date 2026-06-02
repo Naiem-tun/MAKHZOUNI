@@ -403,10 +403,10 @@ export default function Products() {
       setIsScannerOpen(true);
     };
     window.addEventListener('open-product-modal', productHandler);
-    window.addEventListener('open-barcode-scanner', scannerHandler);
+    window.addEventListener('open-barcode-scanner-products', scannerHandler);
     return () => {
       window.removeEventListener('open-product-modal', productHandler);
-      window.removeEventListener('open-barcode-scanner', scannerHandler);
+      window.removeEventListener('open-barcode-scanner-products', scannerHandler);
     };
   }, []);
 

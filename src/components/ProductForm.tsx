@@ -17,14 +17,11 @@ export function ProductForm({ user }: { user: any }) {
   // We expose a global event listener to open the modal
   React.useEffect(() => {
     const handleOpenModal = () => setIsProductModalOpen(true);
-    const handleOpenScanner = () => setIsScannerOpen(true);
 
     window.addEventListener('open-product-modal', handleOpenModal);
-    window.addEventListener('open-barcode-scanner', handleOpenScanner);
 
     return () => {
       window.removeEventListener('open-product-modal', handleOpenModal);
-      window.removeEventListener('open-barcode-scanner', handleOpenScanner);
     };
   }, [setIsProductModalOpen, setIsScannerOpen]);
 
