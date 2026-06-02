@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../AppContext';
-import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, serverTimestamp, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -42,6 +42,7 @@ export default function AiAssistant() {
   const [expenses, setExpenses] = useState<any[]>([]);
   const [debts, setDebts] = useState<any[]>([]);
   const [shoppingList, setShoppingList] = useState<any[]>([]);
+  const [purchases, setPurchases] = useState<any[]>([]);
   
   const [messages, setMessages] = useState<Message[]>(() => {
     const saved = localStorage.getItem(`makhzouni_ai_chat_${user?.uid || 'default'}`);
@@ -92,11 +93,21 @@ export default function AiAssistant() {
       setShoppingList(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
 
+    const purchasesQuery = query(
+      collection(db, `users/${user.uid}/purchases`),
+      orderBy('date', 'desc'),
+      limit(30)
+    );
+    const unsubPurchases = onSnapshot(purchasesQuery, (snap) => {
+      setPurchases(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
     return () => {
       unsubProducts();
       unsubExpenses();
       unsubDebts();
       unsubShoppingList();
+      unsubPurchases();
     };
   }, [user]);
 
@@ -164,18 +175,24 @@ export default function AiAssistant() {
       ).join('\n');
 
       const fullStockDetails = products.map(p => 
-        `- '${p.name}' (التصنيف: ${p.category || 'عام'}) | جرد: ${p.quantity || 0} | شراء: ${p.purchasePrice || 0} | بيع: ${p.sellingPrice || 0} | تنبيه المخزون: ${p.minQuantity || 5}`
+        `- '${p.name}' | جرد: ${p.quantity || 0} | شراء: ${p.purchasePrice || 0} | بيع: ${p.sellingPrice || 0}`
       ).join('\n');
 
+      const recentPurchasesStr = purchases.map(p => {
+        let dateStr = '';
+        if (p.date && p.date.toDate) {
+          dateStr = p.date.toDate().toLocaleDateString('ar-TN');
+        }
+        return `- ${p.productName || 'غير معروف'} | المورد: ${p.supplierName || 'غير مسجل'} | الكمية: ${p.qtyAdded || 0} | الإجمالي: ${p.amount || 0} | التاريخ: ${dateStr}`;
+      }).join('\n');
+
       const contextString = `
-البيانات الحالية لمتجر المستخدم:
-- عدد الأصناف المسجلة: ${products.length} منتج.
+تتضمن البيانات الحالية:
+المنتجات:
+${fullStockDetails || 'لا يوجد'}
 
-قائمة المشتريات المسجلة حديثاً (المقترحة للشراء):
-${shoppingListDetails || 'لا يوجد عناصر في قائمة المشتريات.'}
-
-قائمة المنتجات (أسعار الشراء والبيع والجرد):
-${fullStockDetails || 'لا يوجد منتجات مسجلة بعد.'}
+أحدث المشتريات:
+${recentPurchasesStr || 'لا يوجد'}
       `;
 
       // Make API call to backend server
