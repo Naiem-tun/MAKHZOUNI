@@ -41,6 +41,7 @@ export default function AiAssistant() {
   const [products, setProducts] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [debts, setDebts] = useState<any[]>([]);
+  const [shoppingList, setShoppingList] = useState<any[]>([]);
   
   const [messages, setMessages] = useState<Message[]>(() => {
     const saved = localStorage.getItem(`makhzouni_ai_chat_${user?.uid || 'default'}`);
@@ -87,10 +88,15 @@ export default function AiAssistant() {
       setDebts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
 
+    const unsubShoppingList = onSnapshot(collection(db, `users/${user.uid}/smart_list`), (snap) => {
+      setShoppingList(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
     return () => {
       unsubProducts();
       unsubExpenses();
       unsubDebts();
+      unsubShoppingList();
     };
   }, [user]);
 
@@ -153,6 +159,10 @@ export default function AiAssistant() {
       const totalRemainingDebt = debts.reduce((sum, d) => sum + (Number(d.remainingAmount !== undefined ? d.remainingAmount : d.amount) || 0), 0);
       const availableCategories = categories.map(c => c.name).join(', ') || 'عام، ألبان، مواد غذائية';
 
+      const shoppingListDetails = shoppingList.map(item => 
+        `- ${item.type === 'product' ? 'منتج للإضافة:' : 'ملاحظة:'} ${item.text}`
+      ).join('\n');
+
       const fullStockDetails = products.map(p => 
         `- '${p.name}' (التصنيف: ${p.category || 'عام'}) | جرد: ${p.quantity || 0} | شراء: ${p.purchasePrice || 0} | بيع: ${p.sellingPrice || 0} | تنبيه المخزون: ${p.minQuantity || 5}`
       ).join('\n');
@@ -163,6 +173,9 @@ export default function AiAssistant() {
 - الفئات والمجموعات المتاحة لتصنيف المنتجات: ${availableCategories}.
 - إجمالي المصاريف المسجلة: ${expenses.length} مصروف بقيمة إجمالية ${totalExpensesAmount} دينار.
 - إجمالي الديون المتبقية: ${debts.length} دين بقيمة إجمالية ${totalRemainingDebt} دينار.
+
+قائمة المشتريات المسجلة حديثاً والمطلوب شراؤها (Shopping List/المشتريات):
+${shoppingListDetails || 'لا يوجد عناصر في قائمة المشتريات.'}
 
 قائمة المنتجات الكاملة مع التفاصيل المالية للتحليل والمقارنة (أسعار الشراء والبيع والجرد):
 ${fullStockDetails || 'لا يوجد منتجات مسجلة بعد.'}
