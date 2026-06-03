@@ -36,7 +36,7 @@ interface Message {
 export default function AiAssistant() {
   const { t } = useTranslation();
   const { user, settings, showToast } = useAppContext();
-  const { categories } = useAppContext(); // use shared categories 
+  const { categories } = useCategories(); // use custom + default categories via hook
   
   // Local lists for Context
   const [products, setProducts] = useState<any[]>([]);
@@ -44,6 +44,14 @@ export default function AiAssistant() {
   const [debts, setDebts] = useState<any[]>([]);
   const [shoppingList, setShoppingList] = useState<any[]>([]);
   const [purchases, setPurchases] = useState<any[]>([]);
+
+  // Focus and comparison states
+  const [assistantMode, setAssistantMode] = useState<'all' | 'category' | 'compare'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedProduct1, setSelectedProduct1] = useState<string>('');
+  const [selectedProduct2, setSelectedProduct2] = useState<string>('');
+  const [compareCategoryFilter, setCompareCategoryFilter] = useState<string>('all');
+  const [compareSearchFilter, setCompareSearchFilter] = useState<string>('');
   
   const [messages, setMessages] = useState<Message[]>(() => {
     const saved = localStorage.getItem(`makhzouni_ai_chat_${user?.uid || 'default'}`);
@@ -121,6 +129,13 @@ export default function AiAssistant() {
     };
   }, [user]);
 
+  // Filtered products for comparison dropdowns
+  const filteredCompareProducts = products.filter(p => {
+    const matchesCategory = compareCategoryFilter === 'all' || p.category === compareCategoryFilter;
+    const matchesSearch = !compareSearchFilter.trim() || p.name.toLowerCase().includes(compareSearchFilter.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
   // Persist memory
   useEffect(() => {
     if (user?.uid) {
@@ -174,21 +189,31 @@ export default function AiAssistant() {
     setIsLoading(true);
 
     try {
-      // Build current local state of app to feed Gemini Context
-      const lowStockList = products.filter(p => (p.quantity || 0) <= (p.minQuantity || 5));
-      const totalExpensesAmount = expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-      const totalRemainingDebt = debts.reduce((sum, d) => sum + (Number(d.remainingAmount !== undefined ? d.remainingAmount : d.amount) || 0), 0);
-      const availableCategories = categories.map(c => c.name).join(', ') || 'عام، ألبان، مواد غذائية';
+      // Build current local state of app to feed Gemini Context based on focus mode
+      let filteredProducts = products;
+      let contextNote = '';
 
-      const shoppingListDetails = shoppingList.map(item => 
-        `- ${item.type === 'product' ? 'منتج للإضافة:' : 'ملاحظة:'} ${item.text}`
+      if (assistantMode === 'category' && selectedCategory !== 'all') {
+        filteredProducts = products.filter(p => p.category === selectedCategory);
+        contextNote = `ملاحظة: لقد اختار المستخدم التركيز على فئة "${selectedCategory}" للمقارنة واتخاذ قرارات الاستثمار. يرجى التجاوب وتوجيه النصيحة بخصوص هذه الفئة فقط لزيادة الدقة والفعالية وتجنب تشتيت العميل بالأصناف الأخرى.`;
+      } else if (assistantMode === 'compare') {
+        filteredProducts = products.filter(p => p.name === selectedProduct1 || p.name === selectedProduct2);
+        contextNote = `ملاحظة هامة جداً لنجاح التاجر: يقوم المستخدم حالياً بمقارنة تفصيلية دقيقة لاتخاذ قرار شراء واستثمار بين المنتج الأول: "${selectedProduct1 || 'غير محدد'}" والمنتج الثاني: "${selectedProduct2 || 'غير محدد'}". ركز على مقارنة الربحية والمخزون الحالي وأسعار المبيعات والشراء وأي صفقات تاريخية متاحة لهما لتحدد أيهما أفضل للاستثمار وشراء كمية إضافية!`;
+      }
+
+      const fullStockDetails = filteredProducts.map(p => 
+        `- '${p.name}' | الفئة: ${p.category || 'عام'} | جرد: ${p.quantity || 0} | شراء: ${p.purchasePrice || 0} | بيع: ${p.sellingPrice || 0}`
       ).join('\n');
 
-      const fullStockDetails = products.map(p => 
-        `- '${p.name}' | جرد: ${p.quantity || 0} | شراء: ${p.purchasePrice || 0} | بيع: ${p.sellingPrice || 0}`
-      ).join('\n');
+      let filteredPurchases = purchases;
+      if (assistantMode === 'category' && selectedCategory !== 'all') {
+        const catPrdNames = new Set(filteredProducts.map(p => p.name));
+        filteredPurchases = purchases.filter(p => catPrdNames.has(p.productName));
+      } else if (assistantMode === 'compare') {
+        filteredPurchases = purchases.filter(p => p.productName === selectedProduct1 || p.productName === selectedProduct2);
+      }
 
-      const recentPurchasesStr = purchases.map(p => {
+      const recentPurchasesStr = filteredPurchases.map(p => {
         let dateStr = '';
         if (p.parsedDate) {
           dateStr = new Date(p.parsedDate).toLocaleDateString('ar-TN');
@@ -197,12 +222,14 @@ export default function AiAssistant() {
       }).join('\n');
 
       const contextString = `
-تتضمن البيانات الحالية:
-المنتجات:
-${fullStockDetails || 'لا يوجد'}
+تتضمن البيانات الحالية للمقارنة والتحليل:
+${contextNote}
 
-أحدث المشتريات:
-${recentPurchasesStr || 'لا يوجد'}
+الأصناف المعنية للتوجيه:
+${fullStockDetails || 'لا يوجد منتجات متاحة في هذا النطاق حالياً'}
+
+المشتريات والطلبيات السابقة المرتبطة بهذه الأصناف:
+${recentPurchasesStr || 'لا يوجد صفقات سابقة مسجلة لها'}
       `;
 
       // Make API call to backend server
@@ -378,7 +405,158 @@ _${error.message || 'خطأ غير معروف'}_
       {/* Info Notice Badge */}
       <div className="px-4 py-2 bg-blue-50/60 dark:bg-blue-950/10 border-b border-blue-100/40 dark:border-blue-900/20 flex items-center gap-2 text-xs text-blue-700 dark:text-blue-400">
         <Info size={14} className="shrink-0" />
-        <span>جميع البيانات والتحليلات ومعالجات النصوص مجانية بالكامل ومحفوظة محلياً بخصوصية تامة.</span>
+        <span>احصل على مقارنات فورية وتوجيه استثماري دقيق للأصناف ووفر استهلاك الـ Tokens بتحديد مجال التركيز.</span>
+      </div>
+
+      {/* Assistant Focus Panel */}
+      <div className="px-4 py-3 bg-zinc-50/70 dark:bg-zinc-800/20 border-b border-zinc-150 dark:border-zinc-800 flex flex-col gap-2.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+            <Layers size={14} className="text-brand-500 animate-pulse" />
+            نطاق تركيز المساعد (توفير الـ Tokens وتعميق دقة القرار):
+          </span>
+          <div className="flex gap-1.5 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => {
+                setAssistantMode('all');
+                setSelectedCategory('all');
+                setSelectedProduct1('');
+                setSelectedProduct2('');
+              }}
+              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-all ${
+                assistantMode === 'all' 
+                  ? 'bg-brand-600 text-white shadow-xs' 
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-650 hover:bg-zinc-200 dark:hover:bg-zinc-750 dark:text-zinc-350'
+              }`}
+            >
+              كامل المحل
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAssistantMode('category');
+                setSelectedProduct1('');
+                setSelectedProduct2('');
+              }}
+              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-all ${
+                assistantMode === 'category' 
+                  ? 'bg-brand-600 text-white shadow-xs' 
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-650 hover:bg-zinc-200 dark:hover:bg-zinc-750 dark:text-zinc-350'
+              }`}
+            >
+              فئة محددة 📂
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAssistantMode('compare');
+                setSelectedCategory('all');
+              }}
+              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-all ${
+                assistantMode === 'compare' 
+                  ? 'bg-brand-600 text-white shadow-xs' 
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-650 hover:bg-zinc-200 dark:hover:bg-zinc-750 dark:text-zinc-350'
+              }`}
+            >
+              مقارنة صنفين ⚖️
+            </button>
+          </div>
+        </div>
+
+        {assistantMode === 'category' && (
+          <div className="flex flex-col gap-1.5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-2.5 rounded-xl transition-all">
+            <label className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">اختر الفئة المستهدفة للتحليل:</label>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full px-3 py-1.5 bg-zinc-50 dark:bg-zinc-800 text-xs text-zinc-850 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-lg outline-none focus:ring-1 focus:ring-brand-500"
+            >
+              <option value="all">كل الفئات (يتم إرسال كامل المخزون العريض)</option>
+              {categories.map(c => (
+                <option key={c.id || c.name} value={c.name}>{c.name}</option>
+              ))}
+            </select>
+            <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-relaxed font-medium">
+              💡 حالياً ستتم الأسئلة والنقاش والتحليل بتركيز كامل على منتجات فئة <strong>"{selectedCategory === 'all' ? 'الكل' : selectedCategory}"</strong> فقط! هذا يمنع تجاوز الحد الأقصى للـ Tokens ويمنحك إجابة مركزة وسريعة.
+            </p>
+          </div>
+        )}
+
+        {assistantMode === 'compare' && (
+          <div className="flex flex-col gap-2.5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-2.5 rounded-xl transition-all">
+            <div className="flex flex-col gap-1.5 p-2 bg-zinc-50/50 dark:bg-zinc-800/20 rounded-lg border border-zinc-100/50 dark:border-zinc-800">
+              <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
+                ⚡ لتسهيل البحث، فلتر القوائم بالبحث أو الفئة:
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[9px] text-zinc-450 dark:text-zinc-500">الفئة:</span>
+                  <select
+                    value={compareCategoryFilter}
+                    onChange={(e) => setCompareCategoryFilter(e.target.value)}
+                    className="w-full px-2 py-1 bg-white dark:bg-zinc-800 text-[11px] text-zinc-800 dark:text-zinc-250 border border-zinc-200 dark:border-zinc-700 rounded-md outline-none focus:ring-1 focus:ring-brand-500"
+                  >
+                    <option value="all">كل الفئات 📂</option>
+                    {categories.map(c => (
+                      <option key={c.id || c.name} value={c.name}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[9px] text-zinc-450 dark:text-zinc-500">ابحث بالاسم:</span>
+                  <input
+                    type="text"
+                    placeholder="اكتب للبحث..."
+                    value={compareSearchFilter}
+                    onChange={(e) => setCompareSearchFilter(e.target.value)}
+                    className="w-full px-2 py-1 bg-white dark:bg-zinc-800 text-[11px] text-zinc-800 dark:text-zinc-250 border border-zinc-200 dark:border-zinc-700 rounded-md outline-none focus:ring-1 focus:ring-brand-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <label className="text-[11px] font-semibold text-zinc-650 dark:text-zinc-350">اختر السلعتين اللتين تود اتخاذ قرار استثماري والتحليل المقارن بينهما:</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] text-zinc-400">المنتج الأول (A):</span>
+                <select
+                  value={selectedProduct1}
+                  onChange={(e) => setSelectedProduct1(e.target.value)}
+                  className="w-full px-2.5 py-1.5 bg-zinc-50 dark:bg-zinc-800 text-xs text-zinc-850 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-lg outline-none focus:ring-1 focus:ring-brand-500"
+                >
+                  <option value="">-- اختر السلعة الأولى --</option>
+                  {filteredCompareProducts.map(p => (
+                    <option key={p.id} value={p.name}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-[9px] text-zinc-400">المنتج الثاني (B):</span>
+                <select
+                  value={selectedProduct2}
+                  onChange={(e) => setSelectedProduct2(e.target.value)}
+                  className="w-full px-2.5 py-1.5 bg-zinc-50 dark:bg-zinc-800 text-xs text-zinc-850 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-lg outline-none focus:ring-1 focus:ring-brand-500"
+                >
+                  <option value="">-- اختر السلعة الثانية --</option>
+                  {filteredCompareProducts.map(p => (
+                    <option key={p.id} value={p.name}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            {selectedProduct1 && selectedProduct2 ? (
+              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 leading-relaxed font-semibold">
+                ✨ تم إعداد الذكاء الاصطناعي للمقارنة المباشرة والرياضية بين <strong>"{selectedProduct1}"</strong> و <strong>"{selectedProduct2}"</strong>. اسأله الآن: "أي المنتجَين تنصحني بزيادة الكمية منه ولماذا؟"
+              </p>
+            ) : (
+              <p className="text-[10px] text-zinc-400 leading-relaxed font-medium">
+                🔒 يرجى اختيار السلعتين من القائمة المنسدلة أعلاه لتزويد المساعد بالمعلومات الحصرية الخاصة بهما فوراً.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Messages Scroll Area */}
@@ -512,38 +690,6 @@ _${error.message || 'خطأ غير معروف'}_
           </div>
         )}
         <div ref={chatEndRef} />
-      </div>
-
-      {/* Preset / Quick actions Panel */}
-      <div className="p-3 border-t border-zinc-100/50 dark:border-zinc-800/50 flex gap-2 overflow-x-auto no-scrollbar bg-zinc-50/20 dark:bg-zinc-900/10">
-        <button
-          onClick={() => handleQuickAction("ما هي المنتجات التي تقترب كلياً من النفاد وتحتاج طلبية؟")}
-          className="shrink-0 px-3 py-1.5 bg-zinc-100 hover:bg-zinc-150 text-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:text-zinc-300 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-zinc-200/30 dark:border-zinc-700/30 active:scale-95"
-        >
-          <Package size={13} className="text-zinc-400" />
-          <span>المنتجات الناقصة 📦</span>
-        </button>
-        <button
-          onClick={() => handleQuickAction("حلل لي إحصائيات مصاريف وديون المحل الحالية وقدم لي نصيحة لتقليلها")}
-          className="shrink-0 px-3 py-1.5 bg-zinc-100 hover:bg-zinc-150 text-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:text-zinc-300 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-zinc-200/30 dark:border-zinc-700/30 active:scale-95"
-        >
-          <TrendingUp size={13} className="text-zinc-400" />
-          <span>المصاريف الحالية 📊</span>
-        </button>
-        <button
-          onClick={() => handleQuickAction("أريد تسجيل منتج جديد بسعر شراء 1 وسعر بيع 1.5 وجرد 40")}
-          className="shrink-0 px-3 py-1.5 bg-zinc-100 hover:bg-zinc-150 text-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:text-zinc-300 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-zinc-200/30 dark:border-zinc-700/30 active:scale-95"
-        >
-          <Plus size={13} className="text-emerald-500" />
-          <span>تسجيل صنف سريع ➕</span>
-        </button>
-        <button
-          onClick={() => handleQuickAction("أضف بسرعة مصروف بقيمة 50 دينار للمطبوعات والأوراق")}
-          className="shrink-0 px-3 py-1.5 bg-zinc-100 hover:bg-zinc-150 text-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:text-zinc-300 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-zinc-200/30 dark:border-zinc-700/30 active:scale-95"
-        >
-          <Wallet size={13} className="text-amber-500" />
-          <span>تسجيل مصروف سريع 💸</span>
-        </button>
       </div>
 
       {/* Input Message Form */}
