@@ -241,11 +241,16 @@ function AppContent() {
                 transition={{ delay: 0.3 }}
                 className="mt-12 w-full flex flex-col gap-6"
               >
-                <div className="flex flex-col items-center gap-2">
-                  <span className="text-[15px] font-semibold text-zinc-800 dark:text-zinc-200 text-center">
-                    مرحباً بك في أداة عملك
-                  </span>
-                  <span className="text-[13px] font-medium text-zinc-500 dark:text-zinc-400 text-center">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="flex flex-col items-center gap-1.5 px-4 mb-2">
+                    <span className="text-[15px] font-bold text-zinc-800 dark:text-zinc-200 text-center leading-relaxed">
+                      «كنت أعالج وأنمي، ولا أزدري ربحاً،<br/>ولا أشتري شيخاً، وأجعل الرأس رأسين»
+                    </span>
+                    <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-500 text-center">
+                      — عثمان بن عفان رضي الله عنه
+                    </span>
+                  </div>
+                  <span className="text-[13px] font-medium text-zinc-500 dark:text-zinc-400 text-center animate-pulse">
                     نقوم بتجهيز سجلاتك ومزامنة البيانات...
                   </span>
                 </div>
