@@ -194,7 +194,27 @@ function AppContent() {
             className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-950"
           >
             {/* Soft Ambient Background */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-200/50 via-zinc-50 to-zinc-50 dark:from-zinc-900 dark:via-zinc-950 dark:to-zinc-950"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-brand-100/60 via-white to-zinc-50 dark:from-brand-900/30 dark:via-zinc-950 dark:to-zinc-950"></div>
+            
+            {/* Animated Soft Glowing Orbs */}
+            <motion.div 
+              animate={{ 
+                scale: [1, 1.2, 1],
+                opacity: [0.5, 0.8, 0.5],
+              }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute -top-10 -left-10 w-[500px] h-[500px] bg-brand-300/50 dark:bg-brand-700/30 rounded-full blur-[120px] pointer-events-none"
+            />
+            <motion.div 
+              animate={{ 
+                scale: [1, 1.5, 1],
+                opacity: [0.4, 0.7, 0.4],
+              }}
+              transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+              className="absolute top-1/4 -right-20 w-[400px] h-[400px] bg-blue-300/40 dark:bg-blue-700/20 rounded-full blur-[120px] pointer-events-none"
+            />
+            
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,_var(--tw-gradient-stops))] from-brand-200/50 via-transparent to-transparent dark:from-brand-800/20 scale-150 mix-blend-overlay pointer-events-none"></div>
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px]"></div>
             
             <div className="relative z-10 flex flex-col items-center w-full max-w-md px-6">
