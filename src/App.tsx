@@ -179,6 +179,22 @@ function AppContent() {
 
   const showSplash = loading || (!!user && !isDataLoaded);
 
+  const [loadingTextIdx, setLoadingTextIdx] = useState(0);
+  const loadingTexts = [
+    'نفتح أبواب متجرك الآن...',
+    'نجهز طاولات العمل والسجلات...',
+    'لحظات ونبدأ استقبال أعمالك...',
+    'نضع اللمسات الأخيرة وننطلق...'
+  ];
+
+  useEffect(() => {
+    if (!showSplash) return;
+    const interval = setInterval(() => {
+      setLoadingTextIdx(prev => (prev + 1) % loadingTexts.length);
+    }, 2200);
+    return () => clearInterval(interval);
+  }, [showSplash]);
+
   if (user && isCatalogMode) {
     return <CatalogMode />;
   }
@@ -193,8 +209,26 @@ function AppContent() {
             transition={{ duration: 0.3, ease: "easeInOut" }}
             className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white dark:bg-zinc-950"
           >
-            {/* Grid Background */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:32px_32px]"></div>
+            {/* Elegant Ambient Background Glow */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-brand-500/10 dark:bg-brand-500/5 blur-[120px] rounded-full pointer-events-none" />
+            <motion.div 
+              animate={{ 
+                scale: [1, 1.2, 1],
+                opacity: [0.3, 0.6, 0.3],
+                rotate: [0, 90, 0]
+              }}
+              transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }}
+              className="absolute top-1/4 right-1/4 w-80 h-80 bg-blue-400/10 dark:bg-blue-500/10 blur-[100px] rounded-full pointer-events-none"
+            />
+            <motion.div 
+              animate={{ 
+                scale: [1, 1.1, 1],
+                opacity: [0.2, 0.4, 0.2],
+                rotate: [0, -90, 0]
+              }}
+              transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
+              className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-emerald-400/5 dark:bg-emerald-500/5 blur-[100px] rounded-full pointer-events-none"
+            />
             
             <div className="relative z-10 flex flex-col items-center">
               <motion.div
@@ -216,14 +250,47 @@ function AppContent() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
-                className="mt-16 flex flex-col items-center gap-4"
+                className="mt-14 flex flex-col items-center gap-6"
               >
-                <motion.div 
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                  className="h-12 w-12 rounded-full border-4 border-zinc-100 border-t-[#5B89BB] dark:border-zinc-800 dark:border-t-[#5B89BB]"
-                />
-                <span className="text-lg font-medium text-zinc-400 dark:text-zinc-500">{t('loading')}</span>
+                <div className="relative flex items-center justify-center">
+                  <motion.div 
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                    className="absolute h-16 w-16 rounded-full border-[3px] border-transparent border-t-brand-500 border-r-brand-500/30"
+                  />
+                  <motion.div 
+                    animate={{ rotate: -360 }}
+                    transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
+                    className="absolute h-12 w-12 rounded-full border-[3px] border-transparent border-b-brand-400 border-l-brand-400/30"
+                  />
+                  <Package size={20} className="text-brand-500 dark:text-brand-400 animate-pulse" />
+                </div>
+
+                <div className="flex flex-col items-center gap-3">
+                  <div className="h-6 relative w-48 flex justify-center">
+                    <AnimatePresence mode="wait">
+                      <motion.span 
+                        key={loadingTextIdx}
+                        initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
+                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                        exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
+                        transition={{ duration: 0.4 }}
+                        className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 absolute text-center w-full"
+                      >
+                        {loadingTexts[loadingTextIdx]}
+                      </motion.span>
+                    </AnimatePresence>
+                  </div>
+                  
+                  <div className="w-32 h-1 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden shrink-0">
+                    <motion.div 
+                      initial={{ x: '-100%' }}
+                      animate={{ x: '200%' }}
+                      transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                      className="h-full bg-gradient-to-r from-transparent via-brand-500 to-transparent w-full"
+                    />
+                  </div>
+                </div>
               </motion.div>
             </div>
           </motion.div>
