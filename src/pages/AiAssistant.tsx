@@ -202,10 +202,10 @@ export default function AiAssistant() {
       }
 
       const fullStockDetails = filteredProducts.map(p => {
-        const pieces = p.piecesPerBox || 1;
-        const bPrice = p.boxPurchasePrice || (p.purchasePrice * pieces);
-        const boxDetailsStr = pieces > 1 ? ` | عبوة الصندوق (الكرتونة): ${pieces} قطعة | سعر شراء الصندوق: ${bPrice}` : '';
-        return `- '${p.name}' | الفئة: ${p.category || 'عام'} | جرد: ${p.quantity || 0} | شراء القطعة: ${p.purchasePrice || 0} | بيع القطعة: ${p.sellingPrice || 0}${boxDetailsStr}`;
+        const boxContext = (p.piecesPerBox && p.boxPurchasePrice) 
+          ? ` | سعر كرتونة: ${p.boxPurchasePrice} | قطع بالكرتونة: ${p.piecesPerBox}` 
+          : '';
+        return `- '${p.name}' | الفئة: ${p.category || 'عام'} | جرد قطع: ${p.quantity || 0} | شراء قطعة: ${p.purchasePrice || 0} | بيع قطعة: ${p.sellingPrice || 0}${boxContext}`;
       }).join('\n');
 
       let filteredPurchases = purchases;
@@ -225,6 +225,8 @@ export default function AiAssistant() {
       }).join('\n');
 
       const contextString = `
+[قاعدة أساسية وحاسمة]: الإجابات ونصائح الجدوى والشراء يجب أن تكون دائماً بحساب "الكرتونة" (سعر الكرتونة وعدد القطع بها) وليس "القطعة الفردية" لتوجيه المورد للبيع بالجملة بشكل صحيح!
+
 تتضمن البيانات الحالية للمقارنة والتحليل:
 ${contextNote}
 
