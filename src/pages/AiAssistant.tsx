@@ -201,9 +201,12 @@ export default function AiAssistant() {
         contextNote = `ملاحظة هامة جداً لنجاح التاجر: يقوم المستخدم حالياً بمقارنة تفصيلية دقيقة لاتخاذ قرار شراء واستثمار بين المنتج الأول: "${selectedProduct1 || 'غير محدد'}" والمنتج الثاني: "${selectedProduct2 || 'غير محدد'}". ركز على مقارنة الربحية والمخزون الحالي وأسعار المبيعات والشراء وأي صفقات تاريخية متاحة لهما لتحدد أيهما أفضل للاستثمار وشراء كمية إضافية!`;
       }
 
-      const fullStockDetails = filteredProducts.map(p => 
-        `- '${p.name}' | الفئة: ${p.category || 'عام'} | جرد: ${p.quantity || 0} | شراء: ${p.purchasePrice || 0} | بيع: ${p.sellingPrice || 0}`
-      ).join('\n');
+      const fullStockDetails = filteredProducts.map(p => {
+        const pieces = p.piecesPerBox || 1;
+        const bPrice = p.boxPurchasePrice || (p.purchasePrice * pieces);
+        const boxDetailsStr = pieces > 1 ? ` | عبوة الصندوق (الكرتونة): ${pieces} قطعة | سعر شراء الصندوق: ${bPrice}` : '';
+        return `- '${p.name}' | الفئة: ${p.category || 'عام'} | جرد: ${p.quantity || 0} | شراء القطعة: ${p.purchasePrice || 0} | بيع القطعة: ${p.sellingPrice || 0}${boxDetailsStr}`;
+      }).join('\n');
 
       let filteredPurchases = purchases;
       if (assistantMode === 'category' && selectedCategory !== 'all') {
