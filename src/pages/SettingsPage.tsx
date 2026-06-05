@@ -391,9 +391,9 @@ export default function SettingsPage() {
         </section>
 
         {/* Other menu items */}
-        {menuItems.map((item) => (
+        {menuItems.map((item, idx) => (
           <button 
-            key={item.id} 
+            key={`menu-${item.id}-${idx}`} 
             onClick={() => setActiveView(item.id as View)}
             className="group w-full flex items-center justify-between p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 transition-all hover:shadow-md"
           >

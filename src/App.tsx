@@ -141,7 +141,7 @@ function AppContent() {
     { id: 'inventory', label: t('inventory'), icon: ClipboardCheck },
     { id: 'reports', label: t('reports'), icon: BarChart3 },
     { id: 'expenses', label: t('expenses'), icon: Wallet },
-    { id: 'shopping-list', label: t('shopping_list'), icon: ShoppingCart },
+    ...(settings.showShoppingList !== false ? [{ id: 'shopping-list', label: t('shopping_list'), icon: ShoppingCart }] : []),
     { id: 'invoice-calculator', label: t('invoice_calculator'), icon: Calculator },
     { id: 'catalog-mode', label: t('catalog_mode') || 'وضع الكتالوج', icon: Store },
     { id: 'ai-assistant', label: t('ai_assistant') || 'الوكيل الذكي', icon: Bot },
@@ -339,13 +339,15 @@ function AppContent() {
                 )}
               </button>
 
-              <button 
-                onClick={() => setActiveTab('shopping-list')}
-                className={`transition-colors ${activeTab === 'shopping-list' ? 'text-brand-600' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}
-                title={t('shopping_list')}
-              >
-                <ShoppingCart size={22} />
-              </button>
+              {settings.showShoppingList !== false && (
+                <button 
+                  onClick={() => setActiveTab('shopping-list')}
+                  className={`transition-colors ${activeTab === 'shopping-list' ? 'text-brand-600' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}
+                  title={t('shopping_list')}
+                >
+                  <ShoppingCart size={22} />
+                </button>
+              )}
               <button 
                 onClick={() => setActiveTab('expenses')}
                 className={`transition-colors ${activeTab === 'expenses' ? 'text-warn-text' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'}`}

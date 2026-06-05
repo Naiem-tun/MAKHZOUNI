@@ -125,7 +125,7 @@ export const CategoriesManager = ({ onBack }: { onBack: () => void }) => {
       {/* Categories List */}
       <div className="space-y-3 pb-24">
         <AnimatePresence mode="popLayout">
-          {allCategories.map(cat => {
+          {allCategories.map((cat, index) => {
             const IconComp = categoryIcons[cat.icon] || Package;
             return (
               <motion.div 
@@ -133,7 +133,7 @@ export const CategoriesManager = ({ onBack }: { onBack: () => void }) => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                key={cat.id}
+                key={`${cat.id}-${index}`}
                 className="flex items-center justify-between p-3 pl-4 rounded-lg bg-white border border-zinc-100 shadow-sm dark:bg-zinc-900 dark:border-zinc-800"
               >
                 <div className="flex items-center gap-3">

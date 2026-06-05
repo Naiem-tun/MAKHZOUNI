@@ -1,5 +1,5 @@
 import React, { useState, useMemo, memo, useEffect } from 'react';
-import { collection, onSnapshot, query, limit, orderBy, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, limit, orderBy, where, doc, deleteDoc, updateDoc, getDoc, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
 import { 
@@ -22,7 +22,10 @@ import {
   Moon,
   Clock,
   ArrowDownToLine,
-  ArrowUpFromLine
+  ArrowUpFromLine,
+  Trash2,
+  Check,
+  X
 } from 'lucide-react';
 import { Card } from '../components/UI';
 import { cn, formatCurrency, safeParseFloat, safeDispatchEvent, safeParseDate, formatAppDate } from '../lib/utils';
@@ -31,7 +34,7 @@ import { handleFirestoreError } from '../lib/utils';
 
 import { useTranslation } from 'react-i18next';
 const Dashboard = memo(() => {
-  const { user, settings } = useAppContext();
+  const { user, settings, showToast } = useAppContext();
   const { t } = useTranslation();
   const [products, setProducts] = useState<Product[]>([]);
   const [allPurchases, setAllPurchases] = useState<Transaction[]>([]);
@@ -39,6 +42,8 @@ const Dashboard = memo(() => {
   const [debts, setDebts] = useState<any[]>([]);
   const [supplierTransactions, setSupplierTransactions] = useState<any[]>([]);
   const [isMovementExpanded, setIsMovementExpanded] = useState(false);
+  const [showDeletePurchases, setShowDeletePurchases] = useState(false);
+  const [deletingPurchaseId, setDeletingPurchaseId] = useState<string | null>(null);
 
   const groupedPurchases = useMemo(() => {
     if (!allPurchases) return [];
@@ -101,6 +106,7 @@ const Dashboard = memo(() => {
         
         return { 
           id: doc.id, 
+          productId: data.productId,
           productName: data.productName,
           quantityChange: data.qtyAdded,
           amount: data.amount || 0,
@@ -199,6 +205,40 @@ const Dashboard = memo(() => {
 
   const onAddProduct = () => {
     safeDispatchEvent('open-product-modal');
+  };
+
+  const handleDeletePurchase = async (purchase: any) => {
+    if (!user) return;
+    setDeletingPurchaseId(null);
+
+    try {
+      await deleteDoc(doc(db, `users/${user.uid}/purchases`, purchase.id));
+      
+      if (purchase.productId) {
+        const productRef = doc(db, `users/${user.uid}/products`, purchase.productId);
+        const productSnap = await getDoc(productRef);
+        if (productSnap.exists()) {
+          const currentQty = productSnap.data().quantity || 0;
+          const updatedQty = Math.max(0, currentQty - (purchase.quantityChange || 0));
+          await updateDoc(productRef, { quantity: updatedQty });
+        }
+      }
+
+      if (purchase.supplierId && purchase.amount > 0) {
+        await addDoc(collection(db, `users/${user.uid}/supplierTransactions`), {
+          supplierId: purchase.supplierId,
+          amount: -(purchase.amount),
+          date: new Date(),
+          note: t('purchase_deleted_refund') || 'استرجاع بسبب حذف مشتريات',
+          updatedAt: new Date(),
+        });
+      }
+      
+      showToast(t('item_deleted_success') || 'تم الحذف وتحديث الكمية بنجاح', 'success');
+    } catch (error) {
+      console.error('Error deleting purchase:', error);
+      showToast(t('error_deleting') || 'حدث خطأ أثناء الحذف', 'error');
+    }
   };
 
   return (
@@ -302,15 +342,29 @@ const Dashboard = memo(() => {
 
       {/* Recent Purchases List */}
       <div className="space-y-4 text-right mt-8 pb-12">
-        <h2 className="text-sm font-black uppercase tracking-wider text-zinc-900 dark:text-white pr-2 mb-4">{t('last_purchases')}</h2>
+        <div className="flex items-center justify-between pr-2 mb-4">
+          <h2 className="text-sm font-black uppercase tracking-wider text-zinc-900 dark:text-white">{t('last_purchases')}</h2>
+          <button 
+            onClick={() => setShowDeletePurchases(!showDeletePurchases)}
+            className={cn(
+              "p-2 rounded-lg transition-colors ml-2",
+              showDeletePurchases 
+                ? "bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400" 
+                : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800"
+            )}
+            title={t('edit_purchases')}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
         <div className="space-y-6">
           {groupedPurchases.length === 0 ? (
             <div className="py-12 text-center text-zinc-400 font-bold text-sm bg-white dark:bg-zinc-800/50 rounded-lg border border-dashed border-zinc-200 dark:border-zinc-700 shadow-sm">
               {t('no_data_available')}
             </div>
           ) : (
-            groupedPurchases.map((group: any) => (
-              <div key={group.key} className="space-y-3">
+            groupedPurchases.map((group: any, groupIndex: number) => (
+              <div key={`group-${group.key}-${groupIndex}`} className="space-y-3">
                 <div className="flex items-center justify-between px-2">
                   <div className="flex items-center gap-2">
                     <div className="h-7 w-7 rounded-full bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-brand-600 dark:text-brand-400">
@@ -326,8 +380,8 @@ const Dashboard = memo(() => {
                 </div>
                 
                 <div className="bg-white dark:bg-zinc-800/80 rounded-lg border border-zinc-100/80 dark:border-zinc-700/50 overflow-hidden shadow-sm flex flex-col gap-px bg-zinc-100 dark:bg-zinc-700/50">
-                  {group.items.map((p: any) => (
-                    <div key={p.id} className="flex justify-between items-center p-4 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
+                  {group.items.map((p: any, itemIndex: number) => (
+                    <div key={`${p.id}-${itemIndex}`} className="flex justify-between items-center p-4 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
                       <div className="flex flex-col text-right flex-1">
                         <span className="text-sm font-bold text-zinc-900 dark:text-white mb-2">{p.productName}</span>
                         <div className="flex items-center justify-start gap-2 text-[11px] font-sans font-bold text-zinc-500">
@@ -341,6 +395,34 @@ const Dashboard = memo(() => {
                           <span className="text-emerald-600 dark:text-emerald-400">{formatCurrency(p.amount, settings.currency, language)}</span>
                         </div>
                       </div>
+                      
+                      {showDeletePurchases && (
+                        deletingPurchaseId === p.id ? (
+                          <div className="flex items-center gap-2 mr-2">
+                            <button
+                              onClick={() => setDeletingPurchaseId(null)}
+                              className="p-1.5 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg transition-colors"
+                            >
+                              <X size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDeletePurchase(p)}
+                              className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors font-bold text-xs flex items-center gap-1"
+                            >
+                              <Check size={16} />
+                              <span>{t('confirm')}</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setDeletingPurchaseId(p.id)}
+                            className="p-2 mr-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors shrink-0"
+                            title={t('delete')}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )
+                      )}
                     </div>
                   ))}
                 </div>

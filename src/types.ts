@@ -27,6 +27,7 @@ export interface UserSettings {
   showFinancials?: boolean;
   showFloatingTotals?: boolean;
   showSupplierSessionButton?: boolean;
+  showShoppingList?: boolean;
   profitCalculationMethod?: 'markup' | 'margin';
   email?: string;
   displayName?: string;

@@ -78,8 +78,8 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
             className="appearance-none flex items-center gap-2 rounded-lg border border-zinc-200 bg-white pr-8 pl-3 py-2 text-sm font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 cursor-pointer min-w-[130px]"
           >
             <option value="all">{t('all_categories')}</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.name}>{t(c.key || c.name)}</option>
+            {categories.map((c, index) => (
+              <option key={`${c.id}-${index}`} value={c.name}>{t(c.key || c.name)}</option>
             ))}
           </select>
           <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-zinc-400">

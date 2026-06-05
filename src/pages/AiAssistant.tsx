@@ -485,8 +485,8 @@ _${error.message || 'خطأ غير معروف'}_
               className="w-full px-3 py-1.5 bg-zinc-50 dark:bg-zinc-800 text-xs text-zinc-850 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-lg outline-none focus:ring-1 focus:ring-brand-500"
             >
               <option value="all">كل الفئات (يتم إرسال كامل المخزون العريض)</option>
-              {categories.map(c => (
-                <option key={c.id || c.name} value={c.name}>{c.name}</option>
+              {categories.map((c, index) => (
+                <option key={`${c.id || c.name}-${index}`} value={c.name}>{c.name}</option>
               ))}
             </select>
             <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-relaxed font-medium">
@@ -510,8 +510,8 @@ _${error.message || 'خطأ غير معروف'}_
                     className="w-full px-2 py-1 bg-white dark:bg-zinc-800 text-[11px] text-zinc-800 dark:text-zinc-250 border border-zinc-200 dark:border-zinc-700 rounded-md outline-none focus:ring-1 focus:ring-brand-500"
                   >
                     <option value="all">كل الفئات 📂</option>
-                    {categories.map(c => (
-                      <option key={c.id || c.name} value={c.name}>{c.name}</option>
+                    {categories.map((c, index) => (
+                      <option key={`${c.id || c.name}-${index}`} value={c.name}>{c.name}</option>
                     ))}
                   </select>
                 </div>
@@ -538,8 +538,8 @@ _${error.message || 'خطأ غير معروف'}_
                   className="w-full px-2.5 py-1.5 bg-zinc-50 dark:bg-zinc-800 text-xs text-zinc-850 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-lg outline-none focus:ring-1 focus:ring-brand-500"
                 >
                   <option value="">-- اختر السلعة الأولى --</option>
-                  {filteredCompareProducts.map(p => (
-                    <option key={p.id} value={p.name}>{p.name}</option>
+                  {filteredCompareProducts.map((p, index) => (
+                    <option key={`${p.id}-${index}`} value={p.name}>{p.name}</option>
                   ))}
                 </select>
               </div>
@@ -552,8 +552,8 @@ _${error.message || 'خطأ غير معروف'}_
                   className="w-full px-2.5 py-1.5 bg-zinc-50 dark:bg-zinc-800 text-xs text-zinc-850 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-lg outline-none focus:ring-1 focus:ring-brand-500"
                 >
                   <option value="">-- اختر السلعة الثانية --</option>
-                  {filteredCompareProducts.map(p => (
-                    <option key={p.id} value={p.name}>{p.name}</option>
+                  {filteredCompareProducts.map((p, index) => (
+                    <option key={`${p.id}-${index}`} value={p.name}>{p.name}</option>
                   ))}
                 </select>
               </div>

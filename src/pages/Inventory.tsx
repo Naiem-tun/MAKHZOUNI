@@ -622,8 +622,8 @@ export default function Inventory() {
               className="w-full appearance-none py-2.5 px-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[13px] font-bold text-zinc-600 dark:text-zinc-400 text-center outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors shadow-sm focus:border-brand-500/50"
             >
               <option value="all">{t('all_categories_filter')}</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.name}>{t(c.key || c.name)}</option>
+              {categories.map((c, index) => (
+                <option key={`${c.id}-${index}`} value={c.name}>{t(c.key || c.name)}</option>
               ))}
             </select>
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-4 text-zinc-400">
