@@ -45,7 +45,11 @@ import {
   TrendingUp,
   PieChart as PieChartIcon,
   History,
-  LineChart
+  LineChart,
+  Store,
+  Bot,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { signInWithGoogle, auth } from './lib/firebase';
 
@@ -75,13 +79,14 @@ const Analytics = lazy(() => import('./pages/Analytics'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 function AppContent() {
-  const { user, loading, isOffline, isDataLoaded, settings, toggleDarkMode, setLanguage, updateSettings, activeSupplier, setActiveSupplier, showToast, isSessionSummaryOpen, setIsSessionSummaryOpen, isCatalogMode } = useAppContext();
+  const { user, loading, isOffline, isDataLoaded, settings, toggleDarkMode, setLanguage, updateSettings, activeSupplier, setActiveSupplier, showToast, isSessionSummaryOpen, setIsSessionSummaryOpen, isCatalogMode, setIsCatalogMode } = useAppContext();
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('products');
   const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['products']));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMainPagesOpen, setIsMainPagesOpen] = useState(false);
   const [isReportsOpen, setIsReportsOpen] = useState(false);
+  const [isFinancialsOpen, setIsFinancialsOpen] = useState(false);
 
   useEffect(() => {
     setMountedTabs(prev => {
@@ -138,7 +143,8 @@ function AppContent() {
     { id: 'expenses', label: t('expenses'), icon: Wallet },
     { id: 'shopping-list', label: t('shopping_list'), icon: ShoppingCart },
     { id: 'invoice-calculator', label: t('invoice_calculator'), icon: Calculator },
-    { id: 'ai-assistant', label: t('ai_assistant') || 'الوكيل الذكي ✨', icon: Sparkles },
+    { id: 'catalog-mode', label: t('catalog_mode') || 'وضع الكتالوج', icon: Store },
+    { id: 'ai-assistant', label: t('ai_assistant') || 'الوكيل الذكي', icon: Bot },
     { id: 'settings', label: t('settings'), icon: Settings },
   ];
 
@@ -471,7 +477,11 @@ function AppContent() {
                   <button
                     key={tab.id}
                     onClick={() => {
-                      setActiveTab(tab.id);
+                      if (tab.id === 'catalog-mode') {
+                        setIsCatalogMode(true);
+                      } else {
+                        setActiveTab(tab.id);
+                      }
                       setMobileMenuOpen(false);
                     }}
                     className={`flex w-full items-center gap-3 px-4 py-3 rounded-lg transition-all ${
@@ -485,21 +495,40 @@ function AppContent() {
                   </button>
                 ))}
 
-                <button
-                  onClick={() => updateSettings({ showFinancials: !settings.showFinancials })}
-                  className="flex w-full items-center justify-between px-4 py-3 rounded-lg transition-all text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
-                >
-                  <div className="flex items-center gap-3">
-                    <Wallet size={20} className={settings.showFinancials ? 'text-brand-600' : 'text-zinc-400'} />
-                    <span className="font-medium">{t('financial_stats')}</span>
-                  </div>
-                  <div className={`relative h-6 w-11 rounded-full transition-colors ${settings.showFinancials ? 'bg-zinc-950' : 'bg-zinc-200 dark:bg-zinc-700'}`}>
-                    <motion.div 
-                      animate={{ x: settings.showFinancials ? 22 : 4 }}
-                      className="absolute left-0 top-1 h-4 w-4 rounded-full bg-white shadow-sm"
-                    />
-                  </div>
-                </button>
+                <div className="space-y-1">
+                  <button
+                    onClick={() => setIsFinancialsOpen(!isFinancialsOpen)}
+                    className="flex w-full items-center justify-between px-4 py-3 rounded-lg text-zinc-900 border border-zinc-200/60 dark:text-white dark:border-zinc-800 transition-all font-bold"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Wallet size={20} className="text-zinc-500" />
+                      <span>{t('financial_stats') || 'إحصائيات المال'}</span>
+                    </div>
+                    <motion.div animate={{ rotate: isFinancialsOpen ? 180 : 0 }}>
+                      <ChevronDown size={20} className="text-zinc-500" />
+                    </motion.div>
+                  </button>
+                  <AnimatePresence>
+                    {isFinancialsOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden space-y-1 pl-2"
+                      >
+                        <button
+                          onClick={() => updateSettings({ showFinancials: !settings.showFinancials })}
+                          className={`flex w-full items-center justify-between px-4 py-3 rounded-lg transition-all text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800`}
+                        >
+                          <div className="flex items-center gap-3">
+                            {settings.showFinancials ? <Eye size={20} className="text-brand-600" /> : <EyeOff size={20} />}
+                            <span className="font-medium">{settings.showFinancials ? (t('hide') || 'إخفاء') : (t('show') || 'إظهار')}</span>
+                          </div>
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </nav>
             </motion.div>
           </div>

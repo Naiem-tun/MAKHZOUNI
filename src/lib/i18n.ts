@@ -11,7 +11,7 @@ const resources = {
       "debts": "الديون",
       "inventory": "الجرد",
       "invoice_calculator": "حساب الفاتورة",
-      "ai_assistant": "الوكيل الذكي ✨",
+      "ai_assistant": "الوكيل الذكي",
       "invoice_desc": "أداة سريعة لحساب تكلفة المشتريات من الموردين",
       "reports": "التقارير",
       "main_pages": "الصفحات الرئيسية",
@@ -421,7 +421,9 @@ const resources = {
       "search_products": "ابحث عن منتج...",
       "exit_catalog": "خروج من وضع الكتالوج",
       "no_products": "لا توجد منتجات",
-      "catalog_pin": "رمز وضع الكتالوج"
+      "catalog_pin": "رمز وضع الكتالوج",
+      "hide": "إخفاء",
+      "show": "إظهار"
     }
   },
 };
