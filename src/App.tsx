@@ -49,7 +49,9 @@ import {
   Store,
   Bot,
   Eye,
-  EyeOff
+  EyeOff,
+  PackagePlus,
+  BookImage
 } from 'lucide-react';
 import { signInWithGoogle, auth } from './lib/firebase';
 
@@ -73,6 +75,7 @@ import Debts from './pages/Debts';
 import InvoiceCalculator from './pages/InvoiceCalculator';
 import CatalogMode from './pages/CatalogMode';
 import AiAssistant from './pages/AiAssistant';
+import DraftProducts from './pages/DraftProducts';
 
 // Heavy Pages (Lazy loaded)
 const Analytics = lazy(() => import('./pages/Analytics'));
@@ -141,11 +144,16 @@ function AppContent() {
     { id: 'inventory', label: t('inventory'), icon: ClipboardCheck },
     { id: 'reports', label: t('reports'), icon: BarChart3 },
     { id: 'expenses', label: t('expenses'), icon: Wallet },
+    
+    // Top standalone tabs
+    { id: 'ai-assistant', label: t('ai_assistant') || 'الوكيل الذكي', icon: Bot },
     ...(settings.showShoppingList !== false ? [{ id: 'shopping-list', label: t('shopping_list'), icon: ShoppingCart }] : []),
     { id: 'invoice-calculator', label: t('invoice_calculator'), icon: Calculator },
-    { id: 'catalog-mode', label: t('catalog_mode') || 'وضع الكتالوج', icon: Store },
-    { id: 'ai-assistant', label: t('ai_assistant') || 'الوكيل الذكي', icon: Bot },
+    
+    // Bottom standalone tabs
     { id: 'settings', label: t('settings'), icon: Settings },
+    { id: 'draft-products', label: 'قائمة النقل', icon: PackagePlus },
+    { id: 'catalog-mode', label: t('catalog_mode') || 'وضع الكتالوج', icon: BookImage },
   ];
 
   const mainPagesTabs = allTabs.filter(tab => ['dashboard', 'products', 'suppliers', 'debts', 'inventory', 'expenses'].includes(tab.id));
@@ -475,7 +483,7 @@ function AppContent() {
 
                 <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-2" />
 
-                {otherTabs.map((tab) => (
+                {otherTabs.filter(t => !['settings', 'draft-products', 'catalog-mode'].includes(t.id)).map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => {
@@ -531,6 +539,30 @@ function AppContent() {
                     )}
                   </AnimatePresence>
                 </div>
+                
+                <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-2" />
+
+                {otherTabs.filter(t => ['settings', 'draft-products', 'catalog-mode'].includes(t.id)).map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      if (tab.id === 'catalog-mode') {
+                        setIsCatalogMode(true);
+                      } else {
+                        setActiveTab(tab.id);
+                      }
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`flex w-full items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                      activeTab === tab.id
+                      ? 'bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400'
+                      : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                    }`}
+                  >
+                    <tab.icon size={20} />
+                    <span className="font-medium">{tab.label}</span>
+                  </button>
+                ))}
               </nav>
             </motion.div>
           </div>
@@ -569,6 +601,9 @@ function AppContent() {
             </div>
             <div className={activeTab === 'shopping-list' ? 'block' : 'hidden'}>
               {mountedTabs.has('shopping-list') && <ShoppingList />}
+            </div>
+            <div className={activeTab === 'draft-products' ? 'block' : 'hidden'}>
+              {mountedTabs.has('draft-products') && <DraftProducts />}
             </div>
             <div className={activeTab === 'invoice-calculator' ? 'block' : 'hidden'}>
               {mountedTabs.has('invoice-calculator') && <InvoiceCalculator />}

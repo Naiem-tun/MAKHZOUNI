@@ -7,7 +7,8 @@ import {
   FileJson, 
   Clipboard, 
   CheckCircle2, 
-  AlertCircle 
+  AlertCircle,
+  PackagePlus
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { db } from '../../lib/firebase';
@@ -24,6 +25,7 @@ export const DataManagement: React.FC<DataManagementProps> = ({ onBack }) => {
   
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [isImportingCatalog, setIsImportingCatalog] = useState(false);
   const [manualCode, setManualCode] = useState('');
   const [status, setStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
 
@@ -80,6 +82,74 @@ export const DataManagement: React.FC<DataManagementProps> = ({ onBack }) => {
     } finally {
       setIsExporting(false);
     }
+  };
+
+  const handleCatalogImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setIsImportingCatalog(true);
+    setStatus(null);
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const content = event.target?.result as string;
+        const imported = JSON.parse(content);
+        
+        // The catalog app might output { data: { products: [...] } } or just an array
+        let items: any[] = [];
+        if (Array.isArray(imported)) {
+          items = imported;
+        } else if (imported.data && Array.isArray(imported.data.products)) {
+          items = imported.data.products;
+        } else if (Array.isArray(imported.products)) {
+          items = imported.products;
+        }
+
+        if (items.length === 0) {
+          throw new Error('لم يتم العثور على منتجات في الملف (No products found)');
+        }
+
+        let totalProcessed = 0;
+        
+        for (let i = 0; i < items.length; i += 500) {
+          const batch = writeBatch(db);
+          const chunk = items.slice(i, i + 500);
+          
+          chunk.forEach((item: any) => {
+            const data = {
+              name: item.name || '',
+              category: item.category || 'عام',
+              barcode: item.barcode || '',
+              piecesPerBox: parseFloat(item.piecesPerBox || item.piecesPerCarton || 1),
+              quantity: 0,
+              purchasePrice: 0,
+              sellingPrice: 0,
+              boxPurchasePrice: 0,
+              minQuantity: 5,
+              updatedAt: new Date().toISOString(),
+              isDraft: true
+            };
+            
+            const docRef = doc(collection(db, `users/${user.uid}/draft_products`));
+            batch.set(docRef, data);
+          });
+
+          await batch.commit();
+          totalProcessed += chunk.length;
+        }
+
+        setStatus({ type: 'success', msg: `تم استيراد ${totalProcessed} منتج إلى المسودة بنجاح.` });
+      } catch (error: any) {
+        console.error('Catalog Import error:', error);
+        setStatus({ type: 'error', msg: `خطأ في الاستيراد: ${error.message}` });
+      } finally {
+        setIsImportingCatalog(false);
+        if (e.target) e.target.value = '';
+      }
+    };
+    reader.readAsText(file);
   };
 
   const processImport = async (jsonString: string) => {
@@ -239,8 +309,29 @@ export const DataManagement: React.FC<DataManagementProps> = ({ onBack }) => {
           <label className="cursor-pointer w-full py-4 rounded-lg bg-zinc-100 text-zinc-600 font-bold border-2 border-dashed border-zinc-200 flex items-center justify-center gap-2 transition-all hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700 dark:hover:bg-zinc-700">
             <FileJson size={20} />
             {isImporting ? t('importing') : t('choose_file_import')}
-            <input type="file" accept=".json" onChange={handleFileImport} className="hidden" disabled={isImporting} />
+            <input type="file" accept=".json" onChange={handleFileImport} className="hidden" disabled={isImporting || isImportingCatalog} />
           </label>
+        </section>
+
+        {/* Catalog Import section */}
+        <section className="md:col-span-2 p-6 rounded-lg bg-white shadow-sm border border-brand-200 dark:bg-zinc-900 dark:border-brand-900/50 relative overflow-hidden space-y-4">
+          <div className="absolute top-0 right-0 p-4 -mr-4 -mt-4 opacity-5">
+            <PackagePlus size={100} />
+          </div>
+          <div className="relative z-10">
+            <div className="h-12 w-12 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 dark:bg-brand-950/20">
+              <PackagePlus size={24} />
+            </div>
+            <div className="mt-4">
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">استيراد من كتالوج المنتجات</h3>
+              <p className="text-sm text-zinc-500">جلب المنتجات من تطبيق الكتالوج الخاص بك. ستوضع المنتجات في خانة "قائمة النقل" (المسودات) لحين تحديد أسعارها.</p>
+            </div>
+            <label className="cursor-pointer mt-4 w-full py-4 rounded-lg bg-brand-50 text-brand-600 font-bold border-2 border-dashed border-brand-200 flex items-center justify-center gap-2 transition-all hover:bg-brand-100 dark:bg-brand-900/20 dark:text-brand-400 dark:border-brand-800 dark:hover:bg-brand-900/40">
+              <Upload size={20} />
+              {isImportingCatalog ? 'جاري الاستيراد...' : 'اختيار ملف الكتالوج (.json)'}
+              <input type="file" accept=".json" onChange={handleCatalogImport} className="hidden" disabled={isImporting || isImportingCatalog} />
+            </label>
+          </div>
         </section>
 
         {/* Manual Import section */}

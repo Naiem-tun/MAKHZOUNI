@@ -2,5 +2,5 @@
   "name": "مخزوني",
   "description": "نظام احترافي لإدارة المخازن وتجارة التجزئة مع دعم كامل للجرد والديون والتقارير المالية.",
   "requestFramePermissions": ["camera"],
-  "majorCapabilities": []
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -49,6 +49,7 @@ export interface Product {
   boxPurchasePrice?: number;
   hasLocalImage?: boolean;
   _copiedFromId?: string;
+  isDraft?: boolean;
   updatedAt: any;
 }
 
