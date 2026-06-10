@@ -133,6 +133,13 @@ export default function Products() {
     showToast(t('stock_updated_success'));
 
     try {
+      // Find if this product is monitored
+      const monitoredQ = query(
+        collection(db, `users/${user.uid}/monitored_products`),
+        where('productId', '==', quantityProduct.id)
+      );
+      const monitoredSnap = await getDocs(monitoredQ);
+      
       const batch = writeBatch(db);
       const productRef = doc(db, `users/${user.uid}/products/${quantityProduct.id}`);
       const purchasesPath = `users/${user.uid}/purchases`;
@@ -167,6 +174,27 @@ export default function Products() {
       // Update session total if active
       if (activeSupplier) {
         setActiveSupplier(prev => prev ? { ...prev, sessionTotal: (prev.sessionTotal || 0) + purchaseAmount } : null);
+      }
+
+      // Update monitored product if exists
+      if (!monitoredSnap.empty) {
+        monitoredSnap.forEach((docSnap) => {
+          const monitoredData = docSnap.data();
+          const newHistory = [
+            ...(monitoredData.history || []),
+            {
+              date: new Date(),
+              quantity: monitoredData.currentQuantity + addedQty,
+              type: 'purchase',
+              addedQuantity: addedQty,
+              note: 'شراء كمية جديدة'
+            }
+          ];
+          batch.update(doc(db, `users/${user.uid}/monitored_products`, docSnap.id), {
+            currentQuantity: monitoredData.currentQuantity + addedQty,
+            history: newHistory
+          });
+        });
       }
 
       // Commit in the background

@@ -427,7 +427,11 @@ const resources = {
       "no_products": "لا توجد منتجات",
       "catalog_pin": "رمز وضع الكتالوج",
       "hide": "إخفاء",
-      "show": "إظهار"
+      "show": "إظهار",
+      "main_operations": "العمليات اليومية",
+      "reports_analytics": "التقارير والإحصائيات",
+      "smart_tracking": "أدوات مساعدة للتجارة",
+      "system_settings": "تفضيلات وإعدادات"
     }
   },
 };

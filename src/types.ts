@@ -122,3 +122,22 @@ export interface Expense {
   category: string;
   date: any;
 }
+
+export interface MonitoredProductHistory {
+  date: any;
+  quantity: number;
+  type: 'start' | 'check' | 'purchase';
+  note?: string;
+  addedQuantity?: number;
+}
+
+export interface MonitoredProduct {
+  id?: string;
+  productId: string;
+  name: string;
+  initialQuantity: number;
+  currentQuantity: number;
+  startDate: any;
+  lastCheckDate: any;
+  history: MonitoredProductHistory[];
+}

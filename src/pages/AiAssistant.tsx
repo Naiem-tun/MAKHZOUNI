@@ -44,9 +44,10 @@ export default function AiAssistant() {
   const [debts, setDebts] = useState<any[]>([]);
   const [shoppingList, setShoppingList] = useState<any[]>([]);
   const [purchases, setPurchases] = useState<any[]>([]);
+  const [monitoredProducts, setMonitoredProducts] = useState<any[]>([]);
 
   // Focus and comparison states
-  const [assistantMode, setAssistantMode] = useState<'all' | 'category' | 'compare'>('all');
+  const [assistantMode, setAssistantMode] = useState<'all' | 'category' | 'compare' | 'monitored'>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedProduct1, setSelectedProduct1] = useState<string>('');
   const [selectedProduct2, setSelectedProduct2] = useState<string>('');
@@ -102,6 +103,10 @@ export default function AiAssistant() {
       setShoppingList(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
 
+    const unsubMonitored = onSnapshot(collection(db, `users/${user.uid}/monitored_products`), (snap) => {
+      setMonitoredProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
     const purchasesQuery = query(
       collection(db, `users/${user.uid}/purchases`),
       orderBy('date', 'desc'),
@@ -125,6 +130,7 @@ export default function AiAssistant() {
       unsubExpenses();
       unsubDebts();
       unsubShoppingList();
+      unsubMonitored();
       unsubPurchases();
     };
   }, [user]);
@@ -199,6 +205,10 @@ export default function AiAssistant() {
       } else if (assistantMode === 'compare') {
         filteredProducts = products.filter(p => p.name === selectedProduct1 || p.name === selectedProduct2);
         contextNote = `ملاحظة هامة جداً لنجاح التاجر: يقوم المستخدم حالياً بمقارنة تفصيلية دقيقة لاتخاذ قرار شراء واستثمار بين المنتج الأول: "${selectedProduct1 || 'غير محدد'}" والمنتج الثاني: "${selectedProduct2 || 'غير محدد'}". ركز على مقارنة الربحية والمخزون الحالي وأسعار المبيعات والشراء وأي صفقات تاريخية متاحة لهما لتحدد أيهما أفضل للاستثمار وشراء كمية إضافية!`;
+      } else if (assistantMode === 'monitored') {
+        const monitoredIds = new Set(monitoredProducts.map(mp => mp.productId));
+        filteredProducts = products.filter(p => monitoredIds.has(p.id));
+        contextNote = `ملاحظة: لقد اختار المستخدم التركيز على "المنتجات تحت المراقبة". هذه المنتجات يتابعها المستخدم بشكل دقيق لسرعة مبيعاتها (تجد معلوماتها في الأسفل). ركز إجابتك عليها.`;
       }
 
       const fullStockDetails = filteredProducts.map(p => {
@@ -239,6 +249,10 @@ ${contextNote}
 
 الأصناف المعنية للتوجيه:
 ${fullStockDetails || 'لا يوجد منتجات متاحة في هذا النطاق حالياً'}
+
+[سجل المنتجات تحت المراقبة]:
+هذه المنتجات يتتبع التاجر مبيعاتها بشكل منفصل ودقيق. استخدم هذه المعلومات لتحليل سرعة البيع وتوجيه نصيحة ممتازة للمستخدم. اعطه إفادة فقط إذا رأيت منها فائدة.
+${monitoredProducts.map(mp => `- المنتج: ${mp.name} | الكمية الابتدائية للمراقبة: ${mp.initialQuantity} | الكمية الحالية المتبقية: ${mp.currentQuantity} | تم بدء المراقبة منذ: ${mp.startDate?.toDate ? new Date(mp.startDate.toDate()).toLocaleDateString('ar-TN') : new Date(mp.startDate).toLocaleDateString('ar-TN')}`).join('\\n') || 'لا يوجد منتجات تحت المراقبة حالياً.'}
 
 المشتريات والطلبيات السابقة المرتبطة بهذه الأصناف:
 ${recentPurchasesStr || 'لا يوجد صفقات سابقة مسجلة لها'}
@@ -473,6 +487,22 @@ _${error.message || 'خطأ غير معروف'}_
             >
               مقارنة صنفين ⚖️
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAssistantMode('monitored');
+                setSelectedCategory('all');
+                setSelectedProduct1('');
+                setSelectedProduct2('');
+              }}
+              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-all ${
+                assistantMode === 'monitored' 
+                  ? 'bg-brand-600 text-white shadow-xs' 
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-650 hover:bg-zinc-200 dark:hover:bg-zinc-750 dark:text-zinc-350'
+              }`}
+            >
+              المنتجات المراقبة 👁️
+            </button>
           </div>
         </div>
 
@@ -491,6 +521,14 @@ _${error.message || 'خطأ غير معروف'}_
             </select>
             <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-relaxed font-medium">
               💡 حالياً ستتم الأسئلة والنقاش والتحليل بتركيز كامل على منتجات فئة <strong>"{selectedCategory === 'all' ? 'الكل' : selectedCategory}"</strong> فقط! هذا يمنع تجاوز الحد الأقصى للـ Tokens ويمنحك إجابة مركزة وسريعة.
+            </p>
+          </div>
+        )}
+
+        {assistantMode === 'monitored' && (
+          <div className="flex flex-col gap-1.5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-2.5 rounded-xl transition-all">
+            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 leading-relaxed font-semibold">
+              ✨ لقد تم إعداد الذكاء الاصطناعي للتركيز التام على وتيرة مبيعات وضعف المنتجات التي وضعتها تحت المراقبة. يمكن للوكيل الآن إعطائك نظرة وتحليل دقيق بخصوصها!
             </p>
           </div>
         )}

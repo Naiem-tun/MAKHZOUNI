@@ -67,6 +67,7 @@ import { OperationType, Supplier } from './types';
 // Fast/Core Pages (Static Import)
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
+import MonitoredProducts from './pages/MonitoredProducts';
 import ShoppingList from './pages/ShoppingList';
 import Expenses from './pages/Expenses';
 import Inventory from './pages/Inventory';
@@ -153,6 +154,7 @@ function AppContent() {
     // Bottom standalone tabs
     { id: 'settings', label: t('settings'), icon: Settings },
     { id: 'draft-products', label: 'قائمة النقل', icon: PackagePlus },
+    { id: 'monitored-products', label: 'المنتجات تحت المراقبة', icon: Eye },
     { id: 'catalog-mode', label: t('catalog_mode') || 'وضع الكتالوج', icon: BookImage },
   ];
 
@@ -392,177 +394,118 @@ function AppContent() {
                   <X size={24} className="text-zinc-500" />
                 </button>
               </div>
-              <nav className="p-4 space-y-2">
-                <div className="space-y-1">
-                  <button
-                    onClick={() => setIsMainPagesOpen(!isMainPagesOpen)}
-                    className="flex w-full items-center justify-between px-4 py-3 rounded-lg text-zinc-900 border border-zinc-200/60 dark:text-white dark:border-zinc-800 transition-all font-bold"
-                  >
-                    <div className="flex items-center gap-3">
-                      <LayoutDashboard size={20} className="text-zinc-500" />
-                      <span>{t('main_pages') || 'الصفحات الرئيسية'}</span>
-                    </div>
-                    <motion.div animate={{ rotate: isMainPagesOpen ? 180 : 0 }}>
-                      <ChevronDown size={20} className="text-zinc-500" />
-                    </motion.div>
-                  </button>
-                  <AnimatePresence>
-                    {isMainPagesOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden space-y-1 pl-2"
-                      >
-                        {mainPagesTabs.map((tab) => (
-                          <button
-                            key={tab.id}
-                            onClick={() => {
-                              setActiveTab(tab.id);
-                              setMobileMenuOpen(false);
-                            }}
-                            className={`flex w-full items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                              activeTab === tab.id
-                              ? 'bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400'
-                              : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800'
-                            }`}
-                          >
-                            <tab.icon size={20} />
-                            <span className="font-medium">{tab.label}</span>
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+              <nav className="p-3 overflow-y-auto max-h-[calc(100vh-4.5rem)] space-y-6 pb-8 custom-scrollbar">
                 
-                <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-2" />
-
+                {/* 1. العمليات اليومية */}
                 <div className="space-y-1">
-                  <button
-                    onClick={() => setIsReportsOpen(!isReportsOpen)}
-                    className="flex w-full items-center justify-between px-4 py-3 rounded-lg text-zinc-900 border border-zinc-200/60 dark:text-white dark:border-zinc-800 transition-all font-bold"
-                  >
-                    <div className="flex items-center gap-3">
-                      <BarChart3 size={20} className="text-zinc-500" />
-                      <span>{t('reports') || 'التقارير'}</span>
-                    </div>
-                    <motion.div animate={{ rotate: isReportsOpen ? 180 : 0 }}>
-                      <ChevronDown size={20} className="text-zinc-500" />
-                    </motion.div>
-                  </button>
-                  <AnimatePresence>
-                    {isReportsOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden space-y-1 pl-2"
-                      >
-                        {reportsSubpages.map((tab) => (
-                          <button
-                            key={tab.id}
-                            onClick={() => {
-                              setActiveTab('reports');
-                              // Dispatch event to analytics component
-                              setTimeout(() => {
-                                window.dispatchEvent(new CustomEvent('open-analytics-tab', { detail: tab.id }));
-                              }, 100);
-                              setMobileMenuOpen(false);
-                            }}
-                            className={`flex w-full items-center gap-3 px-4 py-3 rounded-lg transition-all text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800`}
-                          >
-                            <tab.icon size={20} />
-                            <span className="font-medium">{tab.label}</span>
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  <div className="px-3 pb-2 text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
+                    {t('main_operations') || 'العمليات اليومية'}
+                  </div>
+                  {mainPagesTabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id);
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                        activeTab === tab.id
+                        ? 'bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 font-bold'
+                        : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                      }`}
+                    >
+                      <tab.icon size={20} />
+                      <span className="font-medium">{tab.label}</span>
+                    </button>
+                  ))}
                 </div>
 
-                <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-2" />
+                <div className="h-px bg-zinc-100 dark:bg-zinc-800 mx-3" />
 
-                {otherTabs.filter(t => !['settings', 'draft-products', 'catalog-mode'].includes(t.id)).map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      if (tab.id === 'catalog-mode') {
-                        setIsCatalogMode(true);
-                      } else {
-                        setActiveTab(tab.id);
-                      }
-                      setMobileMenuOpen(false);
-                    }}
-                    className={`flex w-full items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                      activeTab === tab.id
-                      ? 'bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400'
-                      : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800'
-                    }`}
-                  >
-                    <tab.icon size={20} />
-                    <span className="font-medium">{tab.label}</span>
-                  </button>
-                ))}
-
+                {/* 2. التقارير والمالية */}
                 <div className="space-y-1">
-                  <button
-                    onClick={() => setIsFinancialsOpen(!isFinancialsOpen)}
-                    className="flex w-full items-center justify-between px-4 py-3 rounded-lg text-zinc-900 border border-zinc-200/60 dark:text-white dark:border-zinc-800 transition-all font-bold"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Wallet size={20} className="text-zinc-500" />
-                      <span>{t('financial_stats') || 'إحصائيات المال'}</span>
-                    </div>
-                    <motion.div animate={{ rotate: isFinancialsOpen ? 180 : 0 }}>
-                      <ChevronDown size={20} className="text-zinc-500" />
-                    </motion.div>
-                  </button>
-                  <AnimatePresence>
-                    {isFinancialsOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden space-y-1 pl-2"
-                      >
-                        <button
-                          onClick={() => updateSettings({ showFinancials: !settings.showFinancials })}
-                          className={`flex w-full items-center justify-between px-4 py-3 rounded-lg transition-all text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800`}
-                        >
-                          <div className="flex items-center gap-3">
-                            {settings.showFinancials ? <Eye size={20} className="text-brand-600" /> : <EyeOff size={20} />}
-                            <span className="font-medium">{settings.showFinancials ? (t('hide') || 'إخفاء') : (t('show') || 'إظهار')}</span>
-                          </div>
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  <div className="px-3 pb-2 text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest flex items-center justify-between">
+                    <span>{t('reports_analytics') || 'التقارير والإحصائيات'}</span>
+                    <button 
+                      onClick={() => updateSettings({ showFinancials: !settings.showFinancials })} 
+                      className="p-1 -mr-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+                      title={settings.showFinancials ? 'إخفاء الإحصائيات' : 'إظهار الإحصائيات'}
+                    >
+                      {settings.showFinancials ? <Eye size={16} /> : <EyeOff size={16} />}
+                    </button>
+                  </div>
+                  {reportsSubpages.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab('reports');
+                        setTimeout(() => window.dispatchEvent(new CustomEvent('open-analytics-tab', { detail: tab.id })), 100);
+                        setMobileMenuOpen(false);
+                      }}
+                      className="flex w-full items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                    >
+                      <tab.icon size={20} className={activeTab === 'reports' ? 'text-brand-500' : 'text-zinc-400'} />
+                      <span className="font-medium">{tab.label}</span>
+                    </button>
+                  ))}
                 </div>
-                
-                <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-2" />
 
-                {otherTabs.filter(t => ['settings', 'draft-products', 'catalog-mode'].includes(t.id)).map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      if (tab.id === 'catalog-mode') {
-                        setIsCatalogMode(true);
-                      } else {
+                <div className="h-px bg-zinc-100 dark:bg-zinc-800 mx-3" />
+
+                {/* 3. أدوات وتتبع */}
+                <div className="space-y-1">
+                  <div className="px-3 pb-2 text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
+                    {t('smart_tracking') || 'أدوات مساعدة للتجارة'}
+                  </div>
+                  {otherTabs.filter(t => ['ai-assistant', 'monitored-products', 'shopping-list', 'invoice-calculator', 'draft-products'].includes(t.id)).map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
                         setActiveTab(tab.id);
-                      }
-                      setMobileMenuOpen(false);
-                    }}
-                    className={`flex w-full items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                      activeTab === tab.id
-                      ? 'bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400'
-                      : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800'
-                    }`}
-                  >
-                    <tab.icon size={20} />
-                    <span className="font-medium">{tab.label}</span>
-                  </button>
-                ))}
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                        activeTab === tab.id
+                        ? 'bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 font-bold'
+                        : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                      }`}
+                    >
+                      <tab.icon size={20} />
+                      <span className="font-medium">{tab.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="h-px bg-zinc-100 dark:bg-zinc-800 mx-3" />
+
+                {/* 4. تفضيلات النظام */}
+                <div className="space-y-1">
+                  <div className="px-3 pb-2 text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
+                    {t('system_settings') || 'تفضيلات وإعدادات'}
+                  </div>
+                  {otherTabs.filter(t => ['settings', 'catalog-mode'].includes(t.id)).map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        if (tab.id === 'catalog-mode') {
+                          setIsCatalogMode(true);
+                        } else {
+                          setActiveTab(tab.id);
+                        }
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                        activeTab === tab.id
+                        ? 'bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 font-bold'
+                        : 'text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                      }`}
+                    >
+                      <tab.icon size={20} />
+                      <span className="font-medium">{tab.label}</span>
+                    </button>
+                  ))}
+                </div>
+
               </nav>
             </motion.div>
           </div>
@@ -604,6 +547,9 @@ function AppContent() {
             </div>
             <div className={activeTab === 'draft-products' ? 'block' : 'hidden'}>
               {mountedTabs.has('draft-products') && <DraftProducts />}
+            </div>
+            <div className={activeTab === 'monitored-products' ? 'block' : 'hidden'}>
+              {mountedTabs.has('monitored-products') && <MonitoredProducts />}
             </div>
             <div className={activeTab === 'invoice-calculator' ? 'block' : 'hidden'}>
               {mountedTabs.has('invoice-calculator') && <InvoiceCalculator />}
