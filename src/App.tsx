@@ -304,7 +304,7 @@ function AppContent() {
       {!loading && !user && <Login />}
 
       {!loading && user && (
-        <div className="min-h-screen bg-[#F4F7FB] dark:bg-[#0B1121] font-sans transition-colors duration-300">
+        <div className={`flex flex-col bg-[#F4F7FB] dark:bg-[#0B1121] font-sans transition-colors duration-300 relative ${activeTab === 'ai-assistant' ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'}`}>
       {/* Navbar to match screenshot */}
       <header className="sticky top-0 z-40 bg-white shadow-sm dark:bg-[#121A2F]">
         <div className="mx-auto max-w-7xl px-4">
@@ -513,14 +513,14 @@ function AppContent() {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-7xl px-4 pt-4 pb-36 mb-safe sm:px-6 lg:px-8 min-h-[500px] relative">
+      <main className={`mx-auto max-w-7xl relative w-full flex-1 flex flex-col ${activeTab === 'ai-assistant' ? 'h-[calc(100dvh-4rem)] overflow-hidden p-0 pb-[96px] sm:px-6 lg:px-8 sm:pb-8' : 'px-4 pt-4 pb-36 mb-safe sm:px-6 lg:px-8 min-h-[500px]'}`}>
         <Suspense fallback={
-          <div className="flex flex-col items-center justify-center p-12 text-zinc-400">
+          <div className="flex flex-col items-center justify-center p-12 text-zinc-400 flex-1">
             <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} className="h-8 w-8 rounded-full border-2 border-zinc-200 border-t-brand-500 mb-4" />
             <span className="text-sm font-medium">{t('loading')}</span>
           </div>
         }>
-          <div className="w-full h-full relative">
+          <div className="w-full h-full relative flex-1 flex flex-col">
             <div className={activeTab === 'dashboard' ? 'block' : 'hidden'}>
               {mountedTabs.has('dashboard') && <Dashboard />}
             </div>
@@ -554,7 +554,7 @@ function AppContent() {
             <div className={activeTab === 'invoice-calculator' ? 'block' : 'hidden'}>
               {mountedTabs.has('invoice-calculator') && <InvoiceCalculator />}
             </div>
-            <div className={activeTab === 'ai-assistant' ? 'block' : 'hidden'}>
+            <div className={activeTab === 'ai-assistant' ? 'h-full flex-1 flex flex-col' : 'hidden'}>
               {mountedTabs.has('ai-assistant') && <AiAssistant />}
             </div>
             <div className={activeTab === 'settings' ? 'block' : 'hidden'}>

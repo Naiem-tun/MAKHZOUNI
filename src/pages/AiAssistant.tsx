@@ -20,7 +20,10 @@ import {
   Layers,
   HelpCircle,
   Package,
-  Calendar
+  Calendar,
+  ChevronDown,
+  ChevronUp,
+  SlidersHorizontal
 } from 'lucide-react';
 import { useCategories } from '../hooks/useCategories';
 import { safeParseDate } from '../lib/utils';
@@ -53,6 +56,7 @@ export default function AiAssistant() {
   const [selectedProduct2, setSelectedProduct2] = useState<string>('');
   const [compareCategoryFilter, setCompareCategoryFilter] = useState<string>('all');
   const [compareSearchFilter, setCompareSearchFilter] = useState<string>('');
+  const [isFocusPanelExpanded, setIsFocusPanelExpanded] = useState<boolean>(false);
   
   const [messages, setMessages] = useState<Message[]>(() => {
     const saved = localStorage.getItem(`makhzouni_ai_chat_${user?.uid || 'default'}`);
@@ -407,235 +411,282 @@ _${error.message || 'خطأ غير معروف'}_
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-12rem)] md:h-[calc(100vh-14rem)] bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200/60 dark:border-zinc-800 shadow-sm overflow-hidden" id="ai-assistant-page">
-      {/* Page Header */}
-      <div className="flex items-center justify-between p-4 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-brand-50 rounded-xl dark:bg-brand-900/20 text-brand-600 dark:text-brand-400">
-            <Sparkles size={20} className="animate-pulse" />
+    <div className="flex flex-col flex-1 h-full w-full sm:mt-4 bg-white dark:bg-zinc-900 sm:rounded-2xl border-0 sm:border border-zinc-200/60 dark:border-zinc-800 shadow-xl overflow-hidden" id="ai-assistant-page">
+      {/* Non-scrolling Header & Focus Panel Wrapper */}
+      <div className="flex flex-col shrink-0 bg-white dark:bg-zinc-900 border-b border-zinc-150 dark:border-zinc-800/85 relative z-20">
+        {/* Page Header */}
+        <div className="flex items-center justify-between p-3 sm:p-5 border-b border-zinc-100 dark:border-zinc-800 bg-gradient-to-r from-zinc-50 to-white dark:from-zinc-900/80 dark:to-zinc-900 backdrop-blur-sm relative z-10 shadow-sm">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="relative p-2.5 bg-brand-50 rounded-xl dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 overflow-hidden group">
+              <div className="absolute inset-0 bg-brand-400/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+              <Sparkles size={22} className="relative z-10 animate-pulse" />
+            </div>
+            <div>
+              <h1 className="text-sm sm:text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                الوكيل الذكي
+                <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400 font-medium">BETA</span>
+              </h1>
+              <p className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 max-w-[200px] sm:max-w-md truncate sm:whitespace-normal">مساعد إحصائيات وقارئ محادثات ذكي يمنحك بيانات وإضافات فورية</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-base font-bold text-zinc-900 dark:text-white">الوكيل الذكي ✨</h1>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">مساعد إحصائيات وقارئ محادثات ذكي يمنحك بيانات وإضافات فورية</p>
-          </div>
-        </div>
-        <button
-          onClick={clearChatMemory}
-          className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center justify-center"
-          title="مسح المحادثة بالكامل"
+          <button
+            onClick={clearChatMemory}
+            className="p-2.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all flex items-center justify-center hover:scale-105 active:scale-95"
+            title="مسح المحادثة بالكامل"
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>      {/* Assistant Focus Panel (Collapsible) */}
+      <div className="bg-zinc-50/60 dark:bg-zinc-900/40 border-b border-zinc-150 dark:border-zinc-800/80 transition-all duration-300">
+        {/* Compact Header */}
+        <div 
+          onClick={() => setIsFocusPanelExpanded(!isFocusPanelExpanded)}
+          className="flex items-center justify-between px-3 py-2 sm:px-5 bg-white dark:bg-zinc-900 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors"
         >
-          <Trash2 size={18} />
-        </button>
-      </div>
-
-      {/* Info Notice Badge */}
-      <div className="px-4 py-2 bg-blue-50/60 dark:bg-blue-950/10 border-b border-blue-100/40 dark:border-blue-900/20 flex items-center gap-2 text-xs text-blue-700 dark:text-blue-400">
-        <Info size={14} className="shrink-0" />
-        <span>احصل على مقارنات فورية وتوجيه استثماري دقيق للأصناف ووفر استهلاك الـ Tokens بتحديد مجال التركيز.</span>
-      </div>
-
-      {/* Assistant Focus Panel */}
-      <div className="px-4 py-3 bg-zinc-50/70 dark:bg-zinc-800/20 border-b border-zinc-150 dark:border-zinc-800 flex flex-col gap-2.5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-            <Layers size={14} className="text-brand-500 animate-pulse" />
-            نطاق تركيز المساعد (توفير الـ Tokens وتعميق دقة القرار):
-          </span>
-          <div className="flex gap-1.5 self-start sm:self-auto">
-            <button
-              type="button"
-              onClick={() => {
-                setAssistantMode('all');
-                setSelectedCategory('all');
-                setSelectedProduct1('');
-                setSelectedProduct2('');
-              }}
-              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-all ${
-                assistantMode === 'all' 
-                  ? 'bg-brand-600 text-white shadow-xs' 
-                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-650 hover:bg-zinc-200 dark:hover:bg-zinc-750 dark:text-zinc-350'
-              }`}
-            >
-              كامل المحل
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setAssistantMode('category');
-                setSelectedProduct1('');
-                setSelectedProduct2('');
-              }}
-              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-all ${
-                assistantMode === 'category' 
-                  ? 'bg-brand-600 text-white shadow-xs' 
-                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-650 hover:bg-zinc-200 dark:hover:bg-zinc-750 dark:text-zinc-350'
-              }`}
-            >
-              فئة محددة 📂
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setAssistantMode('compare');
-                setSelectedCategory('all');
-              }}
-              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-all ${
-                assistantMode === 'compare' 
-                  ? 'bg-brand-600 text-white shadow-xs' 
-                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-650 hover:bg-zinc-200 dark:hover:bg-zinc-750 dark:text-zinc-350'
-              }`}
-            >
-              مقارنة صنفين ⚖️
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setAssistantMode('monitored');
-                setSelectedCategory('all');
-                setSelectedProduct1('');
-                setSelectedProduct2('');
-              }}
-              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-all ${
-                assistantMode === 'monitored' 
-                  ? 'bg-brand-600 text-white shadow-xs' 
-                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-650 hover:bg-zinc-200 dark:hover:bg-zinc-750 dark:text-zinc-350'
-              }`}
-            >
-              المنتجات المراقبة 👁️
-            </button>
+          <div className="flex items-center gap-2 max-w-[80%]">
+            <SlidersHorizontal size={14} className="text-zinc-500 dark:text-zinc-450 shrink-0" />
+            <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 shrink-0">تركيز المساعد:</span>
+            
+            {/* Active Mode Status Badge */}
+            <span className={`text-[10px] px-2 py-0.5 rounded-lg font-bold flex items-center gap-1 shadow-xs border truncate ${
+              assistantMode === 'all' 
+                ? 'bg-brand-50 border-brand-100 text-brand-700 dark:bg-brand-950/25 dark:border-brand-900/30 dark:text-brand-400' 
+                : assistantMode === 'category'
+                ? 'bg-amber-50 border-amber-100 text-amber-700 dark:bg-amber-950/25 dark:border-amber-900/30 dark:text-amber-400'
+                : assistantMode === 'compare'
+                ? 'bg-blue-50 border-blue-100 text-blue-700 dark:bg-blue-950/25 dark:border-blue-900/30 dark:text-blue-400'
+                : 'bg-emerald-50 border-emerald-100 text-emerald-700 dark:bg-emerald-950/25 dark:border-emerald-900/30 dark:text-emerald-400'
+            }`}>
+              {assistantMode === 'all' && 'كامل المحل 🏪'}
+              {assistantMode === 'category' && `فئة: ${selectedCategory === 'all' ? 'الكل' : selectedCategory} 📂`}
+              {assistantMode === 'compare' && `مقارنة: ${selectedProduct1 ? selectedProduct1.slice(0, 7) + '..' : 'A'} ⚖️ ${selectedProduct2 ? selectedProduct2.slice(0, 7) + '..' : 'B'}`}
+              {assistantMode === 'monitored' && 'المنتجات المراقبة 👁️'}
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-1 text-zinc-500 dark:text-zinc-400">
+            <span className="text-[10px] sm:text-xs font-semibold">
+              {isFocusPanelExpanded ? 'إخفاء' : 'تخصيص'}
+            </span>
+            {isFocusPanelExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </div>
         </div>
 
-        {assistantMode === 'category' && (
-          <div className="flex flex-col gap-1.5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-2.5 rounded-xl transition-all">
-            <label className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">اختر الفئة المستهدفة للتحليل:</label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-3 py-1.5 bg-zinc-50 dark:bg-zinc-800 text-xs text-zinc-850 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-lg outline-none focus:ring-1 focus:ring-brand-500"
+        {/* Collapsible Content */}
+        <AnimatePresence>
+          {isFocusPanelExpanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden border-t border-zinc-150 dark:border-zinc-800 bg-zinc-50/40 dark:bg-zinc-900/10 px-3 py-2.5 space-y-3"
             >
-              <option value="all">كل الفئات (يتم إرسال كامل المخزون العريض)</option>
-              {categories.map((c, index) => (
-                <option key={`${c.id || c.name}-${index}`} value={c.name}>{c.name}</option>
-              ))}
-            </select>
-            <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-relaxed font-medium">
-              💡 حالياً ستتم الأسئلة والنقاش والتحليل بتركيز كامل على منتجات فئة <strong>"{selectedCategory === 'all' ? 'الكل' : selectedCategory}"</strong> فقط! هذا يمنع تجاوز الحد الأقصى للـ Tokens ويمنحك إجابة مركزة وسريعة.
-            </p>
-          </div>
-        )}
+              <div className="flex gap-1.5 overflow-x-auto custom-scrollbar pb-1 w-full">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAssistantMode('all');
+                    setSelectedCategory('all');
+                    setSelectedProduct1('');
+                    setSelectedProduct2('');
+                  }}
+                  className={`px-3 py-1.5 shrink-0 text-[11px] font-bold rounded-xl transition-all flex items-center justify-center ${
+                    assistantMode === 'all' 
+                      ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20' 
+                      : 'bg-zinc-105 darK:bg-zinc-800 text-zinc-650 hover:bg-zinc-200 dark:hover:bg-zinc-700 dark:text-zinc-300'
+                  }`}
+                >
+                  كامل المحل
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAssistantMode('category');
+                    setSelectedProduct1('');
+                    setSelectedProduct2('');
+                  }}
+                  className={`px-3 py-1.5 shrink-0 text-[11px] font-bold rounded-xl transition-all flex items-center justify-center ${
+                    assistantMode === 'category' 
+                      ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20' 
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 dark:text-zinc-300'
+                  }`}
+                >
+                  فئة محددة 📂
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAssistantMode('compare');
+                    setSelectedCategory('all');
+                  }}
+                  className={`px-3 py-1.5 shrink-0 text-[11px] font-bold rounded-xl transition-all flex items-center justify-center ${
+                    assistantMode === 'compare' 
+                      ? 'bg-blue-500 text-white shadow-md shadow-blue-500/20' 
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 dark:text-zinc-300'
+                  }`}
+                >
+                  مقارنة صنفين ⚖️
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAssistantMode('monitored');
+                    setSelectedCategory('all');
+                    setSelectedProduct1('');
+                    setSelectedProduct2('');
+                  }}
+                  className={`px-3 py-1.5 shrink-0 text-[11px] font-bold rounded-xl transition-all flex items-center justify-center ${
+                    assistantMode === 'monitored' 
+                      ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' 
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 dark:text-zinc-300'
+                  }`}
+                >
+                  المنتجات المراقبة 👁️
+                </button>
+              </div>
 
-        {assistantMode === 'monitored' && (
-          <div className="flex flex-col gap-1.5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-2.5 rounded-xl transition-all">
-            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 leading-relaxed font-semibold">
-              ✨ لقد تم إعداد الذكاء الاصطناعي للتركيز التام على وتيرة مبيعات وضعف المنتجات التي وضعتها تحت المراقبة. يمكن للوكيل الآن إعطائك نظرة وتحليل دقيق بخصوصها!
-            </p>
-          </div>
-        )}
-
-        {assistantMode === 'compare' && (
-          <div className="flex flex-col gap-2.5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-2.5 rounded-xl transition-all">
-            <div className="flex flex-col gap-1.5 p-2 bg-zinc-50/50 dark:bg-zinc-800/20 rounded-lg border border-zinc-100/50 dark:border-zinc-800">
-              <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
-                ⚡ لتسهيل البحث، فلتر القوائم بالبحث أو الفئة:
-              </span>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[9px] text-zinc-450 dark:text-zinc-500">الفئة:</span>
+              {assistantMode === 'category' && (
+                <div className="flex flex-col gap-1.5 bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800 p-2.5 rounded-xl transition-all">
+                  <label className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">اختر الفئة المستهدفة للتحليل:</label>
                   <select
-                    value={compareCategoryFilter}
-                    onChange={(e) => setCompareCategoryFilter(e.target.value)}
-                    className="w-full px-2 py-1 bg-white dark:bg-zinc-800 text-[11px] text-zinc-800 dark:text-zinc-250 border border-zinc-200 dark:border-zinc-700 rounded-md outline-none focus:ring-1 focus:ring-brand-500"
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-zinc-50 dark:bg-zinc-800 text-xs text-zinc-850 dark:text-zinc-200 border border-zinc-205 dark:border-zinc-700 rounded-lg outline-none focus:ring-1 focus:ring-brand-500"
                   >
-                    <option value="all">كل الفئات 📂</option>
+                    <option value="all">كل الفئات (يتم إرسال كامل المخزون العريض)</option>
                     {categories.map((c, index) => (
                       <option key={`${c.id || c.name}-${index}`} value={c.name}>{c.name}</option>
                     ))}
                   </select>
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                    💡 يقلل هذا نطاق البيانات المستهلكة ويمنحك إجابات فائقة الدقة والسرعة بخصوص فئة منتجات واحدة.
+                  </p>
                 </div>
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[9px] text-zinc-450 dark:text-zinc-500">ابحث بالاسم:</span>
-                  <input
-                    type="text"
-                    placeholder="اكتب للبحث..."
-                    value={compareSearchFilter}
-                    onChange={(e) => setCompareSearchFilter(e.target.value)}
-                    className="w-full px-2 py-1 bg-white dark:bg-zinc-800 text-[11px] text-zinc-800 dark:text-zinc-250 border border-zinc-200 dark:border-zinc-700 rounded-md outline-none focus:ring-1 focus:ring-brand-500"
-                  />
+              )}
+
+              {assistantMode === 'monitored' && (
+                <div className="flex flex-col gap-1.5 bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800 p-2.5 rounded-xl transition-all">
+                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 leading-relaxed font-semibold">
+                    ✨ يركز الوكيل الآن كلياً على مبيعات وجودة المخزون للمنتجات المحددة تحت المراقبة.
+                  </p>
                 </div>
-              </div>
-            </div>
+              )}
 
-            <label className="text-[11px] font-semibold text-zinc-650 dark:text-zinc-350">اختر السلعتين اللتين تود اتخاذ قرار استثماري والتحليل المقارن بينهما:</label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div className="flex flex-col gap-1">
-                <span className="text-[9px] text-zinc-400">المنتج الأول (A):</span>
-                <select
-                  value={selectedProduct1}
-                  onChange={(e) => setSelectedProduct1(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-zinc-50 dark:bg-zinc-800 text-xs text-zinc-850 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-lg outline-none focus:ring-1 focus:ring-brand-500"
-                >
-                  <option value="">-- اختر السلعة الأولى --</option>
-                  {filteredCompareProducts.map((p, index) => (
-                    <option key={`${p.id}-${index}`} value={p.name}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
+              {assistantMode === 'compare' && (
+                <div className="flex flex-col gap-2.5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-2.5 rounded-xl transition-all">
+                  <div className="flex flex-col gap-1.5 p-2 bg-zinc-50/50 dark:bg-zinc-800/20 rounded-lg border border-zinc-100/50 dark:border-zinc-800">
+                    <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
+                      ⚡ لتسهيل البحث، فلتر القوائم بالبحث أو الفئة:
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[9px] text-zinc-450 dark:text-zinc-500">الفئة:</span>
+                        <select
+                          value={compareCategoryFilter}
+                          onChange={(e) => setCompareCategoryFilter(e.target.value)}
+                          className="w-full px-2 py-1 bg-white dark:bg-zinc-800 text-[11px] text-zinc-800 dark:text-zinc-250 border border-zinc-200 dark:border-zinc-700 rounded-md outline-none focus:ring-1 focus:ring-brand-500"
+                        >
+                          <option value="all">كل الفئات 📂</option>
+                          {categories.map((c, index) => (
+                            <option key={`${c.id || c.name}-${index}`} value={c.name}>{c.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[9px] text-zinc-450 dark:text-zinc-500">ابحث بالاسم:</span>
+                        <input
+                          type="text"
+                          placeholder="اكتب للبحث..."
+                          value={compareSearchFilter}
+                          onChange={(e) => setCompareSearchFilter(e.target.value)}
+                          className="w-full px-2 py-1 bg-white dark:bg-zinc-800 text-[11px] text-zinc-800 dark:text-zinc-250 border border-zinc-200 dark:border-zinc-700 rounded-md outline-none focus:ring-1 focus:ring-brand-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
 
-              <div className="flex flex-col gap-1">
-                <span className="text-[9px] text-zinc-400">المنتج الثاني (B):</span>
-                <select
-                  value={selectedProduct2}
-                  onChange={(e) => setSelectedProduct2(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-zinc-50 dark:bg-zinc-800 text-xs text-zinc-850 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-lg outline-none focus:ring-1 focus:ring-brand-500"
-                >
-                  <option value="">-- اختر السلعة الثانية --</option>
-                  {filteredCompareProducts.map((p, index) => (
-                    <option key={`${p.id}-${index}`} value={p.name}>{p.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            {selectedProduct1 && selectedProduct2 ? (
-              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 leading-relaxed font-semibold">
-                ✨ تم إعداد الذكاء الاصطناعي للمقارنة المباشرة والرياضية بين <strong>"{selectedProduct1}"</strong> و <strong>"{selectedProduct2}"</strong>. اسأله الآن: "أي المنتجَين تنصحني بزيادة الكمية منه ولماذا؟"
-              </p>
-            ) : (
-              <p className="text-[10px] text-zinc-400 leading-relaxed font-medium">
-                🔒 يرجى اختيار السلعتين من القائمة المنسدلة أعلاه لتزويد المساعد بالمعلومات الحصرية الخاصة بهما فوراً.
-              </p>
-            )}
-          </div>
-        )}
+                  <label className="text-[11px] font-semibold text-zinc-650 dark:text-zinc-350">اختر السلعتين اللتين تود اتخاذ قرار استثماري والتحليل المقارن بينهما:</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[9px] text-zinc-400">المنتج الأول (A):</span>
+                      <select
+                        value={selectedProduct1}
+                        onChange={(e) => setSelectedProduct1(e.target.value)}
+                        className="w-full px-2.5 py-1.5 bg-zinc-50 dark:bg-zinc-800 text-xs text-zinc-850 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-lg outline-none focus:ring-1 focus:ring-brand-500"
+                      >
+                        <option value="">-- اختر السلعة الأولى --</option>
+                        {filteredCompareProducts.map((p, index) => (
+                          <option key={`${p.id}-${index}`} value={p.name}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[9px] text-zinc-400">المنتج الثاني (B):</span>
+                      <select
+                        value={selectedProduct2}
+                        onChange={(e) => setSelectedProduct2(e.target.value)}
+                        className="w-full px-2.5 py-1.5 bg-zinc-50 dark:bg-zinc-800 text-xs text-zinc-850 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 rounded-lg outline-none focus:ring-1 focus:ring-brand-500"
+                      >
+                        <option value="">-- اختر السلعة الثانية --</option>
+                        {filteredCompareProducts.map((p, index) => (
+                          <option key={`${p.id}-${index}`} value={p.name}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  {selectedProduct1 && selectedProduct2 ? (
+                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 leading-relaxed font-semibold">
+                      ✨ تم إعداد الذكاء الاصطناعي للمقارنة المباشرة والرياضية بين <strong>"{selectedProduct1}"</strong> و <strong>"{selectedProduct2}"</strong>. اسأله الآن: "أي المنتجَين تنصحني بزيادة الكمية منه ولماذا؟"
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-zinc-400 leading-relaxed font-medium">
+                      🔒 يرجى اختيار السلعتين من القائمة المنسدلة أعلاه لتزويد المساعد بالمعلومات الحصرية الخاصة بهما فوراً.
+                    </p>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
       </div>
 
       {/* Messages Scroll Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
-        <AnimatePresence initial={false}>
-          {messages.map((msg, index) => (
-            <motion.div
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 scroll-smooth bg-zinc-50/50 dark:bg-zinc-900/50 custom-scrollbar relative">
+        {/* Aesthetic Background Decoration */}
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-40 dark:opacity-20 flex justify-center items-center">
+          <div className="w-[500px] h-[500px] bg-brand-200/40 rounded-full blur-[100px] absolute top-[-100px] right-[-100px]" />
+          <div className="w-[400px] h-[400px] bg-indigo-200/40 rounded-full blur-[100px] absolute bottom-[-50px] left-[-100px]" />
+        </div>
+        
+        <div className="relative z-10 space-y-6">
+          <AnimatePresence initial={false}>
+            {messages.map((msg, index) => (
+              <motion.div
               key={index}
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2 }}
-              className={`flex gap-3 max-w-[85%] ${
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              className={`flex gap-3 max-w-[90%] sm:max-w-[80%] ${
                 msg.role === 'user' ? 'mr-auto flex-row-reverse' : 'ml-auto'
               }`}
             >
-              <div className={`p-2.5 h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${
+              <div className={`mt-auto mb-1 p-2 h-8 w-8 sm:h-10 sm:w-10 rounded-full sm:rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
                 msg.role === 'user' 
-                  ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300' 
-                  : 'bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400'
+                  ? 'bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-900' 
+                  : 'bg-brand-500 text-white'
               }`}>
-                {msg.role === 'user' ? <User size={18} /> : <Bot size={18} />}
+                {msg.role === 'user' ? <User size={16} className="sm:w-[18px] sm:h-[18px]" /> : <Bot size={16} className="sm:w-[18px] sm:h-[18px]" />}
               </div>
 
               <div className="space-y-3">
                 {/* Text Bubble */}
-                <div className={`px-4 py-3 rounded-2xl leading-relaxed text-sm whitespace-pre-wrap ${
+                <div className={`px-4 sm:px-5 py-3 sm:py-4 rounded-3xl leading-relaxed text-sm whitespace-pre-wrap ${
                   msg.role === 'user'
-                    ? 'bg-zinc-150 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100 rounded-tr-none'
-                    : 'bg-zinc-50 border border-zinc-100 text-zinc-800 dark:bg-zinc-900/40 dark:border-zinc-800 dark:text-zinc-200 rounded-tl-none'
+                    ? 'bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-bl-sm sm:rounded-br-3xl sm:rounded-bl-sm shadow-sm'
+                    : 'bg-white dark:bg-zinc-800/80 border border-zinc-200/60 dark:border-zinc-700/60 text-zinc-800 dark:text-zinc-200 rounded-br-sm sm:rounded-bl-3xl sm:rounded-br-sm shadow-sm'
                 }`}>
                   {msg.content}
                 </div>
@@ -726,46 +777,51 @@ _${error.message || 'خطأ غير معروف'}_
         </AnimatePresence>
         
         {isLoading && (
-          <div className="flex gap-3 max-w-[80%] ml-auto">
-            <div className="p-2.5 h-10 w-10 rounded-xl bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0">
-              <Bot size={18} className="animate-bounce" />
+          <div className="flex gap-3 max-w-[90%] sm:max-w-[80%] ml-auto">
+            <div className="mt-auto mb-1 p-2 h-8 w-8 sm:h-10 sm:w-10 rounded-full sm:rounded-2xl flex items-center justify-center shrink-0 shadow-sm bg-brand-500 text-white">
+              <Bot size={16} className="sm:w-[18px] sm:h-[18px] animate-bounce" />
             </div>
-            <div className="bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-100 dark:border-zinc-800 px-4 py-3 rounded-2xl rounded-tl-none">
+            <div className="px-4 sm:px-5 py-3 sm:py-4 rounded-3xl bg-white dark:bg-zinc-800/80 border border-zinc-200/60 dark:border-zinc-700/60 shadow-sm rounded-br-sm sm:rounded-bl-3xl sm:rounded-br-sm flex items-center justify-center h-full">
               <div className="flex gap-1.5 items-center py-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-bounce delay-100" />
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-bounce delay-200" />
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-bounce delay-300" />
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-bounce delay-100" />
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-bounce delay-200" />
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-bounce delay-300" />
               </div>
             </div>
           </div>
         )}
         <div ref={chatEndRef} />
+        </div>
       </div>
 
       {/* Input Message Form */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          sendMessage();
-        }}
-        className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex gap-2 items-center"
-      >
-        <input
-          type="text"
-          value={inputMessage}
-          onChange={(e) => setInputMessage(e.target.value)}
-          placeholder="اسأل الوكيل عن أي معلومات، أو سجل منتجات ومصاريف بصوتك أو كتابة..."
-          className="flex-1 px-4 py-3 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-xl placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-brand-500 border border-zinc-200/60 dark:border-zinc-800 text-sm"
-          disabled={isLoading}
-        />
-        <button
-          type="submit"
-          disabled={isLoading || !inputMessage.trim()}
-          className="p-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer font-bold active:scale-95 hover:shadow"
+      <div className="p-3 sm:p-5 border-t border-zinc-100 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            sendMessage();
+          }}
+          className="relative max-w-4xl mx-auto flex gap-2 items-center"
         >
-          <Send size={18} className="translate-x-[-1px] rotate-180" />
-        </button>
-      </form>
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              placeholder="اسأل الوكيل عن أي معلومات، أو سجل منتجات ومصاريف بصوتك أو كتابة..."
+              className="w-full pl-14 pr-4 py-3 sm:py-4 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-2xl placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-500/50 border border-zinc-200/80 dark:border-zinc-700/80 text-sm shadow-sm transition-all"
+              disabled={isLoading}
+            />
+            <button
+              type="submit"
+              disabled={isLoading || !inputMessage.trim()}
+              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 sm:p-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer font-bold active:scale-95 hover:shadow-md"
+            >
+              <Send size={16} className="translate-x-[-1px] rotate-180" />
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

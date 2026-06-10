@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, doc, deleteDoc, updateDoc, setDoc, addDoc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
-import { Plus, Eye, History, Trash2, CheckCircle2, TrendingDown, TrendingUp, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Plus, Eye, History, Trash2, CheckCircle2, TrendingDown, TrendingUp, AlertTriangle, ArrowRight, Search, ChevronDown } from 'lucide-react';
 import { MonitoredProduct, MonitoredProductHistory, Product } from '../types';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -195,6 +195,11 @@ const MonitoredCard: React.FC<{ item: MonitoredProduct, onCheck: () => void, onD
 const AddMonitoredModal: React.FC<{ onClose: () => void, products: Product[], user: any }> = ({ onClose, products, user }) => {
   const [selectedId, setSelectedId] = useState('');
   const [initialQty, setInitialQty] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const selectedProduct = products.find(p => p.id === selectedId);
 
   const handleSave = async () => {
     if (!selectedId || !initialQty) return;
@@ -222,20 +227,60 @@ const AddMonitoredModal: React.FC<{ onClose: () => void, products: Product[], us
       <div className="bg-white dark:bg-zinc-900 rounded-xl p-6 w-full max-w-md border border-zinc-200 dark:border-zinc-800" onClick={e => e.stopPropagation()}>
         <h2 className="text-xl font-bold mb-4">إضافة منتج للمراقبة</h2>
         
-        <label className="block mb-4">
+        <div className="block mb-4 relative">
           <span className="block text-sm font-medium mb-1">المنتج</span>
-          <select 
-            value={selectedId} onChange={e => {
-              setSelectedId(e.target.value);
-              const prod = products.find(p => p.id === e.target.value);
-              if (prod) setInitialQty(prod.quantity.toString());
-            }}
-            className="w-full p-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 outline-none focus:border-brand-500"
-          >
-            <option value="">-- اختر منتجاً --</option>
-            {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        </label>
+          <div className="relative">
+            <button 
+              type="button"
+              className="w-full p-3 text-right flex justify-between items-center rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 outline-none focus:border-brand-500"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            >
+              <span className={selectedProduct ? 'text-zinc-900 dark:text-zinc-100 line-clamp-1 text-right text-left' : 'text-zinc-400'}>
+                {selectedProduct ? selectedProduct.name : '-- اختر منتجاً --'}
+              </span>
+              <ChevronDown size={18} className={`text-zinc-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {isDropdownOpen && (
+              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg overflow-hidden flex flex-col">
+                <div className="p-2 border-b border-zinc-100 dark:border-zinc-700">
+                  <div className="relative">
+                    <Search size={16} className="absolute right-2.5 top-2.5 text-zinc-400" />
+                    <input 
+                      type="text" 
+                      placeholder="ابحث عن منتج..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full p-2 pr-8 pl-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-md outline-none text-sm focus:border-brand-500"
+                      onClick={(e) => e.stopPropagation()}
+                      autoFocus
+                    />
+                  </div>
+                </div>
+                <div className="max-h-48 overflow-y-auto">
+                  {filteredProducts.length === 0 ? (
+                    <div className="p-3 text-center text-zinc-500 text-sm">لا توجد منتجات متطابقة</div>
+                  ) : (
+                    filteredProducts.map(p => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedId(p.id!);
+                          setInitialQty(p.quantity.toString());
+                          setIsDropdownOpen(false);
+                          setSearchQuery('');
+                        }}
+                        className={`w-full text-right p-3 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors line-clamp-1 ${selectedId === p.id ? 'bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 font-bold' : ''}`}
+                      >
+                        {p.name}
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
 
         <label className="block mb-6">
           <span className="block text-sm font-medium mb-1">الكمية الابتدائية (للإنطلاق من الوقت الحالي)</span>
