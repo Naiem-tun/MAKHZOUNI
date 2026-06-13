@@ -25,7 +25,9 @@ import {
   ArrowUpFromLine,
   Trash2,
   Check,
-  X
+  X,
+  CopyPlus,
+  Ghost
 } from 'lucide-react';
 import { Card } from '../components/UI';
 import { cn, formatCurrency, safeParseFloat, safeDispatchEvent, safeParseDate, formatAppDate } from '../lib/utils';
@@ -159,6 +161,8 @@ const Dashboard = memo(() => {
     const totalSupplierDebts = debts.filter(d => d.type === 'payable').reduce((sum, d) => sum + (Number(d.totalAmount) || 0), 0);
 
     const totalSupplierPurchasesValue = supplierTransactions.reduce((acc, t) => acc + (t.amount || 0), 0);
+    const totalAllPurchasesValue = allPurchases.reduce((acc, p) => acc + (p.amount || 0), 0);
+    const unregisteredPurchasesValue = Math.max(0, totalAllPurchasesValue - totalSupplierPurchasesValue);
 
     const todayStr = safeParseDate(new Date()).toDateString();
     const todayPurchases = allPurchases.filter(p => safeParseDate(p.date).toDateString() === todayStr);
@@ -184,6 +188,8 @@ const Dashboard = memo(() => {
       totalCustomerDebts,
       totalSupplierDebts,
       totalSupplierPurchasesValue,
+      totalAllPurchasesValue,
+      unregisteredPurchasesValue,
       todayPurchasesTotal,
       movementHistory
     };

@@ -23,6 +23,8 @@ const resources = {
       "customer_debts": "ديون عملاء",
       "supplier_debts": "ديون موردين",
       "total_supplier_purchases": "إجمالي المشتريات من الموردين",
+      "total_all_purchases": "إجمالي كل المشتريات",
+      "unregistered_purchases": "مشتريات مورد غير معروف",
       "purchase_movement": "حركة المشتريات",
       "today_total": "إجمالي اليوم",
       "start_supplier_session": "تسجيل حصة",
