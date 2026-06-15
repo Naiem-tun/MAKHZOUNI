@@ -3,8 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { formatAppDate, safeParseDate, formatCurrency } from '../../lib/utils';
 import { Transaction } from '../../types';
 import * as html2pdf from 'html2pdf.js';
-import { X, ExternalLink } from 'lucide-react';
+import { X, ExternalLink, Loader2 } from 'lucide-react';
 import { useAppContext } from '../../AppContext';
+import { collection, query, getDocs, orderBy, where } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 interface PrintPurchasesModalProps {
   isOpen: boolean;
@@ -16,42 +18,63 @@ interface PrintPurchasesModalProps {
 export function PrintPurchasesModal({
   isOpen,
   onClose,
-  purchases,
+  purchases, // keeping for fallback or types
   storeName
 }: PrintPurchasesModalProps) {
   const { t } = useTranslation();
-  const { settings, showToast } = useAppContext();
+  const { user, settings, showToast } = useAppContext();
   const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'all' | 'custom'>('week');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [isPrinting, setIsPrinting] = useState(false);
 
   if (!isOpen) return null;
 
   const handlePrint = async () => {
+    if (!user) return;
     try {
+      setIsPrinting(true);
       showToast('جاري تحضير التقرير...', 'info');
+
+      // Fetch all purchases directly from Firestore instead of relying on the limited prop
+      const purchasesQuery = query(collection(db, `users/${user.uid}/purchases`), orderBy('date', 'desc'));
+      const snap = await getDocs(purchasesQuery);
+      
+      const allPurchases = snap.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          productId: data.productId,
+          productName: data.productName,
+          quantityChange: data.qtyAdded,
+          supplierName: data.supplierName,
+          amount: data.amount || 0,
+          price: data.qtyAdded > 0 ? (data.amount / data.qtyAdded) : 0,
+          date: data.date
+        } as Transaction;
+      });
 
       // Filter purchases based on period
       const now = new Date();
-      let filteredPurchases = purchases;
+      let filteredPurchases = allPurchases;
 
       if (period === 'today') {
         const todayStr = safeParseDate(now).toDateString();
-        filteredPurchases = purchases.filter(p => safeParseDate(p.date).toDateString() === todayStr);
+        filteredPurchases = allPurchases.filter(p => safeParseDate(p.date).toDateString() === todayStr);
       } else if (period === 'week') {
         const aWeekAgo = new Date();
         aWeekAgo.setDate(now.getDate() - 7);
-        filteredPurchases = purchases.filter(p => safeParseDate(p.date) >= aWeekAgo);
+        filteredPurchases = allPurchases.filter(p => safeParseDate(p.date) >= aWeekAgo);
       } else if (period === 'month') {
         const aMonthAgo = new Date();
         aMonthAgo.setMonth(now.getMonth() - 1);
-        filteredPurchases = purchases.filter(p => safeParseDate(p.date) >= aMonthAgo);
+        filteredPurchases = allPurchases.filter(p => safeParseDate(p.date) >= aMonthAgo);
       } else if (period === 'custom' && startDate && endDate) {
         const start = new Date(startDate);
         start.setHours(0, 0, 0, 0);
         const end = new Date(endDate);
         end.setHours(23, 59, 59, 999);
-        filteredPurchases = purchases.filter(p => {
+        filteredPurchases = allPurchases.filter(p => {
           const pd = safeParseDate(p.date);
           return pd >= start && pd <= end;
         });
@@ -69,12 +92,12 @@ export function PrintPurchasesModal({
       let tableHtml = "";
       filteredPurchases.forEach((p, idx) => {
         tableHtml += `
-          <tr style="border-bottom: 1px solid #e5e7eb;">
+          <tr style="border-bottom: 1px solid #e5e7eb; page-break-inside: avoid;">
             <td style="padding: 10px;text-align: right;font-size: 13px;">${p.productName || 'غير معروف'}</td>
             <td style="padding: 10px;text-align: right;font-size: 13px;">${p.supplierName || 'مورد غير معروف'}</td>
             <td style="padding: 10px;text-align: center;font-size: 13px;">${p.quantityChange || 0}</td>
             <td style="padding: 10px;text-align: center;font-size: 13px;font-weight: 600;">${formatCurrency(p.amount || 0, settings.currency)}</td>
-            <td style="padding: 10px;text-align: left;font-size: 12px;color:#6b7280;">${formatAppDate(safeParseDate(p.date), settings.language, t)}</td>
+            <td style="padding: 10px;text-align: left;font-size: 12px;color:#6b7280;" dir="ltr">${formatAppDate(safeParseDate(p.date), settings.language, t)}</td>
           </tr>
         `;
       });
@@ -88,7 +111,7 @@ export function PrintPurchasesModal({
           </div>
           <div style="text-align: left;">
             <p style="font-size: 20px; font-weight: 800; color: #0284c7; margin: 0 0 4px 0;">${storeName}</p>
-            <p style="font-size: 12px; font-weight: 600; color: #71717a; margin: 0;">تاريخ التقرير: ${reportDate}</p>
+            <p style="font-size: 12px; font-weight: 600; color: #71717a; margin: 0;">تاريخ التقرير: <span dir="ltr">${reportDate}</span></p>
           </div>
         </div>
         
@@ -124,7 +147,8 @@ export function PrintPurchasesModal({
         filename: `مشتريات-${titleStr.replace(/ /g, '_')}-${reportDate.replace(/\//g, '-')}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: 'avoid-all', before: '#page2el' }
       };
 
       // @ts-ignore
@@ -138,6 +162,8 @@ export function PrintPurchasesModal({
     } catch (error) {
       console.error(error);
       showToast('حدث خطأ أثناء طباعة التقرير', 'error');
+    } finally {
+      setIsPrinting(false);
     }
   };
 
@@ -149,7 +175,7 @@ export function PrintPurchasesModal({
       >
         <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-800/50">
           <h2 className="text-lg font-bold text-zinc-900 dark:text-white">طباعة تقرير المشتريات</h2>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors text-zinc-500 dark:text-zinc-400">
+          <button onClick={onClose} disabled={isPrinting} className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors text-zinc-500 dark:text-zinc-400">
             <X size={20} />
           </button>
         </div>
@@ -167,6 +193,7 @@ export function PrintPurchasesModal({
               ].map(opt => (
                 <button
                   key={opt.id}
+                  disabled={isPrinting}
                   onClick={() => setPeriod(opt.id as any)}
                   className={`py-3 px-2 rounded-xl text-xs font-bold transition-all border-2 ${
                     period === opt.id 
@@ -186,6 +213,7 @@ export function PrintPurchasesModal({
                   <label className="block text-[10px] font-bold text-zinc-500 mb-1">من تاريخ</label>
                   <input
                     type="date"
+                    disabled={isPrinting}
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                     dir="ltr"
@@ -196,6 +224,7 @@ export function PrintPurchasesModal({
                   <label className="block text-[10px] font-bold text-zinc-500 mb-1">إلى تاريخ</label>
                   <input
                     type="date"
+                    disabled={isPrinting}
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     dir="ltr"
@@ -208,10 +237,20 @@ export function PrintPurchasesModal({
           
           <button
             onClick={handlePrint}
-            className="w-full py-4 rounded-xl font-black text-sm bg-brand-600 hover:bg-brand-700 text-white shadow-lg shadow-brand-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            disabled={isPrinting || (period === 'custom' && (!startDate || !endDate))}
+            className="w-full py-4 rounded-xl font-black text-sm bg-brand-600 hover:bg-brand-700 text-white shadow-lg shadow-brand-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <ExternalLink size={18} />
-            توليد ملف PDF
+            {isPrinting ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                يتم التجهيز...
+              </>
+            ) : (
+              <>
+                <ExternalLink size={18} />
+                توليد ملف PDF
+              </>
+            )}
           </button>
         </div>
       </div>

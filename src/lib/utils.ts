@@ -75,7 +75,9 @@ export function formatAppDate(date: Date, language: string, t: any, options?: In
   if (date.getTime() === 0) {
     return t('unknown_date');
   }
-  return date.toLocaleDateString(language === 'ar' ? 'ar-TN' : 'en-GB', options);
+  const formatted = date.toLocaleDateString(language === 'ar' ? 'ar-TN' : 'en-GB', options);
+  // Remove invisible LTR/RTL marks that break numeric date rendering
+  return formatted.replace(/[\u200E\u200F\u061C\u202A-\u202C\u2066-\u2069]/g, '');
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {

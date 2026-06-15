@@ -41,7 +41,8 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
         filename:     filename,
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak:    { mode: 'avoid-all' }
       };
 
       // @ts-ignore
@@ -129,7 +130,7 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
             </thead>
             <tbody>
               {sortedItems.map((item: any, i: number) => (
-                <tr key={i} className="even:bg-[#fafbfc]">
+                <tr key={i} className="even:bg-[#fafbfc]" style={{ pageBreakInside: 'avoid' }}>
                   <td className="px-3 py-3 text-right border-b border-[#eeeeee]">{item.productName}</td>
                   <td className="px-3 py-3 text-right border-b border-[#eeeeee]">{item.salesCalculated}</td>
                   <td className="px-3 py-3 text-right border-b border-[#eeeeee]" dir="ltr">
