@@ -72,7 +72,7 @@ export function PrintPurchasesModal({
           <tr style="border-bottom: 1px solid #e5e7eb;">
             <td style="padding: 10px;text-align: right;font-size: 13px;">${p.productName || 'غير معروف'}</td>
             <td style="padding: 10px;text-align: right;font-size: 13px;">${p.supplierName || 'مورد غير معروف'}</td>
-            <td style="padding: 10px;text-align: center;font-size: 13px;">${p.qtyAdded || 0}</td>
+            <td style="padding: 10px;text-align: center;font-size: 13px;">${p.quantityChange || 0}</td>
             <td style="padding: 10px;text-align: center;font-size: 13px;font-weight: 600;">${formatCurrency(p.amount || 0, settings.currency)}</td>
             <td style="padding: 10px;text-align: left;font-size: 12px;color:#6b7280;">${formatAppDate(safeParseDate(p.date), settings.language, t)}</td>
           </tr>
@@ -128,7 +128,7 @@ export function PrintPurchasesModal({
       };
 
       // @ts-ignore
-      const html2pdfModule = html2pdf.default || html2pdf;
+      const html2pdfModule: any = html2pdf.default || html2pdf;
 
       await html2pdfModule().set(opt).from(wrapper.firstElementChild).save();
       
