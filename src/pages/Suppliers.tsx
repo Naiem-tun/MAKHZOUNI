@@ -5,8 +5,9 @@ import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, serverTimest
 import { db } from '../lib/firebase';
 import { Supplier, SupplierTransaction, Debt, OperationType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Truck, Plus, Phone, Trash2, Edit2, X, RotateCcw, UserPlus, Eye, Receipt, History, CirclePlus, Calendar, Search, Play, Square } from 'lucide-react';
+import { Truck, Plus, Phone, Trash2, Edit2, X, RotateCcw, UserPlus, Eye, Receipt, History, CirclePlus, Calendar, Search, Play, Square, Printer } from 'lucide-react';
 import { formatCurrency, handleFirestoreError, safeParseDate, formatAppDate } from '../lib/utils';
+import { PrintSupplierTxModal } from '../components/suppliers/PrintSupplierTxModal';
 
 export default function Suppliers() {
   const { t } = useTranslation();
@@ -25,6 +26,7 @@ export default function Suppliers() {
   const [deleteConfirmName, setDeleteConfirmName] = useState<string>('');
   const [isClearAllConfirmOpen, setIsClearAllConfirmOpen] = useState(false);
   const [isTotalModalOpen, setIsTotalModalOpen] = useState(false);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const days = [
@@ -248,6 +250,15 @@ export default function Suppliers() {
             <UserPlus size={20} />
             {t('add_supplier')}
           </button>
+          {(settings.enablePurchasesReports ?? false) && (
+            <button 
+              onClick={() => setIsPrintModalOpen(true)}
+              className="p-3 rounded-lg bg-zinc-100 text-zinc-500 hover:bg-brand-50 hover:text-brand-600 transition-all dark:bg-zinc-800"
+              title="طباعة سجل العمليات"
+            >
+              <Printer size={20}/>
+            </button>
+          )}
           <button 
             onClick={() => setIsClearAllConfirmOpen(true)}
             className="p-3 rounded-lg bg-zinc-100 text-zinc-500 hover:bg-[#B34C36]/5 hover:text-[#B34C36] transition-all dark:bg-zinc-800"
@@ -384,31 +395,33 @@ export default function Suppliers() {
       </div>
 
       {/* Total Summary */}
-      <div className="fixed bottom-28 left-0 right-0 z-40 flex justify-center pointer-events-none px-4">
-        <motion.div 
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="max-w-fit bg-brand-50 dark:bg-zinc-900 border border-brand-200/60 dark:border-zinc-800 px-8 py-3 rounded-xl shadow-lg shadow-brand-500/10 pointer-events-auto relative cursor-pointer"
-          onClick={() => setIsTotalModalOpen(true)}
-        >
-          {/* Decorative handle at top */}
-          <div className="absolute -top-1.5 w-10 h-2 bg-brand-50 dark:bg-zinc-900 left-1/2 -translate-x-1/2 rounded-t-md border-t border-x border-brand-200/60 dark:border-zinc-800" />
-          
-          <div className="flex items-center justify-center gap-3">
-            <span className="text-[1.35rem] font-black text-brand-900 dark:text-white tracking-tight">
-              {!(settings.showFinancials ?? true) ? '••••••' : grandTotal.toLocaleString(settings.language === 'ar' ? 'ar-TN' : 'en-US', { 
-                minimumFractionDigits: settings.currency === 'TND' || settings.currency === 'د.ت' ? 3 : 2, 
-                maximumFractionDigits: settings.currency === 'TND' || settings.currency === 'د.ت' ? 3 : 2 
-              })}
-            </span>
-            <span className="text-base font-bold text-brand-600 dark:text-zinc-500 mt-1">{settings.currency}</span>
-          </div>
-        </motion.div>
-      </div>
+      {(settings.showFloatingTotals ?? true) && (
+        <div className="fixed bottom-28 left-0 right-0 z-40 flex justify-center pointer-events-none px-4">
+          <motion.div 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="max-w-fit bg-brand-50 dark:bg-zinc-900 border border-brand-200/60 dark:border-zinc-800 px-8 py-3 rounded-xl shadow-lg shadow-brand-500/10 pointer-events-auto relative cursor-pointer"
+            onClick={() => setIsTotalModalOpen(true)}
+          >
+            {/* Decorative handle at top */}
+            <div className="absolute -top-1.5 w-10 h-2 bg-brand-50 dark:bg-zinc-900 left-1/2 -translate-x-1/2 rounded-t-md border-t border-x border-brand-200/60 dark:border-zinc-800" />
+            
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-[1.35rem] font-black text-brand-900 dark:text-white tracking-tight">
+                {!(settings.showFinancials ?? true) ? '••••••' : grandTotal.toLocaleString(settings.language === 'ar' ? 'ar-TN' : 'en-US', { 
+                  minimumFractionDigits: settings.currency === 'TND' || settings.currency === 'د.ت' ? 3 : 2, 
+                  maximumFractionDigits: settings.currency === 'TND' || settings.currency === 'د.ت' ? 3 : 2 
+                })}
+              </span>
+              <span className="text-base font-bold text-brand-600 dark:text-zinc-500 mt-1">{settings.currency}</span>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div key="modal-supplier-form" className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
             <motion.div key={editingSupplier?.id || 'new'} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-lg bg-white p-8 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
               <h2 className="mb-6 text-2xl font-bold text-zinc-900 dark:text-white">{editingSupplier ? t('edit_supplier_data') : t('add_new_supplier')}</h2>
@@ -496,7 +509,7 @@ export default function Suppliers() {
         )}
 
         {isAddTxModalOpen && selectedSupplier && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div key="modal-add-tx" className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAddTxModalOpen(false)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-lg bg-white p-8 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
               <div className="flex items-center gap-3 mb-6">
@@ -536,7 +549,7 @@ export default function Suppliers() {
         )}
 
         {isHistoryModalOpen && selectedSupplier && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div key="modal-history" className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsHistoryModalOpen(false)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-lg rounded-lg bg-white p-8 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
               <div className="flex items-center justify-between mb-6">
@@ -610,7 +623,7 @@ export default function Suppliers() {
         )}
         {/* Delete Confirmation Modal */}
         {deleteConfirmId && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div key="modal-delete-supplier" className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setDeleteConfirmId(null)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 10 }} 
@@ -642,7 +655,7 @@ export default function Suppliers() {
         )}
         {/* Delete Transaction Confirmation Modal */}
         {deleteTxConfirmId && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div key="modal-delete-tx" className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setDeleteTxConfirmId(null)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 10 }} 
@@ -673,7 +686,7 @@ export default function Suppliers() {
         )}
         {/* Clear All Transactions Confirmation Modal */}
         {isClearAllConfirmOpen && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div key="modal-clear-all" className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsClearAllConfirmOpen(false)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 10 }} 
@@ -705,7 +718,7 @@ export default function Suppliers() {
         )}
         {/* Total Modal */}
         {isTotalModalOpen && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div key="modal-total" className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsTotalModalOpen(false)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 10 }} 
@@ -732,6 +745,13 @@ export default function Suppliers() {
             </motion.div>
           </div>
         )}
+
+        <PrintSupplierTxModal 
+          key="modal-print-tx"
+          isOpen={isPrintModalOpen}
+          onClose={() => setIsPrintModalOpen(false)}
+          storeName={settings.storeName || 'مخزوني'}
+        />
       </AnimatePresence>
     </div>
   );

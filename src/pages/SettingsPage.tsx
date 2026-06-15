@@ -295,8 +295,8 @@ export default function SettingsPage() {
               <FileDown size={24} />
             </div>
             <div className="text-right">
-              <p className="text-xs text-zinc-400">طباعة تقارير المشتريات بصيغة PDF</p>
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">تقارير المشتريات</h3>
+              <p className="text-xs text-zinc-400">طباعة تقارير المشتريات والموردين بصيغة PDF</p>
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">تقارير العمليات</h3>
             </div>
           </div>
           <button 
