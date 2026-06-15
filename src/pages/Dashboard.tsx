@@ -17,6 +17,7 @@ import {
   History,
   ShoppingCart,
   Receipt,
+  FileDown,
   ScanLine,
   Sun,
   Moon,
@@ -33,6 +34,7 @@ import { Card } from '../components/UI';
 import { cn, formatCurrency, safeParseFloat, safeDispatchEvent, safeParseDate, formatAppDate } from '../lib/utils';
 import { Product, Transaction, OperationType } from '../types';
 import { handleFirestoreError } from '../lib/utils';
+import { PrintPurchasesModal } from '../components/dashboard/PrintPurchasesModal';
 
 import { useTranslation } from 'react-i18next';
 const Dashboard = memo(() => {
@@ -46,6 +48,7 @@ const Dashboard = memo(() => {
   const [isMovementExpanded, setIsMovementExpanded] = useState(false);
   const [showDeletePurchases, setShowDeletePurchases] = useState(false);
   const [deletingPurchaseId, setDeletingPurchaseId] = useState<string | null>(null);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
   const groupedPurchases = useMemo(() => {
     if (!allPurchases) return [];
@@ -350,18 +353,30 @@ const Dashboard = memo(() => {
       <div className="space-y-4 text-right mt-8 pb-12">
         <div className="flex items-center justify-between pr-2 mb-4">
           <h2 className="text-sm font-black uppercase tracking-wider text-zinc-900 dark:text-white">{t('last_purchases')}</h2>
-          <button 
-            onClick={() => setShowDeletePurchases(!showDeletePurchases)}
-            className={cn(
-              "p-2 rounded-lg transition-colors ml-2",
-              showDeletePurchases 
-                ? "bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400" 
-                : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800"
+          <div className="flex items-center gap-1">
+            {settings.enablePurchasesReports && (
+              <button 
+                onClick={() => setIsPrintModalOpen(true)}
+                className="p-2 rounded-lg transition-colors text-brand-600 hover:bg-brand-50 hover:text-brand-700 dark:text-brand-400 dark:hover:bg-brand-500/10 ml-2 shadow-sm border border-brand-100 dark:border-brand-500/20"
+                title="طباعة التقرير"
+              >
+                <i className="pl-1 text-xs font-bold font-sans not-italic">PDF</i>
+                <FileDown size={16} className="inline-block" />
+              </button>
             )}
-            title={t('edit_purchases')}
-          >
-            <Trash2 size={16} />
-          </button>
+            <button 
+              onClick={() => setShowDeletePurchases(!showDeletePurchases)}
+              className={cn(
+                "p-2 rounded-lg transition-colors",
+                showDeletePurchases 
+                  ? "bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400" 
+                  : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800"
+              )}
+              title={t('edit_purchases')}
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
         </div>
         <div className="space-y-6">
           {groupedPurchases.length === 0 ? (
@@ -437,6 +452,12 @@ const Dashboard = memo(() => {
           )}
         </div>
       </div>
+      <PrintPurchasesModal 
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        purchases={allPurchases}
+        storeName={settings.storeName || 'مخزوني'}
+      />
     </div>
   );
 });

@@ -33,6 +33,7 @@ export interface UserSettings {
   displayName?: string;
   deletedCategories?: string[];
   catalogPin?: string;
+  enablePurchasesReports?: boolean;
 }
 
 export interface Product {
