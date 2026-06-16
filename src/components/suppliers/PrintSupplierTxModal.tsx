@@ -130,11 +130,6 @@ export function PrintSupplierTxModal({
       });
 
       const elementHtml = `
-      <style>
-        tr, td, th, tbody {
-          page-break-inside: avoid !important;
-        }
-      </style>
       <div id="print-suppliers-container" style="padding: 40px; font-family: 'Inter', sans-serif; background-color: white; color: #18181b; direction: rtl;">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 2px solid #f4f4f5; padding-bottom: 20px;">
           <div>
@@ -178,7 +173,7 @@ export function PrintSupplierTxModal({
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['css', 'legacy'] }
+        pagebreak: { mode: 'avoid-all' }
       };
 
       // @ts-ignore
