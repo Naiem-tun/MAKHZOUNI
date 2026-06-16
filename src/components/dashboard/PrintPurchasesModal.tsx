@@ -82,6 +82,14 @@ export function PrintPurchasesModal({
 
       const totalAmount = filteredPurchases.reduce((acc, p) => acc + (p.amount || 0), 0);
 
+      // Group purchases by supplier name
+      const pBySupplier: Record<string, Transaction[]> = {};
+      filteredPurchases.forEach(p => {
+        const sName = p.supplierName || 'مورد غير معروف';
+        if (!pBySupplier[sName]) pBySupplier[sName] = [];
+        pBySupplier[sName].push(p);
+      });
+
       // Generate HTML string
       const titleStr = period === 'today' ? 'اليوم' : 
                        period === 'week' ? 'أسبوع' : 
@@ -90,16 +98,31 @@ export function PrintPurchasesModal({
       const reportDate = formatAppDate(now, settings.language, t);
 
       let tableHtml = "";
-      filteredPurchases.forEach((p, idx) => {
+      Object.keys(pBySupplier).forEach(supplierName => {
+        const supplierPurchases = pBySupplier[supplierName];
+        const supplierTotal = supplierPurchases.reduce((sum, p) => sum + (p.amount || 0), 0);
+
         tableHtml += `
-          <tr style="border-bottom: 1px solid #e5e7eb; page-break-inside: avoid;">
-            <td style="padding: 10px;text-align: right;font-size: 13px;">${p.productName || 'غير معروف'}</td>
-            <td style="padding: 10px;text-align: right;font-size: 13px;">${p.supplierName || 'مورد غير معروف'}</td>
-            <td style="padding: 10px;text-align: center;font-size: 13px;">${p.quantityChange || 0}</td>
-            <td style="padding: 10px;text-align: center;font-size: 13px;font-weight: 600;">${formatCurrency(p.amount || 0, settings.currency)}</td>
-            <td style="padding: 10px;text-align: left;font-size: 12px;color:#6b7280;" dir="ltr">${formatAppDate(safeParseDate(p.date), settings.language, t)}</td>
+          <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0; page-break-after: avoid;">
+            <td colspan="4" style="padding: 12px 10px; text-align: right; font-size: 14px; font-weight: 800; color: #0f172a;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>المورد: <span style="color: #0284c7; margin-right: 8px;">${supplierName}</span></span>
+                <span style="font-size: 13px; color: #334155;">إجمالي المشتريات: <span style="font-weight: 900; color: #0f172a;">${formatCurrency(supplierTotal, settings.currency)}</span></span>
+              </div>
+            </td>
           </tr>
         `;
+
+        supplierPurchases.forEach((p) => {
+          tableHtml += `
+            <tr style="border-bottom: 1px solid #e5e7eb; page-break-inside: avoid;">
+              <td style="padding: 10px;text-align: right;font-size: 13px; padding-right: 20px;">${p.productName || 'غير معروف'}</td>
+              <td style="padding: 10px;text-align: center;font-size: 13px;">${p.quantityChange || 0}</td>
+              <td style="padding: 10px;text-align: center;font-size: 13px;font-weight: 600;">${formatCurrency(p.amount || 0, settings.currency)}</td>
+              <td style="padding: 10px;text-align: left;font-size: 12px;color:#6b7280;" dir="ltr">${formatAppDate(safeParseDate(p.date), settings.language, t)}</td>
+            </tr>
+          `;
+        });
       });
 
       const elementHtml = `
@@ -118,8 +141,7 @@ export function PrintPurchasesModal({
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
           <thead>
             <tr style="background-color: #f4f4f5; border-radius: 8px;">
-              <th style="padding: 12px 10px;text-align: right;font-size: 13px;font-weight: 700;color: #52525b;">المنتج</th>
-              <th style="padding: 12px 10px;text-align: right;font-size: 13px;font-weight: 700;color: #52525b;">المورد</th>
+              <th style="padding: 12px 10px;text-align: right;font-size: 13px;font-weight: 700;color: #52525b; padding-right: 20px;">المنتج</th>
               <th style="padding: 12px 10px;text-align: center;font-size: 13px;font-weight: 700;color: #52525b;">الكمية</th>
               <th style="padding: 12px 10px;text-align: center;font-size: 13px;font-weight: 700;color: #52525b;">القيمة</th>
               <th style="padding: 12px 10px;text-align: left;font-size: 13px;font-weight: 700;color: #52525b;">التاريخ</th>

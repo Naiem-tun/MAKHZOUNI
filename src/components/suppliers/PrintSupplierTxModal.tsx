@@ -83,6 +83,15 @@ export function PrintSupplierTxModal({
         suppliersMap.set(doc.id, doc.data().name);
       });
 
+      // Group transactions by supplier
+      const txBySupplier: Record<string, SupplierTransaction[]> = {};
+      filteredTx.forEach(tx => {
+        if (!txBySupplier[tx.supplierId]) {
+          txBySupplier[tx.supplierId] = [];
+        }
+        txBySupplier[tx.supplierId].push(tx);
+      });
+
       const totalAmount = filteredTx.reduce((acc, t) => acc + (t.amount || 0), 0);
 
       // Generate HTML string
@@ -93,16 +102,31 @@ export function PrintSupplierTxModal({
       const reportDate = formatAppDate(now, settings.language, t);
 
       let tableHtml = "";
-      filteredTx.forEach((tx) => {
-        const supplierName = suppliersMap.get(tx.supplierId) || 'مورد غير معروف';
+      Object.keys(txBySupplier).forEach(supplierId => {
+        const supplierName = suppliersMap.get(supplierId) || 'مورد غير معروف';
+        const supplierTxs = txBySupplier[supplierId];
+        const supplierTotal = supplierTxs.reduce((sum, t) => sum + (t.amount || 0), 0);
+
         tableHtml += `
-          <tr style="border-bottom: 1px solid #e5e7eb; page-break-inside: avoid;">
-            <td style="padding: 10px;text-align: right;font-size: 13px;">${supplierName}</td>
-            <td style="padding: 10px;text-align: right;font-size: 13px;">${tx.note === 'session_purchases_total' ? 'مشتريات الجلسة' : (tx.note || 'دفعة')}</td>
-            <td style="padding: 10px;text-align: center;font-size: 13px;font-weight: 600;">${formatCurrency(tx.amount || 0, settings.currency)}</td>
-            <td style="padding: 10px;text-align: left;font-size: 12px;color:#6b7280;" dir="ltr">${formatAppDate(safeParseDate(tx.date), settings.language, t)}</td>
+          <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0; page-break-after: avoid;">
+            <td colspan="3" style="padding: 12px 10px; text-align: right; font-size: 14px; font-weight: 800; color: #0f172a;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>المورد: <span style="color: #0284c7; margin-right: 8px;">${supplierName}</span></span>
+                <span style="font-size: 13px; color: #334155;">إجمالي المدفوعات: <span style="font-weight: 900; color: #0f172a;">${formatCurrency(supplierTotal, settings.currency)}</span></span>
+              </div>
+            </td>
           </tr>
         `;
+
+        supplierTxs.forEach((tx) => {
+          tableHtml += `
+            <tr style="border-bottom: 1px solid #e5e7eb; page-break-inside: avoid;">
+              <td style="padding: 10px;text-align: right;font-size: 13px; padding-right: 20px;">${tx.note === 'session_purchases_total' ? 'مشتريات الجلسة' : (tx.note || 'دفعة')}</td>
+              <td style="padding: 10px;text-align: center;font-size: 13px;font-weight: 600;">${formatCurrency(tx.amount || 0, settings.currency)}</td>
+              <td style="padding: 10px;text-align: left;font-size: 12px;color:#6b7280;" dir="ltr">${formatAppDate(safeParseDate(tx.date), settings.language, t)}</td>
+            </tr>
+          `;
+        });
       });
 
       const elementHtml = `
@@ -121,8 +145,7 @@ export function PrintSupplierTxModal({
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
           <thead>
             <tr style="background-color: #f4f4f5; border-radius: 8px;">
-              <th style="padding: 12px 10px;text-align: right;font-size: 13px;font-weight: 700;color: #52525b;">المورد</th>
-              <th style="padding: 12px 10px;text-align: right;font-size: 13px;font-weight: 700;color: #52525b;">البيان</th>
+              <th style="padding: 12px 10px;text-align: right;font-size: 13px;font-weight: 700;color: #52525b; padding-right: 20px;">البيان</th>
               <th style="padding: 12px 10px;text-align: center;font-size: 13px;font-weight: 700;color: #52525b;">القيمة</th>
               <th style="padding: 12px 10px;text-align: left;font-size: 13px;font-weight: 700;color: #52525b;">التاريخ</th>
             </tr>
