@@ -527,9 +527,9 @@ export default function Inventory() {
         </div>
         <button 
           onClick={handleCompleteInventory} 
-          className="h-11 px-4 shadow-xl shadow-[#4A6FA5]/20 rounded-lg text-sm font-black bg-[#4A6FA5] text-white flex items-center justify-center gap-2 active:scale-95 transition-all"
+          className="flex items-center justify-center gap-2 h-11 px-4 sm:px-5 rounded-lg bg-[#4A6FA5] text-sm font-bold text-white transition-all hover:bg-[#4A6FA5]/90 shadow-lg shadow-[#4A6FA5]/20 active:scale-95 whitespace-nowrap"
         >
-          <ClipboardCheck size={20} />
+          <ClipboardCheck size={18} strokeWidth={3} />
           <span className="hidden sm:inline">{t('save_inventory')}</span>
           <span className="sm:hidden">{t('save')}</span>
         </button>
