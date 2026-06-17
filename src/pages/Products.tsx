@@ -197,6 +197,19 @@ export default function Products() {
         });
       }
 
+      // Record cash transaction if cash register is enabled and this is a purchase
+      if (settings.enableCashRegister && purchaseAmount > 0) {
+        const cashTxRef = doc(collection(db, `users/${user.uid}/cash_transactions`));
+        batch.set(cashTxRef, {
+          type: 'purchase',
+          amount: purchaseAmount,
+          description: `شراء بضاعة: ${quantityProduct.name}`,
+          date: new Date().toISOString(),
+          createdAt: serverTimestamp(),
+          referenceId: purchaseRef.id
+        });
+      }
+
       // Commit in the background
       batch.commit().catch(err => {
         handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/products`);

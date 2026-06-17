@@ -212,11 +212,25 @@ export default function Suppliers() {
     setIsAddTxModalOpen(false);
     showToast(t('supplier_transaction_added_success'));
     
-    addDoc(collection(db, `users/${user.uid}/supplierTransactions`), data).catch(err => {
-      handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}/supplierTransactions`);
-    }).finally(() => {
-      setIsSaving(false);
-    });
+    addDoc(collection(db, `users/${user.uid}/supplierTransactions`), data)
+      .then((docRef) => {
+        if (settings.enableCashRegister && amount > 0) {
+          const cashTxRef = doc(collection(db, `users/${user.uid}/cash_transactions`));
+          addDoc(collection(db, `users/${user.uid}/cash_transactions`), {
+            type: 'out',
+            amount: amount,
+            description: `دفع للمورد: ${selectedSupplier.name}`,
+            date: new Date().toISOString(),
+            createdAt: serverTimestamp(),
+            referenceId: docRef.id
+          }).catch(console.error);
+        }
+      })
+      .catch(err => {
+        handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}/supplierTransactions`);
+      }).finally(() => {
+        setIsSaving(false);
+      });
   };
 
   const [deleteTxConfirmId, setDeleteTxConfirmId] = useState<string | null>(null);

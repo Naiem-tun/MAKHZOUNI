@@ -98,6 +98,17 @@ export default function Debts() {
       payments: newPayments,
       history: newHistory,
       updatedAt: serverTimestamp(),
+    }).then(() => {
+        if (settings.enableCashRegister && amount > 0) {
+            addDoc(collection(db, `users/${user.uid}/cash_transactions`), {
+              type: debt.type === 'payable' ? 'out' : 'in',
+              amount: amount,
+              description: `تسديد دين ${debt.type === 'payable' ? 'مورد' : 'حريف'}: ${debt.customerName}`,
+              date: new Date().toISOString(),
+              createdAt: serverTimestamp(),
+              referenceId: debt.id
+            }).catch(console.error);
+        }
     }).catch(err => {
       console.error("Async payment update failed:", err);
     });

@@ -310,6 +310,28 @@ export default function SettingsPage() {
           </button>
         </section>
 
+        {/* Cash Register Toggle */}
+        <section className="flex items-center justify-between p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 dark:bg-emerald-900/30">
+              <Wallet size={24} />
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-zinc-400">إدارة الكاسة وتتبع الأموال</p>
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">الصندوق</h3>
+            </div>
+          </div>
+          <button 
+            onClick={() => updateSettings({ enableCashRegister: !(settings.enableCashRegister ?? false) })}
+            className={`relative h-8 w-14 rounded-full transition-colors ${(settings.enableCashRegister ?? false) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+          >
+            <motion.div 
+              animate={{ x: (settings.enableCashRegister ?? false) ? 24 : 4 }}
+              className="absolute left-0 top-1 h-6 w-6 rounded-full bg-white shadow-sm"
+            />
+          </button>
+        </section>
+
         {/* Floating Totals Toggle */}
         <section className="flex items-center justify-between p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
           <div className="flex items-center gap-4">

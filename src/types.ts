@@ -34,6 +34,17 @@ export interface UserSettings {
   deletedCategories?: string[];
   catalogPin?: string;
   enablePurchasesReports?: boolean;
+  enableCashRegister?: boolean;
+}
+
+export interface CashTransaction {
+  id?: string;
+  type: 'in' | 'out' | 'purchase' | 'sale';
+  amount: number;
+  date: string;
+  description: string;
+  referenceId?: string;
+  createdAt?: any;
 }
 
 export interface Product {
