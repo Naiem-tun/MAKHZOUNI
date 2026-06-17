@@ -4,7 +4,7 @@ import { db } from '../lib/firebase';
 import { handleFirestoreError } from '../lib/utils';
 import { OperationType } from '../types';
 
-export function useSessionManagement(user: any, activeSupplier: any, setActiveSupplier: any, isSessionSummaryOpen: boolean, setIsSessionSummaryOpen: any, showToast: any, t: any) {
+export function useSessionManagement(user: any, activeSupplier: any, setActiveSupplier: any, isSessionSummaryOpen: boolean, setIsSessionSummaryOpen: any, showToast: any, t: any, settings?: any) {
   const [sessionFinalTotal, setSessionFinalTotal] = useState<string>('');
   const [sessionDifference, setSessionDifference] = useState<string>('');
   const [isSavingSession, setIsSavingSession] = useState(false);
@@ -31,16 +31,27 @@ export function useSessionManagement(user: any, activeSupplier: any, setActiveSu
       if (amount > 0) {
         const txPath = `users/${user.uid}/supplierTransactions`;
         
-        addDoc(collection(db, txPath), {
+        const docRef = await addDoc(collection(db, txPath), {
           supplierId: supplierId,
           amount: amount,
           date: Timestamp.now(),
           note: t('session_purchases_total') || 'إجمالي مشتريات الجلسة',
           updatedAt: serverTimestamp(),
-        }).catch(err => {
-          handleFirestoreError(err, OperationType.CREATE, txPath);
-          console.error("Firebase AddDoc Error:", err);
         });
+
+        // Record a single consolidated entry in the cash register
+        if (settings?.enableCashRegister) {
+          await addDoc(collection(db, `users/${user.uid}/cash_transactions`), {
+            type: 'purchase',
+            amount: amount,
+            description: `${t('session_purchases_total') || 'إجمالي مشتريات الجلسة'}: ${activeSupplier.name}`,
+            date: new Date().toISOString(),
+            createdAt: serverTimestamp(),
+            referenceId: docRef.id
+          }).catch(err => {
+            console.error("Error creating cash transaction for session total:", err);
+          });
+        }
       }
       
       showToast(t('session_saved_success') || 'تم حفظ الجلسة بنجاح ✅', 'success');

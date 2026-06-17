@@ -32,7 +32,8 @@ export function SessionSummaryModal() {
     isSessionSummaryOpen, 
     setIsSessionSummaryOpen, 
     showToast, 
-    t
+    t,
+    settings
   );
 
   return (
