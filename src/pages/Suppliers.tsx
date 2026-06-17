@@ -746,13 +746,13 @@ export default function Suppliers() {
           </div>
         )}
 
-        <PrintSupplierTxModal 
-          key="modal-print-tx"
-          isOpen={isPrintModalOpen}
-          onClose={() => setIsPrintModalOpen(false)}
-          storeName={settings.storeName || 'مخزوني'}
-        />
       </AnimatePresence>
+
+      <PrintSupplierTxModal 
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        storeName={settings.storeName || 'مخزوني'}
+      />
     </div>
   );
 }
