@@ -41,8 +41,7 @@ export function CashRegisterCard() {
   const [auditTab, setAuditTab] = useState<'direct' | 'calc'>('direct');
   const [directActualAmount, setDirectActualAmount] = useState('');
   const [denoCounts, setDenoCounts] = useState<{ [key: string]: number }>({
-    '50': 0, '20': 0, '10': 0, '5': 0, '2': 0, '1': 0, 
-    '0.500': 0, '0.200': 0, '0.100': 0, '0.050': 0, '0.020': 0, '0.010': 0
+    '0.500': 0, '1': 0, '2': 0, '5': 0, '10': 0, '20': 0, '50': 0
   });
 
   const [modalConfig, setModalConfig] = useState<{
@@ -101,8 +100,7 @@ export function CashRegisterCard() {
   const resetAudit = () => {
     setDirectActualAmount('');
     setDenoCounts({
-      '50': 0, '20': 0, '10': 0, '5': 0, '2': 0, '1': 0, 
-      '0.500': 0, '0.200': 0, '0.100': 0, '0.050': 0, '0.020': 0, '0.010': 0
+      '0.500': 0, '1': 0, '2': 0, '5': 0, '10': 0, '20': 0, '50': 0
     });
   };
 
@@ -247,7 +245,7 @@ export function CashRegisterCard() {
                   : 'text-zinc-500 hover:text-zinc-950 dark:hover:text-zinc-200'
               }`}
             >
-              سجلات الجرد المطابقة 📜
+              سجلات الجرد المطابقة
             </button>
           </div>
           <button 
@@ -548,18 +546,13 @@ export function CashRegisterCard() {
                       </div>
                       <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
                         {Object.entries({
-                          '50': 'ورقة 50 د.ت',
-                          '20': 'ورقة 20 د.ت',
-                          '10': 'ورقة 10 د.ت',
-                          '5': 'ورقة 5 د.ت',
-                          '2': 'قطعة 2 د.ت',
-                          '1': 'قطعة 1 د.ت',
                           '0.500': 'قطعة 500 ملّيم',
-                          '0.200': 'قطعة 200 ملّيم',
-                          '0.100': 'قطعة 100 ملّيم',
-                          '0.050': 'قطعة 50 مليم',
-                          '0.020': 'قطعة 20 مليم',
-                          '0.010': 'قطعة 10 مليم'
+                          '1': 'قطعة 1 د.ت',
+                          '2': 'قطعة 2 د.ت',
+                          '5': 'ورقة 5 د.ت',
+                          '10': 'ورقة 10 د.ت',
+                          '20': 'ورقة 20 د.ت',
+                          '50': 'ورقة 50 د.ت'
                         }).map(([denom, label]) => {
                           const val = parseFloat(denom);
                           const count = denoCounts[denom] || 0;
@@ -638,7 +631,7 @@ export function CashRegisterCard() {
                       if (isUntouched) {
                         return (
                           <div className="flex items-center justify-center p-3 text-xs bg-brand-500/10 text-brand-700 dark:text-brand-400 rounded-lg font-bold border border-brand-500/20 text-center">
-                            يرجى كتابة رصيد الصندوق الفعلي لبدء المطابقة 👆
+                            يرجى كتابة رصيد الصندوق الفعلي لبدء المطابقة
                           </div>
                         );
                       }
