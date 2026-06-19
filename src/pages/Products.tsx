@@ -512,17 +512,23 @@ export default function Products() {
       t('category'),
       t('quantity'),
       t('purchase_price'),
-      t('selling_price')
+      t('selling_price'),
+      'القيمة (الكمية × سعر الشراء)'
     ];
 
     // Create CSV rows
     const rows = filteredProducts.map((item: any) => {
+      const quantity = Number(item.quantity) || 0;
+      const purchasePrice = Number(item.purchasePrice || item.costPrice) || 0;
+      const totalValue = quantity * purchasePrice;
+      
       return [
         `"${(item.name || '').replace(/"/g, '""')}"`,
         `"${(item.category || '').replace(/"/g, '""')}"`,
-        item.quantity || 0,
-        item.purchasePrice || item.costPrice || 0,
-        item.sellingPrice || 0
+        quantity,
+        purchasePrice,
+        Number(item.sellingPrice) || 0,
+        totalValue
       ].join(',');
     });
 

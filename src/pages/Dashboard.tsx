@@ -154,8 +154,8 @@ const Dashboard = memo(() => {
   }, [user]);
 
   const stats = useMemo(() => {
-    const totalValue = products.reduce((acc, p) => acc + ((p.quantity || 0) * (p.purchasePrice || 0)), 0);
-    const lowStock = products.filter(p => (p.quantity || 0) < (p.minQuantity || 10)).length;
+    const totalValue = products.reduce((acc, p) => acc + ((Number(p.quantity) || 0) * (Number(p.purchasePrice || p.costPrice) || 0)), 0);
+    const lowStock = products.filter(p => (Number(p.quantity) || 0) < (Number(p.minQuantity) || 10)).length;
     
     // Only calculate pending expenses (not yet audited in inventory)
     const pendingExpenses = expenses.filter(e => !e.audited);

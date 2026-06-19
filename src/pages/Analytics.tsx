@@ -106,7 +106,7 @@ export default function Analytics() {
         cats[cat] = { count: 0, totalPurchase: 0, totalSales: 0, totalQuantity: 0 };
       }
       const q = Number(p.quantity) || 0;
-      const pp = Number(p.purchasePrice) || 0;
+      const pp = Number(p.purchasePrice || p.costPrice) || 0;
       const sp = Number(p.sellingPrice) || 0;
       
       cats[cat].count += 1;
@@ -132,7 +132,7 @@ export default function Analytics() {
   }, [products]);
 
   // 1. Financial Stats Calculation
-  const totalPurchaseValue = (products || []).reduce((acc, p) => acc + (Number(p.purchasePrice || 0) * Number(p.quantity || 0)), 0);
+  const totalPurchaseValue = (products || []).reduce((acc, p) => acc + (Number(p.purchasePrice || p.costPrice || 0) * Number(p.quantity || 0)), 0);
   const totalSalesValue = (products || []).reduce((acc, p) => acc + (Number(p.sellingPrice || 0) * Number(p.quantity || 0)), 0);
   const expectedProfit = totalSalesValue - totalPurchaseValue;
 
