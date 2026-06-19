@@ -16,10 +16,10 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
   const { t } = useTranslation();
   const { settings, showToast } = useAppContext();
 
-  const sortedItems = [...(report.items || [])].sort((a: any, b: any) => (b.salesCalculated || 0) - (a.salesCalculated || 0));
+  let displayItems = [...(report.items || [])].sort((a: any, b: any) => (b.salesCalculated || 0) - (a.salesCalculated || 0));
 
   const exportToCSV = () => {
-    if (!sortedItems || sortedItems.length === 0) return;
+    if (!displayItems || displayItems.length === 0) return;
     
     const summaryHeaders = [
       `"${t('profits_revenue').replace(/"/g, '""')} :"`,
@@ -37,7 +37,7 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
     ];
 
     // Create CSV rows
-    const rows = sortedItems.map((item: any) => {
+    const rows = displayItems.map((item: any) => {
       const remainingValue = item.remainingValue !== undefined ? item.remainingValue : ((products.find(p => p.name === item.productName)?.purchasePrice || products.find(p => p.name === item.productName)?.costPrice) || 0) * (item.quantityAfter || 0);
       
       return [
@@ -193,7 +193,7 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
               </tr>
             </thead>
             <tbody>
-              {sortedItems.map((item: any, i: number) => (
+              {displayItems.map((item: any, i: number) => (
                 <tr key={i} className="even:bg-[#fafbfc]" style={{ pageBreakInside: 'avoid' }}>
                   <td className="px-3 py-3 text-right border-b border-[#eeeeee]">{item.productName}</td>
                   <td className="px-3 py-3 text-right border-b border-[#eeeeee]">{item.salesCalculated}</td>
