@@ -264,6 +264,54 @@ export default function Inventory() {
     return parts.join(' + ');
   };
 
+  const exportToCSV = () => {
+    if (!products || products.length === 0) return;
+    
+    // Define headers
+    const headers = [
+      t('name'),
+      t('category'),
+      t('barcode'),
+      t('system_quantity'),
+      t('actual_quantity'),
+      t('difference'),
+      t('purchase_price')
+    ];
+
+    // Create CSV rows
+    const rows = products.map(p => {
+      const actualQtyText = inventoryData[p.id] !== undefined ? inventoryData[p.id] : '';
+      const actualQtyNum = inventoryData[p.id] !== undefined ? Number(inventoryData[p.id]) : Number(p.quantity || 0);
+      const diff = actualQtyNum - Number(p.quantity || 0);
+      
+      return [
+        `"${(p.name || '').replace(/"/g, '""')}"`, // Escape quotes
+        `"${(p.category || '').replace(/"/g, '""')}"`,
+        `"${p.barcode || p.barcode2 || ''}"`,
+        p.quantity || 0,
+        actualQtyText,
+        diff,
+        p.purchasePrice || 0
+      ].join(',');
+    });
+
+    const csvContent = [
+      // Add BOM for Excel UTF-8 support
+      '\uFEFF' + headers.join(','),
+      ...rows
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `inventory_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handleMatch = useCallback((id: string, qty: number) => {
     setInventoryData(prev => ({ ...prev, [id]: qty }));
   }, []);
@@ -578,6 +626,13 @@ export default function Inventory() {
           title={t('confirm_clear_quantities')}
         >
           <Trash2 size={18} />
+        </button>
+        <button 
+          onClick={exportToCSV}
+          className="w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg shadow-sm text-[#107C41] active:scale-95 transition-transform"
+          title="تصدير Excel/CSV"
+        >
+          <Download size={18} />
         </button>
       </div>
 
