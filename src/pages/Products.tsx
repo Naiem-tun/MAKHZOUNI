@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../AppContext';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, writeBatch, increment } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Product, OperationType } from '../types';
 import { handleFirestoreError, cn } from '../lib/utils';
@@ -23,6 +23,7 @@ import { DeleteConfirmationModal } from '../components/products/DeleteConfirmati
 import { AddQuantityModal } from '../components/products/AddQuantityModal';
 import { ProductEditModal } from '../components/products/ProductEditModal';
 import { PriceNegotiationModal } from '../components/products/PriceNegotiationModal';
+import { SmartPurchasePopup } from '../components/products/SmartPurchasePopup';
 import { deleteLocalImage, saveLocalImage } from '../lib/localImages';
 import { compressImage } from '../lib/imageCompressor';
 import { ProductsHeader } from '../components/products/ProductsHeader';
@@ -68,6 +69,8 @@ export default function Products() {
   const [lastPurchaseInfo, setLastPurchaseInfo] = useState<any>(null);
   const [isNegotiationModalOpen, setIsNegotiationModalOpen] = useState(false);
   const [negotiationProducts, setNegotiationProducts] = useState<Product[]>([]);
+  const [createdNewProduct, setCreatedNewProduct] = useState<Product | null>(null);
+  const [isSmartPopupOpen, setIsSmartPopupOpen] = useState(false);
   
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
@@ -127,11 +130,6 @@ export default function Products() {
     const addedQty = (numBoxes * (quantityProduct.piecesPerBox || 1)) + extraPieces;
     const newQty = (quantityProduct.quantity || 0) + addedQty;
 
-    // UI feedback: close modal immediately
-    setIsQuantityModalOpen(false);
-    setQuantityProduct(null);
-    showToast(t('stock_updated_success'));
-
     try {
       // Find if this product is monitored
       const monitoredQ = query(
@@ -189,7 +187,7 @@ export default function Products() {
 
       // Update product stock
       batch.update(productRef, {
-        quantity: newQty,
+        quantity: increment(addedQty),
         purchasePrice: piecePrice,
         boxPurchasePrice: boxPrice,
         updatedAt: serverTimestamp(),
@@ -208,14 +206,14 @@ export default function Products() {
             ...(monitoredData.history || []),
             {
               date: new Date(),
-              quantity: monitoredData.currentQuantity + addedQty,
+              quantity: (monitoredData.currentQuantity || 0) + addedQty,
               type: 'purchase',
               addedQuantity: addedQty,
               note: 'شراء كمية جديدة'
             }
           ];
           batch.update(doc(db, `users/${user.uid}/monitored_products`, docSnap.id), {
-            currentQuantity: monitoredData.currentQuantity + addedQty,
+            currentQuantity: increment(addedQty),
             history: newHistory
           });
         });
@@ -242,21 +240,21 @@ export default function Products() {
         }
       }
 
-      // Commit in the background
-      batch.commit().catch(err => {
-        handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/products`);
-      });
+      // Await database write to confirm success
+      await batch.commit();
+
+      // UI feedback: close modal and show toast only upon actual success
+      setIsQuantityModalOpen(false);
+      setQuantityProduct(null);
+      showToast(t('stock_updated_success'), 'success');
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/products`);
+      throw err; // throw error so the modal knows transaction failed and resets isSaving state
     }
   };
 
   const handleSaveProduct = async (productData: any, imageFile?: File | Blob | null, imageRemoved?: boolean) => {
     if (!user) return;
-    
-    // UI feedback: close modal immediately
-    setIsModalOpen(false);
-    showToast(t('product_saved_success'));
 
     try {
       const batch = writeBatch(db);
@@ -265,12 +263,11 @@ export default function Products() {
 
       if (editingProduct?.id) {
         const path = `users/${user.uid}/products/${editingProduct.id}`;
-        updateDoc(doc(db, path), {
-          ...productData,
+        const { quantity, ...updateFields } = productData;
+        await updateDoc(doc(db, path), {
+          ...updateFields,
           hasLocalImage: hasLocalImageValue,
           updatedAt: serverTimestamp(),
-        }).catch(err => {
-          handleFirestoreError(err, OperationType.UPDATE, path);
         });
         
         if (imageRemoved) {
@@ -311,9 +308,25 @@ export default function Products() {
           }
         }
         
-        batch.commit().catch(err => {
-          handleFirestoreError(err, OperationType.CREATE, path);
-        });
+        await batch.commit();
+
+        const newProd: Product = {
+          id: productRef.id,
+          name: productData.name,
+          category: productData.category,
+          purchasePrice: productData.purchasePrice,
+          sellingPrice: productData.sellingPrice,
+          barcode: productData.barcode,
+          barcode2: productData.barcode2,
+          piecesPerBox: productData.piecesPerBox,
+          boxPurchasePrice: productData.boxPurchasePrice,
+          quantity: productData.quantity,
+          minQuantity: productData.minQuantity,
+          hasLocalImage: hasLocalImageValue,
+          updatedAt: null,
+        };
+        setCreatedNewProduct(newProd);
+        setIsSmartPopupOpen(true);
         
         if (imageFile) {
            const compressedBlob = await compressImage(imageFile);
@@ -321,12 +334,16 @@ export default function Products() {
         }
       }
       
-    } catch (err) {
-      handleFirestoreError(err, editingProduct ? OperationType.UPDATE : OperationType.CREATE, `users/${user.uid}/products`);
-    } finally {
+      // UI feedback: close modal and clear states upon success
+      setIsModalOpen(false);
       setEditingProduct(null);
       setScannedBarcode('');
       setScannedBarcode2('');
+      showToast(t('product_saved_success'), 'success');
+
+    } catch (err) {
+      handleFirestoreError(err, editingProduct ? OperationType.UPDATE : OperationType.CREATE, `users/${user.uid}/products`);
+      throw err; // throw error so the modal knows transaction failed and resets isSaving state
     }
   };
 
@@ -607,6 +624,24 @@ export default function Products() {
         onClose={() => {
           setIsNegotiationModalOpen(false);
           setNegotiationProducts([]);
+        }}
+      />
+
+      <SmartPurchasePopup
+        product={createdNewProduct}
+        isOpen={isSmartPopupOpen}
+        onClose={() => {
+          setIsSmartPopupOpen(false);
+          setCreatedNewProduct(null);
+        }}
+        onConfirmPurchase={() => {
+          if (createdNewProduct) {
+            setIsSmartPopupOpen(false);
+            setQuantityProduct(createdNewProduct);
+            setLastPurchaseInfo(null);
+            setIsQuantityModalOpen(true);
+            setCreatedNewProduct(null);
+          }
         }}
       />
 

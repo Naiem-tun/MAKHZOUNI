@@ -1,5 +1,5 @@
 import React, { useState, useMemo, memo, useEffect } from 'react';
-import { collection, onSnapshot, query, limit, orderBy, where, doc, deleteDoc, updateDoc, getDoc, addDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, limit, orderBy, where, doc, deleteDoc, updateDoc, getDoc, addDoc, increment } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
 import { 
@@ -226,12 +226,7 @@ const Dashboard = memo(() => {
       
       if (purchase.productId) {
         const productRef = doc(db, `users/${user.uid}/products`, purchase.productId);
-        const productSnap = await getDoc(productRef);
-        if (productSnap.exists()) {
-          const currentQty = productSnap.data().quantity || 0;
-          const updatedQty = Math.max(0, currentQty - (purchase.quantityChange || 0));
-          await updateDoc(productRef, { quantity: updatedQty });
-        }
+        await updateDoc(productRef, { quantity: increment(-(purchase.quantityChange || 0)) });
       }
 
       if (purchase.supplierId && purchase.amount > 0) {
