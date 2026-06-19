@@ -33,6 +33,8 @@ const resources = {
       "last_purchase_price": "آخر سعر شراء",
       "no_active_supplier": "لا يوجد مورد نشط",
       "select_supplier": "اختر مورداً",
+      "system_quantity": "الكمية المطلوبة (النظام)",
+      "actual_quantity": "الكمية الفعلية",
       "purchase_price_compare": "مقارنة سعر الشراء",
       "supplier_session": "تسجيل حصة",
       "price_negotiation_tool": "أداة التفاوض والأسعار",

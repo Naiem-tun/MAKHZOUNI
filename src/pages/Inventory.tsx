@@ -359,42 +359,40 @@ export default function Inventory() {
           const actualQty = inventoryData[p.id];
           const finalQty = actualQty !== undefined ? Number(actualQty) : Number(p.quantity || 0);
           totalRemainingValue += finalQty * (Number(p.purchasePrice || p.costPrice) || 0);
-        });
-
-        for (const [pid, actualQty] of Object.entries(inventoryData)) {
-          const p = products.find(prod => prod.id === pid);
-          if (p) {
-            const sold = Number(p.quantity || 0) - Number(actualQty);
-            const remainingValue = Number(actualQty) * (Number(p.purchasePrice || p.costPrice) || 0);
-            
-            if (sold > 0) {
-              const revenue = sold * Number(p.sellingPrice || 0);
-              const profit = revenue - (sold * (Number(p.purchasePrice || p.costPrice) || 0));
-              totalRevenue += revenue;
-              totalProfit += profit;
-              items.push({ 
-                productName: p.name, 
-                quantityBefore: p.quantity, 
-                quantityAfter: actualQty, 
-                salesCalculated: sold, 
-                profit,
-                remainingValue 
-              });
-            } else if (sold <= 0) {
-              // Store items with no sales too if you want them in the table. 
-              // Wait, the prompt says sort descending by qty sold, does it mean include all? 
-              // Usually inventory report lists only what moved, but lets add the remaining ones if they have stock?
-              // The original logic only did `if (sold > 0)`. I'll stick to original logic but ensure the remainingValue is calculated.
-            }
-            
-            const productRef = doc(db, `users/${user.uid}/products`, pid);
+          
+          const sold = Number(p.quantity || 0) - finalQty;
+          const remainingValue = finalQty * (Number(p.purchasePrice || p.costPrice) || 0);
+          
+          const revenue = sold * Number(p.sellingPrice || 0);
+          const profit = revenue - (sold * (Number(p.purchasePrice || p.costPrice) || 0));
+          
+          if (sold > 0) {
+            totalRevenue += revenue;
+            totalProfit += profit;
+          }
+          
+          items.push({ 
+            productName: p.name, 
+            category: p.category,
+            barcode: p.barcode || p.barcode2 || '',
+            purchasePrice: p.purchasePrice || p.costPrice || 0,
+            sellingPrice: p.sellingPrice || 0,
+            quantityBefore: p.quantity || 0, 
+            quantityAfter: finalQty, 
+            salesCalculated: sold, 
+            profit: sold > 0 ? profit : 0,
+            remainingValue 
+          });
+          
+          if (actualQty !== undefined) {
+            const productRef = doc(db, `users/${user.uid}/products`, p.id!);
             batch.update(productRef, {
-              quantity: Number(actualQty),
+              quantity: finalQty,
               updatedAt: auditTime,
               lastInventoryDate: auditTime
             });
           }
-        }
+        });
 
         // Fetch expenses (cached if offline)
         const expensesPath = `users/${user.uid}/expenses`;

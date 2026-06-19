@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight, Download } from 'lucide-react';
+import { ArrowRight, Download, FileSpreadsheet } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { formatAppDate, safeParseDate, formatCurrency } from '../../lib/utils';
 import { useAppContext } from '../../AppContext';
@@ -17,6 +17,50 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
   const { settings, showToast } = useAppContext();
 
   const sortedItems = [...(report.items || [])].sort((a: any, b: any) => (b.salesCalculated || 0) - (a.salesCalculated || 0));
+
+  const exportToCSV = () => {
+    if (!sortedItems || sortedItems.length === 0) return;
+    
+    // Define headers
+    const headers = [
+      t('product'),
+      t('sold'),
+      t('profit'),
+      t('remaining_qty'),
+      t('remaining_value')
+    ];
+
+    // Create CSV rows
+    const rows = sortedItems.map((item: any) => {
+      const remainingValue = item.remainingValue !== undefined ? item.remainingValue : ((products.find(p => p.name === item.productName)?.purchasePrice || products.find(p => p.name === item.productName)?.costPrice) || 0) * (item.quantityAfter || 0);
+      
+      return [
+        `"${(item.productName || '').replace(/"/g, '""')}"`,
+        item.salesCalculated || 0,
+        item.profit || 0,
+        item.quantityAfter ?? 0,
+        remainingValue || 0
+      ].join(',');
+    });
+
+    const csvContent = [
+      '\uFEFF' + headers.join(','),
+      ...rows
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const reportDate = safeParseDate(report.date).toISOString().split('T')[0];
+    // Notice we're getting the report date nicely to differentiate exports
+    link.setAttribute('download', `inventory_report_${reportDate}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast('تم تصدير Excel/CSV بنجاح', 'success');
+  };
 
   const generatePDF = async () => {
     try {
@@ -81,13 +125,23 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
             <ArrowRight size={20} />
           </button>
           
-          <button 
-            onClick={generatePDF}
-            className="h-10 px-4 bg-[#4A6FA5] text-white rounded-lg flex items-center justify-center gap-2 active:scale-95 transition-transform text-sm font-bold shadow-sm"
-          >
-            <Download size={16} />
-            <span>{t('download')}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={exportToCSV}
+              className="h-10 px-4 bg-[#107C41] text-white rounded-lg flex items-center justify-center gap-2 active:scale-95 transition-transform text-sm font-bold shadow-sm"
+              title="تصدير Excel/CSV"
+            >
+              <FileSpreadsheet size={16} />
+              <span className="hidden sm:inline">Excel</span>
+            </button>
+            <button 
+              onClick={generatePDF}
+              className="h-10 px-4 bg-[#4A6FA5] text-white rounded-lg flex items-center justify-center gap-2 active:scale-95 transition-transform text-sm font-bold shadow-sm"
+            >
+              <Download size={16} />
+              <span className="hidden sm:inline">{t('download')} PDF</span>
+            </button>
+          </div>
         </div>
 
         <div className="flex justify-between items-center border-b-2 border-[#e0e0e0] pb-4 mb-6 sm:mb-8">
