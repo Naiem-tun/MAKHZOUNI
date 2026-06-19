@@ -500,6 +500,50 @@ export default function Products() {
     };
   }, []);
 
+  const exportToCSV = () => {
+    if (!filteredProducts || filteredProducts.length === 0) {
+      showToast(t('no_data'), 'error');
+      return;
+    }
+    
+    // Define headers
+    const headers = [
+      t('name'),
+      t('category'),
+      t('quantity'),
+      t('purchase_price'),
+      t('selling_price')
+    ];
+
+    // Create CSV rows
+    const rows = filteredProducts.map((item: any) => {
+      return [
+        `"${(item.name || '').replace(/"/g, '""')}"`,
+        `"${(item.category || '').replace(/"/g, '""')}"`,
+        item.quantity || 0,
+        item.purchasePrice || item.costPrice || 0,
+        item.sellingPrice || 0
+      ].join(',');
+    });
+
+    const csvContent = [
+      '\uFEFF' + headers.join(','),
+      ...rows
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const exportDate = new Date().toISOString().split('T')[0];
+    link.setAttribute('download', `products_list_${exportDate}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast('تم تصدير Excel/CSV بنجاح', 'success');
+  };
+
   return (
     <div className="space-y-6">
       <ProductsHeader 
@@ -509,6 +553,7 @@ export default function Products() {
           setScannedBarcode2('');
           setIsModalOpen(true);
         }} 
+        onExportCSV={exportToCSV}
       />
 
       {/* Search & Filters */}

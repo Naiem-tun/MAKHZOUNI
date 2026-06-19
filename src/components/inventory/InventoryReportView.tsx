@@ -18,13 +18,32 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
 
   let displayItems = [...(report.items || [])].sort((a: any, b: any) => (b.salesCalculated || 0) - (a.salesCalculated || 0));
 
+  // Fix for older reports: Calculate the sum of item remaining values.
+  const itemsSum = displayItems.reduce((sum, item) => {
+    const val = item.remainingValue !== undefined 
+      ? item.remainingValue 
+      : ((products.find(p => p.name === item.productName)?.purchasePrice || products.find(p => p.name === item.productName)?.costPrice) || 0) * (item.quantityAfter || 0);
+    return sum + (Number(val) || 0);
+  }, 0);
+
+  // If there is a noticeable difference (due to old reports excluding 0-sale items), append an aggregated row.
+  if (report.totalRemainingValue && (report.totalRemainingValue - itemsSum) > 1) {
+    displayItems.push({
+      productName: 'منتجات أخرى لم تُباع (لتطابق المجموع)',
+      salesCalculated: 0,
+      profit: 0,
+      quantityAfter: undefined,
+      remainingValue: report.totalRemainingValue - itemsSum
+    });
+  }
+
   const exportToCSV = () => {
     if (!displayItems || displayItems.length === 0) return;
     
     const summaryHeaders = [
       `"${t('profits_revenue').replace(/"/g, '""')} :"`,
       `"${t('total_profit').replace(/"/g, '""')} : ${formatCurrency(report.totalProfit || 0).replace(/"/g, '""')}"`,
-      `"${t('remaining_stock_value').replace(/"/g, '""')} : ${formatCurrency(report.totalRemainingValue || 0).replace(/"/g, '""')}"`
+      `"${t('total_remaining_value').replace(/"/g, '""')} : ${formatCurrency(report.totalRemainingValue || 0).replace(/"/g, '""')}"`
     ];
 
     // Define headers
