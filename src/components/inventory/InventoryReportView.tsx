@@ -21,6 +21,12 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
   const exportToCSV = () => {
     if (!sortedItems || sortedItems.length === 0) return;
     
+    const summaryHeaders = [
+      `"${t('profits_revenue').replace(/"/g, '""')} :"`,
+      `"${t('total_profit').replace(/"/g, '""')} : ${formatCurrency(report.totalProfit || 0).replace(/"/g, '""')}"`,
+      `"${t('remaining_stock_value').replace(/"/g, '""')} : ${formatCurrency(report.totalRemainingValue || 0).replace(/"/g, '""')}"`
+    ];
+
     // Define headers
     const headers = [
       t('product'),
@@ -44,7 +50,11 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
     });
 
     const csvContent = [
-      '\uFEFF' + headers.join(','),
+      '\uFEFF' + `"${t('sales_report')} - ${formatAppDate(safeParseDate(report.date), settings.language, t)}"`,
+      '',
+      summaryHeaders.join(','),
+      '',
+      headers.join(','),
       ...rows
     ].join('\n');
 
