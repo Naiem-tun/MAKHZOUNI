@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, ScanBarcode, CheckCircle2, Check,
   Package, Wallet, FileText, ClipboardCheck, Trash2, History,
-  X, PlusCircle, MinusCircle, ArrowRight, Download, Receipt, FileBarChart, TrendingUp
+  X, PlusCircle, MinusCircle, ArrowRight, Download, Receipt, FileBarChart, TrendingUp, Activity
 } from 'lucide-react';
 import { 
   collection, 
@@ -29,6 +29,7 @@ import { Logo } from '../components/UI';
 import { InventoryReportView } from '../components/inventory/InventoryReportView';
 import { HistoryModal } from '../components/inventory/HistoryModal';
 import { ExpensesModal } from '../components/inventory/ExpensesModal';
+import { InventoryCompareModal } from '../components/inventory/InventoryCompareModal';
 
 import { InventoryItem } from '../components/inventory/InventoryItem';
 import { useTranslation } from 'react-i18next';
@@ -86,6 +87,8 @@ export default function Inventory() {
   const [historyReports, setHistoryReports] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   
+  const [showCompareModal, setShowCompareModal] = useState(false);
+  
   const [showReportView, setShowReportView] = useState(false);
   const [currentReport, setCurrentReport] = useState<any>(null);
   
@@ -131,6 +134,30 @@ export default function Inventory() {
   const toggleChecked = useCallback((id: string) => {
     setCheckedProducts(prev => ({ ...prev, [id]: !prev[id] }));
   }, []);
+
+  const getDraftItems = useCallback(() => {
+    return products.map(p => {
+      const actualQty = inventoryData[p.id];
+      const finalQty = actualQty !== undefined ? Number(actualQty) : Number(p.quantity || 0);
+      const sold = Number(p.quantity || 0) - finalQty;
+      const remainingValue = finalQty * (Number(p.purchasePrice || p.costPrice) || 0);
+      const revenue = sold * Number(p.sellingPrice || 0);
+      const profit = revenue - (sold * (Number(p.purchasePrice || p.costPrice) || 0));
+
+      return {
+        productName: p.name, 
+        category: p.category,
+        barcode: p.barcode || p.barcode2 || '',
+        purchasePrice: p.purchasePrice || p.costPrice || 0,
+        sellingPrice: p.sellingPrice || 0,
+        quantityBefore: p.quantity || 0, 
+        quantityAfter: finalQty, 
+        salesCalculated: sold, 
+        profit: sold > 0 ? profit : 0,
+        remainingValue 
+      };
+    });
+  }, [products, inventoryData]);
 
   const handleClearInventory = () => {
     if (Object.keys(inventoryData).length === 0 && Object.keys(checkedProducts).length === 0) return;
@@ -262,54 +289,6 @@ export default function Inventory() {
     if (pieces > 0) parts.push(`${pieces} ${t('piece')}`);
     
     return parts.join(' + ');
-  };
-
-  const exportToCSV = () => {
-    if (!products || products.length === 0) return;
-    
-    // Define headers
-    const headers = [
-      t('name'),
-      t('category'),
-      t('barcode'),
-      t('system_quantity'),
-      t('actual_quantity'),
-      t('difference'),
-      t('purchase_price')
-    ];
-
-    // Create CSV rows
-    const rows = products.map(p => {
-      const actualQtyText = inventoryData[p.id] !== undefined ? inventoryData[p.id] : '';
-      const actualQtyNum = inventoryData[p.id] !== undefined ? Number(inventoryData[p.id]) : Number(p.quantity || 0);
-      const diff = actualQtyNum - Number(p.quantity || 0);
-      
-      return [
-        `"${(p.name || '').replace(/"/g, '""')}"`, // Escape quotes
-        `"${(p.category || '').replace(/"/g, '""')}"`,
-        `"${p.barcode || p.barcode2 || ''}"`,
-        p.quantity || 0,
-        actualQtyText,
-        diff,
-        p.purchasePrice || 0
-      ].join(',');
-    });
-
-    const csvContent = [
-      // Add BOM for Excel UTF-8 support
-      '\uFEFF' + headers.join(','),
-      ...rows
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `inventory_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   const handleMatch = useCallback((id: string, qty: number) => {
@@ -601,6 +580,14 @@ export default function Inventory() {
           {expensesAmount > 0 && <span>{formatCurrency(expensesAmount, settings.currency, settings.language)}</span>}
         </button>
         <button 
+          onClick={() => setShowCompareModal(true)}
+          className="h-10 px-3 flex items-center gap-2 bg-brand-50 border border-brand-200 dark:bg-brand-900/20 dark:border-brand-800 text-brand-600 dark:text-brand-400 rounded-lg shadow-sm active:scale-95 transition-all text-sm font-bold"
+          title="مقارنة الجرد الذكية"
+        >
+          <Activity size={18} />
+          <span className="hidden sm:inline">مقارنة بـ Excel</span>
+        </button>
+        <button 
           onClick={() => setShowDetailedControls(!showDetailedControls)}
           className={cn(
             "w-10 h-10 flex items-center justify-center border rounded-lg shadow-sm active:scale-95 transition-all",
@@ -624,13 +611,6 @@ export default function Inventory() {
           title={t('confirm_clear_quantities')}
         >
           <Trash2 size={18} />
-        </button>
-        <button 
-          onClick={exportToCSV}
-          className="w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg shadow-sm text-[#107C41] active:scale-95 transition-transform"
-          title="تصدير Excel/CSV"
-        >
-          <Download size={18} />
         </button>
       </div>
 
@@ -797,6 +777,13 @@ export default function Inventory() {
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
         onScan={handleScan}
+      />
+      
+      <InventoryCompareModal 
+        show={showCompareModal}
+        onClose={() => setShowCompareModal(false)}
+        currentReportItems={getDraftItems()}
+        products={products}
       />
     </div>
   );

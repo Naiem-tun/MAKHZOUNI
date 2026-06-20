@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { formatAppDate, safeParseDate, formatCurrency } from '../../lib/utils';
 import { useAppContext } from '../../AppContext';
 import * as html2pdf from 'html2pdf.js';
+import * as xlsx from 'xlsx';
 
 interface InventoryReportViewProps {
   report: any;
@@ -37,58 +38,60 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
     });
   }
 
-  const exportToCSV = () => {
+  const exportToExcel = () => {
     if (!displayItems || displayItems.length === 0) return;
     
-    const summaryHeaders = [
-      `"${t('profits_revenue').replace(/"/g, '""')} :"`,
-      `"${t('total_profit').replace(/"/g, '""')} : ${formatCurrency(report.totalProfit || 0).replace(/"/g, '""')}"`,
-      `"${t('total_remaining_value').replace(/"/g, '""')} : ${formatCurrency(report.totalRemainingValue || 0).replace(/"/g, '""')}"`
-    ];
-
-    // Define headers
-    const headers = [
+    const wsData = [];
+    
+    // Title
+    wsData.push([`${t('sales_report')} - ${formatAppDate(safeParseDate(report.date), settings.language, t)}`]);
+    wsData.push([]);
+    
+    // Summary
+    wsData.push([t('profits_revenue') + " :"]);
+    wsData.push([t('total_profit') + " :", Number(report.totalProfit) || 0]);
+    wsData.push([t('total_remaining_value') + " :", Number(report.totalRemainingValue) || 0]);
+    wsData.push([]);
+    
+    // Table Headers
+    wsData.push([
       t('product'),
+      'الباركود',
       t('sold'),
       t('profit'),
       t('remaining_qty'),
       t('remaining_value')
-    ];
-
-    // Create CSV rows
-    const rows = displayItems.map((item: any) => {
+    ]);
+    
+    // Rows
+    displayItems.forEach((item: any) => {
       const remainingValue = item.remainingValue !== undefined ? item.remainingValue : ((products.find(p => p.name === item.productName)?.purchasePrice || products.find(p => p.name === item.productName)?.costPrice) || 0) * (item.quantityAfter || 0);
+      const productBarcode = products.find(p => p.name === item.productName)?.barcode || '';
       
-      return [
-        `"${(item.productName || '').replace(/"/g, '""')}"`,
-        item.salesCalculated || 0,
-        item.profit || 0,
-        item.quantityAfter ?? 0,
-        remainingValue || 0
-      ].join(',');
+      wsData.push([
+        item.productName || '',
+        productBarcode,
+        Number(item.salesCalculated) || 0,
+        Number(item.profit) || 0,
+        item.quantityAfter !== undefined ? Number(item.quantityAfter) : '',
+        Number(remainingValue) || 0
+      ]);
     });
+    
+    const ws = xlsx.utils.aoa_to_sheet(wsData);
+    
+    // Keep Right-to-Left for Arabic
+    if (settings.language === 'ar') {
+      ws['!dir'] = 'rtl';
+    }
 
-    const csvContent = [
-      '\uFEFF' + `"${t('sales_report')} - ${formatAppDate(safeParseDate(report.date), settings.language, t)}"`,
-      '',
-      summaryHeaders.join(','),
-      '',
-      headers.join(','),
-      ...rows
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
+    const wb = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(wb, ws, "Inventory Report");
+    
     const reportDate = safeParseDate(report.date).toISOString().split('T')[0];
-    // Notice we're getting the report date nicely to differentiate exports
-    link.setAttribute('download', `inventory_report_${reportDate}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    showToast('تم تصدير Excel/CSV بنجاح', 'success');
+    xlsx.writeFile(wb, `inventory_report_${reportDate}.xlsx`);
+    
+    showToast('تم تصدير Excel بنجاح', 'success');
   };
 
   const generatePDF = async () => {
@@ -156,9 +159,9 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
           
           <div className="flex items-center gap-2">
             <button 
-              onClick={exportToCSV}
+              onClick={exportToExcel}
               className="h-10 px-4 bg-[#107C41] text-white rounded-lg flex items-center justify-center gap-2 active:scale-95 transition-transform text-sm font-bold shadow-sm"
-              title="تصدير Excel/CSV"
+              title="تصدير Excel"
             >
               <FileSpreadsheet size={16} />
               <span className="hidden sm:inline">Excel</span>
@@ -240,6 +243,7 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
           <span>{t('download_pdf_report')}</span>
         </button>
       </div>
+
     </motion.div>
   );
 }
