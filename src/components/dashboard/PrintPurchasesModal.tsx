@@ -27,6 +27,7 @@ export function PrintPurchasesModal({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [isPrinting, setIsPrinting] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState<string>('all');
 
   if (!isOpen) return null;
 
@@ -77,6 +78,14 @@ export function PrintPurchasesModal({
         filteredPurchases = allPurchases.filter(p => {
           const pd = safeParseDate(p.date);
           return pd >= start && pd <= end;
+        });
+      }
+
+      // Filter by supplier if a specific supplier is selected
+      if (selectedSupplier !== 'all') {
+        filteredPurchases = filteredPurchases.filter(p => {
+          const sName = p.supplierName || 'مورد غير معروف';
+          return sName === selectedSupplier;
         });
       }
 
@@ -255,6 +264,38 @@ export function PrintPurchasesModal({
                 </div>
               </div>
             )}
+          </div>
+          
+          <div className="space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+            <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300 block mb-2">تصفية حسب المورد</label>
+            <div className="max-h-48 overflow-y-auto border border-zinc-200 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-800/80 divide-y divide-zinc-100 dark:divide-zinc-700 shadow-sm">
+              <label className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                <span className="text-base font-bold text-zinc-700 dark:text-zinc-300">كل الموردين</span>
+                <input 
+                  type="radio" 
+                  name="supplier" 
+                  value="all" 
+                  checked={selectedSupplier === 'all'} 
+                  onChange={(e) => setSelectedSupplier(e.target.value)} 
+                  disabled={isPrinting}
+                  className="w-5 h-5 accent-brand-600 cursor-pointer"
+                />
+              </label>
+              {Array.from(new Set(purchases.map(p => p.supplierName || 'مورد غير معروف'))).map(s => (
+                <label key={s} className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                  <span className="text-base font-bold text-zinc-700 dark:text-zinc-300">{s}</span>
+                  <input 
+                    type="radio" 
+                    name="supplier" 
+                    value={s} 
+                    checked={selectedSupplier === s} 
+                    onChange={(e) => setSelectedSupplier(e.target.value)} 
+                    disabled={isPrinting}
+                    className="w-5 h-5 accent-brand-600 cursor-pointer"
+                  />
+                </label>
+              ))}
+            </div>
           </div>
           
           <button
