@@ -50,6 +50,11 @@ const Dashboard = memo(() => {
   const [showDeletePurchases, setShowDeletePurchases] = useState(false);
   const [deletingPurchaseId, setDeletingPurchaseId] = useState<string | null>(null);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [expandedPurchaseGroups, setExpandedPurchaseGroups] = useState<Record<string, boolean>>({});
+
+  const togglePurchaseGroup = (groupKey: string) => {
+    setExpandedPurchaseGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }));
+  };
 
   const groupedPurchases = useMemo(() => {
     if (!allPurchases) return [];
@@ -64,12 +69,14 @@ const Dashboard = memo(() => {
 
       if (groupsMap.has(groupKey)) {
         groupsMap.get(groupKey).items.push(p);
+        groupsMap.get(groupKey).totalAmount += (p.amount || 0);
       } else {
         groupsMap.set(groupKey, {
           key: groupKey,
           supplierName: p.supplierName,
           date: dateStr,
-          items: [p]
+          items: [p],
+          totalAmount: p.amount || 0
         });
       }
     });
@@ -382,71 +389,95 @@ const Dashboard = memo(() => {
               {t('no_data_available')}
             </div>
           ) : (
-            groupedPurchases.map((group: any, groupIndex: number) => (
-              <div key={`group-${group.key}-${groupIndex}`} className="space-y-3">
-                <div className="flex items-center justify-between px-2">
-                  <div className="flex items-center gap-2">
-                    <div className="h-7 w-7 rounded-full bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-brand-600 dark:text-brand-400">
-                      <Store size={12} />
-                    </div>
-                    <span className="text-sm font-bold text-brand-800 dark:text-brand-400">
-                      {group.supplierName || t('unknown_supplier')}
-                    </span>
-                  </div>
-                  <span className="text-[11px] font-bold text-zinc-400 font-sans tracking-tight">
-                    {group.date}
-                  </span>
-                </div>
-                
-                <div className="bg-white dark:bg-zinc-800/80 rounded-lg border border-zinc-100/80 dark:border-zinc-700/50 overflow-hidden shadow-sm flex flex-col gap-px bg-zinc-100 dark:bg-zinc-700/50">
-                  {group.items.map((p: any, itemIndex: number) => (
-                    <div key={`${p.id}-${itemIndex}`} className="flex justify-between items-center p-4 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
-                      <div className="flex flex-col text-right flex-1">
-                        <span className="text-sm font-bold text-zinc-900 dark:text-white mb-2">{p.productName}</span>
-                        <div className="flex items-center justify-start gap-2 text-[11px] font-sans font-bold text-zinc-500">
-                          <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-900 px-2 py-0.5 rounded-md">
-                            <span className="text-zinc-900 dark:text-white">{p.quantityChange}</span>
-                            <span>{t('piece')}</span>
-                          </div>
-                          <span className="text-zinc-300 dark:text-zinc-600">|</span>
-                          <span>{formatCurrency(p.price, settings.currency, language)}</span>
-                          <span className="text-zinc-300 dark:text-zinc-600">|</span>
-                          <span className="text-emerald-600 dark:text-emerald-400">{formatCurrency(p.amount, settings.currency, language)}</span>
-                        </div>
+            groupedPurchases.map((group: any, groupIndex: number) => {
+              const isExpanded = expandedPurchaseGroups[group.key];
+              
+              return (
+                <div key={`group-${group.key}-${groupIndex}`} className="space-y-3">
+                  <div 
+                    className="flex items-center justify-between px-2 cursor-pointer select-none"
+                    onClick={() => togglePurchaseGroup(group.key)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-full bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-brand-600 dark:text-brand-400">
+                         <Store size={12} />
                       </div>
-                      
-                      {showDeletePurchases && (
-                        deletingPurchaseId === p.id ? (
-                          <div className="flex items-center gap-2 mr-2">
-                            <button
-                              onClick={() => setDeletingPurchaseId(null)}
-                              className="p-1.5 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg transition-colors"
-                            >
-                              <X size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleDeletePurchase(p)}
-                              className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors font-bold text-xs flex items-center gap-1"
-                            >
-                              <Check size={16} />
-                              <span>{t('confirm')}</span>
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setDeletingPurchaseId(p.id)}
-                            className="p-2 mr-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors shrink-0"
-                            title={t('delete')}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )
-                      )}
+                      <span className="text-sm font-bold text-brand-800 dark:text-brand-400">
+                        {group.supplierName || t('unknown_supplier')}
+                      </span>
                     </div>
-                  ))}
+                    <div className="flex items-center gap-2 text-[11px] font-bold text-zinc-400 font-sans tracking-tight">
+                      {!isExpanded && (
+                        <span className="text-emerald-600 dark:text-emerald-400 ml-2">
+                          {formatCurrency(group.totalAmount, settings.currency, language)}
+                        </span>
+                      )}
+                      <span>{group.date}</span>
+                      {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </div>
+                  </div>
+                  
+                  {isExpanded && (
+                    <div className="bg-white dark:bg-zinc-800/80 rounded-lg border border-zinc-100/80 dark:border-zinc-700/50 overflow-hidden shadow-sm flex flex-col gap-px bg-zinc-100 dark:bg-zinc-700/50">
+                      {group.items.map((p: any, itemIndex: number) => (
+                        <div key={`${p.id}-${itemIndex}`} className="flex justify-between items-center p-4 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
+                          <div className="flex flex-col text-right flex-1">
+                            <span className="text-sm font-bold text-zinc-900 dark:text-white mb-2">{p.productName}</span>
+                            <div className="flex items-center justify-start gap-2 text-[11px] font-sans font-bold text-zinc-500">
+                              <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-900 px-2 py-0.5 rounded-md">
+                                <span className="text-zinc-900 dark:text-white">{p.quantityChange}</span>
+                                <span>{t('piece')}</span>
+                              </div>
+                              <span className="text-zinc-300 dark:text-zinc-600">|</span>
+                              <span>{formatCurrency(p.price, settings.currency, language)}</span>
+                              <span className="text-zinc-300 dark:text-zinc-600">|</span>
+                              <span className="text-emerald-600 dark:text-emerald-400">{formatCurrency(p.amount, settings.currency, language)}</span>
+                            </div>
+                          </div>
+                          
+                          {showDeletePurchases && (
+                            deletingPurchaseId === p.id ? (
+                              <div className="flex items-center gap-2 mr-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeletingPurchaseId(null)
+                                  }}
+                                  className="p-1.5 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg transition-colors"
+                                >
+                                  <X size={16} />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeletePurchase(p)
+                                  }}
+                                  className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors font-bold text-xs flex items-center gap-1"
+                                >
+                                  <Check size={16} />
+                                  <span>{t('confirm')}</span>
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeletingPurchaseId(p.id)
+                                }}
+                                className="p-2 mr-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors shrink-0"
+                                title={t('delete')}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
