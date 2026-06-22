@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight, Download, FileSpreadsheet } from 'lucide-react';
+import { ArrowRight, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { formatAppDate, safeParseDate, formatCurrency } from '../../lib/utils';
 import { useAppContext } from '../../AppContext';
@@ -16,6 +16,7 @@ interface InventoryReportViewProps {
 export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report, products, onClose }) => {
   const { t } = useTranslation();
   const { settings, showToast } = useAppContext();
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   let displayItems = [...(report.items || [])].sort((a: any, b: any) => (b.salesCalculated || 0) - (a.salesCalculated || 0));
 
@@ -157,22 +158,37 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
             <ArrowRight size={20} />
           </button>
           
-          <div className="flex items-center gap-2">
+          <div className="relative">
             <button 
-              onClick={exportToExcel}
-              className="h-10 px-4 bg-[#107C41] text-white rounded-lg flex items-center justify-center gap-2 active:scale-95 transition-transform text-sm font-bold shadow-sm"
-              title="تصدير Excel"
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              className="h-10 px-4 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 rounded-lg text-zinc-700 active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-sm text-sm font-bold"
+              title="تقارير"
             >
-              <FileSpreadsheet size={16} />
-              <span className="hidden sm:inline">Excel</span>
+              <FileText size={16} />
+              <span className="hidden sm:inline">تقارير</span>
             </button>
-            <button 
-              onClick={generatePDF}
-              className="h-10 px-4 bg-[#4A6FA5] text-white rounded-lg flex items-center justify-center gap-2 active:scale-95 transition-transform text-sm font-bold shadow-sm"
-            >
-              <Download size={16} />
-              <span className="hidden sm:inline">{t('download')} PDF</span>
-            </button>
+            
+            {showExportMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowExportMenu(false)} />
+                <div className="absolute left-0 sm:right-0 sm:left-auto mt-2 w-48 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg shadow-xl z-50 overflow-hidden py-1">
+                  <button
+                    onClick={() => { setShowExportMenu(false); generatePDF(); }}
+                    className="w-full justify-start px-4 py-3 flex items-center gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-sm font-bold text-zinc-700 dark:text-zinc-300"
+                  >
+                    <Download size={16} />
+                    <span>{t('download')} PDF</span>
+                  </button>
+                  <button
+                    onClick={() => { setShowExportMenu(false); exportToExcel(); }}
+                    className="w-full justify-start px-4 py-3 flex items-center gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-sm font-bold text-[#107C41]"
+                  >
+                    <FileSpreadsheet size={16} />
+                    <span>تصدير Excel</span>
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -231,17 +247,6 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
             </tbody>
           </table>
         </div>
-      </div>
-
-      {/* PDF Button */}
-      <div className="print-hidden fixed bottom-6 left-6 right-6 z-40">
-        <button 
-          onClick={generatePDF}
-          className="w-full py-4 shadow-2xl rounded-lg text-base font-black bg-[#4A6FA5] text-white flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
-        >
-          <Download size={20} />
-          <span>{t('download_pdf_report')}</span>
-        </button>
       </div>
 
     </motion.div>

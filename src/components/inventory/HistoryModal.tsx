@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { History, X, Trash2, Download } from 'lucide-react';
+import { History, X, Trash2, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { formatAppDate, safeParseDate, formatCurrency, cn } from '../../lib/utils';
 import { useAppContext } from '../../AppContext';
@@ -61,57 +61,57 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ show, onClose, loadi
                   reports.map((report) => (
                     <div 
                       key={report.id} 
-                      className="p-4 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-100 dark:border-zinc-700 space-y-3 relative group"
+                      className="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-100 dark:border-zinc-700/50 p-4 space-y-4 hover:shadow-md transition-all group"
                     >
-                      <div className="absolute top-4 left-4 flex gap-2 z-10">
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            showConfirm(t('confirm_delete') || 'Are you sure?', () => {
-                              onDeleteReport(report.id);
-                            });
-                          }}
-                          className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
-                          title={t('delete')}
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onSelectReport(report);
-                          }}
-                          className="p-2 text-zinc-400 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10 rounded-lg transition-colors"
-                          title={t('download')}
-                        >
-                          <Download size={16} />
-                        </button>
-                      </div>
-                      <div className="flex justify-between items-start cursor-pointer" onClick={() => onSelectReport(report)}>
-                        <div>
-                          <div className="text-[10px] font-black text-brand-600 uppercase tracking-widest leading-none mb-1 pr-10">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 cursor-pointer" onClick={() => onSelectReport(report)}>
+                          <div className="text-sm font-black text-zinc-900 dark:text-zinc-100 mb-0.5">
                             {formatAppDate(safeParseDate(report.date), settings.language, t, { day: 'numeric', month: 'long', year: 'numeric' })}
                           </div>
-                          <div className="text-[8px] text-zinc-400 font-bold pr-10">
-                            {safeParseDate(report.date).getTime() === 0 ? '' : safeParseDate(report.date).toLocaleTimeString('ar-TN', { hour: '2-digit', minute: '2-digit' })}
+                          <div className="text-xs text-zinc-500 font-bold">
+                            {safeParseDate(report.date).getTime() === 0 ? '' : safeParseDate(report.date).toLocaleTimeString(settings.language === 'ar' ? 'ar-TN' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-xs font-black text-emerald-600">+{formatCurrency(report.netProfit || 0, settings.currency, settings.language)}</div>
-                          <div className="text-[8px] text-zinc-400 font-medium whitespace-nowrap leading-none">{t('net_profit')}</div>
+                        <div className="flex gap-1">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectReport(report);
+                            }}
+                            className="w-9 h-9 flex items-center justify-center text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-500/10 rounded-lg transition-colors bg-zinc-50 dark:bg-zinc-900"
+                            title={t('view')}
+                          >
+                            <FileText size={16} />
+                          </button>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              showConfirm(t('confirm_delete') || 'Are you sure?', () => {
+                                onDeleteReport(report.id);
+                              });
+                            }}
+                            className="w-9 h-9 flex items-center justify-center text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors bg-zinc-50 dark:bg-zinc-900"
+                            title={t('delete')}
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-50 dark:border-zinc-700/50 cursor-pointer" onClick={() => onSelectReport(report)}>
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-[9px] text-zinc-400 font-bold">{t('total_sales')}</span>
-                          <span className="text-[11px] font-black">{formatCurrency(report.totalRevenue || 0, settings.currency, settings.language)}</span>
+                      <div className="grid grid-cols-3 gap-3 p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg cursor-pointer" onClick={() => onSelectReport(report)}>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] text-zinc-400 font-bold">{t('total_sales')}</span>
+                          <span className="text-sm font-black text-zinc-900 dark:text-zinc-100">{formatCurrency(report.totalRevenue || 0, settings.currency, settings.language)}</span>
                         </div>
-                        <div className="flex flex-col gap-0.5 text-right">
-                          <span className="text-[9px] text-zinc-400 font-bold">{t('expenses')}</span>
-                          <span className={cn("text-[11px] font-black", report.totalExpenses > 0 ? "text-amber-600" : "")}>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] text-zinc-400 font-bold">{t('expenses')}</span>
+                          <span className={cn("text-sm font-black", report.totalExpenses > 0 ? "text-amber-500" : "text-zinc-900 dark:text-zinc-100")}>
                             {formatCurrency(report.totalExpenses || 0, settings.currency, settings.language)}
                           </span>
+                        </div>
+                        <div className="flex flex-col gap-1 text-end">
+                          <span className="text-[10px] text-zinc-400 font-bold">{t('net_profit')}</span>
+                          <span className="text-sm font-black text-emerald-500 tracking-tight">+{formatCurrency(report.netProfit || 0, settings.currency, settings.language)}</span>
                         </div>
                       </div>
                     </div>

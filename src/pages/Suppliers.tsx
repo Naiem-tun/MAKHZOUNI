@@ -5,9 +5,11 @@ import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, serverTimest
 import { db } from '../lib/firebase';
 import { Supplier, SupplierTransaction, Debt, OperationType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Truck, Plus, Phone, Trash2, Edit2, X, RotateCcw, UserPlus, Eye, Receipt, History, CirclePlus, Calendar, Search, Play, Square, Printer } from 'lucide-react';
+import { Truck, Plus, Phone, Trash2, Edit2, X, RotateCcw, UserPlus, Eye, Receipt, History, CirclePlus, Calendar, Search, Play, Square, Printer, FileSpreadsheet, Activity } from 'lucide-react';
 import { formatCurrency, handleFirestoreError, safeParseDate, formatAppDate } from '../lib/utils';
 import { PrintSupplierTxModal } from '../components/suppliers/PrintSupplierTxModal';
+import * as xlsx from 'xlsx';
+import { Download, FileText } from 'lucide-react';
 
 export default function Suppliers() {
   const { t } = useTranslation();
@@ -28,6 +30,9 @@ export default function Suppliers() {
   const [isTotalModalOpen, setIsTotalModalOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [uploadedReports, setUploadedReports] = useState<{ id: string; name: string; data: Record<string, number> }[]>([]);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const days = [
     { id: 0, name: t('sunday') },
@@ -252,36 +257,179 @@ export default function Suppliers() {
     }
   };
 
+  const exportToExcel = () => {
+    if (!filteredSuppliers || filteredSuppliers.length === 0) {
+      showToast(t('no_data'), 'error');
+      return;
+    }
+    
+    // Define headers
+    const headers = [
+      'المورد',
+      'إجمالي المشتريات'
+    ];
+
+    // Create rows
+    const wsData = [];
+    wsData.push(headers);
+    
+    filteredSuppliers.forEach((s) => {
+      wsData.push([
+        s.name || '',
+        s.totalPaid || 0
+      ]);
+    });
+
+    const ws = xlsx.utils.aoa_to_sheet(wsData);
+    
+    if (settings.language === 'ar') {
+      ws['!dir'] = 'rtl';
+    }
+
+    const wb = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(wb, ws, "Suppliers");
+    
+    const exportDate = new Date().toISOString().split('T')[0];
+    xlsx.writeFile(wb, `suppliers_list_${exportDate}.xlsx`);
+    
+    showToast('تم تصدير Excel بنجاح', 'success');
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = xlsx.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = xlsx.utils.sheet_to_json<string[]>(ws, { header: 1 });
+
+        if (data.length < 2) {
+          showToast('الملف فارغ أو لا يحتوي على بيانات صحيحة', 'error');
+          return;
+        }
+
+        const reportData: Record<string, number> = {};
+        
+        // Skip header row
+        for (let i = 1; i < data.length; i++) {
+          const row = data[i];
+          if (!row || row.length < 2) continue;
+          
+          const supplierName = row[0]?.toString().trim();
+          let amount = parseFloat(row[1]?.toString().replace(/[^\d.-]/g, '')) || 0;
+          
+          if (supplierName) {
+            reportData[supplierName] = amount;
+          }
+        }
+
+        const newReport = {
+          id: Date.now().toString(),
+          name: file.name.replace('.xlsx', '').replace('.csv', ''),
+          data: reportData
+        };
+
+        if (uploadedReports.length >= 3) {
+           showToast('يمكنك مقارنة 3 تقارير كحد أقصى', 'error');
+           return;
+        }
+
+        setUploadedReports(prev => [...prev, newReport]);
+        showToast('تم رفع التقرير بنجاح', 'success');
+      } catch (err) {
+        console.error(err);
+        showToast('حدث خطأ أثناء قراءة الملف', 'error');
+      }
+    };
+    reader.readAsBinaryString(file);
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeUploadedReport = (id: string) => {
+    setUploadedReports(prev => prev.filter(r => r.id !== id));
+  };
+
   return (
     <div className="space-y-6 pb-24">
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileUpload}
+        accept=".xlsx,.xls,.csv"
+        className="hidden"
+      />
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('suppliers_book')}</h1>
           <p className="text-zinc-500 dark:text-zinc-400">{t('suppliers_subtitle')}</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => { setEditingSupplier(null); setSelectedVisitDays([]); setIsModalOpen(true); }} className="flex items-center justify-center gap-2 h-11 px-4 sm:px-5 rounded-lg bg-[#4A6FA5] text-sm font-bold text-white transition-all hover:bg-[#4A6FA5]/90 shadow-lg shadow-[#4A6FA5]/20 active:scale-95 whitespace-nowrap">
-            <UserPlus size={18} strokeWidth={3} />
-            {t('add_supplier')}
-          </button>
-          {(settings.enablePurchasesReports ?? false) && (
-            <button 
-              onClick={() => setIsPrintModalOpen(true)}
-              className="p-3 rounded-lg bg-zinc-100 text-zinc-500 hover:bg-brand-50 hover:text-brand-600 transition-all dark:bg-zinc-800"
-              title="طباعة سجل العمليات"
-            >
-              <Printer size={20}/>
-            </button>
-          )}
-          <button 
-            onClick={() => setIsClearAllConfirmOpen(true)}
-            className="p-3 rounded-lg bg-zinc-100 text-zinc-500 hover:bg-[#B34C36]/5 hover:text-[#B34C36] transition-all dark:bg-zinc-800"
-            title={t('clear_all_transactions')}
-          >
-            <RotateCcw size={20}/>
-          </button>
-        </div>
+        <button onClick={() => { setEditingSupplier(null); setSelectedVisitDays([]); setIsModalOpen(true); }} className="flex items-center justify-center gap-2 h-11 px-4 sm:px-5 rounded-lg bg-[#4A6FA5] text-sm font-bold text-white transition-all hover:bg-[#4A6FA5]/90 shadow-lg shadow-[#4A6FA5]/20 active:scale-95 whitespace-nowrap">
+          <UserPlus size={18} strokeWidth={3} />
+          {t('add_supplier')}
+        </button>
       </header>
+
+      <div className="flex justify-start gap-2">
+        <div className="relative">
+          <button 
+            onClick={() => setShowExportMenu(!showExportMenu)}
+            className="w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg shadow-sm text-zinc-600 dark:text-zinc-400 active:scale-95 transition-transform"
+            title="تقارير"
+          >
+            <FileText size={18} />
+          </button>
+          
+          {showExportMenu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowExportMenu(false)} />
+              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg shadow-xl z-50 overflow-hidden py-1">
+                {(settings.enablePurchasesReports ?? false) && (
+                  <button
+                    onClick={() => { setShowExportMenu(false); setIsPrintModalOpen(true); }}
+                    className="w-full justify-start px-4 py-3 flex items-center gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-sm font-bold text-zinc-700 dark:text-zinc-300"
+                  >
+                    <Printer size={16} />
+                    <span>طباعة سجل العمليات</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => { setShowExportMenu(false); exportToExcel(); }}
+                  className="w-full justify-start px-4 py-3 flex items-center gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-sm font-bold text-[#107C41]"
+                >
+                  <FileSpreadsheet size={16} />
+                  <span>تصدير Excel</span>
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
+        <button 
+          onClick={() => fileInputRef.current?.click()}
+          className="h-10 px-3 flex items-center gap-2 bg-brand-50 border border-brand-200 dark:bg-brand-900/20 dark:border-brand-800 text-brand-600 dark:text-brand-400 rounded-lg shadow-sm active:scale-95 transition-all text-sm font-bold"
+          title="استيراد للمقارنة"
+        >
+          <Activity size={18} />
+          <span className="hidden sm:inline">مقارنة بـ Excel</span>
+        </button>
+
+        <button 
+          onClick={() => setIsClearAllConfirmOpen(true)}
+          className="w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg shadow-sm hover:text-[#B34C36] dark:hover:text-[#B34C36] text-zinc-300 dark:text-zinc-700 active:scale-95 transition-transform"
+          title={t('clear_all_transactions')}
+        >
+          <Trash2 size={18}/>
+        </button>
+      </div>
 
       {/* Search Bar */}
       <div className="relative group">
@@ -305,6 +453,26 @@ export default function Suppliers() {
           </button>
         )}
       </div>
+
+      {uploadedReports.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {uploadedReports.map((report, idx) => {
+            const match = report.name.match(/\((\d+)\)/);
+            const shortName = match ? match[0] : `(${idx + 1})`;
+            return (
+              <div key={report.id} className="flex items-center gap-2 bg-brand-50 border border-brand-200 text-brand-700 dark:bg-brand-900/30 dark:border-brand-800 dark:text-brand-300 px-3 py-1.5 rounded-lg text-sm font-bold">
+                <span>{report.name} <span className="text-xs opacity-70 ml-1">{shortName}</span></span>
+                <button 
+                  onClick={() => removeUploadedReport(report.id)}
+                  className="hover:text-red-500 transition-colors bg-white/50 dark:bg-black/20 rounded-md p-0.5"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 pb-40">
         {filteredSuppliers.map((s) => {
@@ -353,10 +521,27 @@ export default function Suppliers() {
                             <span className="text-[#B34C36] font-bold">-</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                           <span className="inline-flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-1.5 py-0.5 rounded-lg text-[10px] font-bold border border-zinc-200 dark:border-zinc-700">
                             {s.txCount || 0} {t('operations')}
                           </span>
+                          
+                          {uploadedReports.map((report, idx) => {
+                            const val = report.data[s.name] || 0;
+                            const diff = (s.totalPaid || 0) - val;
+                            const match = report.name.match(/\((\d+)\)/);
+                            const shortName = match ? match[0] : `(${idx + 1})`;
+                            return (
+                              <span key={report.id} className="inline-flex items-center justify-center bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300 px-1.5 py-0.5 rounded-lg text-[10px] font-bold border border-brand-200 dark:border-brand-800" title={report.name}>
+                                {shortName}: {formatCurrency(val, settings.currency, settings.language)}
+                                {diff !== 0 && (
+                                  <span className={`mr-1 ${diff > 0 ? 'text-[#107C41]' : 'text-[#B34C36]'}`} dir="ltr">
+                                    ({diff > 0 ? '+' : ''}{formatCurrency(diff, settings.currency, settings.language)})
+                                  </span>
+                                )}
+                              </span>
+                            );
+                          })}
                         </div>
                       </div>
                       <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500 shrink-0">{s.typeOfGoods}</span>

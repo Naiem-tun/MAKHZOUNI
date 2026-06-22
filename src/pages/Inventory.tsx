@@ -91,6 +91,7 @@ export default function Inventory() {
   
   const [showReportView, setShowReportView] = useState(false);
   const [currentReport, setCurrentReport] = useState<any>(null);
+  const [isViewingHistory, setIsViewingHistory] = useState(false);
   
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [showDetailedControls, setShowDetailedControls] = useState(() => {
@@ -505,7 +506,13 @@ export default function Inventory() {
       <InventoryReportView
         report={currentReport}
         products={products}
-        onClose={() => setShowReportView(false)}
+        onClose={() => {
+          setShowReportView(false);
+          if (isViewingHistory) {
+            setShowHistoryModal(true);
+            setIsViewingHistory(false);
+          }
+        }}
       />
     );
   }
@@ -531,6 +538,7 @@ export default function Inventory() {
           setCurrentReport(report);
           setShowReportView(true);
           setShowHistoryModal(false);
+          setIsViewingHistory(true);
         }}
         onDeleteReport={(reportId) => {
           if (!user) return;
