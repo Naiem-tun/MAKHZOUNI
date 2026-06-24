@@ -117,7 +117,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           {showBoxInfo && (
             <button 
               type="button"
@@ -125,10 +125,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
                 e.stopPropagation();
                 onEdit(product);
               }}
-              className="flex items-center justify-center w-11 h-11 border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all shrink-0 shadow-sm"
+              className="flex items-center justify-center w-10 h-10 border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all shrink-0 shadow-sm"
               title={t('edit') || 'Edit'}
             >
-              <Pencil size={20} />
+              <Pencil size={18} />
             </button>
           )}
           <button 
@@ -136,10 +136,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
               e.stopPropagation();
               onAddQuantity(product);
             }}
-            className="flex items-center justify-center w-11 h-11 bg-brand-600 border border-transparent text-white dark:bg-brand-500 dark:border-transparent dark:text-white rounded-xl hover:bg-brand-700 dark:hover:bg-brand-600 transition-all shrink-0 shadow-md shadow-brand-500/20"
+            className="flex items-center justify-center w-10 h-10 bg-blue-50 border border-blue-200 text-blue-600 dark:bg-blue-500/10 dark:border-blue-500/20 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/30 transition-all shrink-0 shadow-sm"
             title={t('add_quantity')}
           >
-            <Plus size={22} strokeWidth={2.5} />
+            <Plus size={18} />
           </button>
         </div>
       </motion.div>
