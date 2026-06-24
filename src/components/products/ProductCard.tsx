@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
-import { Package, Plus, Pencil } from 'lucide-react';
+import { Package, PackagePlus, Pencil } from 'lucide-react';
 import { Product } from '../../types';
 import { useAppContext } from '../../AppContext';
 import { useCategories, categoryIcons } from '../../hooks/useCategories';
@@ -50,7 +50,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
     : ((product.purchasePrice || 0) > 0 ? (profit / product.purchasePrice!) * 100 : 0);
 
   return (
-    <div className="relative group overflow-hidden rounded-lg">
+    <div className="relative group overflow-hidden rounded-xl">
       {/* Background layer for profit (Revealed when swiped left/right) */}
       {!showBoxInfo && (
         <div className="absolute inset-y-0 right-0 flex items-center pr-4 z-0 w-28 justify-end bg-brand-50 dark:bg-brand-900/20" dir="ltr">
@@ -71,7 +71,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
         drag={!showBoxInfo ? "x" : false}
         dragConstraints={{ left: -112, right: 0 }}
         dragElastic={0.1}
-        className="relative z-10 flex items-center justify-between gap-3 bg-white p-3 shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 rounded-lg cursor-pointer"
+        className="relative z-10 flex items-center justify-between gap-3 bg-white p-3 border border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-xl cursor-pointer"
         onClick={(e) => {
           if (onCardClick) {
             onCardClick(product);
@@ -117,7 +117,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           {showBoxInfo && (
             <button 
               type="button"
@@ -125,10 +125,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
                 e.stopPropagation();
                 onEdit(product);
               }}
-              className="flex items-center justify-center w-10 h-10 border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all shrink-0 shadow-sm"
+              className="flex items-center justify-center w-11 h-11 border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all shrink-0 shadow-sm"
               title={t('edit') || 'Edit'}
             >
-              <Pencil size={18} />
+              <Pencil size={20} />
             </button>
           )}
           <button 
@@ -136,10 +136,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
               e.stopPropagation();
               onAddQuantity(product);
             }}
-            className="flex items-center justify-center w-10 h-10 bg-blue-50 border border-blue-200 text-blue-600 dark:bg-blue-500/10 dark:border-blue-500/20 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/30 transition-all shrink-0 shadow-sm"
+            className="flex items-center justify-center w-11 h-11 bg-brand-50 border border-brand-100 text-brand-600 dark:bg-brand-500/10 dark:border-brand-500/20 dark:text-brand-400 rounded-xl hover:bg-brand-100 dark:hover:bg-brand-500/30 transition-all shrink-0 shadow-sm"
             title={t('add_quantity')}
           >
-            <Plus size={18} />
+            <PackagePlus size={20} strokeWidth={2} />
           </button>
         </div>
       </motion.div>
