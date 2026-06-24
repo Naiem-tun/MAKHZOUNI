@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
-import { Package, PackagePlus, Pencil } from 'lucide-react';
+import { Package, Plus, Pencil } from 'lucide-react';
 import { Product } from '../../types';
 import { useAppContext } from '../../AppContext';
 import { useCategories, categoryIcons } from '../../hooks/useCategories';
@@ -71,7 +71,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
         drag={!showBoxInfo ? "x" : false}
         dragConstraints={{ left: -112, right: 0 }}
         dragElastic={0.1}
-        className="relative z-10 flex items-center justify-between gap-3 bg-white p-3 border border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-xl cursor-pointer"
+        className="relative z-10 flex items-center justify-between gap-3 bg-white p-3 shadow-sm border border-black/5 dark:bg-zinc-900 dark:border-white/5 rounded-xl cursor-pointer"
         onClick={(e) => {
           if (onCardClick) {
             onCardClick(product);
@@ -125,7 +125,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
                 e.stopPropagation();
                 onEdit(product);
               }}
-              className="flex items-center justify-center w-11 h-11 border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all shrink-0 shadow-sm"
+              className="flex items-center justify-center w-11 h-11 border border-black/5 dark:border-white/5 text-zinc-500 dark:text-zinc-400 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all shrink-0 shadow-sm bg-white dark:bg-zinc-800"
               title={t('edit') || 'Edit'}
             >
               <Pencil size={20} />
@@ -136,10 +136,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
               e.stopPropagation();
               onAddQuantity(product);
             }}
-            className="flex items-center justify-center w-11 h-11 bg-brand-50 border border-brand-100 text-brand-600 dark:bg-brand-500/10 dark:border-brand-500/20 dark:text-brand-400 rounded-xl hover:bg-brand-100 dark:hover:bg-brand-500/30 transition-all shrink-0 shadow-sm"
+            className="flex items-center justify-center gap-1.5 h-10 px-4 bg-emerald-50 border border-emerald-200/60 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-500/30 transition-all shrink-0 shadow-sm text-xs font-bold"
             title={t('add_quantity')}
           >
-            <PackagePlus size={20} strokeWidth={2} />
+            <Plus size={16} strokeWidth={2.5} />
+            <span>{t('add_quantity') || 'إضافة كمية'}</span>
           </button>
         </div>
       </motion.div>

@@ -304,7 +304,7 @@ function AppContent() {
       {!loading && !user && <Login />}
 
       {!loading && user && (
-        <div className={`flex flex-col bg-white dark:bg-[#0B1121] font-sans transition-colors duration-300 relative ${activeTab === 'ai-assistant' ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'}`}>
+        <div className={`flex flex-col bg-[#F4F7FB] dark:bg-[#0B1121] font-sans transition-colors duration-300 relative ${activeTab === 'ai-assistant' ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'}`}>
       {/* Navbar to match screenshot */}
       <header className="sticky top-0 z-40 bg-white shadow-sm dark:bg-[#121A2F]">
         <div className="mx-auto max-w-7xl px-4">
