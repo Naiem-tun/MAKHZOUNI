@@ -26,6 +26,7 @@ export default function Debts() {
   const [actionDebt, setActionDebt] = useState<Debt | null>(null);
   const [actionType, setActionType] = useState<'debt' | 'payment' | 'select'>('select');
   const [actionAmount, setActionAmount] = useState('');
+  const [actionNote, setActionNote] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -81,13 +82,13 @@ export default function Debts() {
     setIsSaving(false);
   };
 
-  const addPayment = (debt: Debt, amount: number) => {
+  const addPayment = (debt: Debt, amount: number, note: string = '') => {
     if (!user) return;
     const newTotal = debt.totalAmount - amount;
     const newStatus = newTotal <= 0 ? 'paid' : 'unpaid';
     const timestamp = new Date().toISOString();
-    const newPayments = [...(debt.payments || []), { amount, date: timestamp }];
-    const newHistory = [...(debt.history || []), { type: 'payment' as const, amount, date: timestamp }];
+    const newPayments = [...(debt.payments || []), { amount, date: timestamp, note }];
+    const newHistory = [...(debt.history || []), { type: 'payment' as const, amount, date: timestamp, note }];
     
     // UI Feedback
     showToast(t('payment_recorded_success'));
@@ -103,7 +104,7 @@ export default function Debts() {
             addDoc(collection(db, `users/${user.uid}/cash_transactions`), {
               type: debt.type === 'payable' ? 'out' : 'in',
               amount: amount,
-              description: `تسديد دين ${debt.type === 'payable' ? 'مورد' : 'حريف'}: ${debt.customerName}`,
+              description: `تسديد دين ${debt.type === 'payable' ? 'مورد' : 'حريف'}: ${debt.customerName}${note ? ` - ${note}` : ''}`,
               date: new Date().toISOString(),
               createdAt: serverTimestamp(),
               referenceId: debt.id
@@ -114,11 +115,11 @@ export default function Debts() {
     });
   };
 
-  const addDebtAmount = (debt: Debt, amount: number) => {
+  const addDebtAmount = (debt: Debt, amount: number, note: string = '') => {
     if (!user) return;
     const newTotal = debt.totalAmount + amount;
     const timestamp = new Date().toISOString();
-    const newHistory = [...(debt.history || []), { type: 'debt' as const, amount, date: timestamp }];
+    const newHistory = [...(debt.history || []), { type: 'debt' as const, amount, date: timestamp, note }];
     
     showToast(t('debt_amount_added_success'));
 
@@ -353,22 +354,41 @@ export default function Debts() {
                   e.preventDefault();
                   const amount = parseFloat(actionAmount);
                   if (amount > 0) {
-                    if (actionType === 'payment') addPayment(actionDebt, amount);
-                    else addDebtAmount(actionDebt, amount);
+                    if (actionType === 'payment') addPayment(actionDebt, amount, actionNote);
+                    else addDebtAmount(actionDebt, amount, actionNote);
                   }
                   setActionDebt(null);
                   setActionAmount('');
+                  setActionNote('');
                   setActionType('select');
                 }} className="space-y-4">
-                  <input 
-                    type="number" 
-                    step="0.001" 
-                    value={actionAmount}
-                    onChange={(e) => setActionAmount(e.target.value)}
-                    placeholder={t('enter_amount_placeholder')} 
-                    autoFocus
-                    required 
-                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-right text-xl font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white" 
+                  <div>
+                    <input 
+                      type="number" 
+                      step="0.001" 
+                      value={actionAmount}
+                      onChange={(e) => setActionAmount(e.target.value)}
+                      placeholder={t('enter_amount_placeholder')} 
+                      autoFocus
+                      required 
+                      className="w-full rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-right text-xl font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white" 
+                    />
+                    {actionType === 'payment' && actionDebt && actionDebt.totalAmount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setActionAmount(actionDebt.totalAmount.toString())}
+                        className="mt-2 text-sm text-brand-600 font-bold hover:underline"
+                      >
+                        {t('settle_full_amount', 'تسديد كامل الدين')} ({formatCurrency(actionDebt.totalAmount, settings.currency, settings.language)})
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    value={actionNote}
+                    onChange={(e) => setActionNote(e.target.value)}
+                    placeholder={t('note_optional', 'ملاحظة (اختياري)')}
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-right outline-none focus:ring-2 focus:ring-brand-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                   />
                   <div className="flex gap-3 pt-2">
                     <button type="submit" disabled={!actionAmount || isSaving} className={`flex-1 rounded-lg py-3 font-semibold text-white transition-opacity ${actionType === 'payment' ? 'bg-emerald-500' : 'bg-[#B34C36]'} disabled:opacity-50`}>
@@ -395,7 +415,7 @@ export default function Debts() {
               </div>
               <div className="space-y-4">
                 {(() => {
-                  const displayHistory = activeDebt.history || (activeDebt.payments || []).map(p => ({ type: 'payment' as const, amount: p.amount, date: p.date }));
+                  const displayHistory = activeDebt.history || (activeDebt.payments || []).map(p => ({ type: 'payment' as const, amount: p.amount, date: p.date, note: p.note }));
                   const sortedHistory = [...displayHistory].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                   
                   if (sortedHistory.length === 0) {
@@ -403,19 +423,24 @@ export default function Debts() {
                   }
                   
                   return sortedHistory.map((item, i) => (
-                    <div key={i} className="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-800">
-                      <div className="flex items-center gap-3">
-                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${item.type === 'payment' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30' : 'bg-[#B34C36]/10 text-[#B34C36] dark:bg-[#B34C36]/20'}`}>
-                          {item.type === 'payment' ? <Plus size={20} /> : <Minus size={20} />}
+                    <div key={i} className="flex flex-col gap-2 p-4 rounded-lg bg-zinc-50 dark:bg-zinc-800">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`h-10 w-10 rounded-full flex items-center justify-center ${item.type === 'payment' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30' : 'bg-[#B34C36]/10 text-[#B34C36] dark:bg-[#B34C36]/20'}`}>
+                            {item.type === 'payment' ? <Plus size={20} /> : <Minus size={20} />}
+                          </div>
+                          <div>
+                            <p className={`font-bold ${item.type === 'payment' ? 'text-emerald-600' : 'text-[#B34C36]'}`}>
+                              {item.type === 'payment' ? '+' : '-'}{formatCurrency(item.amount, settings.currency, settings.language)}
+                            </p>
+                            <p className="text-xs text-zinc-500">{new Date(item.date).toLocaleString()}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className={`font-bold ${item.type === 'payment' ? 'text-emerald-600' : 'text-[#B34C36]'}`}>
-                            {item.type === 'payment' ? '+' : '-'}{formatCurrency(item.amount, settings.currency, settings.language)}
-                          </p>
-                          <p className="text-xs text-zinc-500">{new Date(item.date).toLocaleString()}</p>
-                        </div>
+                        <span className="text-xs font-bold text-zinc-400">{item.type === 'payment' ? t('payment_type') : t('debt_type')}</span>
                       </div>
-                      <span className="text-xs font-bold text-zinc-400">{item.type === 'payment' ? t('payment_type') : t('debt_type')}</span>
+                      {item.note && (
+                        <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">{item.note}</p>
+                      )}
                     </div>
                   ));
                 })()}

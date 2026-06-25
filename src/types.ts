@@ -88,12 +88,14 @@ export interface SupplierTransaction {
 export interface Payment {
   amount: number;
   date: any;
+  note?: string;
 }
 
 export interface DebtHistory {
   type: 'debt' | 'payment';
   amount: number;
   date: any;
+  note?: string;
 }
 
 export interface Debt {
