@@ -136,7 +136,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
               e.stopPropagation();
               onAddQuantity(product);
             }}
-            className="flex items-center justify-center gap-1.5 px-3 h-9 bg-[#4A6FA5] text-white rounded-lg hover:bg-[#4A6FA5]/90 transition-all shadow-md shadow-[#4A6FA5]/20 active:scale-95 shrink-0"
+            className="flex items-center justify-center gap-1.5 px-3 h-9 bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-500/30 transition-all active:scale-95 shrink-0"
             title={t('add_quantity')}
           >
             <Plus size={16} strokeWidth={2.5} />
