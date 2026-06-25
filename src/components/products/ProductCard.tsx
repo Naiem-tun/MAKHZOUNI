@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
-import { Package, Plus, Pencil } from 'lucide-react';
+import { Package, Plus, SquarePen } from 'lucide-react';
 import { Product } from '../../types';
 import { useAppContext } from '../../AppContext';
 import { useCategories, categoryIcons } from '../../hooks/useCategories';
@@ -117,7 +117,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 self-end mt-2 mb-0.5">
           {showBoxInfo && (
             <button 
               type="button"
@@ -125,10 +125,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
                 e.stopPropagation();
                 onEdit(product);
               }}
-              className="flex items-center justify-center w-10 h-10 border border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all shrink-0 shadow-sm"
+              className="flex items-center justify-center w-[34px] h-[34px] bg-blue-50/50 border border-blue-200 text-blue-600 dark:bg-blue-500/10 dark:border-blue-500/20 dark:text-blue-400 rounded-lg hover:bg-blue-100 hover:border-blue-300 dark:hover:bg-blue-500/30 transition-all active:scale-95 shrink-0"
               title={t('edit') || 'Edit'}
             >
-              <Pencil size={18} />
+              <SquarePen size={16} strokeWidth={1.5} />
             </button>
           )}
           <button 
@@ -136,7 +136,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
               e.stopPropagation();
               onAddQuantity(product);
             }}
-            className="flex items-center justify-center gap-1.5 px-3 h-9 bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-500/30 transition-all active:scale-95 shrink-0"
+            className="flex items-center justify-center gap-1.5 px-3 h-[34px] bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-500/30 transition-all active:scale-95 shrink-0"
             title={t('add_quantity')}
           >
             <Plus size={16} strokeWidth={2.5} />
