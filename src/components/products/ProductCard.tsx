@@ -136,10 +136,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
               e.stopPropagation();
               onAddQuantity(product);
             }}
-            className="flex items-center justify-center w-10 h-10 bg-blue-50 border border-blue-200 text-blue-600 dark:bg-blue-500/10 dark:border-blue-500/20 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/30 transition-all shrink-0 shadow-sm"
+            className="flex items-center justify-center gap-1.5 px-3 h-9 bg-[#4A6FA5] text-white rounded-lg hover:bg-[#4A6FA5]/90 transition-all shadow-md shadow-[#4A6FA5]/20 active:scale-95 shrink-0"
             title={t('add_quantity')}
           >
-            <Plus size={18} />
+            <Plus size={16} strokeWidth={2.5} />
+            <span className="text-xs font-bold">{t('add_quantity')}</span>
           </button>
         </div>
       </motion.div>
