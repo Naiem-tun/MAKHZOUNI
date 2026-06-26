@@ -121,6 +121,7 @@ import {
   EyeOff,
   PackagePlus,
   BookImage,
+  RotateCcw,
 } from "lucide-react";
 import { signInWithGoogle, auth } from "./lib/firebase";
 
