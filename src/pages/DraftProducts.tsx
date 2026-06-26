@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, doc, writeBatch, deleteDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, writeBatch, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
 import { Product } from '../types';
+import { syncTracker } from '../lib/syncTracker';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, PackagePlus, Trash2, ArrowRight, Save, Receipt, Calculator, Store, BookOpen, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { CustomConfirmModal } from '../components/common/CustomConfirmModal';
 
 export default function DraftProducts() {
-  const { user, settings } = useAppContext();
+  const { user, settings, activeSupplier, setActiveSupplier } = useAppContext();
   const { t } = useTranslation();
   
   const [draftProducts, setDraftProducts] = useState<Product[]>([]);
@@ -67,7 +68,27 @@ export default function DraftProducts() {
       });
       batch.delete(draftRef);
       
-      await batch.commit();
+      // Record purchase transaction if there is initial quantity
+      if (productData.quantity && productData.quantity > 0) {
+        const purchaseAmount = productData.quantity * (productData.purchasePrice || 0);
+        const purchaseRef = doc(collection(db, `users/${user.uid}/purchases`));
+        batch.set(purchaseRef, {
+          productId: mainRef.id,
+          productName: productData.name,
+          qtyAdded: productData.quantity,
+          amount: purchaseAmount,
+          supplierId: activeSupplier?.id || null,
+          supplierName: activeSupplier?.name || null,
+          date: serverTimestamp(),
+        });
+
+        if (activeSupplier) {
+          setActiveSupplier(prev => prev ? { ...prev, sessionTotal: (prev.sessionTotal || 0) + purchaseAmount } : null);
+        }
+      }
+
+      // Fire and forget offline sync
+      syncTracker.track(batch.commit()).catch(err => console.error("Sync deferred or failed:", err));
       
       setEditingDraft(null);
     } catch (err) {

@@ -4,6 +4,7 @@ import { useAppContext } from '../AppContext';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, writeBatch, increment } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Product, OperationType } from '../types';
+import { syncTracker } from '../lib/syncTracker';
 import { handleFirestoreError, cn } from '../lib/utils';
 import { 
   Plus, 
@@ -241,10 +242,12 @@ export default function Products() {
         }
       }
 
-      // Await database write to confirm success
-      await batch.commit();
+      // Fire and forget to prevent UI blocking when offline
+      syncTracker.track(batch.commit()).catch(err => {
+         console.error("Sync deferred or failed:", err);
+      });
 
-      // UI feedback: close modal and show toast only upon actual success
+      // UI feedback: close modal and show toast immediately
       setIsQuantityModalOpen(false);
       setQuantityProduct(null);
       showToast(t('stock_updated_success'), 'success');
@@ -309,7 +312,8 @@ export default function Products() {
           }
         }
         
-        await batch.commit();
+        // Fire and forget batch commit for instant offline UI
+        syncTracker.track(batch.commit()).catch(err => console.error("Sync deferred or failed:", err));
 
         const newProd: Product = {
           id: productRef.id,

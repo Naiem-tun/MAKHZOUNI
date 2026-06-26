@@ -5,6 +5,7 @@ import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, serverTimest
 import { db } from '../lib/firebase';
 import { Supplier, SupplierTransaction, Debt, OperationType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
+import { syncTracker } from '../lib/syncTracker';
 import { Truck, Plus, Phone, Trash2, Edit2, X, RotateCcw, UserPlus, Eye, Receipt, History, CirclePlus, Calendar, Search, Play, Square, Printer, FileSpreadsheet, Activity } from 'lucide-react';
 import { formatCurrency, handleFirestoreError, safeParseDate, formatAppDate } from '../lib/utils';
 import { PrintSupplierTxModal } from '../components/suppliers/PrintSupplierTxModal';
@@ -216,26 +217,24 @@ export default function Suppliers() {
 
     setIsAddTxModalOpen(false);
     showToast(t('supplier_transaction_added_success'));
+    setIsSaving(false); // Enable UI immediately for offline sync
     
-    addDoc(collection(db, `users/${user.uid}/supplierTransactions`), data)
+    syncTracker.track(addDoc(collection(db, `users/${user.uid}/supplierTransactions`), data)
       .then((docRef) => {
         if (settings.enableCashRegister && amount > 0) {
-          const cashTxRef = doc(collection(db, `users/${user.uid}/cash_transactions`));
-          addDoc(collection(db, `users/${user.uid}/cash_transactions`), {
+          syncTracker.track(addDoc(collection(db, `users/${user.uid}/cash_transactions`), {
             type: 'out',
             amount: amount,
             description: `دفع للمورد: ${selectedSupplier.name}`,
             date: new Date().toISOString(),
             createdAt: serverTimestamp(),
             referenceId: docRef.id
-          }).catch(console.error);
+          })).catch(console.error);
         }
       })
       .catch(err => {
         handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}/supplierTransactions`);
-      }).finally(() => {
-        setIsSaving(false);
-      });
+      }));
   };
 
   const [deleteTxConfirmId, setDeleteTxConfirmId] = useState<string | null>(null);
