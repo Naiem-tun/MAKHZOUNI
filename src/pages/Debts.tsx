@@ -168,7 +168,7 @@ export default function Debts() {
           <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('debts_book')}</h1>
           <p className="text-zinc-500 dark:text-zinc-400">{t('debts_subtitle')}</p>
         </div>
-        <button onClick={() => { setEditingDebt(null); setDebtType(activeTab); setIsModalOpen(true); }} className="flex items-center justify-center gap-2 h-11 px-4 sm:px-5 rounded-lg bg-[#4A6FA5] text-sm font-bold text-white transition-all hover:bg-[#4A6FA5]/90 shadow-lg shadow-[#4A6FA5]/20 active:scale-95 whitespace-nowrap">
+        <button onClick={() => { setEditingDebt(null); setDebtType(activeTab); setIsModalOpen(true); }} className="flex items-center justify-center gap-2 h-11 px-4 sm:px-5 rounded-lg bg-brand-600 text-sm font-bold text-white transition-all hover:bg-brand-700 shadow-lg shadow-brand-500/20 active:scale-95 whitespace-nowrap">
           <UserPlus size={18} strokeWidth={3} />
           {t('add_person')}
         </button>

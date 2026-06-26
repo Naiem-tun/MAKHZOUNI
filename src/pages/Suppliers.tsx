@@ -372,7 +372,7 @@ export default function Suppliers() {
           <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('suppliers_book')}</h1>
           <p className="text-zinc-500 dark:text-zinc-400">{t('suppliers_subtitle')}</p>
         </div>
-        <button onClick={() => { setEditingSupplier(null); setSelectedVisitDays([]); setIsModalOpen(true); }} className="flex items-center justify-center gap-2 h-11 px-4 sm:px-5 rounded-lg bg-[#4A6FA5] text-sm font-bold text-white transition-all hover:bg-[#4A6FA5]/90 shadow-lg shadow-[#4A6FA5]/20 active:scale-95 whitespace-nowrap">
+        <button onClick={() => { setEditingSupplier(null); setSelectedVisitDays([]); setIsModalOpen(true); }} className="flex items-center justify-center gap-2 h-11 px-4 sm:px-5 rounded-lg bg-brand-600 text-sm font-bold text-white transition-all hover:bg-brand-700 shadow-lg shadow-brand-500/20 active:scale-95 whitespace-nowrap">
           <UserPlus size={18} strokeWidth={3} />
           {t('add_supplier')}
         </button>
@@ -582,9 +582,10 @@ export default function Suppliers() {
                   )}
                   <button 
                     onClick={(e) => { e.stopPropagation(); setSelectedSupplier(s); setIsAddTxModalOpen(true); }} 
-                    className="flex items-center justify-center w-10 h-10 bg-blue-50 border border-blue-200 text-blue-600 dark:bg-blue-500/10 dark:border-blue-500/20 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/30 transition-all shrink-0 shadow-sm"
+                    className="flex items-center justify-center gap-1.5 px-3 h-[34px] bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-500/30 transition-all active:scale-95 shrink-0"
                   >
-                    <Plus size={18} />
+                    <span className="font-bold text-sm tracking-wide">{t('record_payment', 'تسديد')}</span>
+                    <Plus size={16} strokeWidth={2.5} />
                   </button>
                 </div>
               </motion.div>

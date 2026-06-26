@@ -18,7 +18,7 @@ export const ProductsHeader: React.FC<ProductsHeaderProps> = ({ onAddProduct }) 
       <div className="flex gap-2">
         <button 
           onClick={onAddProduct}
-          className="flex items-center justify-center gap-2 h-11 px-4 sm:px-5 rounded-lg bg-[#4A6FA5] text-sm font-bold text-white transition-all hover:bg-[#4A6FA5]/90 shadow-lg shadow-[#4A6FA5]/20 active:scale-95 whitespace-nowrap"
+          className="flex items-center justify-center gap-2 h-11 px-4 sm:px-5 rounded-lg bg-brand-600 text-sm font-bold text-white transition-all hover:bg-brand-700 shadow-lg shadow-brand-500/20 active:scale-95 whitespace-nowrap"
         >
           <Plus size={18} strokeWidth={3} />
           {t('add_product')}

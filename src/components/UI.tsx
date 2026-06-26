@@ -13,7 +13,7 @@ export const Card = ({ children, className, variant = 'white' }: any) => {
 
 export const Logo = ({ className }: { className?: string }) => (
   <div 
-    className={`flex items-center justify-center bg-[#5B89BB] text-white overflow-hidden shadow-indigo-500/10 ${className}`}
+    className={`flex items-center justify-center bg-brand-600 text-white overflow-hidden shadow-brand-500/10 ${className}`}
     style={{ borderRadius: '28%' }}
   >
     <svg 
