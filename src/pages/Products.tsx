@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../AppContext';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, writeBatch, increment } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, writeBatch, increment, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Product, OperationType } from '../types';
 import { syncTracker } from '../lib/syncTracker';
@@ -184,7 +184,7 @@ export default function Products() {
         piecesPerBox: quantityProduct.piecesPerBox || 1,
         supplierId: activeSupplier?.id || null,
         supplierName: activeSupplier?.name || null,
-        date: serverTimestamp(),
+        date: Timestamp.now(),
       });
 
       // Update product stock
@@ -304,7 +304,7 @@ export default function Products() {
             amount: purchaseAmount,
             supplierId: activeSupplier?.id || null,
             supplierName: activeSupplier?.name || null,
-            date: serverTimestamp(),
+            date: Timestamp.now(),
           });
 
           if (activeSupplier) {

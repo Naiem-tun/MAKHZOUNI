@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../AppContext';
-import { collection, onSnapshot, addDoc, doc, deleteDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, doc, deleteDoc, serverTimestamp, query, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Expense } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -49,7 +49,7 @@ export default function Expenses() {
         description,
         amount,
         category,
-        date: serverTimestamp(),
+        date: Timestamp.now(),
         audited: false
       }).catch(err => {
         console.error("Async expense add failed:", err);

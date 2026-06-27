@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, doc, writeBatch, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, doc, writeBatch, deleteDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
 import { Product } from '../types';
@@ -79,7 +79,7 @@ export default function DraftProducts() {
           amount: purchaseAmount,
           supplierId: activeSupplier?.id || null,
           supplierName: activeSupplier?.name || null,
-          date: serverTimestamp(),
+          date: Timestamp.now(),
         });
 
         if (activeSupplier) {
