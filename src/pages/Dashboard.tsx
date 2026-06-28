@@ -1,7 +1,8 @@
 import React, { useState, useMemo, memo, useEffect } from 'react';
-import { collection, onSnapshot, query, limit, orderBy, where, doc, deleteDoc, updateDoc, getDoc, addDoc, increment } from 'firebase/firestore';
+import { collection, onSnapshot, query, limit, orderBy, where, doc, deleteDoc, updateDoc, getDoc, addDoc, increment, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
+import { syncTracker } from '../lib/syncTracker';
 import { 
   Package, 
   AlertTriangle, 
@@ -37,6 +38,7 @@ import { handleFirestoreError } from '../lib/utils';
 import { logAudit } from '../lib/auditLogger';
 import { PrintPurchasesModal } from '../components/dashboard/PrintPurchasesModal';
 import { CashRegisterCard } from '../components/dashboard/CashRegisterCard';
+import { DashboardCarousel } from '../components/dashboard/DashboardCarousel';
 
 import { useTranslation } from 'react-i18next';
 const Dashboard = memo(() => {
@@ -165,6 +167,33 @@ const Dashboard = memo(() => {
     const totalValue = products.reduce((acc, p) => acc + ((Number(p.quantity) || 0) * (Number(p.purchasePrice || p.costPrice) || 0)), 0);
     const lowStock = products.filter(p => (Number(p.quantity) || 0) < (Number(p.minQuantity) || 10)).length;
     
+    // Calculate category breakdown & Expected Profit
+    let totalSalesValue = 0;
+    const cats: Record<string, { count: number, totalPurchase: number, totalQuantity: number }> = {};
+    
+    products.forEach(p => {
+      const q = Number(p.quantity) || 0;
+      const pp = Number(p.purchasePrice || p.costPrice) || 0;
+      const sp = Number(p.sellingPrice) || 0;
+      
+      totalSalesValue += q * sp;
+      
+      const cat = p.category || 'other_cat';
+      if (!cats[cat]) {
+        cats[cat] = { count: 0, totalPurchase: 0, totalQuantity: 0 };
+      }
+      cats[cat].count += 1;
+      cats[cat].totalQuantity += q;
+      cats[cat].totalPurchase += q * pp;
+    });
+
+    const categoryAnalysis = Object.entries(cats)
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.totalPurchase - a.totalPurchase)
+      .slice(0, 4); // Top 4 categories
+
+    const expectedProfit = totalSalesValue - totalValue;
+
     // Only calculate pending expenses (not yet audited in inventory)
     const pendingExpenses = expenses.filter(e => !e.audited);
     const totalExpenses = pendingExpenses.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
@@ -196,6 +225,9 @@ const Dashboard = memo(() => {
       totalProducts: products.length, 
       lowStock, 
       totalValue,
+      totalSalesValue,
+      expectedProfit,
+      categoryAnalysis,
       totalExpenses,
       totalCustomerDebts,
       totalSupplierDebts,
@@ -230,15 +262,23 @@ const Dashboard = memo(() => {
     setDeletingPurchaseId(null);
 
     try {
-      await deleteDoc(doc(db, `users/${user.uid}/purchases`, purchase.id));
+      const batch = writeBatch(db);
+
+      // 1. Delete purchase
+      const purchaseRef = doc(db, `users/${user.uid}/purchases`, purchase.id);
+      batch.delete(purchaseRef);
       
+      // 2. Update product quantity
       if (purchase.productId) {
         const productRef = doc(db, `users/${user.uid}/products`, purchase.productId);
-        await updateDoc(productRef, { quantity: increment(-(purchase.quantityChange || 0)) });
+        // نستخدم set مع merge لتجنب الحاجة للاتصال بالإنترنت لفحص وجود المنتج (getDoc)
+        batch.set(productRef, { quantity: increment(-(purchase.quantityChange || 0)) }, { merge: true });
       }
 
+      // 3. Add supplier refund transaction
       if (purchase.supplierId && purchase.amount > 0) {
-        await addDoc(collection(db, `users/${user.uid}/supplierTransactions`), {
+        const supplierTxRef = doc(collection(db, `users/${user.uid}/supplierTransactions`));
+        batch.set(supplierTxRef, {
           supplierId: purchase.supplierId,
           amount: -(purchase.amount),
           date: new Date(),
@@ -247,7 +287,19 @@ const Dashboard = memo(() => {
         });
       }
       
-      logAudit('delete', 'purchase', purchase.id, purchase.productName || 'منتج غير معروف', `حذف عملية شراء بقيمة: ${purchase.amount || 0}`);
+      // 4. Log audit
+      const auditRef = doc(collection(db, `users/${user.uid}/auditLogs`));
+      batch.set(auditRef, {
+        action: 'delete',
+        entityType: 'purchase',
+        entityId: purchase.id,
+        entityName: purchase.productName || 'منتج غير معروف',
+        details: `حذف عملية شراء بقيمة: ${purchase.amount || 0}`,
+        timestamp: new Date(),
+      });
+      
+      // Commit the transaction
+      await syncTracker.track(batch.commit());
       
       showToast(t('item_deleted_success') || 'تم الحذف وتحديث الكمية بنجاح', 'success');
     } catch (error) {
@@ -321,39 +373,8 @@ const Dashboard = memo(() => {
           ))}
         </div>
 
-        {/* SECTION 3: PURCHASE MOVEMENT */}
-        <div className="mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-black uppercase tracking-wider text-zinc-900 dark:text-white pr-2">{t('purchase_movement')}</h2>
-            <div className="text-xs font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full dark:bg-brand-500/10 dark:text-brand-400">
-               {formatPrivateValue(stats.todayPurchasesTotal)} {t('today')}
-            </div>
-          </div>
-
-          <div className="flex overflow-x-auto gap-3 pb-4 snap-x hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {stats.movementHistory.length === 0 ? (
-              <div className="w-full py-10 text-center text-zinc-400 font-bold bg-white dark:bg-zinc-800/50 rounded-lg border border-dashed border-zinc-200 dark:border-zinc-700 shadow-sm">
-                {t('no_data_available')}
-              </div>
-            ) : (
-              stats.movementHistory.slice(0, 14).map((day, idx) => (
-                <div key={idx} className="min-w-[110px] flex-shrink-0 snap-start p-4 rounded-lg bg-white dark:bg-zinc-800 shadow-sm border border-zinc-100 dark:border-zinc-700 text-center flex flex-col items-center justify-center gap-2 group">
-                  <div className="h-8 w-8 rounded-full bg-zinc-50 dark:bg-zinc-700 flex items-center justify-center">
-                    <History size={14} className="text-zinc-400 group-hover:text-brand-500" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-zinc-400 mb-1">
-                      {formatAppDate(new Date(day.date), settings.language, t, { day: 'numeric', month: 'short' })}
-                    </p>
-                    <p className="text-sm font-black text-brand-800 dark:text-white font-sans leading-none">
-                      {formatPrivateValue(day.total).split(' ')[0]}
-                    </p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+        {/* SECTION 3: DASHBOARD CAROUSEL */}
+        <DashboardCarousel stats={stats} formatPrivateValue={formatPrivateValue} />
       </div>
 
 

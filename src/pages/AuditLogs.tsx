@@ -125,21 +125,21 @@ export default function AuditLogs() {
                 </div>
                 
                 <div className="flex-grow min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-start gap-2 mb-1">
                     <span className={clsx(
-                      "text-xs font-bold px-2 py-0.5 rounded-md",
+                      "shrink-0 text-xs font-bold px-2 py-0.5 rounded-md",
                       log.action === 'create' ? "bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-400" :
                       log.action === 'update' ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400" :
                       "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400"
                     )}>
                       {getActionName(log.action)}
                     </span>
-                    <span className="text-sm font-medium text-zinc-900 dark:text-white truncate">
+                    <span className="text-sm font-medium text-zinc-900 dark:text-white break-words whitespace-normal">
                       {getEntityName(log.entityType)}: {log.entityName}
                     </span>
                   </div>
                   {log.details && (
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 break-words whitespace-normal mt-0.5">
                       {log.details}
                     </p>
                   )}

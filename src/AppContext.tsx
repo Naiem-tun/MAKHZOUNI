@@ -5,6 +5,7 @@ import { doc, onSnapshot, setDoc, collection, query, orderBy } from 'firebase/fi
 import { OperationType, UserSettings, Category } from './types';
 import { handleFirestoreError, cn } from './lib/utils';
 import i18n from './lib/i18n';
+import { syncTracker } from './lib/syncTracker';
 
 interface Toast {
   id: string;
@@ -94,8 +95,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   useEffect(() => {
-    const handleOnline = () => setIsOffline(false);
+    const handleOnline = () => {
+      setIsOffline(false);
+      // When coming back online, Firebase will auto-sync. 
+      // The pending promises from before the reload are gone, so we reset the tracker after a short delay
+      setTimeout(() => syncTracker.resetCount(), 2000);
+    };
     const handleOffline = () => setIsOffline(true);
+
+    // Initial check on load
+    if (navigator.onLine) {
+      handleOnline();
+    }
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);

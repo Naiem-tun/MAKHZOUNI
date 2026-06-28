@@ -33,6 +33,7 @@ import { InventoryCompareModal } from '../components/inventory/InventoryCompareM
 
 import { InventoryItem } from '../components/inventory/InventoryItem';
 import { useTranslation } from 'react-i18next';
+import { logAudit } from '../lib/auditLogger';
 
 
 
@@ -421,7 +422,9 @@ export default function Inventory() {
         }
 
         // Commit in the background
-        batch.commit().catch(err => {
+        batch.commit().then(() => {
+          logAudit('create', 'inventory', reportRef.id, `جرد ${formatAppDate(localNow, settings?.language || 'ar', t)}`, `تسجيل عملية جرد بإجمالي ربح: ${totalProfit}`);
+        }).catch(err => {
           console.error("Inventory background sync failed:", err);
         });
 

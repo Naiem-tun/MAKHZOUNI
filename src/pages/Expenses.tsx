@@ -7,6 +7,7 @@ import { Expense } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Wallet, Plus, Trash2, X, ReceiptText, Calendar, Tag, CheckCheck, Clock } from 'lucide-react';
 import { formatCurrency, cn, safeParseDate, formatAppDate } from '../lib/utils';
+import { logAudit } from '../lib/auditLogger';
 
 export default function Expenses() {
   const { t } = useTranslation();
@@ -51,12 +52,21 @@ export default function Expenses() {
         category,
         date: Timestamp.now(),
         audited: false
+      }).then((docRef) => {
+        logAudit('create', 'expense', docRef.id, description, `تسجيل مصروف جديد بقيمة: ${amount}`);
       }).catch(err => {
         console.error("Async expense add failed:", err);
       });
     } catch (err) {
       console.error("Failed to add expense:", err);
     }
+  };
+
+  const handleDeleteExpense = (expense: Expense) => {
+    if (!user || !expense.id) return;
+    deleteDoc(doc(db, `users/${user.uid}/expenses`, expense.id)).then(() => {
+        logAudit('delete', 'expense', expense.id!, expense.description, `حذف مصروف بقيمة: ${expense.amount}`);
+    }).catch(console.error);
   };
 
   const filteredExpenses = expenses.filter(exp => {
@@ -207,7 +217,7 @@ export default function Expenses() {
                   </div>
                   {!expense.audited && (
                     <button 
-                      onClick={() => deleteDoc(doc(db, `users/${user!.uid}/expenses`, expense.id!))} 
+                      onClick={() => handleDeleteExpense(expense)} 
                       className="p-1.5 rounded-lg text-zinc-300 hover:text-[#B34C36] transition-colors"
                     >
                       <Trash2 size={16} />
