@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { History, TrendingUp, Layers, Info } from 'lucide-react';
 import { cn, formatAppDate } from '../../lib/utils';
 import { useAppContext } from '../../AppContext';
+import { ResponsiveContainer, BarChart, Bar, Cell, Tooltip, XAxis } from 'recharts';
 
 interface DashboardCarouselProps {
   stats: {
@@ -25,8 +26,6 @@ export const DashboardCarousel: React.FC<DashboardCarouselProps> = ({ stats, for
     if (!scrollRef.current) return;
     const scrollLeft = scrollRef.current.scrollLeft;
     const width = scrollRef.current.clientWidth;
-    // In RTL, scrollLeft is negative or positive depending on browser, but we can also use scroll width
-    // A simpler way is to check the offset
     const index = Math.round(Math.abs(scrollLeft) / width);
     setActiveIndex(index);
   };
@@ -42,13 +41,20 @@ export const DashboardCarousel: React.FC<DashboardCarouselProps> = ({ stats, for
   const slideTo = (index: number) => {
     if (!scrollRef.current) return;
     const width = scrollRef.current.clientWidth;
-    // For RTL, we might need negative scroll depending on browser. 
-    // Using scrollTo with behavior smooth
     scrollRef.current.scrollTo({
       left: document.dir === 'rtl' ? -(width * index) : width * index,
       behavior: 'smooth'
     });
   };
+
+  // Prepare chart data (last 7 days, oldest to newest for the chart flow)
+  const chartData = [...stats.movementHistory]
+    .slice(0, 7)
+    .reverse()
+    .map(day => ({
+      name: formatAppDate(new Date(day.date), settings.language, t, { day: 'numeric', month: 'short' }),
+      total: day.total
+    }));
 
   return (
     <div className="mt-8 relative">
@@ -79,31 +85,47 @@ export const DashboardCarousel: React.FC<DashboardCarouselProps> = ({ stats, for
         className="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-4 pb-4" 
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', scrollBehavior: 'smooth' }}
       >
-        {/* SLIDE 1: Purchase Movement */}
+        {/* SLIDE 1: Purchase Movement (Chart) */}
         <div className="min-w-full w-full flex-shrink-0 snap-center">
-          <div className="flex overflow-x-auto gap-3 snap-x hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {stats.movementHistory.length === 0 ? (
-              <div className="w-full py-10 text-center text-zinc-400 font-bold bg-white dark:bg-zinc-800/50 rounded-lg border border-dashed border-zinc-200 dark:border-zinc-700 shadow-sm">
-                {t('no_data_available')}
+          {stats.movementHistory.length === 0 ? (
+            <div className="w-full py-10 text-center text-zinc-400 font-bold bg-white dark:bg-zinc-800/50 rounded-lg border border-dashed border-zinc-200 dark:border-zinc-700 shadow-sm">
+              {t('no_data_available')}
+            </div>
+          ) : (
+            <div className="p-4 rounded-lg bg-white dark:bg-zinc-800 shadow-sm border border-zinc-100 dark:border-zinc-700 h-full flex flex-col justify-center">
+              <div className="h-[130px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                    <Tooltip 
+                      cursor={{ fill: 'rgba(161, 161, 170, 0.1)' }}
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <div className="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs py-1.5 px-3 rounded-lg shadow-xl font-sans font-black tracking-wide">
+                              {formatPrivateValue(payload[0].value as number)}
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <XAxis 
+                      dataKey="name" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fontSize: 10, fill: '#9ca3af', fontWeight: 'bold' }} 
+                      dy={10}
+                    />
+                    <Bar dataKey="total" radius={[4, 4, 0, 0]} maxBarSize={40}>
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} className="fill-brand-500 hover:fill-brand-600 dark:fill-brand-400 dark:hover:fill-brand-300 transition-all duration-300" />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-            ) : (
-              stats.movementHistory.slice(0, 14).map((day, idx) => (
-                <div key={idx} className="min-w-[110px] flex-shrink-0 snap-start p-4 rounded-lg bg-white dark:bg-zinc-800 shadow-sm border border-zinc-100 dark:border-zinc-700 text-center flex flex-col items-center justify-center gap-2 group">
-                  <div className="h-8 w-8 rounded-full bg-zinc-50 dark:bg-zinc-700 flex items-center justify-center">
-                    <History size={14} className="text-zinc-400 group-hover:text-brand-500" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-zinc-400 mb-1">
-                      {formatAppDate(new Date(day.date), settings.language, t, { day: 'numeric', month: 'short' })}
-                    </p>
-                    <p className="text-sm font-black text-brand-800 dark:text-white font-sans leading-none">
-                      {formatPrivateValue(day.total).split(' ')[0]}
-                    </p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* SLIDE 2: Category Breakdown */}
