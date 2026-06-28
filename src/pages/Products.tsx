@@ -6,6 +6,7 @@ import { db } from '../lib/firebase';
 import { Product, OperationType } from '../types';
 import { syncTracker } from '../lib/syncTracker';
 import { handleFirestoreError, cn } from '../lib/utils';
+import { logAudit } from '../lib/auditLogger';
 import { 
   Plus, 
   Search, 
@@ -119,6 +120,7 @@ export default function Products() {
     
     deleteDoc(doc(db, path))
       .then(() => {
+        logAudit('delete', 'product', productToDelete.id!, productToDelete.name, 'حذف منتج');
         setProductToDelete(null);
       })
       .catch(err => {
@@ -247,6 +249,8 @@ export default function Products() {
          console.error("Sync deferred or failed:", err);
       });
 
+      logAudit('update', 'product', quantityProduct.id!, quantityProduct.name, `إضافة كمية: ${addedQty}`);
+
       // UI feedback: close modal and show toast immediately
       setIsQuantityModalOpen(false);
       setQuantityProduct(null);
@@ -273,6 +277,21 @@ export default function Products() {
           hasLocalImage: hasLocalImageValue,
           updatedAt: serverTimestamp(),
         });
+        
+        const changes: string[] = [];
+        if (editingProduct.name !== productData.name) changes.push(`الاسم (من ${editingProduct.name} إلى ${productData.name})`);
+        if (editingProduct.purchasePrice !== productData.purchasePrice) changes.push(`سعر الشراء (من ${editingProduct.purchasePrice} إلى ${productData.purchasePrice})`);
+        if (editingProduct.sellingPrice !== productData.sellingPrice) changes.push(`سعر البيع (من ${editingProduct.sellingPrice} إلى ${productData.sellingPrice})`);
+        if (editingProduct.wholesalePrice !== productData.wholesalePrice) changes.push(`سعر الجملة (من ${editingProduct.wholesalePrice} إلى ${productData.wholesalePrice})`);
+        if (editingProduct.category !== productData.category) changes.push(`الفئة (من ${editingProduct.category} إلى ${productData.category})`);
+        if (editingProduct.minQuantity !== productData.minQuantity) changes.push(`الحد الأدنى (من ${editingProduct.minQuantity} إلى ${productData.minQuantity})`);
+
+        let detailsStr = 'تعديل بيانات المنتج';
+        if (changes.length > 0) {
+           detailsStr += ` - ${changes.join('، ')}`;
+        }
+        
+        logAudit('update', 'product', editingProduct.id, productData.name, detailsStr);
         
         if (imageRemoved) {
            await deleteLocalImage(editingProduct.id!).catch(console.error);
@@ -314,6 +333,8 @@ export default function Products() {
         
         // Fire and forget batch commit for instant offline UI
         syncTracker.track(batch.commit()).catch(err => console.error("Sync deferred or failed:", err));
+
+        logAudit('create', 'product', productRef.id, productData.name, 'إضافة منتج جديد');
 
         const newProd: Product = {
           id: productRef.id,

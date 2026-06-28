@@ -155,3 +155,16 @@ export interface MonitoredProduct {
   lastCheckDate: any;
   history: MonitoredProductHistory[];
 }
+
+export type AuditAction = 'create' | 'update' | 'delete';
+export type AuditEntityType = 'product' | 'supplier' | 'debt' | 'inventory' | 'expense' | 'purchase';
+
+export interface AuditLog {
+  id?: string;
+  action: AuditAction;
+  entityType: AuditEntityType;
+  entityId: string;
+  entityName: string;
+  details?: string;
+  timestamp: any;
+}

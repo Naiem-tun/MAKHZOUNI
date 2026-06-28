@@ -6,6 +6,8 @@ const resources = {
   ar: {
     translation: {
       "dashboard": "لوحة التحكم",
+      "audit_logs": "سجل النشاطات",
+      "audit_logs_subtitle": "تتبع جميع العمليات والتغييرات في النظام",
       "products": "المنتجات",
       "suppliers": "الموردين",
       "debts": "الديون",

@@ -7,6 +7,7 @@ import { Debt, Supplier, OperationType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { BookOpen, UserPlus, Trash2, Eye, Plus, Minus, X, CheckCircle2, History, Edit2, ArrowRightLeft, Truck } from 'lucide-react';
 import { formatCurrency, cn, handleFirestoreError } from '../lib/utils';
+import { logAudit } from '../lib/auditLogger';
 
 export default function Debts() {
   const { t } = useTranslation();
@@ -66,13 +67,25 @@ export default function Debts() {
     
     if (editingDebt) {
       showToast(t('debt_updated_success'));
-      updateDoc(doc(db, `users/${user.uid}/debts`, editingDebt.id!), data).catch((err) => {
+      updateDoc(doc(db, `users/${user.uid}/debts`, editingDebt.id!), data).then(() => {
+        const changes: string[] = [];
+        if (editingDebt.customerName !== data.customerName) changes.push(`الاسم`);
+        if (editingDebt.phone !== data.phone) changes.push(`الهاتف`);
+
+        let detailsStr = 'تعديل بيانات الدين';
+        if (changes.length > 0) {
+           detailsStr += ` (${changes.join('، ')})`;
+        }
+        logAudit('update', 'debt', editingDebt.id!, data.customerName, detailsStr);
+      }).catch((err) => {
         console.error("Failed to update debt:", err);
         handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/debts`);
       });
     } else {
       showToast(t('debt_added_success'));
-      addDoc(collection(db, `users/${user.uid}/debts`), data).catch((err) => {
+      addDoc(collection(db, `users/${user.uid}/debts`), data).then((docRef) => {
+        logAudit('create', 'debt', docRef.id, data.customerName, 'إضافة دين جديد');
+      }).catch((err) => {
         console.error("Failed to save debt:", err);
         handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}/debts`);
       });
@@ -100,6 +113,7 @@ export default function Debts() {
       history: newHistory,
       updatedAt: serverTimestamp(),
     }).then(() => {
+        logAudit('update', 'debt', debt.id!, debt.customerName, `تسديد مبلغ: ${amount}`);
         if (settings.enableCashRegister && amount > 0) {
             addDoc(collection(db, `users/${user.uid}/cash_transactions`), {
               type: debt.type === 'payable' ? 'out' : 'in',
@@ -128,6 +142,8 @@ export default function Debts() {
       status: 'unpaid',
       history: newHistory,
       updatedAt: serverTimestamp(),
+    }).then(() => {
+        logAudit('update', 'debt', debt.id!, debt.customerName, `إضافة مبلغ: ${amount}`);
     }).catch(err => {
       console.error("Async debt update failed:", err);
     });
@@ -142,7 +158,12 @@ export default function Debts() {
     showToast(t('debt_deleted_success'));
     
     try {
-      deleteDoc(doc(db, `users/${user.uid}/debts`, targetId)).catch(err => {
+      const debtToDelete = debts.find(d => d.id === targetId);
+      deleteDoc(doc(db, `users/${user.uid}/debts`, targetId)).then(() => {
+        if (debtToDelete) {
+           logAudit('delete', 'debt', targetId, debtToDelete.customerName, 'حذف دين');
+        }
+      }).catch(err => {
         handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/debts/${targetId}`);
       });
     } catch (err) {

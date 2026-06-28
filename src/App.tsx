@@ -122,6 +122,7 @@ import {
   PackagePlus,
   BookImage,
   RotateCcw,
+  Activity,
 } from "lucide-react";
 import { signInWithGoogle, auth } from "./lib/firebase";
 
@@ -163,6 +164,8 @@ import DraftProducts from "./pages/DraftProducts";
 // Heavy Pages (Lazy loaded)
 const Analytics = lazy(() => import("./pages/Analytics"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const AuditLogs = lazy(() => import("./pages/AuditLogs"));
+
 
 function AppContent() {
   const {
@@ -272,6 +275,7 @@ function AppContent() {
     { id: "settings", label: t("settings"), icon: Settings },
     { id: "draft-products", label: "قائمة النقل", icon: PackagePlus },
     { id: "monitored-products", label: "المنتجات تحت المراقبة", icon: Eye },
+    { id: "audit-logs", label: t("audit_logs") || "سجل النشاطات", icon: Activity },
     {
       id: "catalog-mode",
       label: t("catalog_mode") || "وضع الكتالوج",
@@ -751,7 +755,7 @@ function AppContent() {
                       </div>
                       {otherTabs
                         .filter((t) =>
-                          ["settings", "catalog-mode"].includes(t.id),
+                          ["settings", "catalog-mode", "audit-logs"].includes(t.id),
                         )
                         .map((tab) => (
                           <button
@@ -864,6 +868,9 @@ function AppContent() {
                 </div>
                 <div className={activeTab === "settings" ? "block" : "hidden"}>
                   {mountedTabs.has("settings") && <SettingsPage />}
+                </div>
+                <div className={activeTab === "audit-logs" ? "block" : "hidden"}>
+                  {mountedTabs.has("audit-logs") && <AuditLogs />}
                 </div>
               </div>
             </Suspense>

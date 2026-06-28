@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { syncTracker } from '../lib/syncTracker';
 import { Truck, Plus, Phone, Trash2, Edit2, X, RotateCcw, UserPlus, Eye, Receipt, History, CirclePlus, Calendar, Search, Play, Square, Printer, FileSpreadsheet, Activity } from 'lucide-react';
 import { formatCurrency, handleFirestoreError, safeParseDate, formatAppDate } from '../lib/utils';
+import { logAudit } from '../lib/auditLogger';
 import { PrintSupplierTxModal } from '../components/suppliers/PrintSupplierTxModal';
 import * as xlsx from 'xlsx';
 import { Download, FileText } from 'lucide-react';
@@ -142,13 +143,26 @@ export default function Suppliers() {
 
     if (editingSupplier) {
       showToast(t('supplier_updated_success'));
-      updateDoc(doc(db, `users/${user.uid}/suppliers`, editingSupplier.id!), data).catch(err => {
+      updateDoc(doc(db, `users/${user.uid}/suppliers`, editingSupplier.id!), data).then(() => {
+        const changes: string[] = [];
+        if (editingSupplier.name !== data.name) changes.push(`الاسم (من ${editingSupplier.name} إلى ${data.name})`);
+        if (editingSupplier.phone !== data.phone) changes.push(`الهاتف (من ${editingSupplier.phone} إلى ${data.phone})`);
+        if (editingSupplier.typeOfGoods !== data.typeOfGoods) changes.push(`نوع البضاعة (من ${editingSupplier.typeOfGoods} إلى ${data.typeOfGoods})`);
+
+        let detailsStr = 'تحديث بيانات المورد';
+        if (changes.length > 0) {
+           detailsStr += ` - ${changes.join('، ')}`;
+        }
+        logAudit('update', 'supplier', editingSupplier.id!, data.name, detailsStr);
+      }).catch(err => {
         console.error("Failed to update supplier:", err);
         handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/suppliers/${editingSupplier.id}`);
       });
     } else {
       showToast(t('supplier_added_success'));
-      addDoc(collection(db, `users/${user.uid}/suppliers`), data).catch(err => {
+      addDoc(collection(db, `users/${user.uid}/suppliers`), data).then((docRef) => {
+        logAudit('create', 'supplier', docRef.id, data.name, 'إضافة مورد جديد');
+      }).catch(err => {
         console.error("Failed to append supplier:", err);
         handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}/suppliers`);
       });
@@ -167,7 +181,12 @@ export default function Suppliers() {
     showToast(t('supplier_deleted_success'));
     
     try {
-      deleteDoc(doc(db, `users/${user.uid}/suppliers`, targetId)).catch(err => {
+      const supplierToDelete = suppliers.find(s => s.id === targetId);
+      deleteDoc(doc(db, `users/${user.uid}/suppliers`, targetId)).then(() => {
+        if (supplierToDelete) {
+           logAudit('delete', 'supplier', targetId, supplierToDelete.name, 'حذف مورد');
+        }
+      }).catch(err => {
         handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/suppliers/${targetId}`);
       });
     } catch (err) {
@@ -183,6 +202,7 @@ export default function Suppliers() {
         deleteDoc(doc(db, `users/${user.uid}/supplierTransactions`, t.id!))
       );
       await Promise.all(deletePromises);
+      logAudit('delete', 'purchase', 'all', 'جميع الموردين', `حذف جميع المعاملات (${transactions.length} معاملة)`);
       showToast(t('all_supplier_transactions_cleared_success'));
       setIsClearAllConfirmOpen(false);
     } catch (err) {
@@ -221,6 +241,7 @@ export default function Suppliers() {
     
     syncTracker.track(addDoc(collection(db, `users/${user.uid}/supplierTransactions`), data)
       .then((docRef) => {
+        logAudit('create', 'purchase', docRef.id, selectedSupplier.name, `تسجيل فاتورة مورد بقيمة: ${amount}`);
         if (settings.enableCashRegister && amount > 0) {
           syncTracker.track(addDoc(collection(db, `users/${user.uid}/cash_transactions`), {
             type: 'out',
@@ -248,7 +269,14 @@ export default function Suppliers() {
     showToast(t('supplier_transaction_deleted_success'));
 
     try {
-      deleteDoc(doc(db, `users/${user.uid}/supplierTransactions`, targetId)).catch(err => {
+      const txToDelete = transactions.find(t => t.id === targetId);
+      const supplierName = txToDelete && suppliers.find(s => s.id === txToDelete.supplierId)?.name || 'مورد غير معروف';
+      
+      deleteDoc(doc(db, `users/${user.uid}/supplierTransactions`, targetId)).then(() => {
+        if (txToDelete) {
+           logAudit('delete', 'purchase', targetId, supplierName, `حذف معاملة بقيمة: ${txToDelete.amount}`);
+        }
+      }).catch(err => {
         handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/supplierTransactions`);
       });
     } catch (err) {

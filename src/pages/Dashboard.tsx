@@ -34,6 +34,7 @@ import { Card } from '../components/UI';
 import { cn, formatCurrency, safeParseFloat, safeDispatchEvent, safeParseDate, formatAppDate } from '../lib/utils';
 import { Product, Transaction, OperationType } from '../types';
 import { handleFirestoreError } from '../lib/utils';
+import { logAudit } from '../lib/auditLogger';
 import { PrintPurchasesModal } from '../components/dashboard/PrintPurchasesModal';
 import { CashRegisterCard } from '../components/dashboard/CashRegisterCard';
 
@@ -245,6 +246,8 @@ const Dashboard = memo(() => {
           updatedAt: new Date(),
         });
       }
+      
+      logAudit('delete', 'purchase', purchase.id, purchase.productName || 'منتج غير معروف', `حذف عملية شراء بقيمة: ${purchase.amount || 0}`);
       
       showToast(t('item_deleted_success') || 'تم الحذف وتحديث الكمية بنجاح', 'success');
     } catch (error) {
