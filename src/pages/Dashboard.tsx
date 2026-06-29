@@ -221,6 +221,27 @@ const Dashboard = memo(() => {
       .map(([date, total]) => ({ date, total: total as number }))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+    // Top Suppliers Analysis
+    const suppliersData: Record<string, { name: string, debt: number, purchaseVolume: number }> = {};
+    
+    debts.filter(d => d.type === 'payable').forEach(d => {
+      const name = d.customerName || 'غير معروف';
+      if (!suppliersData[name]) suppliersData[name] = { name, debt: 0, purchaseVolume: 0 };
+      suppliersData[name].debt += Number(d.totalAmount) || 0;
+    });
+
+    allPurchases.forEach(p => {
+      if (p.supplierName) {
+        const name = p.supplierName;
+        if (!suppliersData[name]) suppliersData[name] = { name, debt: 0, purchaseVolume: 0 };
+        suppliersData[name].purchaseVolume += Number(p.amount) || 0;
+      }
+    });
+
+    const topSuppliers = Object.values(suppliersData)
+      .sort((a, b) => b.purchaseVolume - a.purchaseVolume) // Sort by volume
+      .slice(0, 4); // Top 4
+
     return { 
       totalProducts: products.length, 
       lowStock, 
@@ -228,6 +249,7 @@ const Dashboard = memo(() => {
       totalSalesValue,
       expectedProfit,
       categoryAnalysis,
+      topSuppliers,
       totalExpenses,
       totalCustomerDebts,
       totalSupplierDebts,

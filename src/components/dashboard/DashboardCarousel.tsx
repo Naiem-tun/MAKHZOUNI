@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { History, TrendingUp, Layers, Info } from 'lucide-react';
+import { History, TrendingUp, Layers, Info, Truck } from 'lucide-react';
 import { cn, formatAppDate } from '../../lib/utils';
 import { useAppContext } from '../../AppContext';
 import { ResponsiveContainer, BarChart, Bar, Cell, Tooltip, XAxis } from 'recharts';
@@ -12,6 +12,11 @@ interface DashboardCarouselProps {
     categoryAnalysis: any[];
     totalSalesValue: number;
     expectedProfit: number;
+    totalExpenses: number;
+    totalCustomerDebts: number;
+    totalSupplierDebts: number;
+    lowStock: number;
+    topSuppliers: { name: string, debt: number, purchaseVolume: number }[];
   };
   formatPrivateValue: (val: number) => string;
 }
@@ -62,12 +67,13 @@ export const DashboardCarousel: React.FC<DashboardCarouselProps> = ({ stats, for
         <h2 className="text-sm font-black uppercase tracking-wider text-zinc-900 dark:text-white pr-2">
           {activeIndex === 0 ? t('purchase_movement', 'حركة المشتريات') : 
            activeIndex === 1 ? t('category_breakdown', 'تقسيم الفئات') : 
-           t('inventory_results', 'نتائج الجرد')}
+           activeIndex === 2 ? t('inventory_results', 'نتائج الجرد') :
+           t('top_suppliers', 'أهم الموردين')}
         </h2>
         
         {/* Pagination Dots */}
         <div className="flex items-center gap-2" dir="ltr">
-          {[0, 1, 2].map((idx) => (
+          {[0, 1, 2, 3].map((idx) => (
             <button
               key={idx}
               onClick={() => slideTo(idx)}
@@ -193,6 +199,37 @@ export const DashboardCarousel: React.FC<DashboardCarouselProps> = ({ stats, for
                   {t('sales_value_desc', 'قيمة المخزون بسعر البيع')}
                 </p>
              </div>
+          </div>
+        </div>
+
+        {/* SLIDE 4: Top Suppliers */}
+        <div className="min-w-full w-full flex-shrink-0 snap-center">
+          <div className="grid grid-cols-2 gap-3 h-full">
+            {stats.topSuppliers.length === 0 ? (
+              <div className="col-span-2 py-10 text-center text-zinc-400 font-bold bg-white dark:bg-zinc-800/50 rounded-lg border border-dashed border-zinc-200 dark:border-zinc-700 shadow-sm">
+                {t('no_data_available', 'لا توجد بيانات')}
+              </div>
+            ) : (
+              stats.topSuppliers.map((supplier, idx) => (
+                <div key={idx} className="p-4 rounded-lg bg-white dark:bg-zinc-800 shadow-sm border border-zinc-100 dark:border-zinc-700 flex flex-col justify-between group relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-3 opacity-5 text-brand-600">
+                    <Truck size={40} />
+                  </div>
+                  <h3 className="text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2 truncate relative z-10">
+                    {supplier.name}
+                  </h3>
+                  <div className="relative z-10 space-y-1">
+                    <p className="text-sm font-black text-brand-700 dark:text-brand-400 font-sans leading-none">
+                      {formatPrivateValue(supplier.purchaseVolume)}
+                    </p>
+                    <p className="text-[10px] font-bold text-zinc-500 flex justify-between">
+                      <span>{t('purchases_volume', 'مشتريات')}</span>
+                      {supplier.debt > 0 && <span className="text-red-500">{t('debt', 'ديون')}: {formatPrivateValue(supplier.debt).split(' ')[0]}</span>}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
