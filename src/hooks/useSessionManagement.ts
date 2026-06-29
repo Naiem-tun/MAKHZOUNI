@@ -39,19 +39,7 @@ export function useSessionManagement(user: any, activeSupplier: any, setActiveSu
           note: t('session_purchases_total') || 'إجمالي مشتريات الجلسة',
           updatedAt: serverTimestamp(),
         }).then(docRef => {
-          // Record a single consolidated entry in the cash register
-          if (settings?.enableCashRegister) {
-            syncTracker.track(addDoc(collection(db, `users/${user.uid}/cash_transactions`), {
-              type: 'purchase',
-              amount: amount,
-              description: `${t('session_purchases_total') || 'إجمالي مشتريات الجلسة'}: ${activeSupplier.name}`,
-              date: new Date().toISOString(),
-              createdAt: serverTimestamp(),
-              referenceId: docRef.id
-            })).catch(err => {
-              console.error("Error creating cash transaction for session total:", err);
-            });
-          }
+          // Do nothing
         })).catch(err => {
            console.error("Error saving session transaction:", err);
         });

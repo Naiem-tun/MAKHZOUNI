@@ -143,30 +143,6 @@ export default function Products() {
       const monitoredSnap = await getDocs(monitoredQ);
 
       const purchaseAmount = (numBoxes * boxPrice) + (extraPieces * piecePrice);
-
-      // Check if there is an existing purchase transaction for today
-      let todayPurchaseDocRef = null;
-      let existingAmount = 0;
-
-      if (settings.enableCashRegister && purchaseAmount > 0 && !activeSupplier) {
-        try {
-          const todayStr = new Date().toISOString().split('T')[0];
-          const q = query(
-            collection(db, `users/${user.uid}/cash_transactions`),
-            where('type', '==', 'purchase'),
-            where('date', '>=', todayStr),
-            where('date', '<=', todayStr + 'T23:59:59.999Z'),
-            limit(1)
-          );
-          const snap = await getDocs(q);
-          if (!snap.empty) {
-            todayPurchaseDocRef = doc(db, `users/${user.uid}/cash_transactions/${snap.docs[0].id}`);
-            existingAmount = snap.docs[0].data().amount || 0;
-          }
-        } catch (err) {
-          console.error("Error querying today's purchase transaction:", err);
-        }
-      }
       
       const batch = writeBatch(db);
       const productRef = doc(db, `users/${user.uid}/products/${quantityProduct.id}`);
@@ -221,27 +197,6 @@ export default function Products() {
             history: newHistory
           });
         });
-      }
-
-      // Record cash transaction if cash register is enabled and this is a purchase
-      if (settings.enableCashRegister && purchaseAmount > 0 && !activeSupplier) {
-        if (todayPurchaseDocRef) {
-          batch.update(todayPurchaseDocRef, {
-            amount: existingAmount + purchaseAmount,
-            description: 'شراء بضاعة', // generic description, no product details
-            createdAt: serverTimestamp()
-          });
-        } else {
-          const cashTxRef = doc(collection(db, `users/${user.uid}/cash_transactions`));
-          batch.set(cashTxRef, {
-            type: 'purchase',
-            amount: purchaseAmount,
-            description: 'شراء بضاعة', // generic description, no product details
-            date: new Date().toISOString(),
-            createdAt: serverTimestamp(),
-            referenceId: purchaseRef.id
-          });
-        }
       }
 
       // Fire and forget to prevent UI blocking when offline

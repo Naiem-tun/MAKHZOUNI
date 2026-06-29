@@ -242,16 +242,6 @@ export default function Suppliers() {
     syncTracker.track(addDoc(collection(db, `users/${user.uid}/supplierTransactions`), data)
       .then((docRef) => {
         logAudit('create', 'purchase', docRef.id, selectedSupplier.name, `تسجيل فاتورة مورد بقيمة: ${amount}`);
-        if (settings.enableCashRegister && amount > 0) {
-          syncTracker.track(addDoc(collection(db, `users/${user.uid}/cash_transactions`), {
-            type: 'out',
-            amount: amount,
-            description: `دفع للمورد: ${selectedSupplier.name}`,
-            date: new Date().toISOString(),
-            createdAt: serverTimestamp(),
-            referenceId: docRef.id
-          })).catch(console.error);
-        }
       })
       .catch(err => {
         handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}/supplierTransactions`);

@@ -34,7 +34,6 @@ export interface UserSettings {
   deletedCategories?: string[];
   catalogPin?: string;
   enablePurchasesReports?: boolean;
-  enableCashRegister?: boolean;
 }
 
 export interface CashTransaction {

@@ -37,7 +37,6 @@ import { Product, Transaction, OperationType } from '../types';
 import { handleFirestoreError } from '../lib/utils';
 import { logAudit } from '../lib/auditLogger';
 import { PrintPurchasesModal } from '../components/dashboard/PrintPurchasesModal';
-import { CashRegisterCard } from '../components/dashboard/CashRegisterCard';
 import { DashboardCarousel } from '../components/dashboard/DashboardCarousel';
 
 import { useTranslation } from 'react-i18next';
@@ -373,8 +372,6 @@ const Dashboard = memo(() => {
       </div>
 
       <div className="px-0.5 space-y-6 mt-6">
-        {settings.enableCashRegister && <CashRegisterCard />}
-
         {/* SECTION 2: FINANCIAL SUMMARY (COMPACT GRID) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
