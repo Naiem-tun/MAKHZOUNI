@@ -51,7 +51,8 @@ import {
   Percent,
   Lock,
   Grid,
-  FileDown
+  FileDown,
+  Store
 } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { collection, getDocs, doc, setDoc, writeBatch, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
@@ -305,6 +306,28 @@ export default function SettingsPage() {
           >
             <motion.div 
               animate={{ x: (settings.enablePurchasesReports ?? false) ? 24 : 4 }}
+              className="absolute left-0 top-1 h-6 w-6 rounded-full bg-white shadow-sm"
+            />
+          </button>
+        </section>
+
+        {/* Require Supplier Session Toggle */}
+        <section className="flex items-center justify-between p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-lg bg-red-50 flex items-center justify-center text-red-600 dark:bg-red-900/30">
+              <Store size={24} />
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-zinc-400">إلزام فتح حصة مورد قبل إضافة كميات للمخزون</p>
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">إلزامية حصة المورد</h3>
+            </div>
+          </div>
+          <button 
+            onClick={() => updateSettings({ requireSupplierSession: !(settings.requireSupplierSession ?? false) })}
+            className={`relative h-8 w-14 rounded-full transition-colors ${(settings.requireSupplierSession ?? false) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+          >
+            <motion.div 
+              animate={{ x: (settings.requireSupplierSession ?? false) ? 24 : 4 }}
               className="absolute left-0 top-1 h-6 w-6 rounded-full bg-white shadow-sm"
             />
           </button>

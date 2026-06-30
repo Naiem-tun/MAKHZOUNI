@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, History, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { X, History, TrendingUp, TrendingDown, Minus, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Product } from '../../types';
 import { formatCurrency, cn } from '../../lib/utils';
@@ -96,119 +96,135 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
 
             <div className="space-y-6">
 
-              {!activeSupplier && (
-                <div className="mx-8 -mt-2 rounded-lg bg-amber-50 p-3 flex gap-3 items-start border border-amber-200/60 dark:bg-amber-500/10 dark:border-amber-500/20 shadow-sm" dir="rtl">
-                  <div className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              {settings.requireSupplierSession && !activeSupplier ? (
+                <div className="mx-8 -mt-2 rounded-lg bg-red-50 p-4 flex gap-3 items-start border border-red-200/60 dark:bg-red-500/10 dark:border-red-500/20 shadow-sm" dir="rtl">
+                  <div className="text-red-600 dark:text-red-400 shrink-0 mt-0.5">
+                    <AlertCircle size={20} />
                   </div>
                   <div>
-                    <h4 className="text-xs font-black text-amber-800 dark:text-amber-300 mb-0.5">تنبيه المورد</h4>
-                    <p className="text-[10px] sm:text-xs font-bold text-amber-700/90 dark:text-amber-400/80 leading-relaxed">
-                      لا توجد حصة مورد نشطة حالياً. هذه المشتريات ستُسجل كـ <span className="underline decoration-amber-300/50 decoration-2 underline-offset-2">"مورد غير معروف"</span> ولن تُضاف لسجل مشتريات أي مورد.
+                    <h4 className="text-sm font-black text-red-800 dark:text-red-300 mb-1">إضافة مشتريات غير مسموح</h4>
+                    <p className="text-xs font-bold text-red-700/90 dark:text-red-400/80 leading-relaxed">
+                      لقد قمت بتفعيل خيار "إلزامية حصة المورد" من الإعدادات. يجب عليك فتح حصة مورد أولاً من صفحة الموردين أو من الشريط العلوي للتطبيق لتتمكن من إضافة المشتريات.
                     </p>
                   </div>
                 </div>
+              ) : (
+                <>
+                  {!activeSupplier && !settings.requireSupplierSession && (
+                    <div className="mx-8 -mt-2 rounded-lg bg-amber-50 p-3 flex gap-3 items-start border border-amber-200/60 dark:bg-amber-500/10 dark:border-amber-500/20 shadow-sm" dir="rtl">
+                      <div className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black text-amber-800 dark:text-amber-300 mb-0.5">تنبيه المورد</h4>
+                        <p className="text-[10px] sm:text-xs font-bold text-amber-700/90 dark:text-amber-400/80 leading-relaxed">
+                          لا توجد حصة مورد نشطة حالياً. هذه المشتريات ستُسجل كـ <span className="underline decoration-amber-300/50 decoration-2 underline-offset-2">"مورد غير معروف"</span> ولن تُضاف لسجل مشتريات أي مورد.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-3 rounded-lg bg-zinc-50 p-4 dark:bg-zinc-800/50">
+                    <div className="text-center border-r border-zinc-200 dark:border-zinc-700">
+                      <p className="text-[10px] font-bold text-zinc-400 mb-1">{t('current_stock')}</p>
+                      <div className="flex items-baseline justify-center gap-1">
+                        <span className="text-lg font-bold text-zinc-900 dark:text-white">{product.quantity}</span>
+                        <span className="text-[8px] font-bold text-zinc-400">{t('piece')}</span>
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-[10px] font-bold text-zinc-400 mb-1">{t('pieces_in_box')}</p>
+                      <span className="text-lg font-black text-zinc-900 dark:text-white">{product.piecesPerBox}</span>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1 text-right">
+                        <label className="text-[10px] font-bold text-zinc-400 pr-1">{t('num_boxes')}</label>
+                        <input 
+                          type="number" 
+                          value={numBoxes || ''}
+                          onChange={(e) => setNumBoxes(parseFloat(e.target.value) || 0)}
+                          className="w-full rounded-lg border border-zinc-200 bg-white py-4 text-center text-xl font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
+                          placeholder="0"
+                          enterKeyHint="done"
+                          inputMode="decimal"
+                          onKeyDown={handleKeyDown}
+                        />
+                      </div>
+                      <div className="space-y-1 text-right">
+                        <label className="text-[10px] font-bold text-zinc-400 pr-1">{t('extra_pieces')}</label>
+                        <input 
+                          type="number" 
+                          value={extraPieces || ''}
+                          onChange={(e) => setExtraPieces(parseFloat(e.target.value) || 0)}
+                          className="w-full rounded-lg border border-zinc-200 bg-white py-4 text-center text-xl font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
+                          placeholder="0"
+                          enterKeyHint="done"
+                          inputMode="decimal"
+                          onKeyDown={handleKeyDown}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1 text-right">
+                        <label className="text-[10px] font-bold text-zinc-400 pr-1">{t('box_purchase_price')}</label>
+                        <input 
+                          type="number" 
+                          step="0.001"
+                          value={boxPrice || ''}
+                          onChange={(e) => handleQtyBoxPriceChange(parseFloat(e.target.value) || 0)}
+                          className="w-full rounded-lg border border-zinc-200 bg-white py-3 text-center font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
+                          enterKeyHint="done"
+                          inputMode="decimal"
+                          onKeyDown={handleKeyDown}
+                        />
+                      </div>
+                      <div className="space-y-1 text-right">
+                        <label className="text-[10px] font-bold text-zinc-400 pr-1">{t('piece_purchase_price')}</label>
+                        <input 
+                          type="number" 
+                          step="0.001"
+                          value={piecePrice || ''}
+                          onChange={(e) => handleQtyPiecePriceChange(parseFloat(e.target.value) || 0)}
+                          className="w-full rounded-lg border border-zinc-200 bg-white py-3 text-center font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
+                          enterKeyHint="done"
+                          inputMode="decimal"
+                          onKeyDown={handleKeyDown}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border-2 border-dashed border-zinc-100 p-4 dark:border-zinc-800 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-sm font-bold text-zinc-900 dark:text-white">{addedQty}</span>
+                          <span className="text-[10px] font-bold text-zinc-400">{t('piece')}</span>
+                        </div>
+                        <span className="text-xs font-bold text-zinc-500">{t('will_be_added')}</span>
+                      </div>
+                      <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-lg font-bold text-brand-600">{newTotalQty}</span>
+                          <span className="text-[10px] font-bold text-zinc-400">{t('piece')}</span>
+                        </div>
+                        <span className="text-sm font-bold text-zinc-900 dark:text-white">{t('new_total_stock')}</span>
+                      </div>
+                    </div>
+
+                    <button 
+                      type="submit" 
+                      disabled={addedQty <= 0 || isSaving}
+                      className="w-full rounded-lg bg-brand-600 py-4 font-bold text-white transition-all hover:bg-brand-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-brand-600 dark:hover:bg-brand-700"
+                    >
+                      {isSaving ? <div className="animate-spin w-5 h-5 border-2 border-white rounded-full border-t-transparent mx-auto"></div> : t('confirm_purchase')}
+                    </button>
+                  </form>
+                </>
               )}
-
-              <div className="grid grid-cols-2 gap-3 rounded-lg bg-zinc-50 p-4 dark:bg-zinc-800/50">
-                <div className="text-center border-r border-zinc-200 dark:border-zinc-700">
-                  <p className="text-[10px] font-bold text-zinc-400 mb-1">{t('current_stock')}</p>
-                  <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-lg font-bold text-zinc-900 dark:text-white">{product.quantity}</span>
-                    <span className="text-[8px] font-bold text-zinc-400">{t('piece')}</span>
-                  </div>
-                </div>
-                <div className="text-center">
-                  <p className="text-[10px] font-bold text-zinc-400 mb-1">{t('pieces_in_box')}</p>
-                  <span className="text-lg font-black text-zinc-900 dark:text-white">{product.piecesPerBox}</span>
-                </div>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1 text-right">
-                    <label className="text-[10px] font-bold text-zinc-400 pr-1">{t('num_boxes')}</label>
-                    <input 
-                      type="number" 
-                      value={numBoxes || ''}
-                      onChange={(e) => setNumBoxes(parseFloat(e.target.value) || 0)}
-                      className="w-full rounded-lg border border-zinc-200 bg-white py-4 text-center text-xl font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
-                      placeholder="0"
-                      enterKeyHint="done"
-                      inputMode="decimal"
-                      onKeyDown={handleKeyDown}
-                    />
-                  </div>
-                  <div className="space-y-1 text-right">
-                    <label className="text-[10px] font-bold text-zinc-400 pr-1">{t('extra_pieces')}</label>
-                    <input 
-                      type="number" 
-                      value={extraPieces || ''}
-                      onChange={(e) => setExtraPieces(parseFloat(e.target.value) || 0)}
-                      className="w-full rounded-lg border border-zinc-200 bg-white py-4 text-center text-xl font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
-                      placeholder="0"
-                      enterKeyHint="done"
-                      inputMode="decimal"
-                      onKeyDown={handleKeyDown}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1 text-right">
-                    <label className="text-[10px] font-bold text-zinc-400 pr-1">{t('box_purchase_price')}</label>
-                    <input 
-                      type="number" 
-                      step="0.001"
-                      value={boxPrice || ''}
-                      onChange={(e) => handleQtyBoxPriceChange(parseFloat(e.target.value) || 0)}
-                      className="w-full rounded-lg border border-zinc-200 bg-white py-3 text-center font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
-                      enterKeyHint="done"
-                      inputMode="decimal"
-                      onKeyDown={handleKeyDown}
-                    />
-                  </div>
-                  <div className="space-y-1 text-right">
-                    <label className="text-[10px] font-bold text-zinc-400 pr-1">{t('piece_purchase_price')}</label>
-                    <input 
-                      type="number" 
-                      step="0.001"
-                      value={piecePrice || ''}
-                      onChange={(e) => handleQtyPiecePriceChange(parseFloat(e.target.value) || 0)}
-                      className="w-full rounded-lg border border-zinc-200 bg-white py-3 text-center font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
-                      enterKeyHint="done"
-                      inputMode="decimal"
-                      onKeyDown={handleKeyDown}
-                    />
-                  </div>
-                </div>
-
-                <div className="rounded-lg border-2 border-dashed border-zinc-100 p-4 dark:border-zinc-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-sm font-bold text-zinc-900 dark:text-white">{addedQty}</span>
-                      <span className="text-[10px] font-bold text-zinc-400">{t('piece')}</span>
-                    </div>
-                    <span className="text-xs font-bold text-zinc-500">{t('will_be_added')}</span>
-                  </div>
-                  <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-lg font-bold text-brand-600">{newTotalQty}</span>
-                      <span className="text-[10px] font-bold text-zinc-400">{t('piece')}</span>
-                    </div>
-                    <span className="text-sm font-bold text-zinc-900 dark:text-white">{t('new_total_stock')}</span>
-                  </div>
-                </div>
-
-                <button 
-                  type="submit" 
-                  disabled={addedQty <= 0 || isSaving}
-                  className="w-full rounded-lg bg-brand-600 py-4 font-bold text-white transition-all hover:bg-brand-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-brand-600 dark:hover:bg-brand-700"
-                >
-                  {isSaving ? <div className="animate-spin w-5 h-5 border-2 border-white rounded-full border-t-transparent mx-auto"></div> : t('confirm_purchase')}
-                </button>
-              </form>
             </div>
           </div>
         </div>
