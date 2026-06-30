@@ -11,7 +11,6 @@ import {
   Plus, 
   ScanBarcode,
   Truck,
-  Store,
   CreditCard,
   ChevronDown,
   ChevronUp,
@@ -443,7 +442,7 @@ const Dashboard = memo(() => {
                   >
                     <div className="flex items-center gap-2">
                       <div className="h-7 w-7 rounded-full bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-brand-600 dark:text-brand-400">
-                         <Store size={12} />
+                         <Truck size={12} />
                       </div>
                       <span className="text-sm font-bold text-brand-800 dark:text-brand-400">
                         {group.supplierName || t('unknown_supplier')}

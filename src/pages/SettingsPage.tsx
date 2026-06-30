@@ -51,8 +51,7 @@ import {
   Percent,
   Lock,
   Grid,
-  FileDown,
-  Store
+  FileDown
 } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { collection, getDocs, doc, setDoc, writeBatch, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
@@ -315,7 +314,7 @@ export default function SettingsPage() {
         <section className="flex items-center justify-between p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
           <div className="flex items-center gap-4">
             <div className="h-12 w-12 rounded-lg bg-red-50 flex items-center justify-center text-red-600 dark:bg-red-900/30">
-              <Store size={24} />
+              <Truck size={24} />
             </div>
             <div className="text-right">
               <p className="text-xs text-zinc-400">إلزام فتح حصة مورد قبل إضافة كميات للمخزون</p>
