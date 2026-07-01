@@ -51,6 +51,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
 
   const isPurchaseDisabled = settings.requireSupplierSession && !activeSupplier;
 
+  const unitMap: Record<string, string> = {
+    piece: 'قطعة',
+    carton: 'كرتونة',
+    kg: 'كغ',
+    gram: 'غرام',
+    liter: 'لتر',
+    box: 'صندوق',
+    meter: 'متر'
+  };
+  const unitText = product.unit ? (unitMap[product.unit] || t(product.unit) || 'قطعة') : t('piece');
+
   return (
     <div className="relative group overflow-hidden rounded-lg">
       {/* Background layer for profit (Revealed when swiped left/right) */}
@@ -89,13 +100,26 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
             <div className="flex flex-col gap-0.5 text-[10px] text-neutral-500 font-bold">
               <div className="flex items-center gap-1">
                 <span className="opacity-70">{t('stock_label')}</span>
-                <span className={cn((product.quantity || 0) <= (product.minQuantity ?? 0) ? "text-delete-text font-black" : "")}>
-                  {product.quantity || 0} <span className="opacity-50 font-normal">{t('piece')}</span>
-                </span>
-                {showBoxInfo && product.piecesPerBox && product.piecesPerBox > 1 && (
-                  <span className="text-[9px] text-zinc-400 font-medium">
-                    ({Math.floor(product.quantity / product.piecesPerBox)} {t('box_and')} {product.quantity % product.piecesPerBox} {t('piece')})
-                  </span>
+                {settings.defaultStockView === 'boxes' && product.piecesPerBox && product.piecesPerBox > 1 ? (
+                  <>
+                    <span className={cn((product.quantity || 0) <= (product.minQuantity ?? 0) ? "text-delete-text font-black" : "")}>
+                      {((product.quantity || 0) / product.piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} <span className="opacity-50 font-normal">كرتونة</span>
+                    </span>
+                    <span className="text-[9px] text-zinc-400 font-medium">
+                      ({product.quantity || 0} {unitText})
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className={cn((product.quantity || 0) <= (product.minQuantity ?? 0) ? "text-delete-text font-black" : "")}>
+                      {product.quantity || 0} <span className="opacity-50 font-normal">{unitText}</span>
+                    </span>
+                    {showBoxInfo && product.piecesPerBox && product.piecesPerBox > 1 && (
+                      <span className="text-[9px] text-zinc-400 font-medium">
+                        ({Math.floor(product.quantity / product.piecesPerBox)} كرتونة و {product.quantity % product.piecesPerBox} {unitText})
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
               <div className="flex items-center gap-1 font-mono font-bold text-[12px] text-neutral-700 dark:text-neutral-300">
@@ -105,7 +129,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
                       {formatCurrency(product.boxPurchasePrice || 0, settings.currency, language)}
                     </span>
                     <span className="opacity-30">/</span>
-                    <span className="font-sans text-neutral-400">{t('box')} ({product.piecesPerBox} {t('piece')})</span>
+                    <span className="font-sans text-neutral-400">{t('box')} ({product.piecesPerBox} {unitText})</span>
                   </>
                 ) : (
                   <>

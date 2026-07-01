@@ -467,8 +467,16 @@ const Dashboard = memo(() => {
                             <span className="text-sm font-bold text-zinc-900 dark:text-white mb-2">{p.productName}</span>
                             <div className="flex items-center justify-start gap-2 text-[11px] font-sans font-bold text-zinc-500">
                               <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-900 px-2 py-0.5 rounded-md">
-                                <span className="text-zinc-900 dark:text-white">{p.quantityChange}</span>
-                                <span>{t('piece')}</span>
+                                <span className="text-zinc-900 dark:text-white">
+                                  {settings.defaultStockView === 'boxes' && p.piecesPerBox && p.piecesPerBox > 1
+                                    ? ((p.quantityChange || 0) / p.piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+                                    : p.quantityChange}
+                                </span>
+                                <span>
+                                  {settings.defaultStockView === 'boxes' && p.piecesPerBox && p.piecesPerBox > 1
+                                    ? 'كرتونة'
+                                    : (p.unit ? (t(p.unit) || 'قطعة') : t('piece'))}
+                                </span>
                               </div>
                               <span className="text-zinc-300 dark:text-zinc-600">|</span>
                               <span>{formatCurrency(p.price, settings.currency, language)}</span>

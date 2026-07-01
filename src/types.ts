@@ -35,6 +35,7 @@ export interface UserSettings {
   catalogPin?: string;
   enablePurchasesReports?: boolean;
   requireSupplierSession?: boolean;
+  defaultStockView?: 'pieces' | 'boxes';
 }
 
 export interface CashTransaction {
@@ -57,6 +58,7 @@ export interface Product {
   minQuantity: number;
   barcode?: string;
   barcode2?: string;
+  unit?: string;
   piecesPerBox?: number;
   boxPurchasePrice?: number;
   hasLocalImage?: boolean;

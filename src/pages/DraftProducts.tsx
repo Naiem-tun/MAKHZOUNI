@@ -207,7 +207,7 @@ export default function DraftProducts() {
                         step="0.001"
                         required
                         value={editingDraft.purchasePrice || ''}
-                        onChange={e => setEditingDraft({ ...editingDraft, purchasePrice: parseFloat(e.target.value) || 0 })}
+                        onChange={e => setEditingDraft({ ...editingDraft, purchasePrice: parseFloat(e.target.value.replace(',', '.')) || 0 })}
                         className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl h-12 px-4 focus:border-brand-500 outline-none text-left cursor-text"
                         dir="ltr"
                       />
@@ -219,7 +219,7 @@ export default function DraftProducts() {
                         step="0.001"
                         required
                         value={editingDraft.sellingPrice || ''}
-                        onChange={e => setEditingDraft({ ...editingDraft, sellingPrice: parseFloat(e.target.value) || 0 })}
+                        onChange={e => setEditingDraft({ ...editingDraft, sellingPrice: parseFloat(e.target.value.replace(',', '.')) || 0 })}
                         className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl h-12 px-4 focus:border-brand-500 outline-none text-left cursor-text text-brand-600 dark:text-brand-400 font-bold"
                         dir="ltr"
                       />
@@ -231,9 +231,9 @@ export default function DraftProducts() {
                     <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">الكمية الحالية المتوفرة (اختياري)</label>
                     <input
                       type="number"
-                      step="1"
+                      step="any"
                       value={editingDraft.quantity || ''}
-                      onChange={e => setEditingDraft({ ...editingDraft, quantity: parseFloat(e.target.value) || 0 })}
+                      onChange={e => setEditingDraft({ ...editingDraft, quantity: parseFloat(e.target.value.replace(',', '.')) || 0 })}
                       className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl h-12 px-4 outline-none focus:border-brand-500"
                     />
                   </div>

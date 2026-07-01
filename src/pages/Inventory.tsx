@@ -313,7 +313,8 @@ export default function Inventory() {
         return next;
       });
     } else {
-      setInventoryData(prev => ({ ...prev, [id]: parseFloat(val) }));
+      const parsedVal = parseFloat(val.replace(',', '.'));
+      setInventoryData(prev => ({ ...prev, [id]: isNaN(parsedVal) ? 0 : parsedVal }));
     }
   }, []);
 

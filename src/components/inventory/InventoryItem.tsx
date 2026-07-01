@@ -4,6 +4,7 @@ import { Check, PlusCircle, Package } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import { ProductIcon } from './ProductIcon';
+import { useAppContext } from '../../AppContext';
 
 interface InventoryItemProps {
   product: any;
@@ -27,19 +28,27 @@ export const InventoryItem = React.memo(({
   onChangeQuantity,
 }: InventoryItemProps) => {
   const { t } = useTranslation();
+  const { settings } = useAppContext();
+
+  const unitMap: Record<string, string> = {
+    piece: 'قطعة',
+    carton: 'كرتونة',
+    kg: 'كغ',
+    gram: 'غرام',
+    liter: 'لتر',
+    box: 'صندوق',
+    meter: 'متر'
+  };
+  const unitText = product.unit ? (unitMap[product.unit] || t(product.unit) || 'قطعة') : t('piece');
 
   const getCountBreakdown = (total: number, piecesPerBox: number) => {
     if (!total || total <= 0) return null;
-    if (!piecesPerBox || piecesPerBox <= 1) return `${total} ${t('piece')}`;
     
-    const cartons = Math.floor(total / piecesPerBox);
-    const pieces = total % piecesPerBox;
+    if (settings.defaultStockView === 'boxes' && piecesPerBox && piecesPerBox > 1) {
+      return `${(total / piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ${t('box')}`;
+    }
     
-    const parts = [];
-    if (cartons > 0) parts.push(`${cartons} ${t('box')}`);
-    if (pieces > 0) parts.push(`${pieces} ${t('piece')}`);
-    
-    return parts.join(' + ');
+    return `${total} ${unitText}`;
   };
 
   return (
@@ -66,7 +75,9 @@ export const InventoryItem = React.memo(({
           </h3>
           <div className="flex items-center gap-1 mb-1.5 opacity-60">
             <span className="text-[10px] text-zinc-400 dark:text-zinc-500">{t('stock')}:</span>
-            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold">{product.quantity || 0} {t('piece')}</span>
+            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold">
+              {settings.defaultStockView === 'boxes' ? getCountBreakdown(product.quantity || 0, product.piecesPerBox || 1) : `${product.quantity || 0} ${unitText}`}
+            </span>
           </div>
           {(inventoryQuantity || 0) > 0 && (
             <div className="flex items-center gap-1">
@@ -110,9 +121,10 @@ export const InventoryItem = React.memo(({
         <div className="relative">
           <input 
             type="number" 
+            step="any"
             inputMode="decimal"
             value={inventoryQuantity ?? ''}
-            onChange={(e) => onChangeQuantity(product.id, e.target.value)}
+            onChange={(e) => onChangeQuantity(product.id, e.target.value.replace(',', '.'))}
             className="w-16 h-9 text-center text-sm font-black bg-zinc-100/50 dark:bg-zinc-800 border border-zinc-100 dark:border-neutral-800 rounded-lg outline-none focus:ring-2 focus:ring-brand-500/20 dark:text-white placeholder:text-zinc-300 transition-all font-mono"
             placeholder={t('quantity')}
           />

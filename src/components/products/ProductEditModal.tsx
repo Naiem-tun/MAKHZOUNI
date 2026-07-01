@@ -26,6 +26,8 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
   const [barcode, setBarcode] = useState('');
   const [barcode2, setBarcode2] = useState('');
   const [showBarcode2, setShowBarcode2] = useState(false);
+  const [unit, setUnit] = useState<string>('piece');
+  const [showUnitMenu, setShowUnitMenu] = useState(false);
   
   const [imageFile, setImageFile] = useState<File | Blob | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -60,6 +62,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
       setBarcode(product?.barcode || scannedBarcode || '');
       setBarcode2(product?.barcode2 || scannedBarcode2 || '');
       setShowBarcode2(!!product?.barcode2 || !!scannedBarcode2);
+      setUnit(product?.unit || 'piece');
       setImageFile(null);
       setImageRemoved(false);
       if (!product?.hasLocalImage) setImagePreview(null);
@@ -155,15 +158,16 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
     const productData = {
       name: formData.get('name') as string,
       category: formData.get('category') as string,
-      purchasePrice: parseFloat(formData.get('purchasePrice') as string) || 0,
-      sellingPrice: parseFloat(formData.get('sellingPrice') as string) || 0,
+      purchasePrice: parseFloat((formData.get('purchasePrice') as string).replace(',', '.')) || 0,
+      sellingPrice: parseFloat((formData.get('sellingPrice') as string).replace(',', '.')) || 0,
       barcode: formData.get('barcode') as string,
       barcode2: formData.get('barcode2') as string,
-      piecesPerBox: parseFloat(formData.get('piecesPerBox') as string) || 1,
-      boxPurchasePrice: parseFloat(formData.get('boxPurchasePrice') as string) || 0,
+      piecesPerBox: parseFloat((formData.get('piecesPerBox') as string).replace(',', '.')) || 1,
+      unit: formData.get('unit') as string || 'piece',
+      boxPurchasePrice: parseFloat((formData.get('boxPurchasePrice') as string).replace(',', '.')) || 0,
       // Keep existing stock values if editing, or default to 0 for new products
       quantity: product?.quantity ?? 0,
-      minQuantity: parseFloat(formData.get('minQuantity') as string) || 0,
+      minQuantity: parseFloat((formData.get('minQuantity') as string).replace(',', '.')) || 0,
     };
     await onSave(productData, imageFile, imageRemoved);
   };
@@ -332,8 +336,8 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                 )}
               </div>
 
-              {/* 3. Category & Min Quantity */}
-              <div className="grid grid-cols-2 gap-3 text-right">
+              {/* 3. Category, Unit & Min Quantity */}
+              <div className="grid grid-cols-3 gap-3 text-right">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-zinc-500">{t('category')}</label>
                   <div className="relative">
@@ -346,9 +350,44 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                         <option key={`${c.id}-${index}`} value={c.name}>{t(c.key || c.name)}</option>
                       ))}
                     </select>
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-3 text-zinc-400">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-2 text-zinc-400">
                       <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
                     </div>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-zinc-500">{t('unit') || 'الوحدة'}</label>
+                  <div className="relative">
+                    <input type="hidden" name="unit" value={unit} />
+                    <button
+                      type="button"
+                      onClick={() => setShowUnitMenu(!showUnitMenu)}
+                      className="w-full appearance-none rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-bold text-zinc-900 outline-none hover:bg-zinc-100 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white flex items-center justify-between transition-colors"
+                    >
+                      <svg className="h-4 w-4 fill-current text-zinc-400" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                      <span>{unit === 'kg' ? 'كغ' : 'قطعة'}</span>
+                    </button>
+                    {showUnitMenu && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setShowUnitMenu(false)} />
+                        <div className="absolute right-0 left-0 top-full mt-1 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg shadow-xl z-50 overflow-hidden py-1">
+                          <button
+                            type="button"
+                            onClick={() => { setUnit('piece'); setShowUnitMenu(false); }}
+                            className="w-full px-4 py-2 text-sm font-bold text-right text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                          >
+                            قطعة
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setUnit('kg'); setShowUnitMenu(false); }}
+                            className="w-full px-4 py-2 text-sm font-bold text-right text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                          >
+                            كغ
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-1">
@@ -356,6 +395,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                   <input 
                     name="minQuantity" 
                     type="number" 
+                    step="any"
                     defaultValue={product?.minQuantity ?? 0} 
                     onKeyDown={handleKeyDown}
                     className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 

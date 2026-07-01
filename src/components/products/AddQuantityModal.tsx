@@ -21,6 +21,17 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
   const [boxPrice, setBoxPrice] = useState(0);
   const [piecePrice, setPiecePrice] = useState(0);
 
+  const unitMap: Record<string, string> = {
+    piece: 'قطعة',
+    carton: 'كرتونة',
+    kg: 'كغ',
+    gram: 'غرام',
+    liter: 'لتر',
+    box: 'صندوق',
+    meter: 'متر'
+  };
+  const unitText = product?.unit ? (unitMap[product.unit] || t(product.unit) || 'قطعة') : t('piece');
+
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -113,9 +124,20 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
               <div className="grid grid-cols-2 gap-3 rounded-lg bg-zinc-50 p-4 dark:bg-zinc-800/50">
                     <div className="text-center border-r border-zinc-200 dark:border-zinc-700">
                       <p className="text-[10px] font-bold text-zinc-400 mb-1">{t('current_stock')}</p>
-                      <div className="flex items-baseline justify-center gap-1">
-                        <span className="text-lg font-bold text-zinc-900 dark:text-white">{product.quantity}</span>
-                        <span className="text-[8px] font-bold text-zinc-400">{t('piece')}</span>
+                      <div className="flex flex-col items-center justify-center gap-1">
+                        <div className="flex items-baseline justify-center gap-1">
+                          {settings.defaultStockView === 'boxes' && product.piecesPerBox && product.piecesPerBox > 1 ? (
+                            <>
+                              <span className="text-lg font-bold text-zinc-900 dark:text-white">{((product.quantity || 0) / product.piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+                              <span className="text-[8px] font-bold text-zinc-400">كرتونة</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-lg font-bold text-zinc-900 dark:text-white">{product.quantity}</span>
+                              <span className="text-[8px] font-bold text-zinc-400">{unitText}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="text-center">
@@ -130,8 +152,9 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
                         <label className="text-[10px] font-bold text-zinc-400 pr-1">{t('num_boxes')}</label>
                         <input 
                           type="number" 
+                          step="any"
                           value={numBoxes || ''}
-                          onChange={(e) => setNumBoxes(parseFloat(e.target.value) || 0)}
+                          onChange={(e) => setNumBoxes(parseFloat(e.target.value.replace(',', '.')) || 0)}
                           className="w-full rounded-lg border border-zinc-200 bg-white py-4 text-center text-xl font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
                           placeholder="0"
                           enterKeyHint="done"
@@ -143,8 +166,9 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
                         <label className="text-[10px] font-bold text-zinc-400 pr-1">{t('extra_pieces')}</label>
                         <input 
                           type="number" 
+                          step="any"
                           value={extraPieces || ''}
-                          onChange={(e) => setExtraPieces(parseFloat(e.target.value) || 0)}
+                          onChange={(e) => setExtraPieces(parseFloat(e.target.value.replace(',', '.')) || 0)}
                           className="w-full rounded-lg border border-zinc-200 bg-white py-4 text-center text-xl font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
                           placeholder="0"
                           enterKeyHint="done"
@@ -161,7 +185,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
                           type="number" 
                           step="0.001"
                           value={boxPrice || ''}
-                          onChange={(e) => handleQtyBoxPriceChange(parseFloat(e.target.value) || 0)}
+                          onChange={(e) => handleQtyBoxPriceChange(parseFloat(e.target.value.replace(',', '.')) || 0)}
                           className="w-full rounded-lg border border-zinc-200 bg-white py-3 text-center font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
                           enterKeyHint="done"
                           inputMode="decimal"
@@ -174,7 +198,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
                           type="number" 
                           step="0.001"
                           value={piecePrice || ''}
-                          onChange={(e) => handleQtyPiecePriceChange(parseFloat(e.target.value) || 0)}
+                          onChange={(e) => handleQtyPiecePriceChange(parseFloat(e.target.value.replace(',', '.')) || 0)}
                           className="w-full rounded-lg border border-zinc-200 bg-white py-3 text-center font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
                           enterKeyHint="done"
                           inputMode="decimal"
@@ -186,16 +210,34 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
                     <div className="rounded-lg border-2 border-dashed border-zinc-100 p-4 dark:border-zinc-800 space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-baseline gap-1">
-                          <span className="text-sm font-bold text-zinc-900 dark:text-white">{addedQty}</span>
-                          <span className="text-[10px] font-bold text-zinc-400">{t('piece')}</span>
+                          {settings.defaultStockView === 'boxes' && product?.piecesPerBox && product.piecesPerBox > 1 ? (
+                            <>
+                              <span className="text-sm font-bold text-zinc-900 dark:text-white">{(addedQty / product.piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+                              <span className="text-[10px] font-bold text-zinc-400">كرتونة</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-sm font-bold text-zinc-900 dark:text-white">{addedQty}</span>
+                              <span className="text-[10px] font-bold text-zinc-400">{unitText}</span>
+                            </>
+                          )}
                         </div>
                         <span className="text-xs font-bold text-zinc-500">{t('will_be_added')}</span>
                       </div>
                       <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
                       <div className="flex items-center justify-between">
                         <div className="flex items-baseline gap-1">
-                          <span className="text-lg font-bold text-brand-600">{newTotalQty}</span>
-                          <span className="text-[10px] font-bold text-zinc-400">{t('piece')}</span>
+                          {settings.defaultStockView === 'boxes' && product?.piecesPerBox && product.piecesPerBox > 1 ? (
+                            <>
+                              <span className="text-lg font-bold text-brand-600">{(newTotalQty / product.piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+                              <span className="text-[10px] font-bold text-zinc-400">كرتونة</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-lg font-bold text-brand-600">{newTotalQty}</span>
+                              <span className="text-[10px] font-bold text-zinc-400">{unitText}</span>
+                            </>
+                          )}
                         </div>
                         <span className="text-sm font-bold text-zinc-900 dark:text-white">{t('new_total_stock')}</span>
                       </div>

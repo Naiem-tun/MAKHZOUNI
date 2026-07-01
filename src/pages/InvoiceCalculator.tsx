@@ -246,8 +246,9 @@ export default function InvoiceCalculator() {
                     <label className="block text-[10px] sm:text-xs font-bold text-zinc-400 mb-1 truncate">{t('purchase_price')}</label>
                     <input
                       type="number"
+                      step="any"
                       value={item.price || ''}
-                      onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value) || 0)}
+                      onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value.replace(',', '.')) || 0)}
                       className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg py-2 px-1 sm:px-3 text-sm sm:text-base font-bold text-zinc-900 dark:text-white text-center focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
@@ -257,8 +258,9 @@ export default function InvoiceCalculator() {
                     <label className="block text-[10px] sm:text-xs font-bold text-zinc-400 mb-1 truncate">{t('quantity')} ({t('box')})</label>
                     <input
                       type="number"
+                      step="any"
                       value={item.quantity || ''}
-                      onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 0)}
+                      onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value.replace(',', '.')) || 0)}
                       className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg py-2 px-1 sm:px-3 text-sm sm:text-base font-bold text-zinc-900 dark:text-white text-center focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
