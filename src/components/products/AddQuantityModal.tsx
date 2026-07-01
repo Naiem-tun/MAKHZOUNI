@@ -96,35 +96,21 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
 
             <div className="space-y-6">
 
-              {settings.requireSupplierSession && !activeSupplier ? (
-                <div className="mx-8 -mt-2 rounded-lg bg-red-50 p-4 flex gap-3 items-start border border-red-200/60 dark:bg-red-500/10 dark:border-red-500/20 shadow-sm" dir="rtl">
-                  <div className="text-red-600 dark:text-red-400 shrink-0 mt-0.5">
-                    <AlertCircle size={20} />
+              {!activeSupplier && !settings.requireSupplierSession && (
+                <div className="mx-8 -mt-2 rounded-lg bg-amber-50 p-3 flex gap-3 items-start border border-amber-200/60 dark:bg-amber-500/10 dark:border-amber-500/20 shadow-sm" dir="rtl">
+                  <div className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                   </div>
                   <div>
-                    <h4 className="text-sm font-black text-red-800 dark:text-red-300 mb-1">إضافة مشتريات غير مسموح</h4>
-                    <p className="text-xs font-bold text-red-700/90 dark:text-red-400/80 leading-relaxed">
-                      لقد قمت بتفعيل خيار "إلزامية حصة المورد" من الإعدادات. يجب عليك فتح حصة مورد أولاً من صفحة الموردين أو من الشريط العلوي للتطبيق لتتمكن من إضافة المشتريات.
+                    <h4 className="text-xs font-black text-amber-800 dark:text-amber-300 mb-0.5">تنبيه المورد</h4>
+                    <p className="text-[10px] sm:text-xs font-bold text-amber-700/90 dark:text-amber-400/80 leading-relaxed">
+                      لا توجد حصة مورد نشطة حالياً. هذه المشتريات ستُسجل كـ <span className="underline decoration-amber-300/50 decoration-2 underline-offset-2">"مورد غير معروف"</span> ولن تُضاف لسجل مشتريات أي مورد.
                     </p>
                   </div>
                 </div>
-              ) : (
-                <>
-                  {!activeSupplier && !settings.requireSupplierSession && (
-                    <div className="mx-8 -mt-2 rounded-lg bg-amber-50 p-3 flex gap-3 items-start border border-amber-200/60 dark:bg-amber-500/10 dark:border-amber-500/20 shadow-sm" dir="rtl">
-                      <div className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-black text-amber-800 dark:text-amber-300 mb-0.5">تنبيه المورد</h4>
-                        <p className="text-[10px] sm:text-xs font-bold text-amber-700/90 dark:text-amber-400/80 leading-relaxed">
-                          لا توجد حصة مورد نشطة حالياً. هذه المشتريات ستُسجل كـ <span className="underline decoration-amber-300/50 decoration-2 underline-offset-2">"مورد غير معروف"</span> ولن تُضاف لسجل مشتريات أي مورد.
-                        </p>
-                      </div>
-                    </div>
-                  )}
+              )}
 
-                  <div className="grid grid-cols-2 gap-3 rounded-lg bg-zinc-50 p-4 dark:bg-zinc-800/50">
+              <div className="grid grid-cols-2 gap-3 rounded-lg bg-zinc-50 p-4 dark:bg-zinc-800/50">
                     <div className="text-center border-r border-zinc-200 dark:border-zinc-700">
                       <p className="text-[10px] font-bold text-zinc-400 mb-1">{t('current_stock')}</p>
                       <div className="flex items-baseline justify-center gap-1">
@@ -223,8 +209,6 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
                       {isSaving ? <div className="animate-spin w-5 h-5 border-2 border-white rounded-full border-t-transparent mx-auto"></div> : t('confirm_purchase')}
                     </button>
                   </form>
-                </>
-              )}
             </div>
           </div>
         </div>

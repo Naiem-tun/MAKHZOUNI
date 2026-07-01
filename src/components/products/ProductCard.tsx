@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
-import { Package, Plus, SquarePen } from 'lucide-react';
+import { Package, Plus, SquarePen, Lock } from 'lucide-react';
 import { Product } from '../../types';
 import { useAppContext } from '../../AppContext';
 import { useCategories, categoryIcons } from '../../hooks/useCategories';
@@ -40,7 +40,7 @@ const ProductIcon = ({ product, className }: { product: Product, className?: str
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBoxInfo, onEdit, onAddQuantity, onCardClick }) => {
   const { t, i18n } = useTranslation();
-  const { settings } = useAppContext();
+  const { settings, activeSupplier, showToast } = useAppContext();
   const language = i18n.language;
 
   const profit = (product.sellingPrice || 0) - (product.purchasePrice || 0);
@@ -48,6 +48,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
   const profitMargin = calcMethod === 'margin' 
     ? ((product.sellingPrice || 0) > 0 ? (profit / product.sellingPrice!) * 100 : 0)
     : ((product.purchasePrice || 0) > 0 ? (profit / product.purchasePrice!) * 100 : 0);
+
+  const isPurchaseDisabled = settings.requireSupplierSession && !activeSupplier;
 
   return (
     <div className="relative group overflow-hidden rounded-lg">
@@ -134,12 +136,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
           <button 
             onClick={(e) => {
               e.stopPropagation();
+              if (isPurchaseDisabled) {
+                showToast('يجب فتح حصة مورد أولاً لإضافة المشتريات', 'error');
+                return;
+              }
               onAddQuantity(product);
             }}
-            className="flex items-center justify-center gap-1.5 px-3 h-[34px] bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-500/30 transition-all active:scale-95 shrink-0"
-            title={t('add_quantity')}
+            className={cn(
+              "flex items-center justify-center gap-1.5 px-3 h-[34px] rounded-lg transition-all shrink-0",
+              isPurchaseDisabled 
+                ? "bg-zinc-100 border border-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-500 cursor-not-allowed" 
+                : "bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/30 active:scale-95"
+            )}
+            title={isPurchaseDisabled ? 'يجب فتح حصة مورد أولاً' : t('add_quantity')}
           >
-            <Plus size={16} strokeWidth={2.5} />
+            {isPurchaseDisabled ? (
+              <Lock size={14} strokeWidth={2.5} />
+            ) : (
+              <Plus size={16} strokeWidth={2.5} />
+            )}
             <span className="text-xs font-bold">{t('add_quantity')}</span>
           </button>
         </div>

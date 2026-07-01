@@ -388,6 +388,10 @@ export default function Products() {
       setNegotiationProducts(matchingProducts);
       setIsNegotiationModalOpen(true);
     } else {
+      if (settings.requireSupplierSession && !activeSupplier) {
+        showToast('يجب فتح حصة مورد أولاً لإضافة المشتريات', 'error');
+        return;
+      }
       setQuantityProduct(product);
       const lastP = await fetchLastPurchase(product.id!);
       setLastPurchaseInfo(lastP);

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Sparkles, Package, ShieldCheck, CheckCircle2, ArrowRight } from 'lucide-react';
+import { X, Truck, Package, ShieldCheck, CheckCircle2, ArrowRight } from 'lucide-react';
 import { Product } from '../../types';
 import { useAppContext } from '../../AppContext';
 
@@ -46,7 +46,7 @@ export function SmartPurchasePopup({ product, isOpen, onClose, onConfirmPurchase
         <div className="text-center mt-2">
           {/* Glowing Smart Icon */}
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400 shadow-inner">
-            <Sparkles size={28} className="animate-pulse" />
+            <Truck size={28} className="animate-pulse" />
           </div>
 
           <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
