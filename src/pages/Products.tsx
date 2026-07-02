@@ -27,7 +27,6 @@ import { ProductEditModal } from '../components/products/ProductEditModal';
 import { PriceNegotiationModal } from '../components/products/PriceNegotiationModal';
 import { SmartPurchasePopup } from '../components/products/SmartPurchasePopup';
 import { deleteLocalImage, saveLocalImage } from '../lib/localImages';
-import { uploadImageToCloud, deleteCloudImage } from '../lib/cloudImages';
 import { compressImage } from '../lib/imageCompressor';
 import { ProductsHeader } from '../components/products/ProductsHeader';
 import { ProductsFilters } from '../components/products/ProductsFilters';
@@ -251,27 +250,11 @@ export default function Products() {
         logAudit('update', 'product', editingProduct.id, productData.name, detailsStr);
         
         if (imageRemoved) {
-           deleteLocalImage(editingProduct.id!).catch(console.error);
-           
-           // Run cloud delete and update in background so it doesn't block UI
-           (async () => {
-             await deleteCloudImage(editingProduct.id!).catch(console.error);
-             await updateDoc(doc(db, path), { imageUrl: null }).catch(console.error);
-           })();
+           await deleteLocalImage(editingProduct.id!).catch(console.error);
         }
         if (imageFile) {
            const compressedBlob = await compressImage(imageFile);
            await saveLocalImage(editingProduct.id!, compressedBlob).catch(console.error);
-           
-           // Run cloud upload in background
-           (async () => {
-             try {
-               const imageUrl = await uploadImageToCloud(editingProduct.id!, compressedBlob);
-               await updateDoc(doc(db, path), { imageUrl });
-             } catch (e) {
-               console.error("Cloud image upload failed, will only use local:", e);
-             }
-           })();
         }
 
       } else {
@@ -279,25 +262,9 @@ export default function Products() {
         const purchasesPath = `users/${user.uid}/purchases`;
         
         const productRef = doc(collection(db, path));
-        
-        let compressedBlob = null;
-        if (imageFile) {
-          compressedBlob = await compressImage(imageFile);
-          // Upload to cloud in background
-          (async () => {
-             try {
-                const imageUrl = await uploadImageToCloud(productRef.id, compressedBlob);
-                await updateDoc(productRef, { imageUrl });
-             } catch (e) {
-                console.error("Cloud image upload failed on create, will only use local:", e);
-             }
-          })();
-        }
-
         batch.set(productRef, {
           ...productData,
           hasLocalImage: hasLocalImageValue,
-          imageUrl: null,
           updatedAt: serverTimestamp(),
         });
 
@@ -338,13 +305,13 @@ export default function Products() {
           quantity: productData.quantity,
           minQuantity: productData.minQuantity,
           hasLocalImage: hasLocalImageValue,
-          imageUrl: initialImageUrl,
           updatedAt: null,
         };
         setCreatedNewProduct(newProd);
         setIsSmartPopupOpen(true);
         
-        if (compressedBlob) {
+        if (imageFile) {
+           const compressedBlob = await compressImage(imageFile);
            await saveLocalImage(productRef.id, compressedBlob).catch(console.error);
         }
       }
