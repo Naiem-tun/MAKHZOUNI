@@ -95,7 +95,7 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
             <span className="flex-1 text-right">{stockOptions.find(o => o.value === stockFilter)?.label}</span>
           </button>
           {stockDropdownOpen && (
-            <div className="absolute top-full left-0 mt-1 w-full min-w-[140px] z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl overflow-hidden py-1">
+            <div className="absolute top-full right-0 mt-1 w-full min-w-[140px] z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl overflow-hidden py-1">
               {stockOptions.map(opt => (
                 <button
                   key={opt.value}
@@ -124,7 +124,7 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
             <span className="flex-1 text-right truncate">{categoryOptions.find(o => o.value === categoryFilter)?.label}</span>
           </button>
           {categoryDropdownOpen && (
-            <div className="absolute top-full left-0 mt-1 w-full min-w-[160px] max-h-[300px] overflow-y-auto z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl py-1">
+            <div className="absolute top-full right-0 mt-1 w-full min-w-[160px] max-h-[300px] overflow-y-auto z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl py-1">
               {categoryOptions.map(opt => (
                 <button
                   key={opt.value}
