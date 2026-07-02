@@ -5,15 +5,16 @@ import { useLocalImage } from '../../hooks/useLocalImage';
 interface ProductImageProps {
   productId?: string;
   hasLocalImage?: boolean;
+  cloudImageUrl?: string | null;
   className?: string;
   iconSize?: number;
 }
 
-export function ProductImage({ productId, hasLocalImage, className = "w-full h-full object-cover", iconSize = 32 }: ProductImageProps) {
-  const imageUrl = useLocalImage(productId, hasLocalImage);
+export function ProductImage({ productId, hasLocalImage, cloudImageUrl, className = "w-full h-full object-cover", iconSize = 32 }: ProductImageProps) {
+  const imageUrl = useLocalImage(productId, hasLocalImage, cloudImageUrl);
 
   if (imageUrl) {
-    return <img src={imageUrl} alt="Product" className={className} />;
+    return <img src={imageUrl} alt="Product" loading="lazy" className={className} />;
   }
 
   return (

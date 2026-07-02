@@ -18,6 +18,7 @@ import {
   persistentMultipleTabManager,
   Firestore
 } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 // Initialize Firebase with singleton pattern
@@ -34,6 +35,8 @@ export const auth: Auth = getAuth(app);
 setPersistence(auth, browserLocalPersistence).catch(console.error);
 
 auth.useDeviceLanguage();
+
+export const storage = getStorage(app);
 
 export const googleProvider = new GoogleAuthProvider();
 

@@ -51,8 +51,12 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                  if (product._copiedFromId) {
                    setImageFile(blob);
                  }
+              } else if (product.imageUrl) {
+                 setImagePreview(product.imageUrl);
               }
            });
+        } else if (product?.imageUrl) {
+           setImagePreview(product.imageUrl);
         }
       } else {
         setPiecesPerBox(1);
@@ -65,7 +69,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
       setUnit(product?.unit || 'piece');
       setImageFile(null);
       setImageRemoved(false);
-      if (!product?.hasLocalImage) setImagePreview(null);
+      if (!product?.hasLocalImage && !product?.imageUrl) setImagePreview(null);
     }
     return () => {
       if (url) URL.revokeObjectURL(url);
