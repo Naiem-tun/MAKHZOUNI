@@ -244,28 +244,6 @@ export default function SettingsPage() {
           </button>
         </section>
 
-        {/* Default Stock View Toggle */}
-        <section className="flex items-center justify-between p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-lg bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
-              <Package size={24} />
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-zinc-400">عرض الكراتين ككمية افتراضية (يفيد تجار الجملة)</p>
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">عرض الكراتين</h3>
-            </div>
-          </div>
-          <button 
-            onClick={() => updateSettings({ defaultStockView: settings.defaultStockView === 'boxes' ? 'pieces' : 'boxes' })}
-            className={`relative h-8 w-14 rounded-full transition-colors ${settings.defaultStockView === 'boxes' ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
-          >
-            <motion.div 
-              animate={{ x: settings.defaultStockView === 'boxes' ? 24 : 4 }}
-              className="absolute left-0 top-1 h-6 w-6 rounded-full bg-white shadow-sm"
-            />
-          </button>
-        </section>
-
         {/* Dark Mode Toggle */}
         <section className="flex items-center justify-between p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
           <div className="flex items-center gap-4">

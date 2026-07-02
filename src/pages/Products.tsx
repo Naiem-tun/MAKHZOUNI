@@ -42,7 +42,7 @@ import * as xlsx from 'xlsx';
 
 export default function Products() {
   const { t } = useTranslation();
-  const { user, settings, showToast, setIsDataLoaded, activeSupplier, setActiveSupplier } = useAppContext();
+  const { user, settings, updateSettings, showToast, setIsDataLoaded, activeSupplier, setActiveSupplier } = useAppContext();
   const { categories } = useCategories();
   const [products, setProducts] = useState<Product[]>(() => {
     if (!user) return [];
@@ -55,10 +55,11 @@ export default function Products() {
   const [searchTerm, setSearchTerm] = useState('');
   const [stockFilter, setStockFilter] = useState('all'); // 'all', 'available', 'low', 'out'
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [showBoxInfo, setShowBoxInfo] = useState(() => {
-    const saved = localStorage.getItem('products_showBoxInfo');
-    return saved === 'true';
-  });
+  
+  const showBoxInfo = settings.defaultStockView === 'boxes';
+  const setShowBoxInfo = (val: boolean) => {
+    updateSettings({ defaultStockView: val ? 'boxes' : 'pieces' });
+  };
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQuantityModalOpen, setIsQuantityModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -461,10 +462,6 @@ export default function Products() {
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
-
-  useEffect(() => {
-    localStorage.setItem('products_showBoxInfo', showBoxInfo.toString());
-  }, [showBoxInfo]);
 
   useEffect(() => {
     const productHandler = () => {

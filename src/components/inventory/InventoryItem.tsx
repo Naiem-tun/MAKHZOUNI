@@ -42,7 +42,7 @@ export const InventoryItem = React.memo(({
   const unitText = product.unit ? (unitMap[product.unit] || t(product.unit) || 'قطعة') : t('piece');
 
   const getCountBreakdown = (total: number, piecesPerBox: number) => {
-    if (!total || total <= 0) return null;
+    if (total === undefined || total === null) total = 0;
     
     if (settings.defaultStockView === 'boxes' && piecesPerBox && piecesPerBox > 1) {
       return `${(total / piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ${t('box')}`;

@@ -95,9 +95,9 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
               ? "bg-brand-600 border-brand-700 text-white shadow-lg shadow-brand-500/20 scale-105" 
               : "bg-white border-zinc-200 text-zinc-500 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-500"
           )}
-          title={showBoxInfo ? t('price_negotiation_tool') : t('box')}
+          title={showBoxInfo ? t('box_mode') || 'وضع الكرتونة' : t('box')}
         >
-          {showBoxInfo ? <Shield size={18} fill="currentColor" fillOpacity={0.2} /> : <Package size={18} />}
+          <Package size={18} />
           <span>{t('box')}</span>
         </button>
       </div>
