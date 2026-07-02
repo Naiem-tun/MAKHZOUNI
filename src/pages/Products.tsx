@@ -251,19 +251,27 @@ export default function Products() {
         logAudit('update', 'product', editingProduct.id, productData.name, detailsStr);
         
         if (imageRemoved) {
-           await deleteLocalImage(editingProduct.id!).catch(console.error);
-           await deleteCloudImage(editingProduct.id!).catch(console.error);
-           await updateDoc(doc(db, path), { imageUrl: null });
+           deleteLocalImage(editingProduct.id!).catch(console.error);
+           
+           // Run cloud delete and update in background so it doesn't block UI
+           (async () => {
+             await deleteCloudImage(editingProduct.id!).catch(console.error);
+             await updateDoc(doc(db, path), { imageUrl: null }).catch(console.error);
+           })();
         }
         if (imageFile) {
            const compressedBlob = await compressImage(imageFile);
            await saveLocalImage(editingProduct.id!, compressedBlob).catch(console.error);
-           try {
-             const imageUrl = await uploadImageToCloud(editingProduct.id!, compressedBlob);
-             await updateDoc(doc(db, path), { imageUrl });
-           } catch (e) {
-             console.error("Cloud image upload failed, will only use local:", e);
-           }
+           
+           // Run cloud upload in background
+           (async () => {
+             try {
+               const imageUrl = await uploadImageToCloud(editingProduct.id!, compressedBlob);
+               await updateDoc(doc(db, path), { imageUrl });
+             } catch (e) {
+               console.error("Cloud image upload failed, will only use local:", e);
+             }
+           })();
         }
 
       } else {
@@ -272,21 +280,24 @@ export default function Products() {
         
         const productRef = doc(collection(db, path));
         
-        let initialImageUrl = null;
         let compressedBlob = null;
         if (imageFile) {
           compressedBlob = await compressImage(imageFile);
-          try {
-             initialImageUrl = await uploadImageToCloud(productRef.id, compressedBlob);
-          } catch (e) {
-             console.error("Cloud image upload failed on create, will only use local:", e);
-          }
+          // Upload to cloud in background
+          (async () => {
+             try {
+                const imageUrl = await uploadImageToCloud(productRef.id, compressedBlob);
+                await updateDoc(productRef, { imageUrl });
+             } catch (e) {
+                console.error("Cloud image upload failed on create, will only use local:", e);
+             }
+          })();
         }
 
         batch.set(productRef, {
           ...productData,
           hasLocalImage: hasLocalImageValue,
-          imageUrl: initialImageUrl,
+          imageUrl: null,
           updatedAt: serverTimestamp(),
         });
 
