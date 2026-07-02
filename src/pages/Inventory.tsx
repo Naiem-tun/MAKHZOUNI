@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, ScanBarcode, CheckCircle2, Check,
@@ -98,6 +98,19 @@ export default function Inventory() {
   const [showDetailedControls, setShowDetailedControls] = useState(() => {
     return localStorage.getItem('detailed_inventory_mode') === 'true';
   });
+
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const categoryRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (categoryRef.current && !categoryRef.current.contains(event.target as Node)) {
+        setCategoryDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('detailed_inventory_mode', String(showDetailedControls));
@@ -661,20 +674,45 @@ export default function Inventory() {
           </div>
         </div>
         <div className="flex gap-2">
-          <div className="relative group/filter flex-1">
-            <select 
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full appearance-none py-2.5 px-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[13px] font-bold text-zinc-600 dark:text-zinc-400 text-center outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors shadow-sm focus:border-brand-500/50"
+          <div className="relative group/filter flex-1" ref={categoryRef}>
+            <button 
+              onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
+              className="w-full flex items-center justify-between py-2.5 px-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[13px] font-bold text-zinc-600 dark:text-zinc-400 outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors shadow-sm focus:border-brand-500/50"
             >
-              <option value="all">{t('all_categories_filter')}</option>
-              {categories.map((c, index) => (
-                <option key={`${c.id}-${index}`} value={c.name}>{t(c.key || c.name)}</option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-4 text-zinc-400">
-              <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
-            </div>
+              <span className="truncate flex-1 text-center">{categoryFilter === 'all' ? t('all_categories_filter') : t(categories.find(c => c.name === categoryFilter)?.key || categoryFilter)}</span>
+              <svg className="h-4 w-4 fill-current text-zinc-400 shrink-0" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+            </button>
+            {categoryDropdownOpen && (
+              <div className="absolute top-full right-0 mt-1 w-full max-h-[300px] overflow-y-auto z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl py-1">
+                <button
+                  onClick={() => {
+                    setCategoryFilter('all');
+                    setCategoryDropdownOpen(false);
+                  }}
+                  className={cn(
+                    "w-full text-right px-4 py-2 text-[13px] hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors truncate",
+                    categoryFilter === 'all' ? "text-brand-600 font-bold bg-brand-50/50 dark:bg-brand-900/10 dark:text-brand-400" : "text-zinc-600 dark:text-zinc-400"
+                  )}
+                >
+                  {t('all_categories_filter')}
+                </button>
+                {categories.map((c, index) => (
+                  <button
+                    key={`${c.id}-${index}`}
+                    onClick={() => {
+                      setCategoryFilter(c.name);
+                      setCategoryDropdownOpen(false);
+                    }}
+                    className={cn(
+                      "w-full text-right px-4 py-2 text-[13px] hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors truncate",
+                      categoryFilter === c.name ? "text-brand-600 font-bold bg-brand-50/50 dark:bg-brand-900/10 dark:text-brand-400" : "text-zinc-600 dark:text-zinc-400"
+                    )}
+                  >
+                    {t(c.key || c.name)}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <button
             onClick={() => setShowUninventoriedOnly(!showUninventoriedOnly)}

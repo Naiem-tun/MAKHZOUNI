@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, ScanBarcode, Layers, Filter, Package, Shield } from 'lucide-react';
+import { Search, ScanBarcode, Layers, Filter, Package, ChevronDown } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Category } from '../../types';
 
@@ -30,6 +30,37 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
   onOpenScanner
 }) => {
   const { t } = useTranslation();
+  
+  const [stockDropdownOpen, setStockDropdownOpen] = useState(false);
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  
+  const stockRef = useRef<HTMLDivElement>(null);
+  const categoryRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (stockRef.current && !stockRef.current.contains(event.target as Node)) {
+        setStockDropdownOpen(false);
+      }
+      if (categoryRef.current && !categoryRef.current.contains(event.target as Node)) {
+        setCategoryDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const stockOptions = [
+    { value: 'all', label: t('all_stock') },
+    { value: 'available', label: t('available_stock') },
+    { value: 'low', label: t('low_stock') },
+    { value: 'out', label: t('out_of_stock') }
+  ];
+
+  const categoryOptions = [
+    { value: 'all', label: t('all_categories') },
+    ...categories.map(c => ({ value: c.name, label: t(c.key || c.name) }))
+  ];
 
   return (
     <div className="flex flex-col sm:flex-row gap-4">
@@ -55,42 +86,68 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
         </div>
       </div>
       <div className="flex gap-2">
-        <div className="relative group">
-          <select 
-            value={stockFilter}
-            onChange={(e) => setStockFilter(e.target.value)}
-            className="appearance-none flex items-center gap-2 rounded-lg border border-zinc-200 bg-white pr-8 pl-3 py-2 text-sm font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 cursor-pointer min-w-[110px]"
+        <div className="relative" ref={stockRef}>
+          <button 
+            onClick={() => setStockDropdownOpen(!stockDropdownOpen)}
+            className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 min-w-[110px] h-full"
           >
-            <option value="all">{t('all_stock')}</option>
-            <option value="available">{t('available_stock')}</option>
-            <option value="low">{t('low_stock')}</option>
-            <option value="out">{t('out_of_stock')}</option>
-          </select>
-          <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-zinc-400">
-            <Layers size={16} />
-          </div>
+            <Layers size={16} className="text-zinc-400" />
+            <span className="flex-1 text-right">{stockOptions.find(o => o.value === stockFilter)?.label}</span>
+          </button>
+          {stockDropdownOpen && (
+            <div className="absolute top-full left-0 mt-1 w-full min-w-[140px] z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl overflow-hidden py-1">
+              {stockOptions.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => {
+                    setStockFilter(opt.value);
+                    setStockDropdownOpen(false);
+                  }}
+                  className={cn(
+                    "w-full text-right px-4 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors",
+                    stockFilter === opt.value ? "text-brand-600 font-bold bg-brand-50/50 dark:bg-brand-900/10 dark:text-brand-400" : "text-zinc-600 dark:text-zinc-400"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="relative group">
-          <select 
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="appearance-none flex items-center gap-2 rounded-lg border border-zinc-200 bg-white pr-8 pl-3 py-2 text-sm font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 cursor-pointer min-w-[130px]"
+        <div className="relative" ref={categoryRef}>
+          <button 
+            onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
+            className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 min-w-[130px] h-full"
           >
-            <option value="all">{t('all_categories')}</option>
-            {categories.map((c, index) => (
-              <option key={`${c.id}-${index}`} value={c.name}>{t(c.key || c.name)}</option>
-            ))}
-          </select>
-          <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none text-zinc-400">
-            <Filter size={16} />
-          </div>
+            <Filter size={16} className="text-zinc-400" />
+            <span className="flex-1 text-right truncate">{categoryOptions.find(o => o.value === categoryFilter)?.label}</span>
+          </button>
+          {categoryDropdownOpen && (
+            <div className="absolute top-full left-0 mt-1 w-full min-w-[160px] max-h-[300px] overflow-y-auto z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl py-1">
+              {categoryOptions.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => {
+                    setCategoryFilter(opt.value);
+                    setCategoryDropdownOpen(false);
+                  }}
+                  className={cn(
+                    "w-full text-right px-4 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors truncate",
+                    categoryFilter === opt.value ? "text-brand-600 font-bold bg-brand-50/50 dark:bg-brand-900/10 dark:text-brand-400" : "text-zinc-600 dark:text-zinc-400"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <button
           onClick={() => setShowBoxInfo(!showBoxInfo)}
           className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-lg border transition-all text-sm font-bold",
+            "flex items-center gap-2 px-4 py-2 rounded-lg border transition-all text-sm font-bold h-full",
             showBoxInfo 
               ? "bg-brand-600 border-brand-700 text-white shadow-lg shadow-brand-500/20 scale-105" 
               : "bg-white border-zinc-200 text-zinc-500 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-500"
