@@ -7,11 +7,13 @@ import { Search, Lock, Boxes, Package, AlertCircle, ScanLine, ArrowRightLeft, Fo
 import { formatCurrency, safeParseFloat } from '../lib/utils';
 import { BarcodeScanner } from '../components/common/BarcodeScanner';
 import { ProductImage } from '../components/products/ProductImage';
+import { useCategories, categoryIcons } from '../hooks/useCategories';
 import { Product } from '../types';
 
 export default function CatalogMode() {
   const { user, settings, setIsCatalogMode, showToast } = useAppContext();
   const { t } = useTranslation();
+  const { categories: appCategories } = useCategories();
   
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -178,6 +180,7 @@ export default function CatalogMode() {
                       <ProductImage 
                         productId={product.id} 
                         hasLocalImage={product.hasLocalImage} 
+                        FallbackIcon={categoryIcons[appCategories.find(c => c.name === product.category)?.icon || 'Package'] || Package}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
                       />
                     </div>

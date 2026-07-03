@@ -1,5 +1,5 @@
 import React from 'react';
-import { Package } from 'lucide-react';
+import { Package, LucideIcon } from 'lucide-react';
 import { useLocalImage } from '../../hooks/useLocalImage';
 
 interface ProductImageProps {
@@ -7,9 +7,10 @@ interface ProductImageProps {
   hasLocalImage?: boolean;
   className?: string;
   iconSize?: number;
+  FallbackIcon?: LucideIcon;
 }
 
-export function ProductImage({ productId, hasLocalImage, className = "w-full h-full object-cover", iconSize = 32 }: ProductImageProps) {
+export function ProductImage({ productId, hasLocalImage, className = "w-full h-full object-cover", iconSize = 32, FallbackIcon = Package }: ProductImageProps) {
   const imageUrl = useLocalImage(productId, hasLocalImage);
 
   if (imageUrl) {
@@ -17,8 +18,8 @@ export function ProductImage({ productId, hasLocalImage, className = "w-full h-f
   }
 
   return (
-    <div className={`w-full h-full flex flex-col items-center justify-center bg-zinc-50 dark:bg-[#0F172A]/30 text-zinc-300 dark:text-zinc-600 ${className.replace('object-cover', '')}`}>
-      <Package size={iconSize} strokeWidth={1} />
+    <div className={`w-full h-full flex flex-col items-center justify-center bg-brand-50 dark:bg-brand-950/20 text-brand-600 dark:text-brand-400 ${className.replace('object-cover', '')}`}>
+      <FallbackIcon size={iconSize} strokeWidth={1.5} />
     </div>
   );
 }

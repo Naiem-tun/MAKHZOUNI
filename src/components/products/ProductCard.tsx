@@ -26,7 +26,7 @@ const ProductIcon = ({ product, className }: { product: Product, className?: str
   if (product.hasLocalImage && product.id) {
     return (
       <div className={cn("overflow-hidden shrink-0", className)}>
-        <ProductImage productId={product.id} hasLocalImage={product.hasLocalImage} />
+        <ProductImage productId={product.id} hasLocalImage={product.hasLocalImage} FallbackIcon={Icon} iconSize={16} />
       </div>
     );
   }
