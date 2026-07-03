@@ -43,11 +43,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
   const { settings, activeSupplier, showToast } = useAppContext();
   const language = i18n.language;
 
-  const profit = (product.sellingPrice || 0) - (product.purchasePrice || 0);
+  const baseSellingPrice = showBoxInfo ? (product.sellingPrice || 0) * (product.piecesPerBox || 1) : (product.sellingPrice || 0);
+  const basePurchasePrice = showBoxInfo ? (product.boxPurchasePrice || ((product.purchasePrice || 0) * (product.piecesPerBox || 1))) : (product.purchasePrice || 0);
+
+  const profit = baseSellingPrice - basePurchasePrice;
   const calcMethod = settings.profitCalculationMethod || 'markup'; // markup: profit/cost * 100, margin: profit/sell * 100
   const profitMargin = calcMethod === 'margin' 
-    ? ((product.sellingPrice || 0) > 0 ? (profit / product.sellingPrice!) * 100 : 0)
-    : ((product.purchasePrice || 0) > 0 ? (profit / product.purchasePrice!) * 100 : 0);
+    ? (baseSellingPrice > 0 ? (profit / baseSellingPrice) * 100 : 0)
+    : (basePurchasePrice > 0 ? (profit / basePurchasePrice) * 100 : 0);
 
   const isPurchaseDisabled = settings.requireSupplierSession && !activeSupplier;
 
@@ -65,23 +68,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
   return (
     <div className="relative group overflow-hidden rounded-lg">
       {/* Background layer for profit (Revealed when swiped left/right) */}
-      {!showBoxInfo && (
-        <div className="absolute inset-y-0 right-0 flex items-center pr-4 z-0 w-28 justify-end bg-brand-50 dark:bg-brand-900/20" dir="ltr">
-          <div className="flex flex-col items-end opacity-90 transition-opacity">
-            <span className="text-[10px] font-bold text-brand-600 dark:text-brand-400">{t('profit_margin')}</span>
-            <span className="text-sm font-black text-brand-700 dark:text-brand-300">
-               {formatCurrency(profit, settings.currency, language)}
-             </span>
-            <span className="text-[10px] font-bold text-brand-600 bg-brand-100 dark:bg-brand-800/50 px-1 rounded mt-0.5">
-              {profitMargin.toFixed(1)}%
-            </span>
-          </div>
+      <div className="absolute inset-y-0 right-0 flex items-center pr-4 z-0 w-28 justify-end bg-brand-50 dark:bg-brand-900/20" dir="ltr">
+        <div className="flex flex-col items-end opacity-90 transition-opacity">
+          <span className="text-[10px] font-bold text-brand-600 dark:text-brand-400">
+            {t('profit_margin')} {showBoxInfo && product.piecesPerBox && product.piecesPerBox > 1 ? `(${t('box')})` : ''}
+          </span>
+          <span className="text-sm font-black text-brand-700 dark:text-brand-300">
+             {formatCurrency(profit, settings.currency, language)} 
+           </span>
+          <span className="text-[10px] font-bold text-brand-600 bg-brand-100 dark:bg-brand-800/50 px-1 rounded mt-0.5">
+            {profitMargin.toFixed(1)}%
+          </span>
         </div>
-      )}
+      </div>
 
       {/* Foreground card */}
       <motion.div
-        drag={!showBoxInfo ? "x" : false}
+        drag="x"
         dragConstraints={{ left: -112, right: 0 }}
         dragElastic={0.1}
         className="relative z-10 flex items-center justify-between gap-3 bg-white p-3 shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 rounded-lg cursor-pointer"
