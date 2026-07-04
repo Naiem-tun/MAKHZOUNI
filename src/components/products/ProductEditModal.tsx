@@ -26,6 +26,8 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
   const [barcode, setBarcode] = useState('');
   const [barcode2, setBarcode2] = useState('');
   const [showBarcode2, setShowBarcode2] = useState(false);
+  const [category, setCategory] = useState<string>('');
+  const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [unit, setUnit] = useState<string>('piece');
   const [showUnitMenu, setShowUnitMenu] = useState(false);
   
@@ -42,6 +44,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
         setPiecesPerBox(product.piecesPerBox || 1);
         setBoxPrice(product.boxPurchasePrice || '');
         setPiecePrice(product.purchasePrice || '');
+        setCategory(product.category || (categories[0]?.name || ""));
         const fetchId = product.id || product._copiedFromId;
         if (product.hasLocalImage && fetchId) {
            getLocalImage(fetchId).then(blob => {
@@ -58,6 +61,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
         setPiecesPerBox(1);
         setBoxPrice('');
         setPiecePrice('');
+        setCategory(categories[0]?.name || "");
       }
       setBarcode(product?.barcode || scannedBarcode || '');
       setBarcode2(product?.barcode2 || scannedBarcode2 || '');
@@ -82,6 +86,12 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
       setShowBarcode2(true);
     }
   }, [scannedBarcode2, isOpen]);
+
+  useEffect(() => {
+    if (!category && categories.length > 0) {
+      setCategory(categories[0].name);
+    }
+  }, [categories, category]);
 
   const handleBoxPriceChange = (valStr: string) => {
     setBoxPrice(valStr);
@@ -341,18 +351,32 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-zinc-500">{t('category')}</label>
                   <div className="relative">
-                    <select 
-                      name="category" 
-                      defaultValue={product?.category || (categories[0]?.name || "")} 
-                      className="w-full appearance-none rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-right font-medium outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white"
+                    <input type="hidden" name="category" value={category} />
+                    <button
+                      type="button"
+                      onClick={() => setShowCategoryMenu(!showCategoryMenu)}
+                      className="w-full appearance-none rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-bold text-zinc-900 outline-none hover:bg-zinc-100 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white flex items-center justify-between transition-colors overflow-hidden"
                     >
-                      {categories.map((c, index) => (
-                        <option key={`${c.id}-${index}`} value={c.name}>{t(c.key || c.name)}</option>
-                      ))}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-2 text-zinc-400">
-                      <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
-                    </div>
+                      <span className="truncate flex-1 text-right">{t(categories.find(c => c.name === category)?.key || category || categories[0]?.name || '')}</span>
+                      <svg className="h-4 w-4 fill-current text-zinc-400 shrink-0 mr-2" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                    </button>
+                    {showCategoryMenu && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setShowCategoryMenu(false)} />
+                        <div className="absolute right-0 left-0 top-full mt-1 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg shadow-xl z-50 overflow-hidden py-1 max-h-48 overflow-y-auto">
+                          {categories.map((c, index) => (
+                            <button
+                              key={`${c.id}-${index}`}
+                              type="button"
+                              onClick={() => { setCategory(c.name); setShowCategoryMenu(false); }}
+                              className="w-full px-4 py-2 text-sm font-bold text-right text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                            >
+                              {t(c.key || c.name)}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-1">
@@ -362,10 +386,10 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                     <button
                       type="button"
                       onClick={() => setShowUnitMenu(!showUnitMenu)}
-                      className="w-full appearance-none rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-bold text-zinc-900 outline-none hover:bg-zinc-100 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white flex items-center justify-between transition-colors"
+                      className="w-full appearance-none rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-bold text-zinc-900 outline-none hover:bg-zinc-100 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white flex items-center justify-between transition-colors overflow-hidden"
                     >
-                      <svg className="h-4 w-4 fill-current text-zinc-400" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
-                      <span>{unit === 'kg' ? 'كغ' : 'قطعة'}</span>
+                      <span className="truncate flex-1 text-right">{unit === 'kg' ? 'كغ' : 'قطعة'}</span>
+                      <svg className="h-4 w-4 fill-current text-zinc-400 shrink-0 mr-2" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
                     </button>
                     {showUnitMenu && (
                       <>

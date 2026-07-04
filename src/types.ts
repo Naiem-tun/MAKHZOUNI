@@ -36,6 +36,7 @@ export interface UserSettings {
   enablePurchasesReports?: boolean;
   requireSupplierSession?: boolean;
   defaultStockView?: 'pieces' | 'boxes';
+  deleteDataPassword?: string;
 }
 
 export interface CashTransaction {

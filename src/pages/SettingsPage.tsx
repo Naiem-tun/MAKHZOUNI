@@ -69,13 +69,23 @@ export default function SettingsPage() {
   const { settings, updateSettings, toggleDarkMode, setLanguage, user, setIsCatalogMode } = useAppContext();
   const [activeView, setActiveView] = useState<View>('main');
   const [isClearDataModalOpen, setIsClearDataModalOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
 
   const handleClearAllData = async () => {
     if (!user) return;
+    
+    if (deletePassword !== (settings.deleteDataPassword || '1234')) {
+      setPasswordError('كلمة السر غير صحيحة');
+      return;
+    }
+
     setIsClearDataModalOpen(false); // Close first so UI is unblocked
+    setDeletePassword('');
+    setPasswordError('');
     setStatus({ type: 'success', msg: t('clear_data_success') }); // Optimistically show success
     setIsClearing(true);
     
@@ -124,6 +134,7 @@ export default function SettingsPage() {
     storeName: settings.storeName || 'مخزوني',
     currency: settings.currency || 'د.ت',
     catalogPin: settings.catalogPin || '0000',
+    deleteDataPassword: settings.deleteDataPassword || '1234',
   });
   const [isSaving, setIsSaving] = useState(false);
   const handleSaveStoreSettings = async () => {
@@ -233,6 +244,16 @@ export default function SettingsPage() {
                 className="w-full h-12 px-4 rounded-lg bg-zinc-50 dark:bg-zinc-800 border-none text-sm font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center tracking-[0.5em]"
               />
             </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-zinc-500 mr-2">كلمة سر حذف البيانات</label>
+              <input 
+                type="password"
+                value={tempSettings.deleteDataPassword}
+                onChange={(e) => setTempSettings(prev => ({ ...prev, deleteDataPassword: e.target.value }))}
+                placeholder="****"
+                className="w-full h-12 px-4 rounded-lg bg-zinc-50 dark:bg-zinc-800 border-none text-sm font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center tracking-[0.5em]"
+              />
+            </div>
           </div>
 
           <button 
@@ -244,221 +265,237 @@ export default function SettingsPage() {
           </button>
         </section>
 
-        {/* Dark Mode Toggle */}
-        <section className="flex items-center justify-between p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-lg bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
-              <Moon size={24} />
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-zinc-400">{t('change_app_appearance')}</p>
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{t('dark_mode')}</h3>
-            </div>
+        {/* Display / UI Settings Group */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800 shadow-sm divide-y divide-zinc-100 dark:divide-zinc-800">
+          <div className="px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 text-right">
+            <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400">المظهر والعرض</h3>
           </div>
-          <button 
-            onClick={toggleDarkMode}
-            className={`relative h-8 w-14 rounded-full transition-colors ${settings.darkMode ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
-          >
-            <motion.div 
-              animate={{ x: settings.darkMode ? 24 : 4 }}
-              className="absolute left-0 top-1 h-6 w-6 rounded-full bg-white shadow-sm"
-            />
-          </button>
-        </section>
-
-        {/* Financials Toggle */}
-        <section className="flex items-center justify-between p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-lg bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
-              <Eye size={24} />
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-zinc-400">{t('show_financial_data')}</p>
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{t('financial_stats')}</h3>
-            </div>
-          </div>
-          <button 
-            onClick={() => updateSettings({ showFinancials: !(settings.showFinancials ?? true) })}
-            className={`relative h-8 w-14 rounded-full transition-colors ${(settings.showFinancials ?? true) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
-          >
-            <motion.div 
-              animate={{ x: (settings.showFinancials ?? true) ? 24 : 4 }}
-              className="absolute left-0 top-1 h-6 w-6 rounded-full bg-white shadow-sm"
-            />
-          </button>
-        </section>
-
-        {/* Purchases Reports Toggle */}
-        <section className="flex items-center justify-between p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-lg bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
-              <FileDown size={24} />
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-zinc-400">طباعة تقارير المشتريات والموردين بصيغة PDF</p>
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">تقارير العمليات</h3>
-            </div>
-          </div>
-          <button 
-            onClick={() => updateSettings({ enablePurchasesReports: !(settings.enablePurchasesReports ?? false) })}
-            className={`relative h-8 w-14 rounded-full transition-colors ${(settings.enablePurchasesReports ?? false) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
-          >
-            <motion.div 
-              animate={{ x: (settings.enablePurchasesReports ?? false) ? 24 : 4 }}
-              className="absolute left-0 top-1 h-6 w-6 rounded-full bg-white shadow-sm"
-            />
-          </button>
-        </section>
-
-        {/* Require Supplier Session Toggle */}
-        <section className="flex items-center justify-between p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-lg bg-red-50 flex items-center justify-center text-red-600 dark:bg-red-900/30">
-              <Truck size={24} />
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-zinc-400">إلزام فتح حصة مورد قبل إضافة كميات للمخزون</p>
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">إلزامية حصة المورد</h3>
-            </div>
-          </div>
-          <button 
-            onClick={() => updateSettings({ requireSupplierSession: !(settings.requireSupplierSession ?? false) })}
-            className={`relative h-8 w-14 rounded-full transition-colors ${(settings.requireSupplierSession ?? false) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
-          >
-            <motion.div 
-              animate={{ x: (settings.requireSupplierSession ?? false) ? 24 : 4 }}
-              className="absolute left-0 top-1 h-6 w-6 rounded-full bg-white shadow-sm"
-            />
-          </button>
-        </section>
-
-        {/* Floating Totals Toggle */}
-        <section className="flex items-center justify-between p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-lg bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
-              <Eye size={24} />
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-zinc-400">{t('show_floating_totals')}</p>
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{t('show_floating_totals')}</h3>
-            </div>
-          </div>
-          <button 
-            onClick={() => updateSettings({ showFloatingTotals: !(settings.showFloatingTotals ?? true) })}
-            className={`relative h-8 w-14 rounded-full transition-colors ${(settings.showFloatingTotals ?? true) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
-          >
-            <motion.div 
-              animate={{ x: (settings.showFloatingTotals ?? true) ? 24 : 4 }}
-              className="absolute left-0 top-1 h-6 w-6 rounded-full bg-white shadow-sm"
-            />
-          </button>
-        </section>
-
-        {/* Profit Calculation Method Toggle */}
-        <section className="bg-white p-6 rounded-lg shadow-sm border border-zinc-100 flex flex-col gap-4 dark:bg-zinc-800/50 dark:border-zinc-800">
-          <div className="flex justify-between items-center w-full">
+          
+          {/* Dark Mode Toggle */}
+          <div className="flex items-center justify-between p-4">
             <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-lg bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
-                <Percent size={24} />
-              </div>
-              <div className="text-right flex-1">
-                <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{t('profit_calculation_method')}</h3>
-                <p className="text-xs text-zinc-400 mt-1">{t('profit_calc_desc')}</p>
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-2 w-full mt-2 bg-zinc-50 dark:bg-zinc-900/50 p-1 rounded-lg">
-            <button
-              onClick={() => updateSettings({ profitCalculationMethod: 'markup' })}
-              className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${
-                (settings.profitCalculationMethod || 'markup') === 'markup' 
-                  ? 'bg-white text-brand-600 shadow-sm dark:bg-zinc-800 dark:text-white' 
-                  : 'text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800/50'
-              }`}
-            >
-              {t('profit_calc_markup')}
-            </button>
-            <button
-              onClick={() => updateSettings({ profitCalculationMethod: 'margin' })}
-              className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${
-                settings.profitCalculationMethod === 'margin' 
-                  ? 'bg-white text-brand-600 shadow-sm dark:bg-zinc-800 dark:text-white' 
-                  : 'text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800/50'
-              }`}
-            >
-              {t('profit_calc_margin')}
-            </button>
-          </div>
-        </section>
-
-        {/* Supplier Session Button Toggle */}
-        <section className="flex items-center justify-between p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-lg bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
-              <Play size={24} />
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-zinc-400">{t('show_supplier_session_button')}</p>
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{t('show_supplier_session_button')}</h3>
-            </div>
-          </div>
-          <button 
-            onClick={() => updateSettings({ showSupplierSessionButton: !(settings.showSupplierSessionButton ?? true) })}
-            className={`relative h-8 w-14 rounded-full transition-colors ${(settings.showSupplierSessionButton ?? true) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
-          >
-            <motion.div 
-              animate={{ x: (settings.showSupplierSessionButton ?? true) ? 24 : 4 }}
-              className="absolute left-0 top-1 h-6 w-6 rounded-full bg-white shadow-sm"
-            />
-          </button>
-        </section>
-
-        {/* Catalog Mode Entry */}
-        <section className="bg-white p-6 rounded-lg shadow-sm border border-zinc-100 flex flex-col gap-4 dark:bg-zinc-800/50 dark:border-zinc-800">
-          <div className="flex justify-between items-center w-full">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-lg bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
-                <Grid size={24} />
-              </div>
-              <div className="text-right flex-1">
-                <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{t('catalog_mode') || 'وضع الكتالوج'}</h3>
-                <p className="text-xs text-zinc-400 mt-1">{t('catalog_mode_desc') || 'يعرض المنتجات والأسعار للعملاء'}</p>
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={() => setIsCatalogMode(true)}
-            className="w-full h-12 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-lg font-bold flex items-center justify-center gap-2 mt-2 transition-all hover:bg-zinc-800 dark:hover:bg-white active:scale-95 shadow-sm"
-          >
-            <Lock size={18} />
-            {t('enter_catalog_mode') || 'الدخول لوضع الكتالوج'}
-          </button>
-        </section>
-
-        {/* Other menu items */}
-        {menuItems.map((item, idx) => (
-          <button 
-            key={`menu-${item.id}-${idx}`} 
-            onClick={() => setActiveView(item.id as View)}
-            className="group w-full flex items-center justify-between p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 transition-all hover:shadow-md"
-          >
-            <div className="flex items-center gap-4">
-              <div className={`h-12 w-12 rounded-lg bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center ${item.color}`}>
-                <item.icon size={24} />
+              <div className="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
+                <Moon size={20} />
               </div>
               <div className="text-right">
-                <p className="text-xs text-zinc-400">{item.subtitle}</p>
-                <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{item.label}</h3>
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">{t('dark_mode')}</h3>
+                <p className="text-[11px] text-zinc-400 mt-0.5">{t('change_app_appearance')}</p>
               </div>
             </div>
-            <ChevronLeft className="text-zinc-400 group-hover:text-brand-500 transition-transform group-hover:-translate-x-1" />
-          </button>
-        ))}
+            <button 
+              onClick={toggleDarkMode}
+              className={`relative h-7 w-12 rounded-full transition-colors ${settings.darkMode ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+            >
+              <motion.div 
+                animate={{ x: settings.darkMode ? 20 : 4 }}
+                className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
+              />
+            </button>
+          </div>
 
-        {/* Developer Tool: Generate Mock data */}
+          {/* Financials Toggle */}
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
+                <Eye size={20} />
+              </div>
+              <div className="text-right">
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">{t('financial_stats')}</h3>
+                <p className="text-[11px] text-zinc-400 mt-0.5">{t('show_financial_data')}</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => updateSettings({ showFinancials: !(settings.showFinancials ?? true) })}
+              className={`relative h-7 w-12 rounded-full transition-colors ${(settings.showFinancials ?? true) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+            >
+              <motion.div 
+                animate={{ x: (settings.showFinancials ?? true) ? 20 : 4 }}
+                className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
+              />
+            </button>
+          </div>
+
+          {/* Floating Totals Toggle */}
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
+                <LayoutList size={20} />
+              </div>
+              <div className="text-right">
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">{t('show_floating_totals')}</h3>
+                <p className="text-[11px] text-zinc-400 mt-0.5">{t('show_floating_totals')}</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => updateSettings({ showFloatingTotals: !(settings.showFloatingTotals ?? true) })}
+              className={`relative h-7 w-12 rounded-full transition-colors ${(settings.showFloatingTotals ?? true) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+            >
+              <motion.div 
+                animate={{ x: (settings.showFloatingTotals ?? true) ? 20 : 4 }}
+                className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
+              />
+            </button>
+          </div>
+
+          {/* Supplier Session Button Toggle */}
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
+                <Play size={20} />
+              </div>
+              <div className="text-right">
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">{t('show_supplier_session_button')}</h3>
+                <p className="text-[11px] text-zinc-400 mt-0.5">{t('show_supplier_session_button')}</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => updateSettings({ showSupplierSessionButton: !(settings.showSupplierSessionButton ?? true) })}
+              className={`relative h-7 w-12 rounded-full transition-colors ${(settings.showSupplierSessionButton ?? true) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+            >
+              <motion.div 
+                animate={{ x: (settings.showSupplierSessionButton ?? true) ? 20 : 4 }}
+                className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
+              />
+            </button>
+          </div>
+        </div>
+
+        {/* Application Config Group */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800 shadow-sm divide-y divide-zinc-100 dark:divide-zinc-800">
+          <div className="px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 text-right">
+            <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400">إعدادات التطبيق</h3>
+          </div>
+
+          {/* Purchases Reports Toggle */}
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
+                <FileDown size={20} />
+              </div>
+              <div className="text-right">
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">تقارير العمليات</h3>
+                <p className="text-[11px] text-zinc-400 mt-0.5">طباعة تقارير المشتريات والموردين بصيغة PDF</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => updateSettings({ enablePurchasesReports: !(settings.enablePurchasesReports ?? false) })}
+              className={`relative h-7 w-12 rounded-full transition-colors ${(settings.enablePurchasesReports ?? false) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+            >
+              <motion.div 
+                animate={{ x: (settings.enablePurchasesReports ?? false) ? 20 : 4 }}
+                className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
+              />
+            </button>
+          </div>
+
+          {/* Require Supplier Session Toggle */}
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
+                <Truck size={20} />
+              </div>
+              <div className="text-right">
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">إلزامية حصة المورد</h3>
+                <p className="text-[11px] text-zinc-400 mt-0.5">إلزام فتح حصة مورد قبل إضافة كميات للمخزون</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => updateSettings({ requireSupplierSession: !(settings.requireSupplierSession ?? false) })}
+              className={`relative h-7 w-12 rounded-full transition-colors ${(settings.requireSupplierSession ?? false) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+            >
+              <motion.div 
+                animate={{ x: (settings.requireSupplierSession ?? false) ? 20 : 4 }}
+                className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
+              />
+            </button>
+          </div>
+
+          {/* Profit Calculation Method Toggle */}
+          <div className="p-4 flex flex-col gap-3">
+            <div className="flex justify-between items-center w-full">
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
+                  <Percent size={20} />
+                </div>
+                <div className="text-right flex-1">
+                  <h3 className="text-sm font-bold text-zinc-900 dark:text-white">{t('profit_calculation_method')}</h3>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">{t('profit_calc_desc')}</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 w-full bg-zinc-50 dark:bg-zinc-900/50 p-1 rounded-lg">
+              <button
+                onClick={() => updateSettings({ profitCalculationMethod: 'markup' })}
+                className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${
+                  (settings.profitCalculationMethod || 'markup') === 'markup' 
+                    ? 'bg-white text-brand-600 shadow-sm dark:bg-zinc-800 dark:text-white' 
+                    : 'text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800/50'
+                }`}
+              >
+                {t('profit_calc_markup')}
+              </button>
+              <button
+                onClick={() => updateSettings({ profitCalculationMethod: 'margin' })}
+                className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${
+                  settings.profitCalculationMethod === 'margin' 
+                    ? 'bg-white text-brand-600 shadow-sm dark:bg-zinc-800 dark:text-white' 
+                    : 'text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800/50'
+                }`}
+              >
+                {t('profit_calc_margin')}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Actions / Menu Items Group */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800 shadow-sm divide-y divide-zinc-100 dark:divide-zinc-800">
+          <div className="px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 text-right">
+            <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400">إجراءات وأدوات</h3>
+          </div>
+
+          {/* Catalog Mode Entry */}
+          <button
+            onClick={() => setIsCatalogMode(true)}
+            className="w-full flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors text-right"
+          >
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center dark:bg-brand-900/30 dark:text-brand-400">
+                <Lock size={20} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-brand-600 dark:text-brand-400">{t('enter_catalog_mode') || 'الدخول لوضع الكتالوج'}</h3>
+                <p className="text-[11px] text-zinc-400 mt-0.5">{t('catalog_mode_desc') || 'يعرض المنتجات والأسعار للعملاء'}</p>
+              </div>
+            </div>
+            <ChevronLeft className="text-zinc-400" size={18} />
+          </button>
+
+          {/* Other menu items */}
+          {menuItems.map((item, idx) => (
+            <button 
+              key={`menu-${item.id}-${idx}`} 
+              onClick={() => setActiveView(item.id as View)}
+              className="group w-full flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors text-right"
+            >
+              <div className="flex items-center gap-4">
+                <div className={`h-10 w-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center ${item.color}`}>
+                  <item.icon size={20} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-zinc-900 dark:text-white">{item.label}</h3>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">{item.subtitle}</p>
+                </div>
+              </div>
+              <ChevronLeft className="text-zinc-400 group-hover:text-brand-500 transition-transform group-hover:-translate-x-1" size={18} />
+            </button>
+          ))}
+        </div>
+
+        {/* Danger Zone Group */}
         <button 
           onClick={() => setIsClearDataModalOpen(true)}
-          className="w-full flex items-center justify-between p-6 rounded-lg text-white font-bold transition-all shadow-lg shadow-[#B34C36]/20 active:scale-95"
+          className="w-full flex items-center justify-between p-6 rounded-lg text-white font-bold transition-all shadow-lg shadow-[#B34C36]/20 active:scale-95 mt-8"
           style={{ backgroundColor: '#B34C36' }}
         >
           <div className="flex items-center gap-4">
@@ -466,8 +503,8 @@ export default function SettingsPage() {
               <Trash2 size={24} />
             </div>
             <div className="text-right">
-              <p className="text-xs text-white/70">{t('delete_all_data')}</p>
               <h3 className="text-lg font-bold">{t('clear_store_data')}</h3>
+              <p className="text-xs text-white/70 mt-0.5">{t('delete_all_data')}</p>
             </div>
           </div>
           <ChevronLeft className="text-white/60" size={20} />
@@ -477,7 +514,7 @@ export default function SettingsPage() {
       <div className="text-center pt-8">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-50 text-brand-600 text-xs font-bold dark:bg-brand-950/20 dark:text-brand-400">
           <span className="h-2 w-2 rounded-full bg-brand-600 animate-pulse" />
-          {t('version_label')} • {t('my_smart_inventory')}
+          الإصدار {__APP_VERSION__} • مخزوني
         </div>
       </div>
 
@@ -491,9 +528,25 @@ export default function SettingsPage() {
               exit={{ opacity: 0, scale: 0.95, y: 10 }} 
               className="relative w-full max-w-[280px] rounded-lg bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
-              <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
+              <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-4 leading-relaxed">
                 {t('confirm_clear_all_data_desc')} <span className="text-[#B34C36]">{t('irreversible_action')}</span>
               </p>
+              
+              <div className="mb-6">
+                <input 
+                  type="password"
+                  placeholder="أدخل كلمة السر لتأكيد الحذف"
+                  value={deletePassword}
+                  onChange={(e) => {
+                    setDeletePassword(e.target.value);
+                    setPasswordError('');
+                  }}
+                  className="w-full text-center px-4 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm font-bold text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B34C36]"
+                />
+                {passwordError && (
+                  <p className="text-[#B34C36] text-xs font-bold mt-2">{passwordError}</p>
+                )}
+              </div>
               
               <div className="flex gap-2">
                 <button 
@@ -505,9 +558,13 @@ export default function SettingsPage() {
                   {t('confirm')}
                 </button>
                 <button 
-                  onClick={() => setIsClearDataModalOpen(false)}
+                  onClick={() => {
+                    setIsClearDataModalOpen(false);
+                    setDeletePassword('');
+                    setPasswordError('');
+                  }}
                   disabled={isClearing}
-                  className="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-lg text-[12px] font-bold active:scale-95 transition-all text-[12px]"
+                  className="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-lg text-[12px] font-bold active:scale-95 transition-all"
                 >
                   {t('cancel')}
                 </button>
