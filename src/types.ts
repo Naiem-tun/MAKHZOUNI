@@ -37,6 +37,7 @@ export interface UserSettings {
   requireSupplierSession?: boolean;
   defaultStockView?: 'pieces' | 'boxes';
   deleteDataPassword?: string;
+  syncImages?: boolean;
 }
 
 export interface CashTransaction {
@@ -63,6 +64,7 @@ export interface Product {
   piecesPerBox?: number;
   boxPurchasePrice?: number;
   hasLocalImage?: boolean;
+  hasCloudImage?: boolean;
   _copiedFromId?: string;
   isDraft?: boolean;
   updatedAt: any;

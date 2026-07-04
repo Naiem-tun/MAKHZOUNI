@@ -8,20 +8,34 @@ export function useLocalImage(productId?: string, hasLocalImage?: boolean) {
     let url: string | null = null;
     let isMounted = true;
 
-    if (!productId || !hasLocalImage) {
-      setImageUrl(null);
-      return;
-    }
-
-    getLocalImage(productId).then(blob => {
-      if (blob && isMounted) {
-        url = URL.createObjectURL(blob);
-        setImageUrl(url);
+    const load = () => {
+      if (!productId || !hasLocalImage) {
+        setImageUrl(null);
+        return;
       }
-    }).catch(console.error);
+      getLocalImage(productId).then(blob => {
+        if (blob && isMounted) {
+          url = URL.createObjectURL(blob);
+          setImageUrl(url);
+        }
+      }).catch(console.error);
+    };
+
+    load();
+
+    const handleDownload = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail.productId === productId) {
+        if (url) URL.revokeObjectURL(url);
+        load();
+      }
+    };
+
+    window.addEventListener('image-downloaded', handleDownload);
 
     return () => {
       isMounted = false;
+      window.removeEventListener('image-downloaded', handleDownload);
       if (url) {
         URL.revokeObjectURL(url);
       }

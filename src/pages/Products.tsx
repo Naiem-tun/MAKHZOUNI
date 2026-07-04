@@ -27,6 +27,7 @@ import { ProductEditModal } from '../components/products/ProductEditModal';
 import { PriceNegotiationModal } from '../components/products/PriceNegotiationModal';
 import { SmartPurchasePopup } from '../components/products/SmartPurchasePopup';
 import { deleteLocalImage, saveLocalImage } from '../lib/localImages';
+import { uploadCloudImage, deleteCloudImage } from '../lib/cloudImages';
 import { compressImage } from '../lib/imageCompressor';
 import { ProductsHeader } from '../components/products/ProductsHeader';
 import { ProductsFilters } from '../components/products/ProductsFilters';
@@ -224,6 +225,7 @@ export default function Products() {
       const batch = writeBatch(db);
       
       const hasLocalImageValue = !!imageFile || !!(editingProduct?.hasLocalImage && !imageRemoved);
+      const hasCloudImageValue = settings.syncImages ? hasLocalImageValue : (editingProduct?.hasCloudImage && !imageRemoved);
 
       if (editingProduct?.id) {
         const path = `users/${user.uid}/products/${editingProduct.id}`;
@@ -231,6 +233,7 @@ export default function Products() {
         await updateDoc(doc(db, path), {
           ...updateFields,
           hasLocalImage: hasLocalImageValue,
+          hasCloudImage: hasCloudImageValue,
           updatedAt: serverTimestamp(),
         });
         
@@ -251,10 +254,14 @@ export default function Products() {
         
         if (imageRemoved) {
            await deleteLocalImage(editingProduct.id!).catch(console.error);
+           await deleteCloudImage(user.uid, editingProduct.id!).catch(console.error);
         }
         if (imageFile) {
            const compressedBlob = await compressImage(imageFile);
            await saveLocalImage(editingProduct.id!, compressedBlob).catch(console.error);
+           if (settings.syncImages) {
+             uploadCloudImage(user.uid, editingProduct.id!, compressedBlob).catch(console.error);
+           }
         }
 
       } else {
@@ -265,6 +272,7 @@ export default function Products() {
         batch.set(productRef, {
           ...productData,
           hasLocalImage: hasLocalImageValue,
+          hasCloudImage: hasCloudImageValue,
           updatedAt: serverTimestamp(),
         });
 
@@ -305,6 +313,7 @@ export default function Products() {
           quantity: productData.quantity,
           minQuantity: productData.minQuantity,
           hasLocalImage: hasLocalImageValue,
+          hasCloudImage: hasCloudImageValue,
           updatedAt: null,
         };
         setCreatedNewProduct(newProd);
@@ -313,6 +322,9 @@ export default function Products() {
         if (imageFile) {
            const compressedBlob = await compressImage(imageFile);
            await saveLocalImage(productRef.id, compressedBlob).catch(console.error);
+           if (settings.syncImages) {
+             uploadCloudImage(user.uid, productRef.id, compressedBlob).catch(console.error);
+           }
         }
       }
       

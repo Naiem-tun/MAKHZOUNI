@@ -175,11 +175,12 @@ export default function CatalogMode() {
                   key={product.id}
                   className="bg-white dark:bg-[#1E293B] rounded-[20px] border border-[#D9D9D8] dark:border-[#334155] overflow-hidden shadow-sm hover:border-[#7C94B8] dark:hover:border-[#7C94B8]/50 transition-colors group flex flex-col"
                 >
-                  {product.hasLocalImage && (
+                  { (product.hasLocalImage || product.hasCloudImage) && (
                     <div className="h-48 w-full border-b border-[#D9D9D8]/50 dark:border-[#334155]/50 overflow-hidden">
                       <ProductImage 
                         productId={product.id} 
-                        hasLocalImage={product.hasLocalImage} 
+                        hasLocalImage={product.hasLocalImage}
+                        hasCloudImage={product.hasCloudImage}
                         FallbackIcon={categoryIcons[appCategories.find(c => c.name === product.category)?.icon || 'Package'] || Package}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
                       />

@@ -293,6 +293,28 @@ export default function SettingsPage() {
             </button>
           </div>
 
+          {/* Sync Images Toggle */}
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
+                <Database size={20} />
+              </div>
+              <div className="text-right">
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">مزامنة الصور سحابياً</h3>
+                <p className="text-[11px] text-zinc-400 mt-0.5">حفظ الصور في السحابة لتنزيلها على أجهزة أخرى</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => updateSettings({ syncImages: !(settings.syncImages ?? false) })}
+              className={`relative h-7 w-12 rounded-full transition-colors ${(settings.syncImages ?? false) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+            >
+              <motion.div 
+                animate={{ x: (settings.syncImages ?? false) ? 20 : 4 }}
+                className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
+              />
+            </button>
+          </div>
+
           {/* Financials Toggle */}
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center gap-4">

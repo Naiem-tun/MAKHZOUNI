@@ -23,10 +23,10 @@ const ProductIcon = ({ product, className }: { product: Product, className?: str
   const iconName = category?.icon || 'Package';
   const Icon = categoryIcons[iconName] || Package;
   
-  if (product.hasLocalImage && product.id) {
+  if ((product.hasLocalImage || product.hasCloudImage) && product.id) {
     return (
       <div className={cn("overflow-hidden shrink-0", className)}>
-        <ProductImage productId={product.id} hasLocalImage={product.hasLocalImage} FallbackIcon={Icon} iconSize={16} />
+        <ProductImage productId={product.id} hasLocalImage={product.hasLocalImage} hasCloudImage={product.hasCloudImage} FallbackIcon={Icon} iconSize={16} />
       </div>
     );
   }
