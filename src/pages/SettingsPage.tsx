@@ -51,12 +51,15 @@ import {
   Percent,
   Lock,
   Grid,
-  FileDown
+  FileDown,
+  CloudUpload
 } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { collection, getDocs, doc, setDoc, writeBatch, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { handleFirestoreError } from '../lib/utils';
 import { OperationType } from '../types';
+import { uploadCloudImage } from '../lib/cloudImages';
+import { getLocalImage } from '../lib/localImages';
 
 type View = 'main' | 'data' | 'guide' | 'categories';
 import { useCategories } from '../hooks/useCategories';
@@ -74,6 +77,59 @@ export default function SettingsPage() {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
+
+  const [isSyncingOldImages, setIsSyncingOldImages] = useState(false);
+  const [syncProgress, setSyncProgress] = useState<{ current: number, total: number } | null>(null);
+
+  const handleSyncOldImages = async () => {
+    if (!user) return;
+    setIsSyncingOldImages(true);
+    setSyncProgress(null);
+    try {
+      const productsSnapshot = await getDocs(collection(db, `users/${user.uid}/products`));
+      const productsToSync = productsSnapshot.docs.filter(doc => {
+        const data = doc.data();
+        return data.hasLocalImage && !data.hasCloudImage;
+      });
+
+      if (productsToSync.length === 0) {
+        setStatus({ type: 'info', msg: 'جميع الصور متزامنة بالفعل.' });
+        setIsSyncingOldImages(false);
+        return;
+      }
+
+      setSyncProgress({ current: 0, total: productsToSync.length });
+
+      const batch = writeBatch(db);
+      let successCount = 0;
+
+      for (let i = 0; i < productsToSync.length; i++) {
+        const docSnap = productsToSync[i];
+        try {
+          const blob = await getLocalImage(docSnap.id);
+          if (blob) {
+            await uploadCloudImage(user.uid, docSnap.id, blob);
+            batch.update(docSnap.ref, { hasCloudImage: true });
+            successCount++;
+          }
+        } catch (err) {
+          console.error(`Failed to sync image for product ${docSnap.id}:`, err);
+        }
+        setSyncProgress({ current: i + 1, total: productsToSync.length });
+      }
+
+      if (successCount > 0) {
+        await batch.commit();
+      }
+      setStatus({ type: 'success', msg: `تم مزامنة ${successCount} صورة بنجاح.` });
+    } catch (error) {
+      console.error('Error syncing images:', error);
+      setStatus({ type: 'error', msg: 'حدث خطأ أثناء مزامنة الصور.' });
+    } finally {
+      setIsSyncingOldImages(false);
+      setSyncProgress(null);
+    }
+  };
 
   const handleClearAllData = async () => {
     if (!user) return;
@@ -294,25 +350,52 @@ export default function SettingsPage() {
           </div>
 
           {/* Sync Images Toggle */}
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
-                <Database size={20} />
+          <div className="flex flex-col p-4 border-b border-zinc-100 dark:border-zinc-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
+                  <Database size={20} />
+                </div>
+                <div className="text-right">
+                  <h3 className="text-sm font-bold text-zinc-900 dark:text-white">مزامنة الصور سحابياً</h3>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">حفظ الصور في السحابة لتنزيلها على أجهزة أخرى</p>
+                </div>
               </div>
-              <div className="text-right">
-                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">مزامنة الصور سحابياً</h3>
-                <p className="text-[11px] text-zinc-400 mt-0.5">حفظ الصور في السحابة لتنزيلها على أجهزة أخرى</p>
-              </div>
+              <button 
+                onClick={() => updateSettings({ syncImages: !(settings.syncImages ?? false) })}
+                className={`relative h-7 w-12 rounded-full transition-colors ${(settings.syncImages ?? false) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+              >
+                <motion.div 
+                  animate={{ x: (settings.syncImages ?? false) ? 20 : 4 }}
+                  className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
+                />
+              </button>
             </div>
-            <button 
-              onClick={() => updateSettings({ syncImages: !(settings.syncImages ?? false) })}
-              className={`relative h-7 w-12 rounded-full transition-colors ${(settings.syncImages ?? false) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
-            >
-              <motion.div 
-                animate={{ x: (settings.syncImages ?? false) ? 20 : 4 }}
-                className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
-              />
-            </button>
+            
+            {/* Bulk Sync Button */}
+            {(settings.syncImages ?? false) && (
+              <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800/50">
+                <button
+                  onClick={handleSyncOldImages}
+                  disabled={isSyncingOldImages}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-brand-50 hover:bg-brand-100 dark:bg-brand-900/20 dark:hover:bg-brand-900/40 text-brand-600 dark:text-brand-400 rounded-lg text-[13px] font-bold transition-colors disabled:opacity-50"
+                >
+                  {isSyncingOldImages ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-current rounded-full border-t-transparent animate-spin" />
+                      <span>
+                        جاري المزامنة {syncProgress ? `(${syncProgress.current}/${syncProgress.total})` : '...'}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <CloudUpload size={16} />
+                      <span>مزامنة الصور القديمة إلى السحابة</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Financials Toggle */}

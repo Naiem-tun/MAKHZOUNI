@@ -77,12 +77,12 @@ export function ProductImage({ productId, hasLocalImage, hasCloudImage, classNam
             onClick={handleUpload}
             disabled={isUploading}
             title="رفع الصورة إلى السحابة"
-            className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white hover:bg-black/50 transition-all"
+            className="absolute top-1 right-1 bg-black/60 backdrop-blur-sm rounded-lg p-1.5 flex items-center justify-center text-white hover:bg-black/80 transition-all shadow-sm"
           >
             {isUploading ? (
               <div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin" />
             ) : (
-              <CloudUpload size={iconSize * 0.8} />
+              <CloudUpload size={iconSize * 0.6} />
             )}
           </button>
         )}
