@@ -57,7 +57,18 @@ export default function InvoiceCalculator() {
 
   const [inputText, setInputText] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [items, setItems] = useState<InvoiceItem[]>([]);
+  const [items, setItems] = useState<InvoiceItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('invoice_calculator_items');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('invoice_calculator_items', JSON.stringify(items));
+  }, [items]);
   const [isCopied, setIsCopied] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
