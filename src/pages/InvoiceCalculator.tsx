@@ -10,8 +10,11 @@ import {
   Copy,
   CheckCheck,
   MessageCircle,
-  RotateCcw
+  RotateCcw,
+  FileDown,
+  Loader2
 } from 'lucide-react';
+import * as html2pdf from 'html2pdf.js';
 import { useAppContext } from '../AppContext';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -57,6 +60,7 @@ export default function InvoiceCalculator() {
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [isCopied, setIsCopied] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     const scannerHandler = () => {
@@ -138,6 +142,78 @@ export default function InvoiceCalculator() {
   const handleWhatsApp = () => {
     const text = encodeURIComponent(generateInvoiceText());
     window.open(`https://wa.me/?text=${text}`, '_blank');
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      setIsExporting(true);
+      showToast('جاري تحضير الفاتورة...', 'info');
+
+      let tableHtml = "";
+      items.forEach((item, index) => {
+        tableHtml += `
+          <tr style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px; text-align: right;">${index + 1}</td>
+            <td style="padding: 10px; text-align: right;">${item.name}</td>
+            <td style="padding: 10px; text-align: center;">${item.quantity}</td>
+            <td style="padding: 10px; text-align: center;">${item.price.toFixed(3)}</td>
+            <td style="padding: 10px; text-align: center; font-weight: 700;">${(item.price * item.quantity).toFixed(3)}</td>
+          </tr>
+        `;
+      });
+
+      const elementHtml = `
+      <div style="font-family: 'Inter', system-ui, sans-serif; direction: rtl; padding: 30px; max-width: 800px; margin: 0 auto; color: #0f172a;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="font-size: 28px; font-weight: 900; color: #0284c7; margin: 0;">فاتورة مشتريات</h1>
+        </div>
+        
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+          <thead>
+            <tr style="background-color: #f4f4f5; border-radius: 8px;">
+              <th style="padding: 12px 10px;text-align: right;font-size: 13px;font-weight: 700;color: #52525b;">#</th>
+              <th style="padding: 12px 10px;text-align: right;font-size: 13px;font-weight: 700;color: #52525b;">المنتج</th>
+              <th style="padding: 12px 10px;text-align: center;font-size: 13px;font-weight: 700;color: #52525b;">الكمية</th>
+              <th style="padding: 12px 10px;text-align: center;font-size: 13px;font-weight: 700;color: #52525b;">السعر (د.ت)</th>
+              <th style="padding: 12px 10px;text-align: center;font-size: 13px;font-weight: 700;color: #52525b;">المجموع (د.ت)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableHtml}
+          </tbody>
+        </table>
+        
+        <div style="display: flex; justify-content: flex-end; padding-top: 20px; border-top: 2px solid #f4f4f5;">
+          <div style="background-color: #f0f9ff; padding: 16px 32px; border-radius: 12px; border: 1px solid #e0f2fe; text-align: center;">
+            <p style="font-size: 13px; font-weight: 700; color: #0369a1; margin: 0 0 4px 0;">المجموع الكلي</p>
+            <p style="font-size: 24px; font-weight: 900; color: #0284c7; margin: 0;">${calculateTotal().toFixed(3)} د.ت</p>
+          </div>
+        </div>
+      </div>
+      `;
+
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = elementHtml;
+      
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `فاتورة_${new Date().getTime()}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      // @ts-ignore
+      const html2pdfModule: any = html2pdf.default || html2pdf;
+      await html2pdfModule().set(opt).from(wrapper.firstElementChild).save();
+      
+      showToast('تم تحميل الفاتورة بنجاح', 'success');
+    } catch (error) {
+      console.error(error);
+      showToast('حدث خطأ أثناء تحميل الفاتورة', 'error');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleScan = (decodedText: string) => {
@@ -317,14 +393,22 @@ export default function InvoiceCalculator() {
               <div className="flex items-center gap-2 pt-2 border-t border-brand-500/30">
                 <button
                   onClick={handleCopy}
-                  className="flex-1 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 active:bg-white/30 py-2.5 rounded-lg transition-colors font-bold text-sm"
+                  className="flex-[1.5] flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 active:bg-white/30 py-2.5 rounded-lg transition-colors font-bold text-sm"
                 >
                   {isCopied ? <CheckCheck size={18} /> : <Copy size={18} />}
-                  <span>{isCopied ? 'تم النسخ' : 'نسخ الفاتورة'}</span>
+                  <span className="hidden sm:inline">{isCopied ? 'تم النسخ' : 'نسخ'}</span>
+                </button>
+                <button
+                  onClick={handleExportPDF}
+                  disabled={isExporting}
+                  className="flex-[1.5] flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 active:bg-white/30 py-2.5 rounded-lg transition-colors font-bold text-sm disabled:opacity-50"
+                >
+                  {isExporting ? <Loader2 size={18} className="animate-spin" /> : <FileDown size={18} />}
+                  <span className="hidden sm:inline">PDF</span>
                 </button>
                 <button
                   onClick={handleWhatsApp}
-                  className="flex-1 flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] active:bg-[#1da851] py-2.5 rounded-lg transition-colors font-bold text-sm"
+                  className="flex-[2] flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] active:bg-[#1da851] py-2.5 rounded-lg transition-colors font-bold text-sm"
                 >
                   <MessageCircle size={18} />
                   <span>شارك عبر واتساب</span>
