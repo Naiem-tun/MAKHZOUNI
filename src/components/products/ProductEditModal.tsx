@@ -87,12 +87,6 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
     }
   }, [scannedBarcode2, isOpen]);
 
-  useEffect(() => {
-    if (!category && categories.length > 0) {
-      setCategory(categories[0].name);
-    }
-  }, [categories, category]);
-
   const handleBoxPriceChange = (valStr: string) => {
     setBoxPrice(valStr);
     const parsed = parseFloat(valStr) || 0;

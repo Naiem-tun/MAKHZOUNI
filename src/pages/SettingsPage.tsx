@@ -76,7 +76,7 @@ export default function SettingsPage() {
   const [passwordError, setPasswordError] = useState('');
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
-  const [status, setStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
+  const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info', msg: string } | null>(null);
 
   const [isSyncingOldImages, setIsSyncingOldImages] = useState(false);
   const [syncProgress, setSyncProgress] = useState<{ current: number, total: number } | null>(null);
@@ -260,9 +260,15 @@ export default function SettingsPage() {
             <motion.div 
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`p-3 rounded-lg flex items-center gap-2 text-xs font-bold ${status.type === 'success' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' : 'bg-rose-50 text-rose-600 dark:bg-rose-900/20'}`}
+              className={`p-3 rounded-lg flex items-center gap-2 text-xs font-bold ${
+                status.type === 'success' 
+                  ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' 
+                  : status.type === 'info'
+                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20'
+                    : 'bg-rose-50 text-rose-600 dark:bg-rose-900/20'
+              }`}
             >
-              {status.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+              {status.type === 'success' ? <CheckCircle2 size={16} /> : status.type === 'info' ? <AlertCircle size={16} /> : <AlertCircle size={16} />}
               {status.msg}
             </motion.div>
           )}
