@@ -92,7 +92,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
     const parsed = parseFloat(valStr) || 0;
     const pieces = parseFloat(String(piecesPerBox)) || 0;
     if (pieces > 0 && parsed > 0) {
-      setPiecePrice(parsed / pieces);
+      setPiecePrice(parseFloat((parsed / pieces).toFixed(3)));
     } else if (parsed === 0) {
       setPiecePrice('');
     }
@@ -103,7 +103,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
     const parsed = parseFloat(valStr) || 0;
     const pieces = parseFloat(String(piecesPerBox)) || 0;
     if (parsed > 0) {
-      setBoxPrice(parsed * pieces);
+      setBoxPrice(parseFloat((parsed * pieces).toFixed(3)));
     } else if (parsed === 0) {
       setBoxPrice('');
     }
@@ -114,7 +114,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
     const parsed = parseFloat(valStr) || 0;
     const currentBoxPrice = parseFloat(String(boxPrice)) || 0;
     if (parsed > 0 && currentBoxPrice > 0) {
-      setPiecePrice(currentBoxPrice / parsed);
+      setPiecePrice(parseFloat((currentBoxPrice / parsed).toFixed(3)));
     }
   };
 
