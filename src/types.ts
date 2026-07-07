@@ -38,6 +38,8 @@ export interface UserSettings {
   defaultStockView?: 'pieces' | 'boxes';
   deleteDataPassword?: string;
   syncImages?: boolean;
+  enablePOS?: boolean;
+  posDeductInventory?: boolean;
 }
 
 export interface CashTransaction {
@@ -55,13 +57,16 @@ export interface Product {
   name: string;
   category: string;
   purchasePrice: number;
+  costPrice?: number;
   sellingPrice: number;
+  wholesalePrice?: number;
   quantity: number;
   minQuantity: number;
   barcode?: string;
   barcode2?: string;
   unit?: string;
   piecesPerBox?: number;
+  subItemsPerPiece?: number;
   boxPurchasePrice?: number;
   hasLocalImage?: boolean;
   hasCloudImage?: boolean;
@@ -118,6 +123,7 @@ export interface Debt {
 export interface Category {
   id?: string;
   name: string;
+  key?: string;
   icon?: string;
 }
 
@@ -140,6 +146,7 @@ export interface Expense {
   amount: number;
   category: string;
   date: any;
+  audited?: boolean;
 }
 
 export interface MonitoredProductHistory {

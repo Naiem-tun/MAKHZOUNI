@@ -52,7 +52,8 @@ import {
   Lock,
   Grid,
   FileDown,
-  CloudUpload
+  CloudUpload,
+  Calculator
 } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { collection, getDocs, doc, setDoc, writeBatch, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
@@ -476,6 +477,61 @@ export default function SettingsPage() {
           <div className="px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 text-right">
             <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400">إعدادات التطبيق</h3>
           </div>
+
+          {/* Enable POS Toggle */}
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
+                <Calculator size={20} />
+              </div>
+              <div className="text-right">
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">نظام المبيعات (POS)</h3>
+                <p className="text-[11px] text-zinc-400 mt-0.5">تفعيل واجهة إنشاء فواتير المبيعات</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => updateSettings({ enablePOS: !(settings.enablePOS ?? false) })}
+              className={`relative h-7 w-12 rounded-full transition-colors ${(settings.enablePOS ?? false) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+            >
+              <motion.div 
+                animate={{ x: (settings.enablePOS ?? false) ? 20 : 4 }}
+                className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
+              />
+            </button>
+          </div>
+
+          {/* POS Deduct Inventory Toggle */}
+          <AnimatePresence>
+            {(settings.enablePOS ?? false) && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="flex items-center justify-between p-4 bg-zinc-50/50 dark:bg-zinc-800/30">
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-xl bg-white dark:bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-100 dark:border-zinc-800">
+                      <Database size={20} />
+                    </div>
+                    <div className="text-right">
+                      <h3 className="text-sm font-bold text-zinc-900 dark:text-white">خصم من المخزون</h3>
+                      <p className="text-[11px] text-zinc-400 mt-0.5">خصم كميات الفاتورة من مخزون المنتجات</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => updateSettings({ posDeductInventory: !(settings.posDeductInventory ?? false) })}
+                    className={`relative h-7 w-12 rounded-full transition-colors ${(settings.posDeductInventory ?? false) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+                  >
+                    <motion.div 
+                      animate={{ x: (settings.posDeductInventory ?? false) ? 20 : 4 }}
+                      className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
+                    />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Purchases Reports Toggle */}
           <div className="flex items-center justify-between p-4">

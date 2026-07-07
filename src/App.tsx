@@ -11,69 +11,9 @@
 import { useState, useEffect, Suspense, lazy, useRef } from "react";
 import { AppProvider, useAppContext } from "./AppContext";
 import { syncTracker } from "./lib/syncTracker";
-
-function SyncBadge() {
-  const [count, setCount] = useState(syncTracker.pendingCount);
-  useEffect(() => {
-    return syncTracker.subscribe(setCount);
-  }, []);
-
-  if (count === 0) return null;
-
-  return (
-    <span className="flex items-center justify-center bg-red-500 text-white text-[10px] font-bold h-4 min-w-4 px-1 rounded-full shadow-sm">
-      {count}
-    </span>
-  );
-}
-
-function SyncCounterBadge({
-  isOpen,
-  onClose,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-}) {
-  const [count, setCount] = useState(syncTracker.pendingCount);
-  const [isSyncing, setIsSyncing] = useState(false);
-
-  useEffect(() => {
-    return syncTracker.subscribe(setCount);
-  }, []);
-
-  if (count === 0) return null;
-
-  return (
-    <div
-      className={`absolute top-full mt-2 right-0 w-64 bg-zinc-900 text-white text-xs rounded-lg py-3 px-4 shadow-xl transition-all z-50 ${isOpen ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-2"}`}
-    >
-      <div className="font-bold mb-2 text-amber-400">
-        تحذير: {count} عمليات قيد الانتظار لمزامنتها
-      </div>
-      <div className="text-zinc-400 mb-3 leading-relaxed whitespace-normal text-right">
-        يبدو أن هناك عمليات تمت إضافتها مسبقاً ولم تنجح المزامنة بعد. انقر على
-        زر إعادة المحاولة لمحاولة إرسالها الآن.
-      </div>
-      <button
-        disabled={isSyncing}
-        onClick={async (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setIsSyncing(true);
-          await syncTracker.forceSync();
-          setTimeout(() => {
-            setIsSyncing(false);
-            onClose();
-          }, 1000);
-        }}
-        className="w-full flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white py-2 rounded-md font-bold transition-all disabled:opacity-50"
-      >
-        <RotateCcw size={14} className={isSyncing ? "animate-spin" : ""} />
-        {isSyncing ? "جاري المزامنة..." : "إعادة المزامنة الآن"}
-      </button>
-    </div>
-  );
-}
+import { AppHeader } from "./components/layout/AppHeader";
+import { AppMobileMenu } from "./components/layout/AppMobileMenu";
+import { AppBottomNav } from "./components/layout/AppBottomNav";
 
 import { Logo } from "./components/UI";
 import { useTranslation } from "react-i18next";
@@ -116,7 +56,6 @@ import {
   History,
   LineChart,
   Store,
-  Bot,
   Eye,
   EyeOff,
   PackagePlus,
@@ -150,6 +89,7 @@ import { OperationType, Supplier } from "./types";
 // Fast/Core Pages (Static Import)
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
+import POSInvoice from "./pages/POSInvoice";
 import MonitoredProducts from "./pages/MonitoredProducts";
 import ShoppingList from "./pages/ShoppingList";
 import Expenses from "./pages/Expenses";
@@ -158,7 +98,6 @@ import Suppliers from "./pages/Suppliers";
 import Debts from "./pages/Debts";
 import InvoiceCalculator from "./pages/InvoiceCalculator";
 import CatalogMode from "./pages/CatalogMode";
-import AiAssistant from "./pages/AiAssistant";
 import DraftProducts from "./pages/DraftProducts";
 
 // Heavy Pages (Lazy loaded)
@@ -257,13 +196,11 @@ function AppContent() {
     { id: "expenses", label: t("expenses"), icon: Wallet },
 
     // Top standalone tabs
-    {
-      id: "ai-assistant",
-      label: t("ai_assistant") || "الوكيل الذكي",
-      icon: Bot,
-    },
     ...(settings.showShoppingList !== false
       ? [{ id: "shopping-list", label: t("shopping_list"), icon: ShoppingCart }]
+      : []),
+    ...(settings.enablePOS === true
+      ? [{ id: "pos", label: "نقاط البيع", icon: Calculator }]
       : []),
     {
       id: "invoice-calculator",
@@ -351,6 +288,7 @@ function AppContent() {
   const isScannerTab =
     activeTab === "products" ||
     activeTab === "invoice-calculator" ||
+    activeTab === "pos" ||
     activeTab === "inventory";
 
   const handleScannerClick = () => {
@@ -480,314 +418,24 @@ function AppContent() {
 
       {!loading && user && (
         <div
-          className={`flex flex-col bg-[#F4F7FB] dark:bg-[#0B1121] font-sans transition-colors duration-300 relative ${activeTab === "ai-assistant" ? "h-[100dvh] overflow-hidden" : "min-h-[100dvh]"}`}
+          className={`flex flex-col bg-[#F4F7FB] dark:bg-[#0B1121] font-sans transition-colors duration-300 relative min-h-[100dvh]`}
         >
-          {/* Navbar to match screenshot */}
-          <header className="sticky top-0 z-40 bg-white shadow-sm dark:bg-[#121A2F]">
-            <div className="mx-auto max-w-7xl px-4">
-              <div className="flex h-16 items-center justify-between">
-                {/* Right Branding and Home Group (Now first child for RTL right placement) */}
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setMobileMenuOpen(true)}
-                      className="text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
-                    >
-                      <Menu size={24} />
-                    </button>
-                    <div
-                      onClick={() => setActiveTab("dashboard")}
-                      className="cursor-pointer"
-                    >
-                      <Logo className="w-10 h-10 shadow-lg active:scale-95 transition-transform" />
-                    </div>
-                  </div>
-
-                  {/* Sync Status Indicator */}
-                  <div className="flex items-center">
-                    {isOffline ? (
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowSyncMenu(!showSyncMenu);
-                        }}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-800/50 dark:text-amber-400 relative cursor-pointer"
-                      >
-                        <CloudOff size={14} />
-                        <SyncBadge />
-                        <span className="text-xs font-bold hidden sm:inline">
-                          {t("offline_mode", "مخزن محلياً")}
-                        </span>
-                        <SyncCounterBadge
-                          isOpen={showSyncMenu}
-                          onClose={() => setShowSyncMenu(false)}
-                        />
-                      </div>
-                    ) : (
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowSyncMenu(!showSyncMenu);
-                        }}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400 relative cursor-pointer"
-                        title={t(
-                          "online_mode_tooltip",
-                          "متصل. يتم المزامنة بشكل لحظي.",
-                        )}
-                      >
-                        <Cloud size={14} />
-                        <SyncBadge />
-                        <span className="text-xs font-bold hidden sm:inline">
-                          {t("online_mode", "متصل ومحدث")}
-                        </span>
-                        <SyncCounterBadge
-                          isOpen={showSyncMenu}
-                          onClose={() => setShowSyncMenu(false)}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Icons Group */}
-                <div className="flex items-center gap-4">
-                  {/* Supplier Session Icon Button */}
-                  <button
-                    onClick={() => {
-                      if (activeSupplier) {
-                        setIsSessionSummaryOpen(true);
-                      } else {
-                        safeDispatchEvent("open-supplier-selector");
-                      }
-                    }}
-                    className={`transition-all h-9 px-3 rounded-lg flex items-center justify-center ${activeSupplier ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-md scale-105" : "bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-900/40 shadow-sm transition-all"}`}
-                    title={
-                      activeSupplier
-                        ? t("end_supplier_session")
-                        : t("start_supplier_session")
-                    }
-                  >
-                    {activeSupplier ? (
-                      <div className="flex items-center gap-2">
-                        <Square size={16} fill="currentColor" />
-                        <span className="text-[10px] font-black leading-none">
-                          {activeSupplier.name}
-                        </span>
-                      </div>
-                    ) : (
-                      <Play size={16} fill="currentColor" />
-                    )}
-                  </button>
-
-                  {settings.showShoppingList !== false && (
-                    <button
-                      onClick={() => setActiveTab("shopping-list")}
-                      className={`transition-colors ${activeTab === "shopping-list" ? "text-brand-600" : "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"}`}
-                      title={t("shopping_list")}
-                    >
-                      <ShoppingCart size={22} />
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setActiveTab("expenses")}
-                    className={`transition-colors ${activeTab === "expenses" ? "text-warn-text" : "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"}`}
-                  >
-                    <Wallet size={22} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </header>
+          <AppHeader setMobileMenuOpen={setMobileMenuOpen} activeTab={activeTab} setActiveTab={setActiveTab} />
 
           {/* Mobile Menu */}
-          <AnimatePresence>
-            {mobileMenuOpen && (
-              <div className="fixed inset-0 z-50 lg:hidden">
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="absolute inset-0 bg-zinc-950/20 backdrop-blur-sm"
-                />
-                <motion.div
-                  initial={{ x: settings.language === "ar" ? "100%" : "-100%" }}
-                  animate={{ x: 0 }}
-                  exit={{ x: settings.language === "ar" ? "100%" : "-100%" }}
-                  className={`absolute top-0 bottom-0 w-80 bg-white dark:bg-zinc-900 shadow-2xl ${
-                    settings.language === "ar" ? "right-0" : "left-0"
-                  }`}
-                >
-                  <div className="flex h-18 items-center justify-between px-6 border-b border-zinc-100 dark:border-zinc-800">
-                    <span className="text-xl font-bold text-zinc-900 dark:text-white">
-                      {t("menu")}
-                    </span>
-                    <button onClick={() => setMobileMenuOpen(false)}>
-                      <X size={24} className="text-zinc-500" />
-                    </button>
-                  </div>
-                  <nav className="p-3 overflow-y-auto max-h-[calc(100vh-4.5rem)] space-y-6 pb-8 custom-scrollbar">
-                    {/* 1. العمليات اليومية */}
-                    <div className="space-y-1">
-                      <div className="px-3 pb-2 text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
-                        {t("main_operations") || "العمليات اليومية"}
-                      </div>
-                      {mainPagesTabs.map((tab) => (
-                        <button
-                          key={tab.id}
-                          onClick={() => {
-                            setActiveTab(tab.id);
-                            setMobileMenuOpen(false);
-                          }}
-                          className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
-                            activeTab === tab.id
-                              ? "bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 font-bold"
-                              : "text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
-                          }`}
-                        >
-                          <tab.icon size={20} />
-                          <span className="font-medium">{tab.label}</span>
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="h-px bg-zinc-100 dark:bg-zinc-800 mx-3" />
-
-                    {/* 2. التقارير والمالية */}
-                    <div className="space-y-1">
-                      <div className="px-3 pb-2 text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest flex items-center justify-between">
-                        <span>
-                          {t("reports_analytics") || "التقارير والإحصائيات"}
-                        </span>
-                        <button
-                          onClick={() =>
-                            updateSettings({
-                              showFinancials: !settings.showFinancials,
-                            })
-                          }
-                          className="p-1 -mr-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
-                          title={
-                            settings.showFinancials
-                              ? "إخفاء الإحصائيات"
-                              : "إظهار الإحصائيات"
-                          }
-                        >
-                          {settings.showFinancials ? (
-                            <Eye size={16} />
-                          ) : (
-                            <EyeOff size={16} />
-                          )}
-                        </button>
-                      </div>
-                      {reportsSubpages.map((tab) => (
-                        <button
-                          key={tab.id}
-                          onClick={() => {
-                            setActiveTab("reports");
-                            setTimeout(
-                              () =>
-                                window.dispatchEvent(
-                                  new CustomEvent("open-analytics-tab", {
-                                    detail: tab.id,
-                                  }),
-                                ),
-                              100,
-                            );
-                            setMobileMenuOpen(false);
-                          }}
-                          className="flex w-full items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
-                        >
-                          <tab.icon
-                            size={20}
-                            className={
-                              activeTab === "reports"
-                                ? "text-brand-500"
-                                : "text-zinc-400"
-                            }
-                          />
-                          <span className="font-medium">{tab.label}</span>
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="h-px bg-zinc-100 dark:bg-zinc-800 mx-3" />
-
-                    {/* 3. أدوات وتتبع */}
-                    <div className="space-y-1">
-                      <div className="px-3 pb-2 text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
-                        {t("smart_tracking") || "أدوات مساعدة للتجارة"}
-                      </div>
-                      {otherTabs
-                        .filter((t) =>
-                          [
-                            "ai-assistant",
-                            "monitored-products",
-                            "shopping-list",
-                            "invoice-calculator",
-                            "draft-products",
-                          ].includes(t.id),
-                        )
-                        .map((tab) => (
-                          <button
-                            key={tab.id}
-                            onClick={() => {
-                              setActiveTab(tab.id);
-                              setMobileMenuOpen(false);
-                            }}
-                            className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
-                              activeTab === tab.id
-                                ? "bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 font-bold"
-                                : "text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
-                            }`}
-                          >
-                            <tab.icon size={20} />
-                            <span className="font-medium">{tab.label}</span>
-                          </button>
-                        ))}
-                    </div>
-
-                    <div className="h-px bg-zinc-100 dark:bg-zinc-800 mx-3" />
-
-                    {/* 4. تفضيلات النظام */}
-                    <div className="space-y-1">
-                      <div className="px-3 pb-2 text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">
-                        {t("system_settings") || "تفضيلات وإعدادات"}
-                      </div>
-                      {otherTabs
-                        .filter((t) =>
-                          ["settings", "catalog-mode", "audit-logs"].includes(t.id),
-                        )
-                        .map((tab) => (
-                          <button
-                            key={tab.id}
-                            onClick={() => {
-                              if (tab.id === "catalog-mode") {
-                                setIsCatalogMode(true);
-                              } else {
-                                setActiveTab(tab.id);
-                              }
-                              setMobileMenuOpen(false);
-                            }}
-                            className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
-                              activeTab === tab.id
-                                ? "bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 font-bold"
-                                : "text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
-                            }`}
-                          >
-                            <tab.icon size={20} />
-                            <span className="font-medium">{tab.label}</span>
-                          </button>
-                        ))}
-                    </div>
-                  </nav>
-                </motion.div>
-              </div>
-            )}
-          </AnimatePresence>
+          <AppMobileMenu
+            mobileMenuOpen={mobileMenuOpen}
+            setMobileMenuOpen={setMobileMenuOpen}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            mainPagesTabs={mainPagesTabs}
+            reportsSubpages={reportsSubpages}
+            otherTabs={otherTabs}
+          />
 
           {/* Main Content */}
           <main
-            className={`mx-auto max-w-7xl relative w-full flex-1 flex flex-col ${activeTab === "ai-assistant" ? "h-[calc(100dvh-4rem)] overflow-hidden p-0 pb-[96px] sm:px-6 lg:px-8 sm:pb-8" : "px-4 pt-4 pb-36 mb-safe sm:px-6 lg:px-8 min-h-[500px]"}`}
+            className={`mx-auto max-w-7xl relative w-full flex-1 flex flex-col px-4 pt-4 pb-36 mb-safe sm:px-6 lg:px-8 min-h-[500px]`}
           >
             <Suspense
               fallback={
@@ -850,21 +498,22 @@ function AppContent() {
                 </div>
                 <div
                   className={
+                    activeTab === "pos" ? "block" : "hidden"
+                  }
+                >
+                  {mountedTabs.has("pos") && (
+                    <POSInvoice />
+                  )}
+                </div>
+
+                <div
+                  className={
                     activeTab === "invoice-calculator" ? "block" : "hidden"
                   }
                 >
                   {mountedTabs.has("invoice-calculator") && (
                     <InvoiceCalculator />
                   )}
-                </div>
-                <div
-                  className={
-                    activeTab === "ai-assistant"
-                      ? "h-full flex-1 flex flex-col"
-                      : "hidden"
-                  }
-                >
-                  {mountedTabs.has("ai-assistant") && <AiAssistant />}
                 </div>
                 <div className={activeTab === "settings" ? "block" : "hidden"}>
                   {mountedTabs.has("settings") && <SettingsPage />}
@@ -877,42 +526,13 @@ function AppContent() {
           </main>
 
           {/* Bottom Navigation Navbar */}
-          <div className="fixed bottom-0 left-0 right-0 z-40 bg-zinc-50/80 dark:bg-zinc-950/80 backdrop-blur-xl pb-6 pt-3 px-4 border-t border-zinc-200/60 dark:border-zinc-800/60 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] dark:shadow-none">
-            <div className="flex items-center gap-3 max-w-7xl mx-auto">
-              {/* Fixed Barcode Scanner */}
-              <button
-                onClick={handleScannerClick}
-                className="flex-shrink-0 w-14 h-14 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-lg shadow-sm flex items-center justify-center relative active:scale-95 transition-all"
-                aria-label={t("scan_barcode") || "Scan Barcode"}
-              >
-                {isScannerTab ? (
-                  <ScanBarcode size={24} />
-                ) : (
-                  <Calculator size={24} />
-                )}
-              </button>
-
-              {/* Scrollable Tabs */}
-              <div className="flex-1 overflow-x-auto no-scrollbar">
-                <div className="flex items-center gap-1.5 p-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm w-max">
-                  {toolbarTabs.map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`flex shrink-0 items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                        activeTab === tab.id
-                          ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-white shadow-sm"
-                          : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-                      }`}
-                    >
-                      <tab.icon size={18} />
-                      <span>{tab.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+          <AppBottomNav
+            isScannerTab={isScannerTab}
+            handleScannerClick={handleScannerClick}
+            toolbarTabs={toolbarTabs}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          />
 
           <ProductForm user={user} />
           <SupplierSelector />

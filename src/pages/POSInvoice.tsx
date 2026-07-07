@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import { motion, AnimatePresence } from 'motion/react';
-import { 
+import {
+  useTranslation } from 'react-i18next';
+import {
+  motion, AnimatePresence } from 'motion/react';
+import {
+  
   Calculator, 
   Trash2,
   ScanBarcode, 
@@ -16,12 +19,17 @@ import {
   Loader2
 } from 'lucide-react';
 import * as html2pdf from 'html2pdf.js';
-import { useAppContext } from '../AppContext';
-import { collection, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { Product } from '../types';
+import {
+  useAppContext } from '../AppContext';
+import {
+  collection, onSnapshot, writeBatch, doc, serverTimestamp } from 'firebase/firestore';
+import {
+  db } from '../lib/firebase';
+import {
+  Product } from '../types';
 
-import { BarcodeScanner } from '../components/common/BarcodeScanner';
+import {
+  BarcodeScanner } from '../components/common/BarcodeScanner';
 
 interface InvoiceItem {
   id: string;
@@ -33,9 +41,9 @@ interface InvoiceItem {
   saleMode?: 'box' | 'piece' | 'kg' | 'gram' | 'subpiece';
 }
 
-export default function InvoiceCalculator() {
+export default function POSInvoice() {
   const { t } = useTranslation();
-  const { user, showToast } = useAppContext();
+  const { user, showToast, settings } = useAppContext();
   
   const [products, setProducts] = useState<Product[]>(() => {
     if (!user) return [];
@@ -62,7 +70,7 @@ export default function InvoiceCalculator() {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [items, setItems] = useState<InvoiceItem[]>(() => {
     try {
-      const saved = localStorage.getItem('invoice_calculator_items');
+      const saved = localStorage.getItem('pos_invoice_items');
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -70,7 +78,7 @@ export default function InvoiceCalculator() {
   });
 
   useEffect(() => {
-    localStorage.setItem('invoice_calculator_items', JSON.stringify(items));
+    localStorage.setItem('pos_invoice_items', JSON.stringify(items));
   }, [items]);
   const [isCopied, setIsCopied] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -80,8 +88,8 @@ export default function InvoiceCalculator() {
     const scannerHandler = () => {
       setIsScannerOpen(true);
     };
-    window.addEventListener('open-barcode-scanner-invoice-calculator', scannerHandler);
-    return () => window.removeEventListener('open-barcode-scanner-invoice-calculator', scannerHandler);
+    window.addEventListener('open-barcode-scanner-pos', scannerHandler);
+    return () => window.removeEventListener('open-barcode-scanner-pos', scannerHandler);
   }, []);
 
   useEffect(() => {
@@ -98,14 +106,14 @@ export default function InvoiceCalculator() {
   }, [inputText, products]);
 
   const addItem = (product: any) => {
-    let initialMode: 'box' | 'kg' = 'box';
+    let initialMode: 'box' | 'kg' | 'piece' | 'gram' | 'subpiece' = 'piece';
     if (product.unit === 'kg') initialMode = 'kg';
 
     const newItem: InvoiceItem = {
       id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
       productId: product.id,
       name: product.name,
-      price: product.boxPurchasePrice || product.purchasePrice || 0,
+      price: product.sellingPrice || 0,
       quantity: 1,
       product: product,
       saleMode: initialMode
@@ -150,7 +158,7 @@ export default function InvoiceCalculator() {
   };
 
   const generateInvoiceText = () => {
-    let text = `*فاتورة مشتريات*\n\n`;
+    let text = `*فاتورة مبيعات*\n\n`;
     items.forEach((item, index) => {
       text += `${index + 1}. *${item.name}*\n`;
       let quantityText = item.quantity.toString();
@@ -205,7 +213,7 @@ export default function InvoiceCalculator() {
       const elementHtml = `
       <div style="font-family: 'Inter', system-ui, sans-serif; direction: rtl; padding: 30px; max-width: 800px; margin: 0 auto; color: #0f172a;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="font-size: 28px; font-weight: 900; color: #0284c7; margin: 0;">فاتورة مشتريات</h1>
+          <h1 style="font-size: 28px; font-weight: 900; color: #0284c7; margin: 0;">فاتورة مبيعات</h1>
         </div>
         
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
@@ -256,6 +264,41 @@ export default function InvoiceCalculator() {
     }
   };
 
+  const [isCompleting, setIsCompleting] = useState(false);
+
+  const handleCompleteSale = async () => {
+    if (!user || items.length === 0) return;
+    try {
+      setIsCompleting(true);
+      
+      if (settings.posDeductInventory) {
+        const batch = writeBatch(db);
+        items.forEach(item => {
+          const productRef = doc(db, `users/${user.uid}/products`, item.productId);
+          const p = products.find(p => p.id === item.productId);
+          if (p) {
+            batch.update(productRef, {
+              quantity: Math.max(0, p.quantity - item.quantity),
+              updatedAt: serverTimestamp()
+            });
+          }
+        });
+        await batch.commit();
+        showToast('تم إتمام البيع وخصم الكميات من المخزون', 'success');
+      } else {
+        showToast('تم إتمام البيع', 'success');
+      }
+      
+      setItems([]);
+      localStorage.removeItem('pos_invoice_items');
+    } catch (error) {
+      console.error('Error completing sale:', error);
+      showToast('حدث خطأ أثناء إتمام البيع', 'error');
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
   const handleScan = (decodedText: string) => {
     setIsScannerOpen(false);
     
@@ -279,8 +322,8 @@ export default function InvoiceCalculator() {
             <Calculator size={24} />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-1">{t('invoice_calculator')}</h1>
-            <p className="text-xs text-zinc-500 font-medium">{t('invoice_desc')}</p>
+            <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-1">نقاط البيع (POS)</h1>
+            <p className="text-xs text-zinc-500 font-medium">إنشاء فاتورة مبيعات للعملاء</p>
           </div>
         </div>
         
@@ -334,7 +377,7 @@ export default function InvoiceCalculator() {
                   <div className="flex flex-col">
                     <span className="text-sm font-bold text-zinc-900 dark:text-white">{p.name}</span>
                     <span className="text-xs font-medium text-zinc-500">
-                      {t('purchase_price')}: {(p.boxPurchasePrice || p.purchasePrice || 0).toFixed(3)}
+                      {t('selling_price')} : {(p.boxPurchasePrice || p.purchasePrice || 0).toFixed(3)}
                     </span>
                   </div>
                   <Plus size={18} className="text-brand-500" />
@@ -365,7 +408,7 @@ export default function InvoiceCalculator() {
                 <div className="flex items-center gap-2 sm:gap-4 flex-1">
                   {/* Price */}
                   <div className="flex-[1.2]">
-                    <label className="block text-[10px] sm:text-xs font-bold text-zinc-400 mb-1 truncate">{t('purchase_price')}</label>
+                    <label className="block text-[10px] sm:text-xs font-bold text-zinc-400 mb-1 truncate">{t('selling_price')} </label>
                     <input
                       type="number"
                       step="any"
@@ -374,7 +417,6 @@ export default function InvoiceCalculator() {
                       className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg py-2 px-1 sm:px-3 text-sm sm:text-base font-bold text-zinc-900 dark:text-white text-center focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
-
                   {/* Quantity */}
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1 h-4">
@@ -406,7 +448,6 @@ export default function InvoiceCalculator() {
                       className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg py-2 px-1 sm:px-3 text-sm sm:text-base font-bold text-zinc-900 dark:text-white text-center focus:ring-2 focus:ring-brand-500"
                     />
                   </div>
-
                   {/* Total */}
                   <div className="flex-[1.2] text-left pl-1 sm:pl-2">
                     <label className="block text-[10px] sm:text-xs font-bold text-zinc-400 mb-1 truncate h-4">المجموع</label>
@@ -480,6 +521,15 @@ export default function InvoiceCalculator() {
                   <span>شارك عبر واتساب</span>
                 </button>
               </div>
+
+              <button
+                onClick={handleCompleteSale}
+                disabled={isCompleting}
+                className="w-full flex items-center justify-center gap-2 bg-white text-brand-600 hover:bg-zinc-50 active:bg-zinc-100 py-3 rounded-xl transition-colors font-black text-lg shadow-sm mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {isCompleting ? <Loader2 size={24} className="animate-spin" /> : <CheckCheck size={24} />}
+                <span>إتمام البيع</span>
+              </button>
             </div>
           </motion.div>
         )}

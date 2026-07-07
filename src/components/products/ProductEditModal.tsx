@@ -21,6 +21,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
   const { t } = useTranslation();
   const { categories } = useCategories();
   const [piecesPerBox, setPiecesPerBox] = useState<number | string>(1);
+  const [subItemsPerPiece, setSubItemsPerPiece] = useState<number | string>(1);
   const [boxPrice, setBoxPrice] = useState<number | string>('');
   const [piecePrice, setPiecePrice] = useState<number | string>('');
   const [barcode, setBarcode] = useState('');
@@ -42,6 +43,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
     if (isOpen) {
       if (product) {
         setPiecesPerBox(product.piecesPerBox || 1);
+        setSubItemsPerPiece(product.subItemsPerPiece || 1);
         setBoxPrice(product.boxPurchasePrice || '');
         setPiecePrice(product.purchasePrice || '');
         setCategory(product.category || (categories[0]?.name || ""));
@@ -167,6 +169,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
       barcode: formData.get('barcode') as string,
       barcode2: formData.get('barcode2') as string,
       piecesPerBox: parseFloat((formData.get('piecesPerBox') as string).replace(',', '.')) || 1,
+      subItemsPerPiece: parseFloat((formData.get('subItemsPerPiece') as string)?.replace(',', '.')) || 1,
       unit: formData.get('unit') as string || 'piece',
       boxPurchasePrice: parseFloat((formData.get('boxPurchasePrice') as string).replace(',', '.')) || 0,
       // Keep existing stock values if editing, or default to 0 for new products
@@ -421,6 +424,20 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                 </div>
               </div>
 
+              {/* Sub-items Row */}
+              <div className="grid grid-cols-2 gap-3 text-right">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-zinc-500">{"عدد الحبات في القطعة (وحدة صغرى)"}</label>
+                  <input 
+                    name="subItemsPerPiece" 
+                    type="number" 
+                    value={subItemsPerPiece}
+                    onChange={(e) => setSubItemsPerPiece(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
+                  />
+                </div>
+              </div>
               {/* 4. Box Info Row */}
               <div className="grid grid-cols-2 gap-3 text-right">
                 <div className="space-y-1">

@@ -135,6 +135,7 @@ const resources = {
       "purchases": "المشتريات",
       "notes": "ملاحظات",
       "what_to_buy": "ماذا تريد أن تشتري؟",
+      "search_product_or_barcode": "ابحث باسم المنتج أو الباركود...",
       "show_financial_data": "إظهار الأرقام والبيانات المالية في واجهة التطبيق",
       "learn_store_management": "تعلم كيفية احتراف إدارة مخزنك",
       "add_remove_categories": "إضافة أو حذف فئات المنتجات",
