@@ -133,15 +133,31 @@ export default function InvoiceCalculator() {
   };
 
   const calculateItemTotal = (item: InvoiceItem) => {
-    if (item.saleMode === 'gram') {
-      return (item.price * item.quantity) / 1000;
-    }
-    if (item.saleMode === 'subpiece' && item.product?.subItemsPerPiece) {
-      return (item.price * item.quantity) / item.product.subItemsPerPiece;
-    }
+    const isKgProduct = item.product?.unit === 'kg';
+    const subItems = item.product?.subItemsPerPiece || 1;
+
     if (item.saleMode === 'box' && item.product?.piecesPerBox) {
       return item.price * item.quantity * item.product.piecesPerBox;
     }
+    
+    if (item.saleMode === 'subpiece') {
+      return (item.price / subItems) * item.quantity;
+    }
+    
+    if (item.saleMode === 'gram') {
+      if (isKgProduct && subItems > 1) {
+        return ((item.price / subItems) / 100) * item.quantity;
+      }
+      return (item.price / 1000) * item.quantity;
+    }
+    
+    if (item.saleMode === 'kg') {
+      if (isKgProduct && subItems > 1) {
+        return ((item.price / subItems) * 10) * item.quantity;
+      }
+      return item.price * item.quantity;
+    }
+    
     return item.price * item.quantity;
   };
 
@@ -361,8 +377,8 @@ export default function InvoiceCalculator() {
                 <h3 className="font-bold text-lg text-zinc-900 dark:text-white">{item.name}</h3>
               </div>
               
-              <div className="p-3 sm:p-4 flex items-center justify-between gap-2 sm:gap-4">
-                <div className="flex items-center gap-2 sm:gap-4 flex-1">
+              <div className="p-3 sm:p-4 flex items-end justify-between gap-2 sm:gap-4">
+                <div className="flex items-end gap-2 sm:gap-4 flex-1">
                   {/* Price */}
                   <div className="flex-[1.2]">
                     <label className="block text-[10px] sm:text-xs font-bold text-zinc-400 mb-1 truncate">{t('purchase_price')}</label>
@@ -371,45 +387,46 @@ export default function InvoiceCalculator() {
                       step="any"
                       value={item.price || ''}
                       onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value.replace(',', '.')) || 0)}
-                      className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg py-2 px-1 sm:px-3 text-sm sm:text-base font-bold text-zinc-900 dark:text-white text-center focus:ring-2 focus:ring-brand-500"
+                      className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg py-2 px-1 sm:px-3 text-sm sm:text-base font-bold text-zinc-900 dark:text-white text-center focus:ring-2 focus:ring-brand-500 h-10"
                     />
                   </div>
 
                   {/* Quantity */}
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1 h-4">
-                      <label className="text-[10px] sm:text-xs font-bold text-zinc-400 truncate">{t('quantity')}</label>
-                      {item.product?.unit === 'kg' && (
-                        <div className="flex gap-0.5">
-                          <button onClick={() => updateItem(item.id, 'saleMode', 'kg')} className={`text-[9px] px-1 rounded ${item.saleMode !== 'gram' ? 'bg-brand-100 text-brand-600 font-bold' : 'text-zinc-400'}`}>كغ</button>
-                          <button onClick={() => updateItem(item.id, 'saleMode', 'gram')} className={`text-[9px] px-1 rounded ${item.saleMode === 'gram' ? 'bg-brand-100 text-brand-600 font-bold' : 'text-zinc-400'}`}>غرام</button>
-                        </div>
-                      )}
-                      {(!item.product?.unit || item.product?.unit === 'box' || item.product?.unit === 'piece') && (item.product?.piecesPerBox || 0) > 1 && (
-                        <div className="flex gap-0.5">
-                          <button onClick={() => updateItem(item.id, 'saleMode', 'box')} className={`text-[9px] px-1 rounded ${item.saleMode === 'box' ? 'bg-brand-100 text-brand-600 font-bold' : 'text-zinc-400'}`}>كرتونة</button>
-                          <button onClick={() => updateItem(item.id, 'saleMode', 'piece')} className={`text-[9px] px-1 rounded ${(item.saleMode !== 'box' && item.saleMode !== 'subpiece') ? 'bg-brand-100 text-brand-600 font-bold' : 'text-zinc-400'}`}>قطعة</button>
-                        </div>
-                      )}
-                      {(!item.product?.unit || item.product?.unit === 'box' || item.product?.unit === 'piece') && (item.product?.subItemsPerPiece || 0) > 1 && (
-                        <div className="flex gap-0.5 ml-1">
-                          <button onClick={() => updateItem(item.id, 'saleMode', 'piece')} className={`text-[9px] px-1 rounded ${item.saleMode !== 'subpiece' ? 'bg-brand-100 text-brand-600 font-bold' : 'text-zinc-400'}`}>قطعة</button>
-                          <button onClick={() => updateItem(item.id, 'saleMode', 'subpiece')} className={`text-[9px] px-1 rounded ${item.saleMode === 'subpiece' ? 'bg-brand-100 text-brand-600 font-bold' : 'text-zinc-400'}`}>حبة</button>
-                        </div>
-                      )}
+                  <div className="flex-[1.5]">
+                    <div className="flex flex-col gap-1 mb-1 justify-end min-h-[24px]">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] sm:text-xs font-bold text-zinc-400 truncate">{t('quantity')}</label>
+                      </div>
+                      <div className="flex gap-1 flex-wrap justify-start">
+                        {(item.product?.piecesPerBox || 0) > 1 && (
+                          <button onClick={() => updateItem(item.id, 'saleMode', 'box')} className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${item.saleMode === 'box' ? 'bg-brand-500 text-white font-bold shadow-sm' : 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'}`}>كرتونة</button>
+                        )}
+                        {item.product?.unit !== 'kg' && (
+                          <button onClick={() => updateItem(item.id, 'saleMode', 'piece')} className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${item.saleMode === 'piece' || (!['box', 'subpiece', 'gram', 'kg'].includes(item.saleMode || '')) ? 'bg-brand-500 text-white font-bold shadow-sm' : 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'}`}>قطعة</button>
+                        )}
+                        {item.product?.unit === 'kg' && (
+                          <>
+                            <button onClick={() => updateItem(item.id, 'saleMode', 'kg')} className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${item.saleMode === 'kg' || (!['box', 'subpiece', 'gram', 'piece'].includes(item.saleMode || '')) ? 'bg-brand-500 text-white font-bold shadow-sm' : 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'}`}>كغ</button>
+                            <button onClick={() => updateItem(item.id, 'saleMode', 'gram')} className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${item.saleMode === 'gram' ? 'bg-brand-500 text-white font-bold shadow-sm' : 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'}`}>غرام</button>
+                          </>
+                        )}
+                        {item.product?.unit !== 'kg' && (item.product?.subItemsPerPiece || 0) > 1 && (
+                          <button onClick={() => updateItem(item.id, 'saleMode', 'subpiece')} className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${item.saleMode === 'subpiece' ? 'bg-brand-500 text-white font-bold shadow-sm' : 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'}`}>حبة</button>
+                        )}
+                      </div>
                     </div>
                     <input
                       type="number"
                       step="any"
                       value={item.quantity || ''}
                       onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value.replace(',', '.')) || 0)}
-                      className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg py-2 px-1 sm:px-3 text-sm sm:text-base font-bold text-zinc-900 dark:text-white text-center focus:ring-2 focus:ring-brand-500"
+                      className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg py-2 px-1 sm:px-3 text-sm sm:text-base font-bold text-zinc-900 dark:text-white text-center focus:ring-2 focus:ring-brand-500 h-10"
                     />
                   </div>
 
                   {/* Total */}
                   <div className="flex-[1.2] text-left pl-1 sm:pl-2">
-                    <label className="block text-[10px] sm:text-xs font-bold text-zinc-400 mb-1 truncate h-4">المجموع</label>
+                    <label className="block text-[10px] sm:text-xs font-bold text-zinc-400 mb-1 truncate min-h-[24px]">المجموع</label>
                     <div className="text-sm sm:text-base font-black text-brand-600 dark:text-brand-400 truncate flex items-center justify-end h-10">
                       {calculateItemTotal(item).toFixed(3)}
                     </div>
@@ -419,7 +436,7 @@ export default function InvoiceCalculator() {
                 {/* Delete */}
                 <button
                   onClick={() => removeItem(item.id)}
-                  className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                  className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors self-end mb-[2px]"
                 >
                   <Trash2 size={18} />
                 </button>
