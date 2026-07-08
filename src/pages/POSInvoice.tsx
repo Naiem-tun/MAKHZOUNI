@@ -184,9 +184,9 @@ export default function POSInvoice() {
       else if (item.saleMode === 'box') quantityText += ' كرتونة';
       else quantityText += '';
 
-      text += `${item.name} - ${quantityText} - ${item.price.toFixed(3)} - ${calculateItemTotal(item).toFixed(3)}\n`;
+      text += `🔹 الصنف: ${item.name}\n   الكمية: ${quantityText} | السعر: ${item.price.toFixed(3)} | المجموع: ${calculateItemTotal(item).toFixed(3)}\n\n`;
     });
-    text += `\n*المجموع الكلي: ${calculateTotal().toFixed(3)} د.ت*`;
+    text += `*المجموع الكلي: ${calculateTotal().toFixed(3)} د.ت*`;
     return text;
   };
 

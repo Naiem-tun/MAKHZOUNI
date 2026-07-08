@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, ScanBarcode, Trash2, Camera, ImagePlus, Copy } from 'lucide-react';
+import { X, ScanBarcode, Trash2, Camera, ImagePlus, Copy, ChevronDown, ChevronUp } from 'lucide-react';
 import { useCategories } from '../../hooks/useCategories';
 import { Product } from '../../types';
 import { getLocalImage } from '../../lib/localImages';
@@ -31,6 +31,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const [unit, setUnit] = useState<string>('piece');
   const [showUnitMenu, setShowUnitMenu] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   
   const [imageFile, setImageFile] = useState<File | Blob | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -164,17 +165,17 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
     const productData = {
       name: formData.get('name') as string,
       category: formData.get('category') as string,
-      purchasePrice: parseFloat((formData.get('purchasePrice') as string).replace(',', '.')) || 0,
-      sellingPrice: parseFloat((formData.get('sellingPrice') as string).replace(',', '.')) || 0,
+      purchasePrice: parseFloat((formData.get('purchasePrice') as string)?.replace(',', '.') || '0') || 0,
+      sellingPrice: parseFloat((formData.get('sellingPrice') as string)?.replace(',', '.') || '0') || 0,
       barcode: formData.get('barcode') as string,
       barcode2: formData.get('barcode2') as string,
-      piecesPerBox: parseFloat((formData.get('piecesPerBox') as string).replace(',', '.')) || 1,
-      subItemsPerPiece: parseFloat((formData.get('subItemsPerPiece') as string)?.replace(',', '.')) || 1,
+      piecesPerBox: parseFloat((formData.get('piecesPerBox') as string)?.replace(',', '.') || '0') || 1,
+      subItemsPerPiece: parseFloat((formData.get('subItemsPerPiece') as string)?.replace(',', '.') || '0') || 1,
       unit: formData.get('unit') as string || 'piece',
-      boxPurchasePrice: parseFloat((formData.get('boxPurchasePrice') as string).replace(',', '.')) || 0,
+      boxPurchasePrice: parseFloat((formData.get('boxPurchasePrice') as string)?.replace(',', '.') || '0') || 0,
       // Keep existing stock values if editing, or default to 0 for new products
       quantity: product?.quantity ?? 0,
-      minQuantity: parseFloat((formData.get('minQuantity') as string).replace(',', '.')) || 0,
+      minQuantity: parseFloat((formData.get('minQuantity') as string)?.replace(',', '.') || '0') || 0,
     };
     await onSave(productData, imageFile, imageRemoved);
   };
@@ -343,8 +344,8 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                 )}
               </div>
 
-              {/* 3. Category, Unit & Min Quantity */}
-              <div className="grid grid-cols-3 gap-3 text-right">
+              {/* 3. Category & Unit */}
+              <div className="grid grid-cols-2 gap-3 text-right">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-zinc-500">{t('category')}</label>
                   <div className="relative">
@@ -411,31 +412,42 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                     )}
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-500">{t('min_quantity')}</label>
-                  <input 
-                    name="minQuantity" 
-                    type="number" 
-                    step="any"
-                    defaultValue={product?.minQuantity ?? 0} 
-                    onKeyDown={handleKeyDown}
-                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
-                  />
-                </div>
               </div>
 
-              {/* Sub-items Row */}
-              <div className="grid grid-cols-2 gap-3 text-right">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-500">{"عدد الحبات في القطعة (وحدة صغرى)"}</label>
-                  <input 
-                    name="subItemsPerPiece" 
-                    type="number" 
-                    value={subItemsPerPiece}
-                    onChange={(e) => setSubItemsPerPiece(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
-                  />
+              {/* Advanced Settings Toggle */}
+              <div className="border-t border-zinc-100 dark:border-zinc-800 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="flex items-center justify-between w-full text-xs font-bold text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors py-1"
+                >
+                  <span>إعدادات متقدمة (الحد الأدنى، الوحدات الصغرى)</span>
+                  {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+                
+                <div className={showAdvanced ? "grid grid-cols-2 gap-3 text-right mt-3" : "hidden"}>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-zinc-500">{t('min_quantity')}</label>
+                    <input 
+                      name="minQuantity" 
+                      type="number" 
+                      step="any"
+                      defaultValue={product?.minQuantity ?? 0} 
+                      onKeyDown={handleKeyDown}
+                      className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-zinc-500">{"عدد الحبات في القطعة (وحدة صغرى)"}</label>
+                    <input 
+                      name="subItemsPerPiece" 
+                      type="number" 
+                      value={subItemsPerPiece}
+                      onChange={(e) => setSubItemsPerPiece(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
+                    />
+                  </div>
                 </div>
               </div>
               {/* 4. Box Info Row */}

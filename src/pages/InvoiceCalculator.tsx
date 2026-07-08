@@ -98,14 +98,15 @@ export default function InvoiceCalculator() {
   }, [inputText, products]);
 
   const addItem = (product: any) => {
-    let initialMode: 'box' | 'kg' = 'box';
+    let initialMode: 'box' | 'kg' | 'piece' | 'gram' | 'subpiece' = 'piece';
     if (product.unit === 'kg') initialMode = 'kg';
+    else if ((product.piecesPerBox || 0) > 1) initialMode = 'box';
 
     const newItem: InvoiceItem = {
       id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
       productId: product.id,
       name: product.name,
-      price: product.boxPurchasePrice || product.purchasePrice || 0,
+      price: initialMode === 'box' ? (product.boxPurchasePrice || product.purchasePrice || 0) : (product.purchasePrice || 0),
       quantity: 1,
       product: product,
       saleMode: initialMode
@@ -126,6 +127,15 @@ export default function InvoiceCalculator() {
   const updateItem = (id: string, field: 'price' | 'quantity' | 'saleMode', value: any) => {
     setItems(items.map(item => {
       if (item.id === id) {
+        if (field === 'saleMode' && item.product) {
+          let newPrice = item.price;
+          if (value === 'box') {
+            newPrice = item.product.boxPurchasePrice || (item.product.purchasePrice * (item.product.piecesPerBox || 1)) || 0;
+          } else if (value === 'piece' || value === 'kg' || value === 'gram' || value === 'subpiece') {
+            newPrice = item.product.purchasePrice || 0;
+          }
+          return { ...item, saleMode: value, price: newPrice };
+        }
         return { ...item, [field]: value };
       }
       return item;
@@ -136,8 +146,8 @@ export default function InvoiceCalculator() {
     const isKgProduct = item.product?.unit === 'kg';
     const subItems = item.product?.subItemsPerPiece || 1;
 
-    if (item.saleMode === 'box' && item.product?.piecesPerBox) {
-      return item.price * item.quantity * item.product.piecesPerBox;
+    if (item.saleMode === 'box') {
+      return item.price * item.quantity;
     }
     
     if (item.saleMode === 'subpiece') {
@@ -176,9 +186,9 @@ export default function InvoiceCalculator() {
       else if (item.saleMode === 'box') quantityText += ' كرتونة';
       else quantityText += '';
 
-      text += `${item.name} - ${quantityText} - ${item.price.toFixed(3)} - ${calculateItemTotal(item).toFixed(3)}\n`;
+      text += `🔹 الصنف: ${item.name}\n   الكمية: ${quantityText} | السعر: ${item.price.toFixed(3)} | المجموع: ${calculateItemTotal(item).toFixed(3)}\n\n`;
     });
-    text += `\n*المجموع الكلي: ${calculateTotal().toFixed(3)} د.ت*`;
+    text += `*المجموع الكلي: ${calculateTotal().toFixed(3)} د.ت*`;
     return text;
   };
 
