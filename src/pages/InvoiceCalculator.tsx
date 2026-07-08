@@ -167,8 +167,7 @@ export default function InvoiceCalculator() {
 
   const generateInvoiceText = () => {
     let text = `*فاتورة مشتريات*\n\n`;
-    items.forEach((item, index) => {
-      text += `${index + 1}. *${item.name}*\n`;
+    items.forEach((item) => {
       let quantityText = item.quantity.toString();
       if (item.saleMode === 'gram') quantityText += ' غرام';
       else if (item.saleMode === 'kg') quantityText += ' كغ';
@@ -177,9 +176,7 @@ export default function InvoiceCalculator() {
       else if (item.saleMode === 'box') quantityText += ' كرتونة';
       else quantityText += '';
 
-      text += `الكمية: ${quantityText} | السعر: ${item.price.toFixed(3)}\n`;
-      text += `المجموع: ${calculateItemTotal(item).toFixed(3)} د.ت\n`;
-      text += `-----------------\n`;
+      text += `${item.name} - ${quantityText} - ${item.price.toFixed(3)} - ${calculateItemTotal(item).toFixed(3)}\n`;
     });
     text += `\n*المجموع الكلي: ${calculateTotal().toFixed(3)} د.ت*`;
     return text;
@@ -207,13 +204,20 @@ export default function InvoiceCalculator() {
 
       let tableHtml = "";
       items.forEach((item, index) => {
+        let quantityText = item.quantity.toString();
+        if (item.saleMode === 'gram') quantityText += ' غرام';
+        else if (item.saleMode === 'kg') quantityText += ' كغ';
+        else if (item.saleMode === 'subpiece') quantityText += ' حبة';
+        else if (item.saleMode === 'piece') quantityText += ' قطعة';
+        else if (item.saleMode === 'box') quantityText += ' كرتونة';
+
         tableHtml += `
           <tr style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
             <td style="padding: 10px; text-align: right;">${index + 1}</td>
             <td style="padding: 10px; text-align: right;">${item.name}</td>
-            <td style="padding: 10px; text-align: center;">${item.quantity}</td>
+            <td style="padding: 10px; text-align: center;">${quantityText}</td>
             <td style="padding: 10px; text-align: center;">${item.price.toFixed(3)}</td>
-            <td style="padding: 10px; text-align: center; font-weight: 700;">${(item.price * item.quantity).toFixed(3)}</td>
+            <td style="padding: 10px; text-align: center; font-weight: 700;">${calculateItemTotal(item).toFixed(3)}</td>
           </tr>
         `;
       });
