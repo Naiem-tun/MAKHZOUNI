@@ -40,6 +40,9 @@ export interface UserSettings {
   syncImages?: boolean;
   enablePOS?: boolean;
   posDeductInventory?: boolean;
+  receiptLogo?: string;
+  receiptThankYouMessage?: string;
+  receiptPolicy?: string;
 }
 
 export interface CashTransaction {
@@ -61,6 +64,7 @@ export interface Product {
   sellingPrice: number;
   wholesalePrice?: number;
   quantity: number;
+  posQuantity?: number;
   minQuantity: number;
   barcode?: string;
   barcode2?: string;
@@ -179,4 +183,24 @@ export interface AuditLog {
   entityName: string;
   details?: string;
   timestamp: any;
+}
+
+export interface InvoiceItemData {
+  productId: string;
+  name: string;
+  quantity: number;
+  price: number; // selling price
+  cost: number; // cost price (purchase price)
+  total: number; // price * quantity
+  profit: number; // (price - cost) * quantity
+}
+
+export interface Invoice {
+  id?: string;
+  invoiceNumber: string;
+  items: InvoiceItemData[];
+  totalAmount: number;
+  totalCost: number;
+  totalProfit: number;
+  createdAt: any;
 }

@@ -192,6 +192,9 @@ export default function SettingsPage() {
     currency: settings.currency || 'د.ت',
     catalogPin: settings.catalogPin || '0000',
     deleteDataPassword: settings.deleteDataPassword || '1234',
+    receiptLogo: settings.receiptLogo || '',
+    receiptThankYouMessage: settings.receiptThankYouMessage || '',
+    receiptPolicy: settings.receiptPolicy || '',
   });
   const [isSaving, setIsSaving] = useState(false);
   const handleSaveStoreSettings = async () => {
@@ -204,6 +207,22 @@ export default function SettingsPage() {
     } finally {
       setIsSaving(false);
       setTimeout(() => setStatus(null), 3000);
+    }
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB max
+        setStatus({ type: 'error', msg: 'حجم الصورة كبير جداً. يرجى اختيار صورة أصغر من 2 ميجابايت' });
+        setTimeout(() => setStatus(null), 3000);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setTempSettings({ ...tempSettings, receiptLogo: reader.result as string });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -612,6 +631,81 @@ export default function SettingsPage() {
                 {t('profit_calc_margin')}
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Invoice Customization Group */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800 shadow-sm divide-y divide-zinc-100 dark:divide-zinc-800">
+          <div className="px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 text-right">
+            <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400">تخصيص الفاتورة المطبوعة</h3>
+          </div>
+
+          <div className="p-4 space-y-4">
+            <div className="space-y-2 text-right">
+              <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">رسالة الشكر (تظهر أسفل الفاتورة)</label>
+              <input 
+                type="text" 
+                value={tempSettings.receiptThankYouMessage ?? ''}
+                onChange={(e) => setTempSettings({ ...tempSettings, receiptThankYouMessage: e.target.value })}
+                placeholder="مثال: شكراً لثقتكم بنا، نتمنى لكم يوماً سعيداً"
+                className="w-full text-right bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-500 outline-none dark:bg-zinc-800 dark:border-zinc-700 dark:text-white"
+              />
+            </div>
+
+            <div className="space-y-2 text-right">
+              <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">سياسة الاسترجاع أو ملاحظات إضافية</label>
+              <textarea 
+                value={tempSettings.receiptPolicy ?? ''}
+                onChange={(e) => setTempSettings({ ...tempSettings, receiptPolicy: e.target.value })}
+                placeholder="مثال: البضاعة المباعة لا ترد ولا تستبدل بعد 3 أيام..."
+                rows={3}
+                className="w-full text-right bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-500 outline-none resize-none dark:bg-zinc-800 dark:border-zinc-700 dark:text-white"
+              />
+            </div>
+            
+            <div className="space-y-2 text-right">
+              <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">شعار المتجر في الفاتورة (اختياري)</label>
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={tempSettings.receiptLogo ?? ''}
+                  onChange={(e) => setTempSettings({ ...tempSettings, receiptLogo: e.target.value })}
+                  placeholder="رابط الصورة (أو ارفع من الجهاز)"
+                  className="w-full text-left bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-500 outline-none dark:bg-zinc-800 dark:border-zinc-700 dark:text-white"
+                  dir="ltr"
+                />
+                <label className="flex-shrink-0 flex items-center justify-center bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-xl px-4 cursor-pointer transition-colors dark:bg-brand-500/10 dark:hover:bg-brand-500/20" title="رفع صورة من الجهاز">
+                  <Upload size={20} />
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={handleLogoUpload}
+                  />
+                </label>
+              </div>
+              {tempSettings.receiptLogo && (
+                <div className="mt-2 relative p-2 border border-zinc-100 rounded-lg flex justify-center bg-white dark:bg-zinc-800 dark:border-zinc-700 group">
+                  <img src={tempSettings.receiptLogo} alt="Logo preview" className="max-h-20 object-contain rounded" onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/150x80?text=Invalid+Image' }} />
+                  <button 
+                    onClick={() => setTempSettings({ ...tempSettings, receiptLogo: '' })}
+                    className="absolute top-1 right-1 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg p-1.5 opacity-0 group-hover:opacity-100 transition-opacity dark:bg-red-500/10 dark:hover:bg-red-500/20"
+                    title="إزالة الشعار"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={handleSaveStoreSettings}
+              disabled={isSaving}
+              className="w-full mt-4 bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+            >
+              {isSaving ? <span className="animate-spin text-xl">↻</span> : <Check size={20} />}
+              <span>حفظ إعدادات الفاتورة</span>
+            </button>
           </div>
         </div>
 

@@ -5,6 +5,7 @@ import { ProductCard } from './ProductCard';
 interface ProductsListProps {
   products: Product[];
   showBoxInfo: boolean;
+  showPosStock?: boolean;
   onEdit: (product: Product) => void;
   onAddQuantity: (product: Product) => void;
   onCardClick?: (product: Product) => void;
@@ -13,6 +14,7 @@ interface ProductsListProps {
 export const ProductsList: React.FC<ProductsListProps> = ({
   products,
   showBoxInfo,
+  showPosStock,
   onEdit,
   onAddQuantity,
   onCardClick
@@ -25,6 +27,7 @@ export const ProductsList: React.FC<ProductsListProps> = ({
           product={p}
           index={idx}
           showBoxInfo={showBoxInfo}
+          showPosStock={showPosStock}
           onEdit={onEdit}
           onAddQuantity={onAddQuantity}
           onCardClick={onCardClick}

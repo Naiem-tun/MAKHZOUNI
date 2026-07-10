@@ -35,7 +35,8 @@ service cloud.firestore {
              data.sellingPrice is number && data.sellingPrice >= 0 &&
              data.quantity is number &&
              data.minQuantity is number &&
-             (data.get('barcode', '') is string);
+             (data.get('barcode', '') is string) &&
+             (data.get('posQuantity', 0) is number);
     }
 
     function isValidSupplier(data) {

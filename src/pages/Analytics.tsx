@@ -5,17 +5,18 @@ import {
   TrendingUp, Coins, Package, ShoppingCart, 
   ArrowUpRight, ArrowDownRight, Calendar, 
   BarChart3, LineChart, Activity,
-  Info, ChevronDown, Filter, History, PieChart as PieChartIcon
+  Info, ChevronDown, Filter, History, PieChart as PieChartIcon, Trash2
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, BarChart, Bar, 
   Cell, PieChart, Pie, Legend
 } from 'recharts';
-import { collection, query, getDocs, orderBy, limit, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy, limit, where, onSnapshot, doc, writeBatch, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
 import { formatCurrency, safeParseDate, formatAppDate } from '../lib/utils';
+import { CustomConfirmModal } from '../components/common/CustomConfirmModal';
 
 export default function Analytics() {
   const { t } = useTranslation();
@@ -23,8 +24,11 @@ export default function Analytics() {
   const [products, setProducts] = useState<any[]>([]);
   const [inventoryReports, setInventoryReports] = useState<any[]>([]);
   const [purchases, setPurchases] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'menu' | 'financial' | 'rankings' | 'purchases' | 'categories'>('menu');
+  const [activeTab, setActiveTab] = useState<'menu' | 'financial' | 'rankings' | 'purchases' | 'categories' | 'sales'>('menu');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<any>(null);
 
   const language = settings.language || 'ar';
   const showFinancials = settings.showFinancials ?? true;
@@ -46,6 +50,7 @@ export default function Analytics() {
     let unsubProducts: any;
     let unsubReports: any;
     let unsubPurchases: any;
+    let unsubInvoices: any;
 
     try {
       // Products Listener
@@ -66,6 +71,13 @@ export default function Analytics() {
       const purchasesQuery = query(collection(db, purchasesPath), orderBy('date', 'desc'), limit(100));
       unsubPurchases = onSnapshot(purchasesQuery, (snap) => {
         setPurchases(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      });
+
+      // Invoices Listener
+      const invoicesPath = `users/${uid}/invoices`;
+      const invoicesQuery = query(collection(db, invoicesPath), orderBy('createdAt', 'desc'), limit(100));
+      unsubInvoices = onSnapshot(invoicesQuery, (snap) => {
+        setInvoices(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         setLoading(false);
       });
     } catch(err) {
@@ -77,6 +89,7 @@ export default function Analytics() {
       if (unsubProducts) unsubProducts();
       if (unsubReports) unsubReports();
       if (unsubPurchases) unsubPurchases();
+      if (unsubInvoices) unsubInvoices();
     };
   }, [user]);
 
@@ -162,6 +175,42 @@ export default function Analytics() {
     expenses: Number((report.totalExpenses || 0).toFixed(3)),
   }));
 
+  const confirmDeleteInvoice = (invoice: any) => {
+    setInvoiceToDelete(invoice);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteInvoice = async () => {
+    const invoice = invoiceToDelete;
+    if (!user || !invoice?.id) return;
+    
+    try {
+      const batch = writeBatch(db);
+      
+      // Delete invoice
+      batch.delete(doc(db, `users/${user.uid}/invoices`, invoice.id));
+      
+      // Restore products quantity
+      if (settings.posDeductInventory !== false) {
+        (invoice.items || []).forEach((item: any) => {
+          const p = products.find(prod => prod.id === item.productId);
+          if (p) {
+            const productRef = doc(db, `users/${user.uid}/products`, item.productId);
+            batch.update(productRef, {
+              quantity: (p.quantity || 0) + item.quantity
+            });
+          }
+        });
+      }
+      
+      await batch.commit();
+      setDeleteConfirmOpen(false);
+      setInvoiceToDelete(null);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   if (loading) {
     return <div className="flex h-96 items-center justify-center">
       <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" />
@@ -169,6 +218,7 @@ export default function Analytics() {
   }
 
   const menuItems = [
+    { id: 'sales', label: t('sales_reports') || 'تقارير المبيعات', icon: Coins, color: 'text-zinc-500', bg: 'bg-zinc-50 dark:bg-zinc-800/50', desc: t('invoices_and_profits') || 'سجل الفواتير والأرباح' },
     { id: 'financial', label: t('financial_stats'), icon: BarChart3, color: 'text-zinc-500', bg: 'bg-zinc-50 dark:bg-zinc-800/50', desc: t('revenue_profit_cost') },
     { id: 'rankings', label: t('best_products'), icon: TrendingUp, color: 'text-zinc-500', bg: 'bg-zinc-50 dark:bg-zinc-800/50', desc: t('most_profitable_sold') },
     { id: 'categories', label: t('category_analysis'), icon: PieChartIcon, color: 'text-zinc-500', bg: 'bg-zinc-50 dark:bg-zinc-800/50', desc: t('stock_value_by_category') },
@@ -225,6 +275,69 @@ export default function Analytics() {
               </button>
             ))}
           </div>
+        )}
+
+        {activeTab === 'sales' && (
+          <section className="space-y-4">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-black text-xl text-zinc-900 dark:text-white">{t('sales_reports') || 'تقارير المبيعات'}</h3>
+                <p className="text-[10px] font-bold text-zinc-400">إجمالي المبيعات والأرباح</p>
+              </div>
+              <div className="text-left">
+                <div className="text-sm font-bold text-zinc-500">إجمالي المبيعات</div>
+                <div className="text-xl font-black text-brand-600">
+                  {formatCurrency(invoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0), settings.currency)}
+                </div>
+              </div>
+              <div className="text-left border-r border-zinc-200 dark:border-zinc-800 pr-4">
+                <div className="text-sm font-bold text-zinc-500">إجمالي الأرباح</div>
+                <div className="text-xl font-black text-emerald-600">
+                  {formatCurrency(invoices.reduce((sum, inv) => sum + (inv.totalProfit || 0), 0), settings.currency)}
+                </div>
+              </div>
+            </div>
+
+            {invoices.length === 0 ? (
+              <div className="text-center py-12 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-100 dark:border-zinc-800">
+                <Coins size={48} className="mx-auto text-zinc-300 mb-4" strokeWidth={1} />
+                <p className="text-zinc-500 font-medium">لا توجد مبيعات مسجلة حتى الآن</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {invoices.map((inv) => (
+                  <div key={inv.id} className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl p-4 shadow-sm">
+                    <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3 mb-3">
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-zinc-400">رقم الفاتورة: </span>
+                          <span className="font-mono text-sm font-bold text-zinc-700 dark:text-zinc-300">#{inv.invoiceNumber}</span>
+                          <button onClick={() => confirmDeleteInvoice(inv)} className="text-zinc-400 hover:text-red-500 transition-colors p-1" title="حذف الفاتورة">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                        <div className="text-xs text-zinc-500 mt-1">{formatAppDate(safeParseDate(inv.createdAt), language, t)}</div>
+                      </div>
+                      <div className="text-left">
+                        <div className="font-black text-lg text-brand-600">{formatCurrency(inv.totalAmount, settings.currency)}</div>
+                        <div className="text-xs font-bold text-emerald-500">ربح: {formatCurrency(inv.totalProfit, settings.currency)}</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {(inv.items || []).map((item: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between text-sm">
+                          <span className="font-medium text-zinc-700 dark:text-zinc-300">{item.name}</span>
+                          <span className="font-bold text-zinc-600 dark:text-zinc-400">
+                            {item.quantity} × {formatCurrency(item.price, settings.currency)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
         )}
 
         {activeTab === 'financial' && (
@@ -539,6 +652,17 @@ export default function Analytics() {
           </section>
         )}
       </motion.div>
+
+      <CustomConfirmModal
+        show={deleteConfirmOpen}
+        message="هل أنت متأكد من حذف هذه الفاتورة؟ (سيتم استرجاع الكميات للمخزون)"
+        type="confirm"
+        onConfirm={handleDeleteInvoice}
+        onCancel={() => {
+          setDeleteConfirmOpen(false);
+          setInvoiceToDelete(null);
+        }}
+      />
     </div>
   );
 }

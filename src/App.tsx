@@ -134,6 +134,7 @@ function AppContent() {
   const [isReportsOpen, setIsReportsOpen] = useState(false);
   const [isFinancialsOpen, setIsFinancialsOpen] = useState(false);
   const [showSyncMenu, setShowSyncMenu] = useState(false);
+  const [showQuickActionModal, setShowQuickActionModal] = useState(false);
 
   useEffect(() => {
     const handleClickOutside = () => setShowSyncMenu(false);
@@ -295,7 +296,7 @@ function AppContent() {
     if (isScannerTab) {
       safeDispatchEvent(`open-barcode-scanner-${activeTab}`);
     } else {
-      setActiveTab("invoice-calculator");
+      setShowQuickActionModal(true);
     }
   };
 
@@ -536,6 +537,96 @@ function AppContent() {
 
           <ProductForm user={user} />
           <SupplierSelector />
+
+          <AnimatePresence>
+            {showQuickActionModal && (
+              <div id="quick-action-overlay" className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+                {/* Backdrop */}
+                <motion.div
+                  id="quick-action-backdrop"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setShowQuickActionModal(false)}
+                  className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                />
+
+                {/* Modal Container */}
+                <motion.div
+                  id="quick-action-modal"
+                  initial={{ opacity: 0, y: 100, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 100, scale: 0.95 }}
+                  transition={{ type: "spring", damping: 25, stiffness: 350 }}
+                  className="relative w-full sm:max-w-md bg-white dark:bg-zinc-900 rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl border-t sm:border border-zinc-100 dark:border-zinc-800 z-10 select-none pb-10 sm:pb-6"
+                >
+                  {/* Pull bar for mobile */}
+                  <div className="w-12 h-1 bg-zinc-200 dark:bg-zinc-700 rounded-full mx-auto mb-5 sm:hidden" />
+
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-black text-zinc-900 dark:text-white">
+                      {t("choose_operation") || "اختيار نوع العملية"}
+                    </h3>
+                    <button
+                      id="quick-action-close-btn"
+                      onClick={() => setShowQuickActionModal(false)}
+                      className="p-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  {/* Quick Options */}
+                  <div className="grid grid-cols-1 gap-3.5">
+                    {/* Option 1: POS (Retail Sale) */}
+                    <button
+                      id="quick-action-pos-btn"
+                      onClick={() => {
+                        setActiveTab("pos");
+                        setShowQuickActionModal(false);
+                      }}
+                      className="flex items-center gap-4 p-4 text-right rounded-xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 hover:bg-brand-50/40 dark:bg-zinc-900/50 dark:hover:bg-brand-950/10 hover:border-brand-100 dark:hover:border-brand-900/30 transition-all duration-200 group active:scale-[0.98]"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0 group-hover:bg-brand-500 group-hover:text-white transition-all duration-200">
+                        <Store size={22} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-zinc-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+                          {t("pos_quick") || "شاشة البيع بالتجزئة (الكاشير POS)"}
+                        </h4>
+                        <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-1 leading-normal">
+                          {t("pos_quick_desc") || "تسجيل مبيعات جديدة للزبائن مع خصم فوري من المخزون وتحديث الكاشير."}
+                        </p>
+                      </div>
+                    </button>
+
+                    {/* Option 2: Invoice Calculator (Purchase) */}
+                    <button
+                      id="quick-action-invoice-btn"
+                      onClick={() => {
+                        setActiveTab("invoice-calculator");
+                        setShowQuickActionModal(false);
+                      }}
+                      className="flex items-center gap-4 p-4 text-right rounded-xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 hover:bg-blue-50/40 dark:bg-zinc-900/50 dark:hover:bg-blue-950/10 hover:border-blue-100 dark:hover:border-blue-900/30 transition-all duration-200 group active:scale-[0.98]"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:bg-blue-500 group-hover:text-white transition-all duration-200">
+                        <Calculator size={22} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-zinc-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          {t("invoice_calc_quick") || "فاتورة مشتريات (حاسبة الفواتير)"}
+                        </h4>
+                        <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-1 leading-normal">
+                          {t("invoice_calc_quick_desc") || "إضافة سلع جديدة، حساب الأرباح، وضبط تكلفة المشتريات ومزامنة المخازن."}
+                        </p>
+                      </div>
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
 
           <SessionSummaryModal />
         </div>

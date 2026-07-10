@@ -12,6 +12,7 @@ interface ProductCardProps {
   product: Product;
   index: number;
   showBoxInfo?: boolean;
+  showPosStock?: boolean;
   onEdit: (product: Product) => void;
   onAddQuantity: (product: Product) => void;
   onCardClick?: (product: Product) => void;
@@ -38,7 +39,7 @@ const ProductIcon = ({ product, className }: { product: Product, className?: str
   );
 };
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBoxInfo, onEdit, onAddQuantity, onCardClick }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBoxInfo, showPosStock, onEdit, onAddQuantity, onCardClick }) => {
   const { t, i18n } = useTranslation();
   const { settings, activeSupplier, showToast } = useAppContext();
   const language = i18n.language;
@@ -101,30 +102,57 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
           <div className="min-w-0 flex-1 flex flex-col">
             <h3 className="text-base font-medium text-black dark:text-white leading-tight mb-0.5 truncate">{product.name}</h3>
             <div className="flex flex-col gap-0.5 text-[10px] text-neutral-500 font-bold">
-              <div className="flex items-center gap-1">
-                <span className="opacity-70">{t('stock_label')}</span>
-                {settings.defaultStockView === 'boxes' && product.piecesPerBox && product.piecesPerBox > 1 ? (
-                  <>
-                    <span className={cn((product.quantity || 0) <= (product.minQuantity ?? 0) ? "text-delete-text font-black" : "")}>
-                      {((product.quantity || 0) / product.piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} <span className="opacity-50 font-normal">كرتونة</span>
-                    </span>
-                    <span className="text-[9px] text-zinc-400 font-medium">
-                      ({product.quantity || 0} {unitText})
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span className={cn((product.quantity || 0) <= (product.minQuantity ?? 0) ? "text-delete-text font-black" : "")}>
-                      {product.quantity || 0} <span className="opacity-50 font-normal">{unitText}</span>
-                    </span>
-                    {showBoxInfo && product.piecesPerBox && product.piecesPerBox > 1 && (
-                      <span className="text-[9px] text-zinc-400 font-medium">
-                        ({Math.floor(product.quantity / product.piecesPerBox)} كرتونة و {product.quantity % product.piecesPerBox} {unitText})
+              {showPosStock ? (
+                <div className="flex items-center gap-1.5 bg-neutral-100/60 dark:bg-zinc-800/40 border border-neutral-200/50 dark:border-zinc-700/40 px-1.5 py-0.5 rounded w-fit text-[9px] font-bold text-neutral-500 dark:text-neutral-400">
+                  <span className="opacity-70">مخزون الكاشير:</span>
+                  {settings.defaultStockView === 'boxes' && product.piecesPerBox && product.piecesPerBox > 1 ? (
+                    <>
+                      <span className="text-teal-600 dark:text-teal-400 font-extrabold font-mono">
+                        {((product.posQuantity !== undefined ? product.posQuantity : product.quantity) / product.piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} <span className="opacity-50 font-normal">كرتونة</span>
                       </span>
-                    )}
-                  </>
-                )}
-              </div>
+                      <span className="text-[9px] text-neutral-400 font-medium">
+                        ({product.posQuantity !== undefined ? product.posQuantity : product.quantity} {unitText})
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-teal-600 dark:text-teal-400 font-extrabold font-mono">
+                        {product.posQuantity !== undefined ? product.posQuantity : product.quantity} <span className="opacity-50 font-normal">{unitText}</span>
+                      </span>
+                      {showBoxInfo && product.piecesPerBox && product.piecesPerBox > 1 && (
+                        <span className="text-[9px] text-neutral-400 font-medium">
+                          ({Math.floor((product.posQuantity !== undefined ? product.posQuantity : product.quantity) / product.piecesPerBox)} كرتونة و {(product.posQuantity !== undefined ? product.posQuantity : product.quantity) % product.piecesPerBox} {unitText})
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 bg-neutral-100/60 dark:bg-zinc-800/40 border border-neutral-200/50 dark:border-zinc-700/40 px-1.5 py-0.5 rounded w-fit text-[9px] font-bold text-neutral-500 dark:text-neutral-400">
+                  <span className="opacity-70">{t('stock_label')}:</span>
+                  {settings.defaultStockView === 'boxes' && product.piecesPerBox && product.piecesPerBox > 1 ? (
+                    <>
+                      <span className={cn("font-extrabold font-mono", (product.quantity || 0) <= (product.minQuantity ?? 0) ? "text-delete-text" : "text-blue-600 dark:text-blue-400")}>
+                        {((product.quantity || 0) / product.piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} <span className="opacity-50 font-normal">كرتونة</span>
+                      </span>
+                      <span className="text-[9px] text-neutral-400 font-medium">
+                        ({product.quantity || 0} {unitText})
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className={cn("font-extrabold font-mono", (product.quantity || 0) <= (product.minQuantity ?? 0) ? "text-delete-text" : "text-blue-600 dark:text-blue-400")}>
+                        {product.quantity || 0} <span className="opacity-50 font-normal">{unitText}</span>
+                      </span>
+                      {showBoxInfo && product.piecesPerBox && product.piecesPerBox > 1 && (
+                        <span className="text-[9px] text-neutral-400 font-medium">
+                          ({Math.floor(product.quantity / product.piecesPerBox)} كرتونة و {product.quantity % product.piecesPerBox} {unitText})
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
               <div className="flex items-center gap-1 font-mono font-bold text-[12px] text-neutral-700 dark:text-neutral-300">
                 {showBoxInfo ? (
                   <>

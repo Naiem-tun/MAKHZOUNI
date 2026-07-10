@@ -383,6 +383,7 @@ export default function Inventory() {
             const productRef = doc(db, `users/${user.uid}/products`, p.id!);
             batch.update(productRef, {
               quantity: finalQty,
+              posQuantity: finalQty,
               updatedAt: auditTime,
               lastInventoryDate: auditTime
             });

@@ -16,7 +16,9 @@ import {
   MessageCircle,
   RotateCcw,
   FileDown,
-  Loader2
+  Loader2,
+  Pause,
+  List
 } from 'lucide-react';
 import * as html2pdf from 'html2pdf.js';
 import {
@@ -80,6 +82,49 @@ export default function POSInvoice() {
   useEffect(() => {
     localStorage.setItem('pos_invoice_items', JSON.stringify(items));
   }, [items]);
+  
+  const [heldInvoices, setHeldInvoices] = useState<{id: string, items: InvoiceItem[], time: number}[]>(() => {
+    try {
+      const saved = localStorage.getItem('pos_held_invoices');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('pos_held_invoices', JSON.stringify(heldInvoices));
+  }, [heldInvoices]);
+
+  const [showHeldInvoices, setShowHeldInvoices] = useState(false);
+
+  const holdCurrentInvoice = () => {
+    if (items.length === 0) return;
+    setHeldInvoices(prev => [
+      ...prev, 
+      { id: Math.random().toString(36).substring(7), items: [...items], time: Date.now() }
+    ]);
+    setItems([]);
+    showToast('تم تعليق الفاتورة بنجاح', 'success');
+  };
+
+  const resumeInvoice = (id: string) => {
+    const invoiceToResume = heldInvoices.find(h => h.id === id);
+    if (!invoiceToResume) return;
+
+    // If current invoice is not empty, hold it first
+    if (items.length > 0) {
+      setHeldInvoices(prev => [
+        ...prev.filter(h => h.id !== id),
+        { id: Math.random().toString(36).substring(7), items: [...items], time: Date.now() }
+      ]);
+    } else {
+      setHeldInvoices(prev => prev.filter(h => h.id !== id));
+    }
+    
+    setItems(invoiceToResume.items);
+    setShowHeldInvoices(false);
+    showToast('تم استعادة الفاتورة', 'success');
+  };
+
   const [isCopied, setIsCopied] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -230,20 +275,48 @@ export default function POSInvoice() {
         `;
       });
 
+      const invoiceId = Math.floor(100000 + Math.random() * 900000).toString();
+      const currentDate = new Date().toLocaleDateString('ar-TN', { year: 'numeric', month: 'long', day: 'numeric' });
+      const currentTime = new Date().toLocaleTimeString('ar-TN', { hour: '2-digit', minute: '2-digit' });
+
       const elementHtml = `
-      <div style="font-family: 'Inter', system-ui, sans-serif; direction: rtl; padding: 30px; max-width: 800px; margin: 0 auto; color: #0f172a;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="font-size: 28px; font-weight: 900; color: #0284c7; margin: 0;">فاتورة مبيعات</h1>
+      <div style="font-family: 'Inter', system-ui, sans-serif; direction: rtl; padding: 40px; max-width: 800px; margin: 0 auto; color: #0f172a; background-color: #ffffff;">
+        
+        <!-- Header Section -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 2px solid #f1f5f9; padding-bottom: 30px;">
+          <div style="flex: 1;">
+            ${settings?.receiptLogo ? `<img src="${settings.receiptLogo}" style="max-width: 120px; max-height: 80px; margin-bottom: 15px; border-radius: 8px; object-fit: contain;" onerror="this.style.display='none'" />` : ''}
+            <h1 style="font-size: 24px; font-weight: 900; color: #0f172a; margin: 0 0 8px 0;">${settings?.storeName || 'فاتورة مبيعات'}</h1>
+            <p style="font-size: 13px; color: #64748b; margin: 0;">شكراً لزيارتكم تسعدنا خدمتكم</p>
+          </div>
+          
+          <div style="text-align: left; background-color: #f8fafc; padding: 15px 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
+            <div style="margin-bottom: 8px;">
+              <span style="font-size: 12px; color: #64748b; font-weight: 600;">رقم الفاتورة</span>
+              <div style="font-size: 16px; font-weight: 800; color: #0284c7; font-family: monospace;">#INV-${invoiceId}</div>
+            </div>
+            <div style="display: flex; gap: 15px; margin-top: 10px;">
+              <div>
+                <span style="font-size: 11px; color: #64748b; display: block; margin-bottom: 2px;">التاريخ</span>
+                <span style="font-size: 13px; font-weight: 600; color: #334155;">${currentDate}</span>
+              </div>
+              <div>
+                <span style="font-size: 11px; color: #64748b; display: block; margin-bottom: 2px;">الوقت</span>
+                <span style="font-size: 13px; font-weight: 600; color: #334155;">${currentTime}</span>
+              </div>
+            </div>
+          </div>
         </div>
         
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+        <!-- Items Table -->
+        <table style="width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 40px;">
           <thead>
-            <tr style="background-color: #f4f4f5; border-radius: 8px;">
-              <th style="padding: 12px 10px;text-align: right;font-size: 13px;font-weight: 700;color: #52525b;">#</th>
-              <th style="padding: 12px 10px;text-align: right;font-size: 13px;font-weight: 700;color: #52525b;">المنتج</th>
-              <th style="padding: 12px 10px;text-align: center;font-size: 13px;font-weight: 700;color: #52525b;">الكمية</th>
-              <th style="padding: 12px 10px;text-align: center;font-size: 13px;font-weight: 700;color: #52525b;">السعر (د.ت)</th>
-              <th style="padding: 12px 10px;text-align: center;font-size: 13px;font-weight: 700;color: #52525b;">المجموع (د.ت)</th>
+            <tr>
+              <th style="padding: 12px 15px; text-align: right; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; border-bottom: 1px solid #cbd5e1;">#</th>
+              <th style="padding: 12px 15px; text-align: right; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; border-bottom: 1px solid #cbd5e1;">المنتج</th>
+              <th style="padding: 12px 15px; text-align: center; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; border-bottom: 1px solid #cbd5e1;">الكمية</th>
+              <th style="padding: 12px 15px; text-align: center; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; border-bottom: 1px solid #cbd5e1;">سعر الوحدة</th>
+              <th style="padding: 12px 15px; text-align: center; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; border-bottom: 1px solid #cbd5e1;">المجموع</th>
             </tr>
           </thead>
           <tbody>
@@ -251,12 +324,28 @@ export default function POSInvoice() {
           </tbody>
         </table>
         
-        <div style="display: flex; justify-content: flex-end; padding-top: 20px; border-top: 2px solid #f4f4f5;">
-          <div style="background-color: #f0f9ff; padding: 16px 32px; border-radius: 12px; border: 1px solid #e0f2fe; text-align: center;">
-            <p style="font-size: 13px; font-weight: 700; color: #0369a1; margin: 0 0 4px 0;">المجموع الكلي</p>
-            <p style="font-size: 24px; font-weight: 900; color: #0284c7; margin: 0;">${calculateTotal().toFixed(3)} د.ت</p>
+        <!-- Totals Section -->
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 40px;">
+          <div style="width: 300px;">
+            <div style="display: flex; justify-content: space-between; padding: 12px 15px; border-bottom: 1px solid #f1f5f9;">
+              <span style="font-size: 14px; color: #64748b; font-weight: 500;">المجموع الفرعي</span>
+              <span style="font-size: 14px; color: #334155; font-weight: 600;">${calculateTotal().toFixed(3)} د.ت</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 15px; background-color: #f8fafc; border-radius: 8px; margin-top: 15px; border: 1px solid #e2e8f0;">
+              <span style="font-size: 16px; color: #0f172a; font-weight: 800;">المبلغ الإجمالي</span>
+              <span style="font-size: 20px; color: #0284c7; font-weight: 900;">${calculateTotal().toFixed(3)} د.ت</span>
+            </div>
           </div>
         </div>
+
+        <!-- Footer Section -->
+        ${(settings?.receiptThankYouMessage || settings?.receiptPolicy) ? `
+        <div style="padding-top: 30px; border-top: 1px solid #e2e8f0; text-align: center;">
+          ${settings?.receiptThankYouMessage ? `<p style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 0 0 12px 0;">${settings.receiptThankYouMessage}</p>` : ''}
+          ${settings?.receiptPolicy ? `<p style="font-size: 12px; color: #64748b; margin: 0; white-space: pre-wrap; line-height: 1.6; max-width: 600px; margin: 0 auto;">${settings.receiptPolicy}</p>` : ''}
+        </div>
+        ` : ''}
+        
       </div>
       `;
 
@@ -285,28 +374,90 @@ export default function POSInvoice() {
   };
 
   const [isCompleting, setIsCompleting] = useState(false);
+  const [deductInventory, setDeductInventory] = useState(settings.posDeductInventory ?? true);
 
   const handleCompleteSale = async () => {
     if (!user || items.length === 0) return;
     try {
       setIsCompleting(true);
+      const batch = writeBatch(db);
+
+      // Create invoice record
+      const invoiceRef = doc(collection(db, `users/${user.uid}/invoices`));
       
-      if (settings.posDeductInventory) {
-        const batch = writeBatch(db);
-        items.forEach(item => {
-          const productRef = doc(db, `users/${user.uid}/products`, item.productId);
-          const p = products.find(p => p.id === item.productId);
-          if (p) {
-            batch.update(productRef, {
-              quantity: Math.max(0, p.quantity - item.quantity),
-              updatedAt: serverTimestamp()
-            });
+      let totalAmount = 0;
+      let totalCost = 0;
+      const invoiceItems = items.map(item => {
+        const p = products.find(p => p.id === item.productId);
+        const itemTotal = calculateItemTotal(item);
+        
+        let itemCost = 0;
+        let unitCost = 0;
+        if (p) {
+          unitCost = p.purchasePrice || p.costPrice || 0;
+          const isKgProduct = p.unit === 'kg';
+          const subItems = p.subItemsPerPiece || 1;
+
+          if (item.saleMode === 'box' && p.piecesPerBox) {
+            itemCost = (p.boxPurchasePrice || (unitCost * p.piecesPerBox)) * item.quantity;
+          } else if (item.saleMode === 'subpiece') {
+            itemCost = (unitCost / subItems) * item.quantity;
+          } else if (item.saleMode === 'gram') {
+            if (isKgProduct && subItems > 1) {
+              itemCost = ((unitCost / subItems) / 100) * item.quantity;
+            } else {
+              itemCost = (unitCost / 1000) * item.quantity;
+            }
+          } else if (item.saleMode === 'kg') {
+            if (isKgProduct && subItems > 1) {
+              itemCost = ((unitCost / subItems) * 10) * item.quantity;
+            } else {
+              itemCost = unitCost * item.quantity;
+            }
+          } else {
+            itemCost = unitCost * item.quantity;
           }
-        });
-        await batch.commit();
-        showToast('تم إتمام البيع وخصم الكميات من المخزون', 'success');
+        }
+        
+        totalAmount += itemTotal;
+        totalCost += itemCost;
+        
+        if (deductInventory && p) {
+          const productRef = doc(db, `users/${user.uid}/products`, item.productId);
+          const currentPosQty = p.posQuantity !== undefined ? p.posQuantity : p.quantity;
+          batch.update(productRef, {
+            posQuantity: Math.max(0, currentPosQty - item.quantity),
+            updatedAt: serverTimestamp()
+          });
+        }
+        
+        return {
+          productId: item.productId,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          cost: unitCost,
+          total: itemTotal,
+          profit: itemTotal - itemCost
+        };
+      });
+
+      const invoiceData = {
+        invoiceNumber: Math.floor(100000 + Math.random() * 900000).toString(),
+        items: invoiceItems,
+        totalAmount,
+        totalCost,
+        totalProfit: totalAmount - totalCost,
+        createdAt: serverTimestamp()
+      };
+
+      batch.set(invoiceRef, invoiceData);
+      await batch.commit();
+
+      if (deductInventory) {
+        showToast('تم حفظ الفاتورة بنجاح وخصم الكميات من المخزون', 'success');
       } else {
-        showToast('تم إتمام البيع', 'success');
+        showToast('تم حفظ الفاتورة بنجاح', 'success');
       }
       
       setItems([]);
@@ -347,15 +498,40 @@ export default function POSInvoice() {
           </div>
         </div>
         
-        {items.length > 0 && (
-          <button
-            onClick={clearAll}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors dark:bg-red-500/10 dark:hover:bg-red-500/20"
-          >
-            <RotateCcw size={16} />
-            <span className="hidden sm:inline">مسح الكل</span>
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {heldInvoices.length > 0 && (
+            <button
+              onClick={() => setShowHeldInvoices(true)}
+              className="relative flex items-center gap-2 px-3 py-2 text-sm font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors dark:bg-blue-500/10 dark:hover:bg-blue-500/20"
+            >
+              <List size={16} />
+              <span className="hidden sm:inline">المعلقة</span>
+              <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-white dark:border-zinc-950">
+                {heldInvoices.length}
+              </span>
+            </button>
+          )}
+
+          {items.length > 0 && (
+            <button
+              onClick={holdCurrentInvoice}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors dark:bg-orange-500/10 dark:hover:bg-orange-500/20"
+            >
+              <Pause size={16} />
+              <span className="hidden sm:inline">تعليق</span>
+            </button>
+          )}
+
+          {items.length > 0 && (
+            <button
+              onClick={clearAll}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors dark:bg-red-500/10 dark:hover:bg-red-500/20"
+            >
+              <RotateCcw size={16} />
+              <span className="hidden sm:inline">مسح</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Input Section */}
@@ -540,6 +716,19 @@ export default function POSInvoice() {
                   <span>شارك عبر واتساب</span>
                 </button>
               </div>
+              
+              <div className="flex items-center gap-2 mt-2">
+                <input 
+                  type="checkbox" 
+                  id="deduct-inventory" 
+                  checked={deductInventory}
+                  onChange={(e) => setDeductInventory(e.target.checked)}
+                  className="w-4 h-4 text-brand-600 rounded bg-white border-brand-300 focus:ring-brand-500"
+                />
+                <label htmlFor="deduct-inventory" className="text-sm text-brand-100 font-medium cursor-pointer">
+                  خصم من المخزون
+                </label>
+              </div>
 
               <button
                 onClick={handleCompleteSale}
@@ -559,6 +748,70 @@ export default function POSInvoice() {
         onClose={() => setIsScannerOpen(false)}
         onScan={handleScan}
       />
+
+      {/* Held Invoices Modal */}
+      <AnimatePresence>
+        {showHeldInvoices && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]"
+            >
+              <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-800/50">
+                <h3 className="font-bold text-lg text-zinc-900 dark:text-white flex items-center gap-2">
+                  <List size={20} className="text-brand-500" />
+                  الفواتير المعلقة
+                </h3>
+                <button
+                  onClick={() => setShowHeldInvoices(false)}
+                  className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                >
+                  إغلاق
+                </button>
+              </div>
+              <div className="p-4 overflow-y-auto flex-1 space-y-3">
+                {heldInvoices.length === 0 ? (
+                  <div className="text-center py-8 text-zinc-500">
+                    لا توجد فواتير معلقة
+                  </div>
+                ) : (
+                  heldInvoices.map((invoice, index) => (
+                    <div key={invoice.id} className="bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800 flex flex-col gap-3">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-zinc-900 dark:text-white">
+                          فاتورة معلقة #{index + 1}
+                        </span>
+                        <span className="text-xs text-zinc-500">
+                          {new Date(invoice.time).toLocaleTimeString('ar-TN', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                        {invoice.items.length} منتجات | الإجمالي: {invoice.items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(3)} د.ت
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          onClick={() => resumeInvoice(invoice.id)}
+                          className="flex-1 bg-brand-600 hover:bg-brand-700 text-white py-2 rounded-lg text-sm font-bold transition-colors"
+                        >
+                          استكمال
+                        </button>
+                        <button
+                          onClick={() => setHeldInvoices(prev => prev.filter(h => h.id !== invoice.id))}
+                          className="px-4 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-500/10 dark:hover:bg-red-500/20 py-2 rounded-lg text-sm font-bold transition-colors"
+                        >
+                          حذف
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

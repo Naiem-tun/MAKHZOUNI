@@ -16,6 +16,8 @@ const resources = {
       "ai_assistant": "الوكيل الذكي",
       "invoice_desc": "أداة سريعة لحساب تكلفة المشتريات من الموردين",
       "reports": "التقارير",
+      "sales_reports": "تقارير المبيعات",
+      "invoices_and_profits": "سجل الفواتير والأرباح",
       "main_pages": "الصفحات الرئيسية",
       "settings": "الإعدادات",
       "total_products": "إجمالي المنتجات",
@@ -438,7 +440,12 @@ const resources = {
       "main_operations": "العمليات اليومية",
       "reports_analytics": "التقارير والإحصائيات",
       "smart_tracking": "أدوات مساعدة للتجارة",
-      "system_settings": "تفضيلات وإعدادات"
+      "system_settings": "تفضيلات وإعدادات",
+      "choose_operation": "اختيار نوع العملية",
+      "pos_quick": "شاشة البيع بالتجزئة (الكاشير POS)",
+      "pos_quick_desc": "تسجيل مبيعات جديدة للزبائن مع خصم فوري من المخزون وتحديث الكاشير.",
+      "invoice_calc_quick": "فاتورة مشتريات (حاسبة الفواتير)",
+      "invoice_calc_quick_desc": "إضافة سلع جديدة، حساب الأرباح، وضبط تكلفة المشتريات ومزامنة المخازن."
     }
   },
 };

@@ -35,7 +35,7 @@ interface InvoiceItem {
 
 export default function InvoiceCalculator() {
   const { t } = useTranslation();
-  const { user, showToast } = useAppContext();
+  const { user, settings, showToast } = useAppContext();
   
   const [products, setProducts] = useState<Product[]>(() => {
     if (!user) return [];
@@ -232,20 +232,48 @@ export default function InvoiceCalculator() {
         `;
       });
 
+      const invoiceId = Math.floor(100000 + Math.random() * 900000).toString();
+      const currentDate = new Date().toLocaleDateString('ar-TN', { year: 'numeric', month: 'long', day: 'numeric' });
+      const currentTime = new Date().toLocaleTimeString('ar-TN', { hour: '2-digit', minute: '2-digit' });
+
       const elementHtml = `
-      <div style="font-family: 'Inter', system-ui, sans-serif; direction: rtl; padding: 30px; max-width: 800px; margin: 0 auto; color: #0f172a;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="font-size: 28px; font-weight: 900; color: #0284c7; margin: 0;">فاتورة مشتريات</h1>
+      <div style="font-family: 'Inter', system-ui, sans-serif; direction: rtl; padding: 40px; max-width: 800px; margin: 0 auto; color: #0f172a; background-color: #ffffff;">
+        
+        <!-- Header Section -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 2px solid #f1f5f9; padding-bottom: 30px;">
+          <div style="flex: 1;">
+            ${settings?.receiptLogo ? `<img src="${settings.receiptLogo}" style="max-width: 120px; max-height: 80px; margin-bottom: 15px; border-radius: 8px; object-fit: contain;" onerror="this.style.display='none'" />` : ''}
+            <h1 style="font-size: 24px; font-weight: 900; color: #0f172a; margin: 0 0 8px 0;">${settings?.storeName || 'فاتورة مبيعات'}</h1>
+            <p style="font-size: 13px; color: #64748b; margin: 0;">شكراً لزيارتكم تسعدنا خدمتكم</p>
+          </div>
+          
+          <div style="text-align: left; background-color: #f8fafc; padding: 15px 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
+            <div style="margin-bottom: 8px;">
+              <span style="font-size: 12px; color: #64748b; font-weight: 600;">رقم الفاتورة</span>
+              <div style="font-size: 16px; font-weight: 800; color: #0284c7; font-family: monospace;">#INV-${invoiceId}</div>
+            </div>
+            <div style="display: flex; gap: 15px; margin-top: 10px;">
+              <div>
+                <span style="font-size: 11px; color: #64748b; display: block; margin-bottom: 2px;">التاريخ</span>
+                <span style="font-size: 13px; font-weight: 600; color: #334155;">${currentDate}</span>
+              </div>
+              <div>
+                <span style="font-size: 11px; color: #64748b; display: block; margin-bottom: 2px;">الوقت</span>
+                <span style="font-size: 13px; font-weight: 600; color: #334155;">${currentTime}</span>
+              </div>
+            </div>
+          </div>
         </div>
         
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+        <!-- Items Table -->
+        <table style="width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 40px;">
           <thead>
-            <tr style="background-color: #f4f4f5; border-radius: 8px;">
-              <th style="padding: 12px 10px;text-align: right;font-size: 13px;font-weight: 700;color: #52525b;">#</th>
-              <th style="padding: 12px 10px;text-align: right;font-size: 13px;font-weight: 700;color: #52525b;">المنتج</th>
-              <th style="padding: 12px 10px;text-align: center;font-size: 13px;font-weight: 700;color: #52525b;">الكمية</th>
-              <th style="padding: 12px 10px;text-align: center;font-size: 13px;font-weight: 700;color: #52525b;">السعر (د.ت)</th>
-              <th style="padding: 12px 10px;text-align: center;font-size: 13px;font-weight: 700;color: #52525b;">المجموع (د.ت)</th>
+            <tr>
+              <th style="padding: 12px 15px; text-align: right; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; border-bottom: 1px solid #cbd5e1;">#</th>
+              <th style="padding: 12px 15px; text-align: right; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; border-bottom: 1px solid #cbd5e1;">المنتج</th>
+              <th style="padding: 12px 15px; text-align: center; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; border-bottom: 1px solid #cbd5e1;">الكمية</th>
+              <th style="padding: 12px 15px; text-align: center; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; border-bottom: 1px solid #cbd5e1;">سعر الوحدة</th>
+              <th style="padding: 12px 15px; text-align: center; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; border-bottom: 1px solid #cbd5e1;">المجموع</th>
             </tr>
           </thead>
           <tbody>
@@ -253,12 +281,28 @@ export default function InvoiceCalculator() {
           </tbody>
         </table>
         
-        <div style="display: flex; justify-content: flex-end; padding-top: 20px; border-top: 2px solid #f4f4f5;">
-          <div style="background-color: #f0f9ff; padding: 16px 32px; border-radius: 12px; border: 1px solid #e0f2fe; text-align: center;">
-            <p style="font-size: 13px; font-weight: 700; color: #0369a1; margin: 0 0 4px 0;">المجموع الكلي</p>
-            <p style="font-size: 24px; font-weight: 900; color: #0284c7; margin: 0;">${calculateTotal().toFixed(3)} د.ت</p>
+        <!-- Totals Section -->
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 40px;">
+          <div style="width: 300px;">
+            <div style="display: flex; justify-content: space-between; padding: 12px 15px; border-bottom: 1px solid #f1f5f9;">
+              <span style="font-size: 14px; color: #64748b; font-weight: 500;">المجموع الفرعي</span>
+              <span style="font-size: 14px; color: #334155; font-weight: 600;">${calculateTotal().toFixed(3)} د.ت</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 15px; background-color: #f8fafc; border-radius: 8px; margin-top: 15px; border: 1px solid #e2e8f0;">
+              <span style="font-size: 16px; color: #0f172a; font-weight: 800;">المبلغ الإجمالي</span>
+              <span style="font-size: 20px; color: #0284c7; font-weight: 900;">${calculateTotal().toFixed(3)} د.ت</span>
+            </div>
           </div>
         </div>
+
+        <!-- Footer Section -->
+        ${(settings?.receiptThankYouMessage || settings?.receiptPolicy) ? `
+        <div style="padding-top: 30px; border-top: 1px solid #e2e8f0; text-align: center;">
+          ${settings?.receiptThankYouMessage ? `<p style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 0 0 12px 0;">${settings.receiptThankYouMessage}</p>` : ''}
+          ${settings?.receiptPolicy ? `<p style="font-size: 12px; color: #64748b; margin: 0; white-space: pre-wrap; line-height: 1.6; max-width: 600px; margin: 0 auto;">${settings.receiptPolicy}</p>` : ''}
+        </div>
+        ` : ''}
+        
       </div>
       `;
 

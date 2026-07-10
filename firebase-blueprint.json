@@ -23,6 +23,7 @@
         "purchasePrice": { "type": "number" },
         "sellingPrice": { "type": "number" },
         "quantity": { "type": "number" },
+        "posQuantity": { "type": "number", "description": "Virtual/POS stock for Cashier deduction" },
         "minQuantity": { "type": "number" },
         "barcode": { "type": "string" },
         "updatedAt": { "type": "string", "format": "date-time" }

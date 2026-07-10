@@ -56,6 +56,7 @@ export default function Products() {
   const [searchTerm, setSearchTerm] = useState('');
   const [stockFilter, setStockFilter] = useState('all'); // 'all', 'available', 'low', 'out'
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [showPosStock, setShowPosStock] = useState(false);
   
   const showBoxInfo = settings.defaultStockView === 'boxes';
   const setShowBoxInfo = (val: boolean) => {
@@ -168,8 +169,10 @@ export default function Products() {
       });
 
       // Update product stock
+      const currentPosQty = quantityProduct.posQuantity !== undefined ? quantityProduct.posQuantity : quantityProduct.quantity;
       batch.update(productRef, {
         quantity: increment(addedQty),
+        posQuantity: currentPosQty + addedQty,
         purchasePrice: piecePrice,
         boxPurchasePrice: boxPrice,
         updatedAt: serverTimestamp(),
@@ -271,6 +274,7 @@ export default function Products() {
         const productRef = doc(collection(db, path));
         batch.set(productRef, {
           ...productData,
+          posQuantity: productData.quantity,
           hasLocalImage: hasLocalImageValue,
           hasCloudImage: hasCloudImageValue,
           updatedAt: serverTimestamp(),
@@ -311,6 +315,7 @@ export default function Products() {
           piecesPerBox: productData.piecesPerBox,
           boxPurchasePrice: productData.boxPurchasePrice,
           quantity: productData.quantity,
+          posQuantity: productData.quantity,
           minQuantity: productData.minQuantity,
           hasLocalImage: hasLocalImageValue,
           hasCloudImage: hasCloudImageValue,
@@ -515,6 +520,8 @@ export default function Products() {
         setCategoryFilter={setCategoryFilter}
         showBoxInfo={showBoxInfo}
         setShowBoxInfo={setShowBoxInfo}
+        showPosStock={showPosStock}
+        setShowPosStock={setShowPosStock}
         categories={categories}
         onOpenScanner={() => {
           setScannerTarget('search');
@@ -526,6 +533,7 @@ export default function Products() {
       <ProductsList 
         products={paginatedProducts} 
         showBoxInfo={showBoxInfo}
+        showPosStock={showPosStock}
         onEdit={(product) => {
           setEditingProduct(product);
           setIsModalOpen(true);
