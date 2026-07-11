@@ -296,7 +296,11 @@ function AppContent() {
     if (isScannerTab) {
       safeDispatchEvent(`open-barcode-scanner-${activeTab}`);
     } else {
-      setShowQuickActionModal(true);
+      if (settings.enablePOS) {
+        setShowQuickActionModal(true);
+      } else {
+        setActiveTab("invoice-calculator");
+      }
     }
   };
 
