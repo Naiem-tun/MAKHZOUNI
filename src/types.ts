@@ -43,6 +43,7 @@ export interface UserSettings {
   receiptLogo?: string;
   receiptThankYouMessage?: string;
   receiptPolicy?: string;
+  receiptPaperSize?: '80mm' | '58mm';
 }
 
 export interface CashTransaction {

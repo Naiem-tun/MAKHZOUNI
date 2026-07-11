@@ -195,6 +195,7 @@ export default function SettingsPage() {
     receiptLogo: settings.receiptLogo || '',
     receiptThankYouMessage: settings.receiptThankYouMessage || '',
     receiptPolicy: settings.receiptPolicy || '',
+    receiptPaperSize: settings.receiptPaperSize || '80mm',
   });
   const [isSaving, setIsSaving] = useState(false);
   const handleSaveStoreSettings = async () => {
@@ -641,6 +642,34 @@ export default function SettingsPage() {
           </div>
 
           <div className="p-4 space-y-4">
+            <div className="space-y-2 text-right">
+              <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">عرض ورق الفاتورة المطبوعة</label>
+              <div className="flex gap-2 bg-zinc-50 dark:bg-zinc-800 p-1 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                <button
+                  type="button"
+                  onClick={() => setTempSettings({ ...tempSettings, receiptPaperSize: '80mm' })}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                    tempSettings.receiptPaperSize === '80mm' 
+                      ? 'bg-white text-brand-600 shadow-sm dark:bg-zinc-900 dark:text-white' 
+                      : 'text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800/50'
+                  }`}
+                >
+                  80 ملم (قياسي / طابعة مكتبية)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTempSettings({ ...tempSettings, receiptPaperSize: '58mm' })}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                    tempSettings.receiptPaperSize === '58mm' 
+                      ? 'bg-white text-brand-600 shadow-sm dark:bg-zinc-900 dark:text-white' 
+                      : 'text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800/50'
+                  }`}
+                >
+                  58 ملم (صغير / طابعة محمولة)
+                </button>
+              </div>
+            </div>
+
             <div className="space-y-2 text-right">
               <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">رسالة الشكر (تظهر أسفل الفاتورة)</label>
               <input 

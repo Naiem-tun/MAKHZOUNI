@@ -18,7 +18,8 @@ import {
   FileDown,
   Loader2,
   Pause,
-  List
+  List,
+  Printer
 } from 'lucide-react';
 import * as html2pdf from 'html2pdf.js';
 import {
@@ -128,6 +129,7 @@ export default function POSInvoice() {
   const [isCopied, setIsCopied] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [showReceiptPreviewModal, setShowReceiptPreviewModal] = useState(false);
 
   useEffect(() => {
     const scannerHandler = () => {
@@ -248,6 +250,170 @@ export default function POSInvoice() {
   const handleWhatsApp = () => {
     const text = encodeURIComponent(generateInvoiceText());
     window.open(`https://wa.me/?text=${text}`, '_blank');
+  };
+
+  const handlePrint = () => {
+    try {
+      const paperSize = settings?.receiptPaperSize || '80mm';
+      const is58mm = paperSize === '58mm';
+      
+      const invoiceId = Math.floor(100000 + Math.random() * 900000).toString();
+      const currentDate = new Date().toLocaleDateString('ar-TN', { year: 'numeric', month: 'long', day: 'numeric' });
+      const currentTime = new Date().toLocaleTimeString('ar-TN', { hour: '2-digit', minute: '2-digit' });
+
+      let itemsHtml = "";
+      items.forEach((item, index) => {
+        let quantityText = item.quantity.toString();
+        if (item.saleMode === 'gram') quantityText += ' غرام';
+        else if (item.saleMode === 'kg') quantityText += ' كغ';
+        else if (item.saleMode === 'subpiece') quantityText += ' حبة';
+        else if (item.saleMode === 'piece') quantityText += ' قطعة';
+        else if (item.saleMode === 'box') quantityText += ' كرتونة';
+
+        itemsHtml += `
+          <tr style="border-bottom: 1px dashed #cccccc;">
+            <td style="padding: 6px 0; text-align: right; max-width: ${is58mm ? '120px' : '180px'}; word-wrap: break-word;">${item.name}</td>
+            <td style="padding: 6px 0; text-align: center; white-space: nowrap;">${quantityText}</td>
+            <td style="padding: 6px 0; text-align: left; white-space: nowrap;">${calculateItemTotal(item).toFixed(3)}</td>
+          </tr>
+        `;
+      });
+
+      const receiptHtml = `
+        <!DOCTYPE html>
+        <html dir="rtl">
+        <head>
+          <meta charset="utf-8">
+          <title>فاتورة البيع</title>
+          <style>
+            @page {
+              size: ${is58mm ? '58mm' : '80mm'} auto;
+              margin: 0;
+            }
+            body {
+              font-family: 'Inter', system-ui, -apple-system, sans-serif;
+              width: ${is58mm ? '48mm' : '72mm'};
+              margin: 0 auto;
+              padding: ${is58mm ? '2mm' : '4mm'} 0;
+              font-size: ${is58mm ? '11px' : '13px'};
+              line-height: 1.4;
+              color: #000000;
+              background-color: #ffffff;
+            }
+            .center { text-align: center; }
+            .bold { font-weight: bold; }
+            .store-name { font-size: ${is58mm ? '16px' : '20px'}; font-weight: 900; margin-bottom: 4px; }
+            .divider { border-top: 1px dashed #000000; margin: 10px 0; }
+            .info-table, .items-table { width: 100%; border-collapse: collapse; }
+            .info-table td { padding: 2px 0; font-size: ${is58mm ? '10px' : '11px'}; }
+            .items-table th { border-bottom: 1px dashed #000000; padding: 5px 0; font-weight: bold; }
+            .totals-container { margin-top: 10px; font-size: ${is58mm ? '12px' : '14px'}; }
+            .totals-row { display: flex; justify-content: space-between; padding: 4px 0; }
+            .total-amount { font-size: ${is58mm ? '15px' : '18px'}; font-weight: 900; border-top: 1px solid #000000; padding-top: 6px; margin-top: 4px; }
+            .footer-msg { font-size: ${is58mm ? '10px' : '11px'}; margin-top: 15px; text-align: center; white-space: pre-wrap; }
+          </style>
+        </head>
+        <body>
+          <div class="center">
+            ${settings?.receiptLogo ? `<img src="${settings.receiptLogo}" style="max-width: ${is58mm ? '50px' : '80px'}; max-height: 50px; margin-bottom: 8px; object-fit: contain;" />` : ''}
+            <div class="store-name">${settings?.storeName || 'مخزوني'}</div>
+            <div style="font-size: ${is58mm ? '9px' : '11px'}; opacity: 0.8;">شكراً لزيارتكم تسعدنا خدمتكم</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <table class="info-table">
+            <tr>
+              <td class="bold">رقم الفاتورة:</td>
+              <td style="text-align: left; font-family: monospace;">#INV-${invoiceId}</td>
+            </tr>
+            <tr>
+              <td>التاريخ:</td>
+              <td style="text-align: left;">${currentDate}</td>
+            </tr>
+            <tr>
+              <td>الوقت:</td>
+              <td style="text-align: left;">${currentTime}</td>
+            </tr>
+          </table>
+
+          <div class="divider"></div>
+
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th style="text-align: right;">المنتج</th>
+                <th style="text-align: center; width: 60px;">الكمية</th>
+                <th style="text-align: left; width: 60px;">المجموع</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+
+          <div class="totals-container">
+            <div class="totals-row">
+              <span>المجموع الكلي:</span>
+              <span class="bold">${calculateTotal().toFixed(3)} د.ت</span>
+            </div>
+            <div class="totals-row total-amount">
+              <span>المبلغ المدفوع:</span>
+              <span>${calculateTotal().toFixed(3)} د.ت</span>
+            </div>
+          </div>
+
+          ${(settings?.receiptThankYouMessage || settings?.receiptPolicy) ? `
+            <div class="divider"></div>
+            <div class="footer-msg">
+              ${settings?.receiptThankYouMessage ? `<div class="bold" style="margin-bottom: 5px;">${settings.receiptThankYouMessage}</div>` : ''}
+              ${settings?.receiptPolicy ? `<div>${settings.receiptPolicy}</div>` : ''}
+            </div>
+          ` : ''}
+          
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() {
+                window.close();
+              }, 500);
+            };
+          </script>
+        </body>
+        </html>
+      `;
+
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
+
+      const iframeDoc = iframe.contentWindow?.document || iframe.contentDocument;
+      if (iframeDoc) {
+        iframeDoc.open();
+        iframeDoc.write(receiptHtml);
+        iframeDoc.close();
+
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 3000);
+      } else {
+        const printWindow = window.open('', '_blank', 'width=400,height=600');
+        if (printWindow) {
+          printWindow.document.write(receiptHtml);
+          printWindow.document.close();
+        } else {
+          showToast('يرجى السماح بالنوافذ المنبثقة لطباعة الفاتورة', 'error');
+        }
+      }
+    } catch (err) {
+      console.error('Failed to print: ', err);
+      showToast('حدث خطأ أثناء محاولة الطباعة', 'error');
+    }
   };
 
   const handleExportPDF = async () => {
@@ -425,10 +591,21 @@ export default function POSInvoice() {
         if (deductInventory && p) {
           const productRef = doc(db, `users/${user.uid}/products`, item.productId);
           const currentPosQty = p.posQuantity !== undefined ? p.posQuantity : p.quantity;
-          batch.update(productRef, {
-            posQuantity: Math.max(0, currentPosQty - item.quantity),
-            updatedAt: serverTimestamp()
-          });
+          const currentQty = p.quantity !== undefined ? p.quantity : 0;
+          
+          if (settings.posDeductInventory) {
+            // Deduct directly from main warehouse inventory (quantity)
+            batch.update(productRef, {
+              quantity: Math.max(0, currentQty - item.quantity),
+              updatedAt: serverTimestamp()
+            });
+          } else {
+            // Deduct from cashier's inventory (posQuantity) only, and NOT from main warehouse inventory
+            batch.update(productRef, {
+              posQuantity: Math.max(0, currentPosQty - item.quantity),
+              updatedAt: serverTimestamp()
+            });
+          }
         }
         
         return {
@@ -694,6 +871,13 @@ export default function POSInvoice() {
               
               <div className="flex items-center gap-2 pt-2 border-t border-brand-500/30">
                 <button
+                  onClick={() => setShowReceiptPreviewModal(true)}
+                  className="flex-[1.5] flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 active:bg-white/30 py-2.5 rounded-lg transition-colors font-bold text-sm"
+                >
+                  <Printer size={18} />
+                  <span>طباعة</span>
+                </button>
+                <button
                   onClick={handleCopy}
                   className="flex-[1.5] flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 active:bg-white/30 py-2.5 rounded-lg transition-colors font-bold text-sm"
                 >
@@ -807,6 +991,157 @@ export default function POSInvoice() {
                     </div>
                   ))
                 )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Receipt Preview Modal */}
+      <AnimatePresence>
+        {showReceiptPreviewModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-zinc-100 dark:bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col my-8"
+            >
+              <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-white dark:bg-zinc-900">
+                <div className="flex items-center gap-2">
+                  <Printer size={20} className="text-brand-600" />
+                  <h3 className="font-bold text-lg text-zinc-950 dark:text-white">
+                    معاينة فاتورة الطابعة الحرارية
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setShowReceiptPreviewModal(false)}
+                  className="px-3 py-1.5 text-xs font-bold text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 rounded-lg transition-colors"
+                >
+                  إغلاق
+                </button>
+              </div>
+
+              {/* Info Banner on Iframe Printing */}
+              <div className="p-3 bg-amber-50 dark:bg-amber-500/10 border-b border-amber-200 dark:border-amber-500/20 text-xs text-amber-800 dark:text-amber-300 text-right leading-relaxed font-semibold">
+                ⚠️ <strong>ملاحظة هامة للمعاينة:</strong> إذا لم تبدأ الطباعة عند النقر على "بدء الطباعة" بسبب حظر المتصفح للنوافذ المنبثقة داخل بيئة التطوير، يرجى فتح التطبيق في <strong>رابط خارجي (تبويب جديد)</strong> لتجربة ميزة الطباعة بنجاح وبشكل مباشر على طابعتك الحرارية.
+              </div>
+
+              {/* Printable Area Wrapper */}
+              <div className="p-6 bg-zinc-200/50 dark:bg-zinc-950/40 flex justify-center overflow-y-auto max-h-[50vh]">
+                <div 
+                  className={`bg-white text-black p-5 shadow-lg border border-zinc-300/60 rounded-sm relative text-right select-none`}
+                  style={{ 
+                    width: (settings?.receiptPaperSize || '80mm') === '58mm' ? '280px' : '380px',
+                    fontFamily: 'monospace, sans-serif'
+                  }}
+                >
+                  {/* Decorative Jagged Receipt Top/Bottom Edges */}
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-[radial-gradient(circle_at_bottom,_transparent_4px,_#e5e7eb_4px)] bg-[length:12px_8px] bg-repeat-x transform -translate-y-1"></div>
+                  
+                  <div className="text-center mb-4">
+                    {settings?.receiptLogo ? (
+                      <img 
+                        src={settings.receiptLogo} 
+                        className="mx-auto max-h-12 max-w-[80px] object-contain mb-2" 
+                        alt="Logo" 
+                      />
+                    ) : null}
+                    <h4 className="font-black text-lg text-black leading-tight">{settings?.storeName || 'مخزوني'}</h4>
+                    <p className="text-[10px] text-zinc-500 mt-1">شكراً لزيارتكم تسعدنا خدمتكم</p>
+                  </div>
+
+                  <div className="border-t border-dashed border-zinc-400 my-2"></div>
+
+                  <div className="text-xs space-y-1 text-zinc-700">
+                    <div className="flex justify-between direction-ltr font-mono">
+                      <span className="font-bold">#INV-{Math.floor(100000 + Math.random() * 900000)}</span>
+                      <span>رقم الفاتورة:</span>
+                    </div>
+                    <div className="flex justify-between direction-ltr">
+                      <span>{new Date().toLocaleDateString('ar-TN', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                      <span>التاريخ:</span>
+                    </div>
+                    <div className="flex justify-between direction-ltr">
+                      <span>{new Date().toLocaleTimeString('ar-TN', { hour: '2-digit', minute: '2-digit' })}</span>
+                      <span>الوقت:</span>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-dashed border-zinc-400 my-2"></div>
+
+                  {/* Items Table */}
+                  <table className="w-full text-xs text-black border-collapse">
+                    <thead>
+                      <tr className="border-b border-dashed border-zinc-400 font-bold">
+                        <th className="text-right pb-1">المنتج</th>
+                        <th className="text-center pb-1">الكمية</th>
+                        <th className="text-left pb-1">المجموع</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((item) => {
+                        let quantityText = item.quantity.toString();
+                        if (item.saleMode === 'gram') quantityText += ' غرام';
+                        else if (item.saleMode === 'kg') quantityText += ' كغ';
+                        else if (item.saleMode === 'subpiece') quantityText += ' حبة';
+                        else if (item.saleMode === 'piece') quantityText += ' قطعة';
+                        else if (item.saleMode === 'box') quantityText += ' كرتونة';
+
+                        return (
+                          <tr key={item.id} className="border-b border-dashed border-zinc-100">
+                            <td className="py-1.5 text-right font-medium max-w-[120px] break-words">{item.name}</td>
+                            <td className="py-1.5 text-center text-zinc-600 font-bold">{quantityText}</td>
+                            <td className="py-1.5 text-left font-bold">{calculateItemTotal(item).toFixed(3)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+
+                  <div className="border-t border-dashed border-zinc-400 my-2"></div>
+
+                  {/* Totals */}
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span className="font-bold">{calculateTotal().toFixed(3)} د.ت</span>
+                      <span className="text-zinc-600">المجموع الكلي:</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-black pt-1 border-t border-zinc-300">
+                      <span>{calculateTotal().toFixed(3)} د.ت</span>
+                      <span>المبلغ المدفوع:</span>
+                    </div>
+                  </div>
+
+                  {/* Custom Footer Notes */}
+                  {(settings?.receiptThankYouMessage || settings?.receiptPolicy) ? (
+                    <>
+                      <div className="border-t border-dashed border-zinc-400 my-2"></div>
+                      <div className="text-[10px] text-center text-zinc-600 space-y-1">
+                        {settings?.receiptThankYouMessage && <p className="font-bold">{settings.receiptThankYouMessage}</p>}
+                        {settings?.receiptPolicy && <p className="whitespace-pre-wrap">{settings.receiptPolicy}</p>}
+                      </div>
+                    </>
+                  ) : null}
+
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-[radial-gradient(circle_at_top,_transparent_4px,_#e5e7eb_4px)] bg-[length:12px_8px] bg-repeat-x transform translate-y-1"></div>
+                </div>
+              </div>
+
+              {/* Action buttons inside Modal */}
+              <div className="p-4 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 flex flex-col gap-2">
+                <button
+                  onClick={() => {
+                    handlePrint();
+                  }}
+                  className="w-full flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white py-3 rounded-xl font-bold transition-all text-base shadow-sm active:scale-[0.99]"
+                >
+                  <Printer size={20} />
+                  <span>بدء الطباعة الآن</span>
+                </button>
+                <div className="text-center text-[10px] text-zinc-500 font-medium">
+                  المقاس المختار حالياً: {settings?.receiptPaperSize || '80mm'} (يمكنك تغييره من الإعدادات)
+                </div>
               </div>
             </motion.div>
           </div>
