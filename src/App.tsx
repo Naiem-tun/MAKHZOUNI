@@ -62,6 +62,7 @@ import {
   BookImage,
   RotateCcw,
   Activity,
+  Coins,
 } from "lucide-react";
 import { signInWithGoogle, auth } from "./lib/firebase";
 
@@ -104,6 +105,7 @@ import DraftProducts from "./pages/DraftProducts";
 const Analytics = lazy(() => import("./pages/Analytics"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const AuditLogs = lazy(() => import("./pages/AuditLogs"));
+const Invoices = lazy(() => import("./pages/Invoices"));
 
 
 function AppContent() {
@@ -193,6 +195,7 @@ function AppContent() {
     { id: "suppliers", label: t("suppliers"), icon: Truck },
     { id: "debts", label: t("debts"), icon: BookOpen },
     { id: "inventory", label: t("inventory"), icon: ClipboardCheck },
+    { id: "invoices", label: t("sales_reports") || "تقارير المبيعات", icon: Coins },
     { id: "reports", label: t("reports"), icon: BarChart3 },
     { id: "expenses", label: t("expenses"), icon: Wallet },
 
@@ -228,6 +231,7 @@ function AppContent() {
       "suppliers",
       "debts",
       "inventory",
+      "invoices",
       "expenses",
     ].includes(tab.id),
   );
@@ -244,6 +248,7 @@ function AppContent() {
         "suppliers",
         "debts",
         "inventory",
+        "invoices",
         "expenses",
         "reports",
       ].includes(tab.id),
@@ -479,6 +484,9 @@ function AppContent() {
                 </div>
                 <div className={activeTab === "expenses" ? "block" : "hidden"}>
                   {mountedTabs.has("expenses") && <Expenses />}
+                </div>
+                <div className={activeTab === "invoices" ? "block" : "hidden"}>
+                  {mountedTabs.has("invoices") && <Invoices />}
                 </div>
                 <div
                   className={activeTab === "shopping-list" ? "block" : "hidden"}
