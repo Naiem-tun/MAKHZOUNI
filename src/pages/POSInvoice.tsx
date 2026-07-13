@@ -127,13 +127,13 @@ export default function POSInvoice() {
   };
 
   const [isCopied, setIsCopied] = useState(false);
-  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isInlineScannerOpen, setIsInlineScannerOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [showReceiptPreviewModal, setShowReceiptPreviewModal] = useState(false);
 
   useEffect(() => {
     const scannerHandler = () => {
-      setIsScannerOpen(true);
+      setIsInlineScannerOpen(true);
     };
     window.addEventListener('open-barcode-scanner-pos', scannerHandler);
     return () => window.removeEventListener('open-barcode-scanner-pos', scannerHandler);
@@ -648,16 +648,14 @@ export default function POSInvoice() {
   };
 
   const handleScan = (decodedText: string) => {
-    setIsScannerOpen(false);
-    
     // Find product matching the scanned barcode
     const matchedProduct = products.find(p => p.barcode === decodedText || p.barcode2 === decodedText);
     
     if (matchedProduct) {
       addItem(matchedProduct);
-      showToast('تمت إضافة المنتج بنجاح');
+      showToast(`تمت إضافة: ${matchedProduct.name}`, 'success');
     } else {
-      showToast('المنتج غير موجود في قائمة المنتجات');
+      showToast('المنتج غير موجود', 'error');
     }
   };
 
@@ -713,6 +711,27 @@ export default function POSInvoice() {
 
       {/* Input Section */}
       <div className="relative z-30">
+        <AnimatePresence>
+          {isInlineScannerOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden mb-4"
+            >
+              <div className="h-64 sm:h-72 w-full rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 shadow-sm relative">
+                <BarcodeScanner
+                  isOpen={isInlineScannerOpen}
+                  onClose={() => setIsInlineScannerOpen(false)}
+                  onScan={handleScan}
+                  inline={true}
+                  continuous={true}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="flex items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-1.5 focus-within:ring-2 focus-within:ring-brand-500/20 focus-within:border-brand-500/30 transition-all shadow-sm">
           <div className="flex items-center justify-center pl-2 pr-3 text-zinc-400">
             <Search size={20} />
@@ -725,8 +744,8 @@ export default function POSInvoice() {
             className="flex-1 h-12 bg-transparent px-2 text-base font-medium text-zinc-900 dark:text-white placeholder:text-zinc-400 outline-none w-full"
           />
           <button 
-            onClick={() => setIsScannerOpen(true)}
-            className="p-2 ml-1 text-zinc-500 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10 rounded-lg transition-colors"
+            onClick={() => isInlineScannerOpen ? setIsInlineScannerOpen(false) : setIsInlineScannerOpen(true)}
+            className={`p-2 ml-1 rounded-lg transition-colors ${isInlineScannerOpen ? 'text-brand-500 bg-brand-50 dark:bg-brand-500/10' : 'text-zinc-500 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10'}`}
           >
             <ScanBarcode size={24} />
           </button>
@@ -926,12 +945,6 @@ export default function POSInvoice() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <BarcodeScanner 
-        isOpen={isScannerOpen}
-        onClose={() => setIsScannerOpen(false)}
-        onScan={handleScan}
-      />
 
       {/* Held Invoices Modal */}
       <AnimatePresence>

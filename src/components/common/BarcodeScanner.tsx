@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useId } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Barcode, AlertCircle } from 'lucide-react';
@@ -10,100 +10,194 @@ interface BarcodeScannerProps {
   onClose: () => void;
   onScan: (decodedText: string) => void;
   title?: string;
+  inline?: boolean;
+  continuous?: boolean;
 }
 
-export function BarcodeScanner({ isOpen, onClose, onScan, title }: BarcodeScannerProps) {
+export function BarcodeScanner({ isOpen, onClose, onScan, title, inline = false, continuous = false }: BarcodeScannerProps) {
   const { t } = useTranslation();
   const displayTitle = title || t('scan_barcode_title');
   const [error, setError] = useState<string | null>(null);
-  const scannerId = useId().replace(/:/g, ''); // Generate safe ID
+  
+  const scannerWrapperRef = useRef<HTMLDivElement>(null);
+  const lastScannedRef = useRef<{ text: string, time: number } | null>(null);
+
+  const onScanRef = useRef(onScan);
+  const onCloseRef = useRef(onClose);
 
   useEffect(() => {
+    onScanRef.current = onScan;
+    onCloseRef.current = onClose;
+  }, [onScan, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
     let html5QrCode: Html5Qrcode | null = null;
     let isMounted = true;
-    const containerId = `scanner-reader-${scannerId}`;
-
-    if (isOpen) {
-      setError(null);
-      const startScanner = async () => {
-        try {
-          html5QrCode = new Html5Qrcode(containerId);
-          
-          let hasScanned = false;
-          
-          const config = {
-            fps: 10,
-            aspectRatio: 1
-          };
-
-          const onDecode = (decodedText: string) => {
-            if (hasScanned) return;
-            hasScanned = true;
-            onScan(decodedText);
-            onClose();
-          };
-
-          try {
-            await html5QrCode.start({ facingMode: "environment" }, config, onDecode, () => {});
-          } catch (envCameraError) {
-            console.warn("Failed to start environment camera, trying any camera", envCameraError);
-            if (isMounted) {
-               // Try without specific facing mode
-               await html5QrCode.start({ facingMode: "user" }, config, onDecode, () => {});
-            }
-          }
-
-          if (!isMounted) {
-            html5QrCode.stop().then(() => html5QrCode?.clear()).catch(console.error);
-            return;
-          }
-
-          // Force the video element to fill the container and use object-cover
-          setTimeout(() => {
-            const videoElement = document.querySelector(`#${containerId} video`) as HTMLVideoElement;
-            if (videoElement) {
-              videoElement.style.width = '100%';
-              videoElement.style.height = '100%';
-              videoElement.style.objectFit = 'cover';
-            }
-          }, 300);
-        } catch (err: any) {
-          console.error("Scanner error:", err);
-          if (isMounted) setError(err.message || String(err) || "Failed to access camera");
-        }
-      };
-
-      // Add a slight delay to ensure DOM is ready
-      setTimeout(startScanner, 200);
+    
+    // Generate a unique ID for this specific effect run to avoid Strict Mode conflicts
+    const uniqueScannerId = `scanner-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    
+    // Create the target div dynamically
+    const targetDiv = document.createElement('div');
+    targetDiv.id = uniqueScannerId;
+    targetDiv.style.width = '100%';
+    targetDiv.style.height = '100%';
+    
+    if (scannerWrapperRef.current) {
+      scannerWrapperRef.current.appendChild(targetDiv);
     }
+
+    const startScanner = async () => {
+      try {
+        html5QrCode = new Html5Qrcode(uniqueScannerId);
+        
+        let hasScanned = false;
+        
+        const config = {
+          fps: 10,
+          aspectRatio: inline ? undefined : 1
+        };
+
+        const onDecode = (decodedText: string) => {
+          if (!continuous && hasScanned) return;
+          
+          if (continuous) {
+            const now = Date.now();
+            if (lastScannedRef.current && lastScannedRef.current.text === decodedText && now - lastScannedRef.current.time < 1500) {
+              return;
+            }
+            lastScannedRef.current = { text: decodedText, time: now };
+            
+            try {
+              const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+              const oscillator = audioCtx.createOscillator();
+              const gainNode = audioCtx.createGain();
+              oscillator.type = 'sine';
+              oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+              gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+              oscillator.connect(gainNode);
+              gainNode.connect(audioCtx.destination);
+              oscillator.start();
+              setTimeout(() => {
+                oscillator.stop();
+                audioCtx.close();
+              }, 100);
+            } catch (e) {}
+
+            onScanRef.current(decodedText);
+          } else {
+            hasScanned = true;
+            onScanRef.current(decodedText);
+            onCloseRef.current();
+          }
+        };
+
+        try {
+          await html5QrCode.start({ facingMode: "environment" }, config, onDecode, () => {});
+        } catch (envCameraError) {
+          if (isMounted) {
+             await html5QrCode.start({ facingMode: "user" }, config, onDecode, () => {});
+          }
+        }
+
+        if (!isMounted) {
+          html5QrCode.stop().then(() => html5QrCode?.clear()).catch(() => {});
+          return;
+        }
+
+        setTimeout(() => {
+          if (!isMounted) return;
+          const videoElement = targetDiv.querySelector('video');
+          if (videoElement) {
+            videoElement.style.width = '100%';
+            videoElement.style.height = '100%';
+            videoElement.style.objectFit = 'cover';
+          }
+        }, 300);
+      } catch (err: any) {
+        if (isMounted) setError(err.message || String(err) || "Failed to access camera");
+      }
+    };
+
+    // Delay slightly so that the DOM is fully established
+    const timeoutId = setTimeout(startScanner, 100);
 
     return () => {
       isMounted = false;
+      clearTimeout(timeoutId);
+      
       if (html5QrCode) {
+        // Suppress any errors during stop/clear
         try {
+          // Temporarily hide it so the user doesn't see frozen frames while stopping
+          targetDiv.style.display = 'none';
+          
           if (html5QrCode.isScanning) {
-            html5QrCode.stop().then(() => {
-              html5QrCode?.clear();
-            }).catch(console.error);
+            html5QrCode.stop()
+              .then(() => {
+                try { html5QrCode?.clear(); } catch(e) {}
+                targetDiv.remove();
+              })
+              .catch(() => {
+                targetDiv.remove();
+              });
           } else {
-            html5QrCode.clear();
+            try { html5QrCode.clear(); } catch(e) {}
+            targetDiv.remove();
           }
         } catch (e) {
-          console.error("Error clearing scanner:", e);
+          targetDiv.remove();
         }
+      } else {
+        targetDiv.remove();
       }
-      setTimeout(() => {
-        try {
-          const videoElement = document.querySelector(`#${containerId} video`) as HTMLVideoElement;
-          if (videoElement && (videoElement as any).srcObject) {
-            const stream = (videoElement as any).srcObject as MediaStream;
-            stream.getTracks().forEach(track => track.stop());
-            (videoElement as any).srcObject = null;
-          }
-        } catch (e) {}
-      }, 300);
     };
-  }, [isOpen, onScan, onClose, scannerId]);
+  }, [isOpen, inline, continuous]);
+
+  const scannerContent = (
+    <div className={`relative w-full ${inline ? 'h-full' : 'aspect-square'} bg-black flex items-center justify-center overflow-hidden`}>
+      <div 
+        ref={scannerWrapperRef} 
+        className={`absolute inset-0 w-full h-full ${error ? 'opacity-0 pointer-events-none' : 'opacity-100'}`} 
+      />
+
+      {error && (
+        <div className="relative z-50 flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mb-3 border border-red-500/30">
+            <AlertCircle size={24} className="text-red-400" />
+          </div>
+          <h3 className="text-lg font-bold text-white mb-2">فشل تشغيل الكاميرا</h3>
+          <p className="text-red-200/80 text-xs mb-4 leading-relaxed">
+            {error}
+          </p>
+          <button 
+            onClick={onClose}
+            className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-xl transition-colors text-sm"
+          >
+            إغلاق
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  if (inline) {
+    return (
+      <div className={`flex flex-col h-full bg-black rounded-lg overflow-hidden relative ${!isOpen ? 'pointer-events-none opacity-0' : ''}`}>
+        <div className="absolute top-2 right-2 z-10 flex gap-2">
+          <button
+            onClick={onClose}
+            className="p-2 bg-black/50 hover:bg-black/70 rounded-full text-white backdrop-blur-sm transition-colors"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        {scannerContent}
+      </div>
+    );
+  }
 
   return (
     <AnimatePresence>
@@ -136,32 +230,7 @@ export function BarcodeScanner({ isOpen, onClose, onScan, title }: BarcodeScanne
               </button>
             </div>
 
-            {/* Scanner Container */}
-            <div className="relative w-full aspect-square bg-black flex items-center justify-center overflow-hidden">
-              
-              {/* The Actual Scanner Container - Never conditionally unmounted by React while modal is open */}
-              <div className={`absolute inset-0 ${error ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                <div id={`scanner-reader-${scannerId}`} className="w-full h-full" />
-              </div>
-
-              {error && (
-                <div className="relative z-50 flex flex-col items-center justify-center p-6 text-center">
-                  <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mb-3 border border-red-500/30">
-                    <AlertCircle size={24} className="text-red-400" />
-                  </div>
-                  <h3 className="text-lg font-bold text-white mb-2">فشل تشغيل الكاميرا</h3>
-                  <p className="text-red-200/80 text-xs mb-4 leading-relaxed">
-                    {error}
-                  </p>
-                  <button 
-                    onClick={onClose}
-                    className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-xl transition-colors text-sm"
-                  >
-                    إغلاق
-                  </button>
-                </div>
-              )}
-            </div>
+            {scannerContent}
             
             {/* Footer / Hint */}
             {!error && (
@@ -177,3 +246,4 @@ export function BarcodeScanner({ isOpen, onClose, onScan, title }: BarcodeScanne
     </AnimatePresence>
   );
 }
+
