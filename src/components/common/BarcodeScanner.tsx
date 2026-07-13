@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useId } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, QrCode, AlertCircle } from 'lucide-react';
+import { X, Barcode, AlertCircle } from 'lucide-react';
 
 import { useTranslation } from 'react-i18next';
 
@@ -33,8 +33,7 @@ export function BarcodeScanner({ isOpen, onClose, onScan, title }: BarcodeScanne
           
           const config = {
             fps: 10,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: window.innerHeight / window.innerWidth
+            aspectRatio: 1
           };
 
           const onDecode = (decodedText: string) => {
@@ -113,86 +112,66 @@ export function BarcodeScanner({ isOpen, onClose, onScan, title }: BarcodeScanne
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex flex-col bg-zinc-950"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-sm"
+          onClick={onClose}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 text-white bg-zinc-950/80 backdrop-blur-md relative z-10">
-            <button 
-              onClick={onClose} 
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white transition-all active:scale-90"
-            >
-              <X size={28} />
-            </button>
-            <h2 className="text-xl font-bold">{displayTitle}</h2>
-            <div className="w-12 h-12 flex items-center justify-center text-brand-500">
-              <QrCode size={24} />
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col"
+          >
+            {/* Header */}
+            <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-800/50">
+              <h3 className="font-bold text-lg text-zinc-900 dark:text-white flex items-center gap-2">
+                <Barcode size={20} className="text-brand-500" />
+                {displayTitle}
+              </h3>
+              <button
+                onClick={onClose}
+                className="p-2 bg-white dark:bg-zinc-800 rounded-full text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 shadow-sm transition-colors"
+              >
+                <X size={18} />
+              </button>
             </div>
-          </div>
 
-          {/* Scanner Container */}
-          <div className="flex-1 relative overflow-hidden bg-black flex items-center justify-center">
-            
-            {/* The Actual Scanner Container - Never conditionally unmounted by React while modal is open */}
-            <div className={`absolute inset-0 ${error ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-              <div id={`scanner-reader-${scannerId}`} className="w-full h-full" />
-            </div>
+            {/* Scanner Container */}
+            <div className="relative w-full aspect-square bg-black flex items-center justify-center overflow-hidden">
+              
+              {/* The Actual Scanner Container - Never conditionally unmounted by React while modal is open */}
+              <div className={`absolute inset-0 ${error ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                <div id={`scanner-reader-${scannerId}`} className="w-full h-full" />
+              </div>
 
-            {error && (
-              <div className="relative z-50 flex flex-col items-center justify-center p-8 text-center bg-red-950/40 rounded-2xl border border-red-500/20 max-w-sm mx-auto shadow-[0_0_40px_rgba(239,68,68,0.1)] backdrop-blur-md">
-                <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-4 border border-red-500/30">
-                  <AlertCircle size={32} className="text-red-400" />
+              {error && (
+                <div className="relative z-50 flex flex-col items-center justify-center p-6 text-center">
+                  <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mb-3 border border-red-500/30">
+                    <AlertCircle size={24} className="text-red-400" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white mb-2">فشل تشغيل الكاميرا</h3>
+                  <p className="text-red-200/80 text-xs mb-4 leading-relaxed">
+                    {error}
+                  </p>
+                  <button 
+                    onClick={onClose}
+                    className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-xl transition-colors text-sm"
+                  >
+                    إغلاق
+                  </button>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">فشل تشغيل الكاميرا</h3>
-                <p className="text-red-200/80 text-sm mb-6 leading-relaxed">
-                  {error}
+              )}
+            </div>
+            
+            {/* Footer / Hint */}
+            {!error && (
+              <div className="bg-zinc-50 dark:bg-zinc-800/50 p-3 text-center border-t border-zinc-100 dark:border-zinc-800">
+                <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400">
+                  {t('scan_barcode_hint')}
                 </p>
-                <button 
-                  onClick={onClose}
-                  className="px-6 py-2.5 bg-red-500 hover:bg-red-600 text-white font-medium rounded-xl transition-colors w-full"
-                >
-                  إغلاق
-                </button>
               </div>
             )}
-
-            {!error && (
-              <>
-                {/* Visual Overlay - Scanner Frame */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="relative w-72 h-72">
-                    {/* Corner Accents */}
-                    <div className="absolute -top-2 -left-2 w-12 h-12 border-t-4 border-l-4 border-brand-500 rounded-tl-2xl shadow-[0_0_20px_rgba(var(--brand-500),0.3)]" />
-                    <div className="absolute -top-2 -right-2 w-12 h-12 border-t-4 border-r-4 border-brand-500 rounded-tr-2xl shadow-[0_0_20px_rgba(var(--brand-500),0.3)]" />
-                    <div className="absolute -bottom-2 -left-2 w-12 h-12 border-b-4 border-l-4 border-brand-500 rounded-bl-2xl shadow-[0_0_20px_rgba(var(--brand-500),0.3)]" />
-                    <div className="absolute -bottom-2 -right-2 w-12 h-12 border-b-4 border-r-4 border-brand-500 rounded-br-2xl shadow-[0_0_20px_rgba(var(--brand-500),0.3)]" />
-                    
-                    {/* Pulse Glow */}
-                    <div className="absolute inset-0 bg-brand-500/5 animate-pulse rounded-lg" />
-                    
-                    {/* Scanning Line */}
-                    <motion.div 
-                      className="absolute left-0 right-0 h-1 bg-brand-500/60 shadow-[0_0_20px_rgba(var(--brand-500),0.5)] z-10"
-                      animate={{ 
-                        top: ['0%', '100%', '0%'] 
-                      }}
-                      transition={{ 
-                        duration: 3, 
-                        repeat: Infinity, 
-                        ease: "easeInOut" 
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Instruction Text */}
-                <div className="absolute bottom-12 left-0 right-0 text-center px-8 z-10">
-                  <p className="inline-block px-6 py-2 rounded-full bg-zinc-900/60 text-white/80 text-sm font-medium backdrop-blur-sm border border-white/5">
-                    {t('scan_barcode_hint')}
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   collection, 
@@ -27,7 +27,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Card } from '../components/UI';
 import { handleFirestoreError, safeDispatchEvent } from '../lib/utils';
 import { OperationType, Product } from '../types';
-import { Html5Qrcode } from 'html5-qrcode';
+import { BarcodeScanner } from '../components/common/BarcodeScanner';
 
 interface ListItem {
   id: string;
@@ -46,7 +46,6 @@ export default function ShoppingList() {
   const [activeTab, setActiveTab] = useState<'products' | 'notes'>('products');
   const [suggestions, setSuggestions] = useState<Product[]>([]);
   const [isScanning, setIsScanning] = useState(false);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -70,9 +69,6 @@ export default function ShoppingList() {
     return () => {
       unsubscribe();
       unsubscribeProducts();
-      if (scannerRef.current) {
-        scannerRef.current.stop().catch(console.error);
-      }
     };
   }, [user]);
 
@@ -89,51 +85,14 @@ export default function ShoppingList() {
     }
   }, [inputText, activeTab, products]);
 
-  const startScanner = async () => {
-    setIsScanning(true);
-    setTimeout(async () => {
-      try {
-        const html5QrCode = new Html5Qrcode("scanner-region");
-        scannerRef.current = html5QrCode;
-        
-        await html5QrCode.start(
-          { facingMode: "environment" },
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-          },
-          (decodedText) => {
-            const product = products.find(p => p.barcode === decodedText || p.barcode2 === decodedText);
-            if (product) {
-              addItem(product.name);
-              showToast(`${t('found_label')}: ${product.name}`, 'success');
-              stopScanner();
-            } else {
-              showToast(t('product_not_found_stock'), 'info');
-              stopScanner();
-              setInputText(decodedText);
-            }
-          },
-          () => {} // error callback
-        );
-      } catch (err) {
-        console.error("Scanner error:", err);
-        setIsScanning(false);
-      }
-    }, 300);
-  };
-
-  const stopScanner = () => {
-    if (scannerRef.current) {
-      scannerRef.current.stop().then(() => {
-        setIsScanning(false);
-        scannerRef.current = null;
-      }).catch(err => {
-        console.error(err);
-        setIsScanning(false);
-      });
+  const handleScan = (decodedText: string) => {
+    const product = products.find(p => p.barcode === decodedText || p.barcode2 === decodedText);
+    if (product) {
+      addItem(product.name);
+      showToast(`${t('found_label')}: ${product.name}`, 'success');
     } else {
-      setIsScanning(false);
+      showToast(t('product_not_found_stock'), 'info');
+      setInputText(decodedText);
     }
   };
 
@@ -180,35 +139,11 @@ export default function ShoppingList() {
       </div>
 
       {/* Scanner Modal */}
-      <AnimatePresence>
-        {isScanning && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6"
-          >
-            <div className="w-full max-w-sm aspect-square bg-zinc-900 rounded-lg overflow-hidden relative border-2 border-brand-500 shadow-2xl">
-              <div id="scanner-region" className="w-full h-full" />
-              <div className="absolute inset-0 border-[40px] border-black/40 pointer-events-none flex items-center justify-center">
-                <div className="w-full h-full border-2 border-brand-400 rounded-lg animate-pulse" />
-              </div>
-            </div>
-            <div className="mt-12 text-center space-y-6">
-              <div className="space-y-1">
-                <p className="text-white font-bold text-xl">{t('scanning_barcode')}</p>
-                <p className="text-zinc-400 text-sm">{t('point_camera')}</p>
-              </div>
-              <button 
-                onClick={stopScanner}
-                className="h-16 w-16 bg-white/10 text-white rounded-full flex items-center justify-center backdrop-blur-xl border border-white/20 active:scale-95 transition-all"
-              >
-                <X size={32} />
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <BarcodeScanner 
+        isOpen={isScanning}
+        onClose={() => setIsScanning(false)}
+        onScan={handleScan}
+      />
 
       {/* Custom Tabs */}
       <div className="flex bg-zinc-50 dark:bg-zinc-800/50 p-1 rounded-lg border border-zinc-100 dark:border-zinc-800">
@@ -243,7 +178,7 @@ export default function ShoppingList() {
           <div className="flex items-center gap-1.5 pl-1 shrink-0">
             {activeTab === 'products' && (
               <button 
-                onClick={startScanner}
+                onClick={() => setIsScanning(true)}
                 className="h-10 w-10 flex items-center justify-center text-zinc-400 hover:text-brand-600 transition-all rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800"
               >
                 <ScanLine size={20} />

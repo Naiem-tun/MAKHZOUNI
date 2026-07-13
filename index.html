@@ -9,6 +9,17 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="icon" type="image/svg+xml" href="/icon.svg">
     <link rel="apple-touch-icon" href="/icon.svg">
+    <script>
+      try {
+        const settings = JSON.parse(localStorage.getItem('app_settings'));
+        if (settings && settings.darkMode) {
+          document.documentElement.classList.add('dark');
+          document.documentElement.style.backgroundColor = '#0B1121';
+        } else {
+          document.documentElement.style.backgroundColor = '#F4F7FB';
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { 
-  Coins, Search, X, Filter, Trash2, ChevronUp, ChevronDown
+  Coins, Search, X, Filter, Trash2, ChevronUp, ChevronDown, FileText
 } from 'lucide-react';
 import { collection, query, orderBy, limit, onSnapshot, doc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -27,12 +27,8 @@ export default function Invoices() {
   const [endDate, setEndDate] = useState('');
   const [sortBy, setSortBy] = useState<'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc' | 'profit_desc' | 'profit_asc'>('date_desc');
   const [showFiltersPanel, setShowFiltersPanel] = useState(false);
-  const [expandedInvoices, setExpandedInvoices] = useState<Record<string, boolean>>({});
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [showDeleteInvoices, setShowDeleteInvoices] = useState(false);
-
-  const toggleInvoice = (invoiceId: string) => {
-    setExpandedInvoices(prev => ({ ...prev, [invoiceId]: !prev[invoiceId] }));
-  };
 
   const language = settings.language || 'ar';
   const showFinancials = settings.showFinancials ?? true;
@@ -400,12 +396,12 @@ export default function Invoices() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredInvoices.map((inv) => {
-              const isExpanded = expandedInvoices[inv.id];
+              const dateObj = safeParseDate(inv.createdAt);
               return (
               <div 
                 key={inv.id} 
                 className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 relative flex flex-col font-mono text-sm max-w-md mx-auto w-full transition-shadow hover:shadow-md cursor-pointer"
-                onClick={() => toggleInvoice(inv.id)}
+                onClick={() => setSelectedInvoice(inv)}
               >
                 <div className="p-5 flex-1 flex flex-col">
                   {/* Header */}
@@ -418,13 +414,13 @@ export default function Invoices() {
                        <div className="flex justify-between items-center text-sm">
                          <span className="font-bold text-zinc-500 font-sans">التاريخ :</span>
                          <span className="font-bold text-zinc-900 dark:text-white">
-                           {safeParseDate(inv.createdAt).toLocaleDateString(language === 'ar' ? 'ar-TN' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                           {dateObj.toLocaleDateString(language === 'ar' ? 'ar-TN' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
                          </span>
                        </div>
                        <div className="flex justify-between items-center text-sm">
                          <span className="font-bold text-zinc-500 font-sans">الوقت :</span>
                          <span className="font-bold text-zinc-900 dark:text-white">
-                           {safeParseDate(inv.createdAt).toLocaleTimeString(language === 'ar' ? 'ar-TN' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
+                           {dateObj.toLocaleTimeString(language === 'ar' ? 'ar-TN' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
                          </span>
                        </div>
                     </div>
@@ -442,34 +438,6 @@ export default function Invoices() {
                     )}
                   </div>
 
-                  {isExpanded && (
-                    <>
-                      <div className="border-t-2 border-dashed border-zinc-200 dark:border-zinc-700 w-full mb-3"></div>
-
-                      {/* Table Header */}
-                      <div className="grid grid-cols-12 gap-2 text-[11px] font-black font-sans text-zinc-900 dark:text-white pb-2 text-center">
-                        <div className="col-span-6 text-right">المنتج</div>
-                        <div className="col-span-3 text-center">الكمية</div>
-                        <div className="col-span-3 text-left">المجموع</div>
-                      </div>
-
-                      {/* Table Body */}
-                      <div className="space-y-3 mb-4 flex-1 text-sm">
-                        {(inv.items || []).map((item: any, i: number) => (
-                          <div key={i} className="grid grid-cols-12 gap-2 items-center text-center">
-                            <div className="col-span-6 text-right font-bold text-zinc-800 dark:text-zinc-200 line-clamp-2" title={item.name}>{item.name}</div>
-                            <div className="col-span-3 text-center font-bold text-zinc-600 dark:text-zinc-400">
-                              {item.quantity} {item.unit || ''}
-                            </div>
-                            <div className="col-span-3 text-left font-black text-zinc-900 dark:text-white" dir="ltr">
-                              {(item.price * item.quantity).toFixed(3)}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-
                   <div className="border-t-2 border-dashed border-zinc-200 dark:border-zinc-700 w-full mb-3 mt-auto"></div>
 
                   {/* Footer */}
@@ -481,9 +449,6 @@ export default function Invoices() {
                       <span className="text-zinc-900 dark:text-white" dir="ltr">
                         {formatCurrency(inv.totalAmount, settings.currency, language)}
                       </span>
-                      <div className="text-zinc-400">
-                        {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -492,6 +457,89 @@ export default function Invoices() {
           </div>
         )}
       </section>
+
+      <AnimatePresence>
+        {selectedInvoice && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-sm"
+            onClick={() => setSelectedInvoice(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[85vh]"
+            >
+              {/* Header */}
+              <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-800/50">
+                <h3 className="font-bold text-lg text-zinc-900 dark:text-white flex items-center gap-2">
+                  <FileText size={20} className="text-brand-500" />
+                  تفاصيل الفاتورة
+                </h3>
+                <button
+                  onClick={() => setSelectedInvoice(null)}
+                  className="p-2 bg-white dark:bg-zinc-800 rounded-full text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 shadow-sm transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              
+              {/* Body */}
+              <div className="p-5 overflow-y-auto font-mono text-sm">
+                <div className="flex justify-between items-start mb-6">
+                  <div className="space-y-1">
+                     <div className="text-zinc-500 font-sans font-bold text-xs">رقم الفاتورة :</div>
+                     <div className="text-lg font-black text-zinc-900 dark:text-white">#{selectedInvoice.invoiceNumber}</div>
+                  </div>
+                  <div className="text-left space-y-1">
+                     <div className="text-zinc-500 font-sans font-bold text-xs">التاريخ :</div>
+                     <div className="font-bold text-zinc-900 dark:text-white">
+                       {safeParseDate(selectedInvoice.createdAt).toLocaleDateString(language === 'ar' ? 'ar-TN' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                     </div>
+                     <div className="font-bold text-zinc-900 dark:text-white">
+                       {safeParseDate(selectedInvoice.createdAt).toLocaleTimeString(language === 'ar' ? 'ar-TN' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
+                     </div>
+                  </div>
+                </div>
+
+                {/* Table */}
+                <div className="border-t-2 border-dashed border-zinc-200 dark:border-zinc-700 w-full mb-3 pt-4"></div>
+                <div className="grid grid-cols-12 gap-2 text-[11px] font-black font-sans text-zinc-900 dark:text-white pb-2 text-center">
+                  <div className="col-span-6 text-right">المنتج</div>
+                  <div className="col-span-3 text-center">الكمية</div>
+                  <div className="col-span-3 text-left">المجموع</div>
+                </div>
+                <div className="space-y-3 mb-6">
+                  {(selectedInvoice.items || []).map((item: any, i: number) => (
+                    <div key={i} className="grid grid-cols-12 gap-2 items-center text-center">
+                      <div className="col-span-6 text-right font-bold text-zinc-800 dark:text-zinc-200 line-clamp-2" title={item.name}>{item.name}</div>
+                      <div className="col-span-3 text-center font-bold text-zinc-600 dark:text-zinc-400">
+                        {item.quantity} {item.unit || ''}
+                      </div>
+                      <div className="col-span-3 text-left font-black text-zinc-900 dark:text-white" dir="ltr">
+                        {(item.price * item.quantity).toFixed(3)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Footer */}
+                <div className="border-t-2 border-dashed border-zinc-200 dark:border-zinc-700 w-full mb-4 pt-4"></div>
+                <div className="flex justify-between items-center text-lg font-black font-sans bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-xl">
+                  <span className="text-zinc-900 dark:text-white">المجموع الكلي :</span>
+                  <span className="text-brand-600 dark:text-brand-400" dir="ltr">
+                    {formatCurrency(selectedInvoice.totalAmount, settings.currency, language)}
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <CustomConfirmModal
         show={deleteConfirmOpen}
