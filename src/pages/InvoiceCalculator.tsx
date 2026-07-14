@@ -564,6 +564,7 @@ export default function InvoiceCalculator() {
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
         onScan={handleScan}
+        tabId="invoice-calculator"
       />
     </div>
   );

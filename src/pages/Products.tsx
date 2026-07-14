@@ -618,6 +618,7 @@ export default function Products() {
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
         onScan={handleScan}
+        tabId="products"
       />
 
       <PriceNegotiationModal

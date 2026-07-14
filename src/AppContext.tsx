@@ -31,6 +31,8 @@ interface AppContextType {
   setIsSessionSummaryOpen: (val: boolean) => void;
   isCatalogMode: boolean;
   setIsCatalogMode: (val: boolean) => void;
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
 }
 
 const defaultSettings: UserSettings = {
@@ -72,6 +74,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isCatalogMode, setIsCatalogModeState] = useState(() => {
     return localStorage.getItem('isCatalogMode') === 'true';
   });
+  const [activeTab, setActiveTab] = useState('products');
 
   const setIsCatalogMode = (val: boolean) => {
     setIsCatalogModeState(val);
@@ -238,7 +241,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isSessionSummaryOpen,
       setIsSessionSummaryOpen,
       isCatalogMode,
-      setIsCatalogMode
+      setIsCatalogMode,
+      activeTab,
+      setActiveTab
     }}>
       <div className={settings.language === 'ar' ? 'rtl' : 'ltr'} dir={settings.language === 'ar' ? 'rtl' : 'ltr'}>
         {children}

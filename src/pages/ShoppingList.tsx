@@ -143,6 +143,7 @@ export default function ShoppingList() {
         isOpen={isScanning}
         onClose={() => setIsScanning(false)}
         onScan={handleScan}
+        tabId="shopping-list"
       />
 
       {/* Custom Tabs */}

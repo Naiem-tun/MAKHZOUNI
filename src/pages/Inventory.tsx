@@ -828,6 +828,7 @@ export default function Inventory() {
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
         onScan={handleScan}
+        tabId="inventory"
       />
       
       <InventoryCompareModal 

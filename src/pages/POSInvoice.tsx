@@ -26,8 +26,8 @@ import {
   useAppContext } from '../AppContext';
 import {
   collection, onSnapshot, writeBatch, doc, serverTimestamp } from 'firebase/firestore';
-import {
-  db } from '../lib/firebase';
+import { db } from '../lib/firebase';
+import { forceStopAllCameras } from '../components/common/BarcodeScanner';
 import {
   Product } from '../types';
 
@@ -136,7 +136,14 @@ export default function POSInvoice() {
       setIsInlineScannerOpen(true);
     };
     window.addEventListener('open-barcode-scanner-pos', scannerHandler);
-    return () => window.removeEventListener('open-barcode-scanner-pos', scannerHandler);
+    
+    // Cleanup Hook to forcefully stop any active camera tracks when leaving the POS page
+    return () => {
+      window.removeEventListener('open-barcode-scanner-pos', scannerHandler);
+      
+      // Stop all tracks in any active video elements using global tracking
+      forceStopAllCameras();
+    };
   }, []);
 
   useEffect(() => {
@@ -726,6 +733,7 @@ export default function POSInvoice() {
                   onScan={handleScan}
                   inline={true}
                   continuous={true}
+                  tabId="pos"
                 />
               </div>
             </motion.div>

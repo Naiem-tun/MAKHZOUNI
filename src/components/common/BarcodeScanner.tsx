@@ -2,8 +2,57 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Barcode, AlertCircle } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+import { useAppContext } from '../../AppContext';
+
+// --- GLOBAL CAMERA TRACKER ---
+const globalActiveStreams = new Set<MediaStream>();
+let activeScannersCount = 0;
+
+if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+  const originalGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+  navigator.mediaDevices.getUserMedia = async (constraints) => {
+    try {
+      const stream = await originalGetUserMedia(constraints);
+      
+      // If no scanners are active (e.g. unmounted during async camera starting), stop immediately!
+      if (activeScannersCount === 0) {
+        stream.getTracks().forEach(track => track.stop());
+        return stream;
+      }
+
+      globalActiveStreams.add(stream);
+      stream.getTracks().forEach((track: MediaStreamTrack) => {
+        track.addEventListener('ended', () => {
+          if (stream.getTracks().every((t: MediaStreamTrack) => t.readyState === 'ended')) {
+            globalActiveStreams.delete(stream);
+          }
+        });
+      });
+      return stream;
+    } catch (err) {
+      throw err;
+    }
+  };
+}
+
+export function forceStopAllCameras() {
+  globalActiveStreams.forEach(stream => {
+    stream.getTracks().forEach(track => track.stop());
+  });
+  globalActiveStreams.clear();
+
+  if (typeof document !== 'undefined') {
+    document.querySelectorAll('video').forEach(video => {
+      if ((video as any).srcObject) {
+        const stream = (video as any).srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+        (video as any).srcObject = null;
+      }
+    });
+  }
+}
+// -----------------------------
 
 interface BarcodeScannerProps {
   isOpen: boolean;
@@ -12,10 +61,12 @@ interface BarcodeScannerProps {
   title?: string;
   inline?: boolean;
   continuous?: boolean;
+  tabId?: string;
 }
 
-export function BarcodeScanner({ isOpen, onClose, onScan, title, inline = false, continuous = false }: BarcodeScannerProps) {
+export function BarcodeScanner({ isOpen, onClose, onScan, title, inline = false, continuous = false, tabId }: BarcodeScannerProps) {
   const { t } = useTranslation();
+  const { activeTab } = useAppContext();
   const displayTitle = title || t('scan_barcode_title');
   const [error, setError] = useState<string | null>(null);
   
@@ -29,6 +80,31 @@ export function BarcodeScanner({ isOpen, onClose, onScan, title, inline = false,
     onScanRef.current = onScan;
     onCloseRef.current = onClose;
   }, [onScan, onClose]);
+
+  // Handle activeTab changes: automatically close the scanner if we switch away (change tabs)
+  const initialTabRef = useRef(activeTab);
+  useEffect(() => {
+    if (isOpen) {
+      if (activeTab !== initialTabRef.current) {
+        onClose();
+      }
+    } else {
+      initialTabRef.current = activeTab;
+    }
+  }, [activeTab, isOpen, onClose]);
+
+  // Track the number of active scanners globally to prevent any pending camera streams
+  useEffect(() => {
+    if (!isOpen) return;
+    activeScannersCount++;
+    return () => {
+      activeScannersCount--;
+      if (activeScannersCount <= 0) {
+        activeScannersCount = 0;
+        forceStopAllCameras();
+      }
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -48,6 +124,8 @@ export function BarcodeScanner({ isOpen, onClose, onScan, title, inline = false,
     if (scannerWrapperRef.current) {
       scannerWrapperRef.current.appendChild(targetDiv);
     }
+
+    let startPromise: Promise<any> | null = null;
 
     const startScanner = async () => {
       try {
@@ -95,15 +173,17 @@ export function BarcodeScanner({ isOpen, onClose, onScan, title, inline = false,
         };
 
         try {
-          await html5QrCode.start({ facingMode: "environment" }, config, onDecode, () => {});
+          startPromise = html5QrCode.start({ facingMode: "environment" }, config, onDecode, () => {});
+          await startPromise;
         } catch (envCameraError) {
           if (isMounted) {
-             await html5QrCode.start({ facingMode: "user" }, config, onDecode, () => {});
+             startPromise = html5QrCode.start({ facingMode: "user" }, config, onDecode, () => {});
+             await startPromise;
           }
         }
 
         if (!isMounted) {
-          html5QrCode.stop().then(() => html5QrCode?.clear()).catch(() => {});
+          // If unmounted during start, cleanup is handled in the effect return
           return;
         }
 
@@ -128,31 +208,81 @@ export function BarcodeScanner({ isOpen, onClose, onScan, title, inline = false,
       isMounted = false;
       clearTimeout(timeoutId);
       
-      if (html5QrCode) {
-        // Suppress any errors during stop/clear
+      // Keep targetDiv attached to the DOM under document.body so the browser doesn't
+      // abruptly trigger onabort() or onended on the active video element before html5-qrcode stop() completes.
+      if (targetDiv && targetDiv.parentNode) {
         try {
-          // Temporarily hide it so the user doesn't see frozen frames while stopping
-          targetDiv.style.display = 'none';
+          const videoElement = targetDiv.querySelector('video');
+          if (videoElement) {
+            videoElement.onabort = null;
+            videoElement.onerror = null;
+          }
           
-          if (html5QrCode.isScanning) {
-            html5QrCode.stop()
-              .then(() => {
-                try { html5QrCode?.clear(); } catch(e) {}
-                targetDiv.remove();
-              })
-              .catch(() => {
-                targetDiv.remove();
-              });
-          } else {
-            try { html5QrCode.clear(); } catch(e) {}
+          document.body.appendChild(targetDiv);
+          targetDiv.style.position = 'fixed';
+          targetDiv.style.top = '-9999px';
+          targetDiv.style.left = '-9999px';
+          targetDiv.style.width = '1px';
+          targetDiv.style.height = '1px';
+          targetDiv.style.opacity = '0';
+        } catch (e) {
+          console.warn("Failed to temporarily re-parent targetDiv:", e);
+        }
+      }
+
+      const performCleanup = async () => {
+        if (startPromise) {
+          try {
+            await startPromise; // Wait for any pending start to complete
+          } catch(e) {}
+        }
+
+        // Before stopping, remove the video's onabort handler which html5-qrcode sets to throw the Uncaught error
+        try {
+          const videoElement = targetDiv.querySelector('video');
+          if (videoElement) {
+            videoElement.onabort = null;
+            videoElement.onerror = null;
+          }
+        } catch (e) {}
+
+        if (html5QrCode) {
+          try {
+            if (html5QrCode.isScanning) {
+              await html5QrCode.stop();
+            }
+          } catch (e) {
+            // It might fail or log warnings, which is fine since we are shutting down
+          }
+          try {
+            html5QrCode.clear();
+          } catch (e) {}
+        }
+        
+        // Now that the scanner has cleanly stopped, we can safely turn off any leftover tracks
+        try {
+          const videoElement = targetDiv.querySelector('video');
+          if (videoElement) {
+            videoElement.pause();
+            if ((videoElement as any).srcObject) {
+              const stream = (videoElement as any).srcObject as MediaStream;
+              stream.getTracks().forEach(track => track.stop());
+              (videoElement as any).srcObject = null;
+            }
+          }
+        } catch (err) {}
+
+        try {
+          if (targetDiv.parentNode) {
             targetDiv.remove();
           }
-        } catch (e) {
-          targetDiv.remove();
-        }
-      } else {
-        targetDiv.remove();
-      }
+        } catch (e) {}
+        
+        // Final aggressive check to guarantee no cameras remain active
+        forceStopAllCameras();
+      };
+
+      performCleanup();
     };
   }, [isOpen, inline, continuous]);
 

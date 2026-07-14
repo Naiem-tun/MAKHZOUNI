@@ -304,6 +304,7 @@ export default function CatalogMode() {
           setSearchQuery(code);
           setIsScannerOpen(false);
         }}
+        tabId="catalog-mode"
       />
     </div>
   );

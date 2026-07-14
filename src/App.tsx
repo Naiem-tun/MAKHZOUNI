@@ -125,9 +125,10 @@ function AppContent() {
     setIsSessionSummaryOpen,
     isCatalogMode,
     setIsCatalogMode,
+    activeTab,
+    setActiveTab,
   } = useAppContext();
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState("products");
   const [mountedTabs, setMountedTabs] = useState<Set<string>>(
     new Set(["products"]),
   );
@@ -559,17 +560,18 @@ function AppContent() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
                   onClick={() => setShowQuickActionModal(false)}
-                  className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                  className="absolute inset-0 bg-black/60"
                 />
 
                 {/* Modal Container */}
                 <motion.div
                   id="quick-action-modal"
-                  initial={{ opacity: 0, y: 100, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 100, scale: 0.95 }}
-                  transition={{ type: "spring", damping: 25, stiffness: 350 }}
+                  initial={{ opacity: 0, y: 40 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 40 }}
+                  transition={{ type: "tween", duration: 0.2, ease: "easeOut" }}
                   className="relative w-full sm:max-w-md bg-white dark:bg-zinc-900 rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl border-t sm:border border-zinc-100 dark:border-zinc-800 z-10 select-none pb-10 sm:pb-6"
                 >
                   {/* Pull bar for mobile */}
@@ -598,9 +600,9 @@ function AppContent() {
                         setActiveTab("pos");
                         setShowQuickActionModal(false);
                       }}
-                      className="flex items-center gap-4 p-4 text-right rounded-xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 hover:bg-brand-50/40 dark:bg-zinc-900/50 dark:hover:bg-brand-950/10 hover:border-brand-100 dark:hover:border-brand-900/30 transition-all duration-200 group active:scale-[0.98]"
+                      className="flex items-center gap-4 p-4 text-right rounded-xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 hover:bg-brand-50/40 dark:bg-zinc-900/50 dark:hover:bg-brand-950/10 hover:border-brand-100 dark:hover:border-brand-900/30 transition-all duration-75 group active:scale-[0.98]"
                     >
-                      <div className="w-12 h-12 rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0 group-hover:bg-brand-500 group-hover:text-white transition-all duration-200">
+                      <div className="w-12 h-12 rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0 group-hover:bg-brand-500 group-hover:text-white transition-all duration-75">
                         <Store size={22} />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -620,9 +622,9 @@ function AppContent() {
                         setActiveTab("invoice-calculator");
                         setShowQuickActionModal(false);
                       }}
-                      className="flex items-center gap-4 p-4 text-right rounded-xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 hover:bg-blue-50/40 dark:bg-zinc-900/50 dark:hover:bg-blue-950/10 hover:border-blue-100 dark:hover:border-blue-900/30 transition-all duration-200 group active:scale-[0.98]"
+                      className="flex items-center gap-4 p-4 text-right rounded-xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 hover:bg-blue-50/40 dark:bg-zinc-900/50 dark:hover:bg-blue-950/10 hover:border-blue-100 dark:hover:border-blue-900/30 transition-all duration-75 group active:scale-[0.98]"
                     >
-                      <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:bg-blue-500 group-hover:text-white transition-all duration-200">
+                      <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:bg-blue-500 group-hover:text-white transition-all duration-75">
                         <Calculator size={22} />
                       </div>
                       <div className="flex-1 min-w-0">
