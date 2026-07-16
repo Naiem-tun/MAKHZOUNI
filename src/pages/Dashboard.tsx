@@ -32,7 +32,7 @@ import {
 } from 'lucide-react';
 import { Card } from '../components/UI';
 import { cn, formatCurrency, safeParseFloat, safeDispatchEvent, safeParseDate, formatAppDate } from '../lib/utils';
-import { Product, Transaction, OperationType } from '../types';
+import { Product, Transaction, OperationType, Supplier } from '../types';
 import { handleFirestoreError } from '../lib/utils';
 import { logAudit } from '../lib/auditLogger';
 import { PrintPurchasesModal } from '../components/dashboard/PrintPurchasesModal';
@@ -47,6 +47,7 @@ const Dashboard = memo(() => {
   const [expenses, setExpenses] = useState<any[]>([]);
   const [debts, setDebts] = useState<any[]>([]);
   const [supplierTransactions, setSupplierTransactions] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isMovementExpanded, setIsMovementExpanded] = useState(false);
   const [showDeletePurchases, setShowDeletePurchases] = useState(false);
   const [deletingPurchaseId, setDeletingPurchaseId] = useState<string | null>(null);
@@ -93,6 +94,7 @@ const Dashboard = memo(() => {
     const expensesPath = `users/${user.uid}/expenses`;
     const debtsPath = `users/${user.uid}/debts`;
     const supplierTxPath = `users/${user.uid}/supplierTransactions`;
+    const suppliersPath = `users/${user.uid}/suppliers`;
     
     const productsQuery = collection(db, productsPath);
     const thirtyDaysAgo = new Date();
@@ -106,6 +108,7 @@ const Dashboard = memo(() => {
     const expensesQuery = collection(db, expensesPath);
     const debtsQuery = collection(db, debtsPath);
     const supplierTxQuery = collection(db, supplierTxPath);
+    const suppliersQuery = collection(db, suppliersPath);
 
     const unsubProducts = onSnapshot(productsQuery, (snap) => {
       setProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
@@ -152,12 +155,19 @@ const Dashboard = memo(() => {
       handleFirestoreError(error, OperationType.LIST, supplierTxPath);
     });
 
+    const unsubSuppliers = onSnapshot(suppliersQuery, (snap) => {
+      setSuppliers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Supplier)));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, suppliersPath);
+    });
+
     return () => {
       unsubProducts();
       unsubPurchases();
       unsubExpenses();
       unsubDebts();
       unsubSupplierTx();
+      unsubSuppliers();
     };
   }, [user]);
 
@@ -222,17 +232,30 @@ const Dashboard = memo(() => {
     // Top Suppliers Analysis
     const suppliersData: Record<string, { name: string, debt: number, purchaseVolume: number }> = {};
     
+    // Initialize with actual active suppliers
+    suppliers.forEach(s => {
+      if (s.name) {
+        suppliersData[s.name] = { name: s.name, debt: 0, purchaseVolume: 0 };
+      }
+    });
+
     debts.filter(d => d.type === 'payable').forEach(d => {
       const name = d.customerName || 'غير معروف';
-      if (!suppliersData[name]) suppliersData[name] = { name, debt: 0, purchaseVolume: 0 };
+      if (!suppliersData[name]) {
+        suppliersData[name] = { name, debt: 0, purchaseVolume: 0 };
+      }
       suppliersData[name].debt += Number(d.totalAmount) || 0;
     });
 
-    allPurchases.forEach(p => {
-      if (p.supplierName) {
-        const name = p.supplierName;
-        if (!suppliersData[name]) suppliersData[name] = { name, debt: 0, purchaseVolume: 0 };
-        suppliersData[name].purchaseVolume += Number(p.amount) || 0;
+    supplierTransactions.forEach(t => {
+      const supplier = suppliers.find(s => s.id === t.supplierId);
+      const name = supplier?.name || 'غير معروف';
+      
+      if (name && name !== 'غير معروف') {
+        if (!suppliersData[name]) {
+          suppliersData[name] = { name, debt: 0, purchaseVolume: 0 };
+        }
+        suppliersData[name].purchaseVolume += Number(t.amount) || 0;
       }
     });
 
@@ -257,7 +280,7 @@ const Dashboard = memo(() => {
       todayPurchasesTotal,
       movementHistory
     };
-  }, [products, expenses, debts, supplierTransactions, allPurchases]);
+  }, [products, expenses, debts, supplierTransactions, allPurchases, suppliers]);
 
   const language = settings.language || 'ar';
   const showFinancials = settings.showFinancials ?? true;
