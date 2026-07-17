@@ -40,6 +40,7 @@ export interface UserSettings {
   syncImages?: boolean;
   enablePOS?: boolean;
   posDeductInventory?: boolean;
+  showCashierStockButton?: boolean;
   receiptLogo?: string;
   receiptThankYouMessage?: string;
   receiptPolicy?: string;

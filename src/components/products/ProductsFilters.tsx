@@ -172,7 +172,7 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
             <span>{t('box')}</span>
           </button>
 
-          {settings.enablePOS && setShowPosStock && (
+          {settings.enablePOS && settings.showCashierStockButton !== false && setShowPosStock && (
             <button
               onClick={() => setShowPosStock(!showPosStock)}
               className={cn(
