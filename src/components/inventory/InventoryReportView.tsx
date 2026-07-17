@@ -146,7 +146,7 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
       id="pdf-report-content"
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="pb-40 min-h-screen bg-white" dir="rtl"
+      className="pb-40 min-h-[100dvh] bg-white" dir="rtl"
     >
       <div className="p-4 sm:p-6 text-black" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, system-ui" }}>
         

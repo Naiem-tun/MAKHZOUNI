@@ -19,7 +19,7 @@ export function AppBottomNav({
   const { t } = useTranslation();
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-zinc-50/80 dark:bg-zinc-950/80 backdrop-blur-xl pb-6 pt-3 px-4 border-t border-zinc-200/60 dark:border-zinc-800/60 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] dark:shadow-none">
+    <div className="fixed bottom-0 left-0 right-0 z-40 bg-zinc-50/80 dark:bg-zinc-950/80 backdrop-blur-xl pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 px-4 border-t border-zinc-200/60 dark:border-zinc-800/60 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] dark:shadow-none">
       <div className="flex items-center gap-3 max-w-7xl mx-auto">
         {/* Fixed Barcode Scanner */}
         <button

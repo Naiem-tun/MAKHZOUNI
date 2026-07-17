@@ -446,7 +446,7 @@ function AppContent() {
 
           {/* Main Content */}
           <main
-            className={`mx-auto max-w-7xl relative w-full flex-1 flex flex-col px-4 pt-4 pb-36 mb-safe sm:px-6 lg:px-8 min-h-[500px]`}
+            className={`mx-auto max-w-7xl relative w-full flex-1 flex flex-col px-4 pt-4 pb-[calc(9rem+env(safe-area-inset-bottom))] sm:px-6 lg:px-8 min-h-[500px]`}
           >
             <Suspense
               fallback={

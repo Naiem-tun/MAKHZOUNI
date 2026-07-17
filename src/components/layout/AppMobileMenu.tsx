@@ -52,7 +52,7 @@ export function AppMobileMenu({
             <X size={24} className="text-zinc-500" />
           </button>
         </div>
-        <nav className="p-3 overflow-y-auto max-h-[calc(100vh-4.5rem)] space-y-6 pb-8 custom-scrollbar">
+        <nav className="p-3 overflow-y-auto max-h-[calc(100dvh-4.5rem)] space-y-6 pb-[calc(2rem+env(safe-area-inset-bottom))] custom-scrollbar">
           {/* 1. العمليات اليومية */}
           <div className="space-y-1">
             <div className="px-3 pb-2 text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">

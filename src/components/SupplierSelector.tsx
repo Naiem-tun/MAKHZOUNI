@@ -32,7 +32,10 @@ export function SupplierSelector() {
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }} 
-            onClick={() => setIsSupplierSelectorOpen(false)} 
+            onClick={() => {
+              setIsSupplierSelectorOpen(false);
+              window.dispatchEvent(new CustomEvent('supplier-selector-closed'));
+            }} 
             className="absolute inset-0 bg-zinc-950/40 backdrop-blur-sm" 
           />
           <motion.div 
@@ -44,7 +47,10 @@ export function SupplierSelector() {
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-xl font-black text-zinc-900 dark:text-white">{t('select_supplier')}</h2>
               <button 
-                onClick={() => setIsSupplierSelectorOpen(false)}
+                onClick={() => {
+                  setIsSupplierSelectorOpen(false);
+                  window.dispatchEvent(new CustomEvent('supplier-selector-closed'));
+                }}
                 className="h-10 w-10 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 dark:bg-zinc-800"
               >
                 <X size={20} />

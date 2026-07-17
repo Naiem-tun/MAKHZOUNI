@@ -79,6 +79,27 @@ export default function Products() {
   const [negotiationProducts, setNegotiationProducts] = useState<Product[]>([]);
   const [createdNewProduct, setCreatedNewProduct] = useState<Product | null>(null);
   const [isSmartPopupOpen, setIsSmartPopupOpen] = useState(false);
+  const [pendingQuantityProduct, setPendingQuantityProduct] = useState<Product | null>(null);
+
+  useEffect(() => {
+    if (activeSupplier && pendingQuantityProduct) {
+      setQuantityProduct(pendingQuantityProduct);
+      setLastPurchaseInfo(null);
+      setIsQuantityModalOpen(true);
+      setPendingQuantityProduct(null);
+    }
+  }, [activeSupplier, pendingQuantityProduct]);
+
+  useEffect(() => {
+    const handleSupplierClosed = () => {
+      setPendingQuantityProduct(null);
+    };
+    window.addEventListener('supplier-selector-closed', handleSupplierClosed);
+    return () => {
+      window.removeEventListener('supplier-selector-closed', handleSupplierClosed);
+    };
+  }, []);
+
   
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
@@ -237,7 +258,7 @@ export default function Products() {
       const batch = writeBatch(db);
       
       const hasLocalImageValue = !!imageFile || !!(editingProduct?.hasLocalImage && !imageRemoved);
-      const hasCloudImageValue = settings.syncImages ? hasLocalImageValue : (editingProduct?.hasCloudImage && !imageRemoved);
+      const hasCloudImageValue = settings.syncImages ? hasLocalImageValue : (Boolean(editingProduct?.hasCloudImage) && !imageRemoved);
 
       if (editingProduct?.id) {
         const path = `users/${user.uid}/products/${editingProduct.id}`;
@@ -665,9 +686,14 @@ export default function Products() {
         onConfirmPurchase={() => {
           if (createdNewProduct) {
             setIsSmartPopupOpen(false);
-            setQuantityProduct(createdNewProduct);
-            setLastPurchaseInfo(null);
-            setIsQuantityModalOpen(true);
+            if (settings.requireSupplierSession && !activeSupplier) {
+              setPendingQuantityProduct(createdNewProduct);
+              window.dispatchEvent(new CustomEvent('open-supplier-selector'));
+            } else {
+              setQuantityProduct(createdNewProduct);
+              setLastPurchaseInfo(null);
+              setIsQuantityModalOpen(true);
+            }
             setCreatedNewProduct(null);
           }
         }}

@@ -536,7 +536,7 @@ export default function Inventory() {
   }
 
   return (
-    <div className="space-y-6 pb-40 min-h-screen -mx-2 sm:mx-0 relative" dir="rtl">
+    <div className="space-y-6 pb-40 min-h-[100dvh] -mx-2 sm:mx-0 relative" dir="rtl">
       <ExpensesModal
         show={showExpensesModal}
         onClose={() => setShowExpensesModal(false)}

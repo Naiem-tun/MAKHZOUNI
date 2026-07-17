@@ -77,7 +77,7 @@ export function Login() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-brand-100 p-6 dark:bg-zinc-950 font-sans" dir="rtl">
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-brand-100 p-6 dark:bg-zinc-950 font-sans" dir="rtl">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
