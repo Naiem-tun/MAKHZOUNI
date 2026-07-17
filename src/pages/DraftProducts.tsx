@@ -70,7 +70,7 @@ export default function DraftProducts() {
       
       // Record purchase transaction if there is initial quantity
       if (productData.quantity && productData.quantity > 0) {
-        const purchaseAmount = productData.quantity * (productData.purchasePrice || 0);
+        const purchaseAmount = Number((productData.quantity * (productData.purchasePrice || 0)).toFixed(3));
         const purchaseRef = doc(collection(db, `users/${user.uid}/purchases`));
         batch.set(purchaseRef, {
           productId: mainRef.id,

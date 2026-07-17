@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../AppContext';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, writeBatch, increment, Timestamp } from 'firebase/firestore';
@@ -17,7 +17,8 @@ import {
   History,
   AlertCircle,
   Shield,
-  X
+  X,
+  WifiOff
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { ProductPagination } from '../components/products/ProductPagination';
@@ -53,6 +54,7 @@ export default function Products() {
     } catch { return []; }
   });
   const [loading, setLoading] = useState(products.length === 0);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [stockFilter, setStockFilter] = useState('all'); // 'all', 'available', 'low', 'out'
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -102,17 +104,24 @@ export default function Products() {
       localStorage.setItem(`products_cache_${user.uid}`, JSON.stringify(fetchedProducts));
       setLoading(false);
       setIsDataLoaded(true);
-    }, (error) => {
+      setError(null);
+    }, (err) => {
       setLoading(false);
       setIsDataLoaded(true);
-      handleFirestoreError(error, OperationType.LIST, path);
+      const hasCachedData = !!localStorage.getItem(`products_cache_${user.uid}`);
+      if (hasCachedData) {
+        setError('أنت تتصفح في وضع عدم الاتصال. البيانات المعروضة هي نسخة مخبأة قد لا تكون الأحدث.');
+      } else {
+        setError('حدث خطأ أثناء تحميل المنتجات. يرجى المحاولة لاحقاً.');
+      }
+      handleFirestoreError(err, OperationType.LIST, path);
     });
   }, [user, setIsDataLoaded]);
 
-  // Reset to first page on search
+  // Reset to first page on search or filter change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, stockFilter, categoryFilter]);
 
   const handleDelete = () => {
     if (!user || !productToDelete) return;
@@ -145,7 +154,7 @@ export default function Products() {
       );
       const monitoredSnap = await getDocs(monitoredQ);
 
-      const purchaseAmount = (numBoxes * boxPrice) + (extraPieces * piecePrice);
+      const purchaseAmount = Number(((numBoxes * boxPrice) + (extraPieces * piecePrice)).toFixed(3));
       
       const batch = writeBatch(db);
       const productRef = doc(db, `users/${user.uid}/products/${quantityProduct.id}`);
@@ -256,8 +265,10 @@ export default function Products() {
         logAudit('update', 'product', editingProduct.id, productData.name, detailsStr);
         
         if (imageRemoved) {
-           await deleteLocalImage(editingProduct.id!).catch(console.error);
-           await deleteCloudImage(user.uid, editingProduct.id!).catch(console.error);
+           await Promise.allSettled([
+             deleteLocalImage(editingProduct.id!),
+             deleteCloudImage(user.uid, editingProduct.id!)
+           ]).catch(console.error);
         }
         if (imageFile) {
            const compressedBlob = await compressImage(imageFile);
@@ -282,7 +293,7 @@ export default function Products() {
 
         // Record initial stock as a purchase
         if (productData.quantity > 0) {
-          const purchaseAmount = productData.quantity * (productData.purchasePrice || 0);
+          const purchaseAmount = Number((productData.quantity * (productData.purchasePrice || 0)).toFixed(3));
           const purchaseRef = doc(collection(db, purchasesPath));
           batch.set(purchaseRef, {
             productId: productRef.id,
@@ -446,33 +457,35 @@ export default function Products() {
     }
   };
 
-  const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         p.barcode?.includes(searchTerm) ||
-                         p.barcode2?.includes(searchTerm);
-    
-    let matchesStock = true;
-    if (stockFilter === 'available') {
-      matchesStock = (p.quantity || 0) > (p.minQuantity || 0);
-    } else if (stockFilter === 'low') {
-      matchesStock = (p.quantity || 0) <= (p.minQuantity || 0) && (p.quantity || 0) > 0;
-    } else if (stockFilter === 'out') {
-      matchesStock = (p.quantity || 0) <= 0;
-    }
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => {
+      const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           p.barcode?.includes(searchTerm) ||
+                           p.barcode2?.includes(searchTerm);
+      
+      let matchesStock = true;
+      if (stockFilter === 'available') {
+        matchesStock = (p.quantity || 0) > (p.minQuantity || 0);
+      } else if (stockFilter === 'low') {
+        matchesStock = (p.quantity || 0) <= (p.minQuantity || 0) && (p.quantity || 0) > 0;
+      } else if (stockFilter === 'out') {
+        matchesStock = (p.quantity || 0) <= 0;
+      }
 
-    const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
+      const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
 
-    return matchesSearch && matchesStock && matchesCategory;
-  }).sort((a, b) => {
-    const catA = a.category || '';
-    const catB = b.category || '';
-    if (catA !== catB) {
-      return catA.localeCompare(catB, settings.language);
-    }
-    const nameA = a.name || '';
-    const nameB = b.name || '';
-    return nameA.localeCompare(nameB, settings.language);
-  });
+      return matchesSearch && matchesStock && matchesCategory;
+    }).sort((a, b) => {
+      const catA = a.category || '';
+      const catB = b.category || '';
+      if (catA !== catB) {
+        return catA.localeCompare(catB, settings.language);
+      }
+      const nameA = a.name || '';
+      const nameB = b.name || '';
+      return nameA.localeCompare(nameB, settings.language);
+    });
+  }, [products, searchTerm, stockFilter, categoryFilter, settings.language]);
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
   const paginatedProducts = filteredProducts.slice(
@@ -528,6 +541,18 @@ export default function Products() {
           setIsScannerOpen(true);
         }}
       />
+      
+      {error && (
+        <div className={cn(
+          "border p-4 rounded-xl flex items-center justify-center space-x-2 space-x-reverse",
+          error.includes('عدم الاتصال') 
+            ? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400" 
+            : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400"
+        )}>
+          {error.includes('عدم الاتصال') ? <WifiOff className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+          <span>{error}</span>
+        </div>
+      )}
 
       {/* Products List */}
       <ProductsList 
