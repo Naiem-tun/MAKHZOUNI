@@ -15,9 +15,23 @@ interface InventoryCompareModalProps {
 
 type CompareMode = 'quantity' | 'sold' | 'profit';
 
-export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ show, onClose }) => {
+export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ show, onClose, products = [] }) => {
   const { t } = useTranslation();
   const { settings, showToast } = useAppContext();
+
+  const calculateCapital = (item: any, qty: number) => {
+    let cost = 0;
+    if (products && products.length > 0) {
+      const p = products.find((prod: any) => 
+        (item.barcode && prod.barcode === item.barcode) || 
+        (prod.name === item.name)
+      );
+      if (p) {
+        cost = p.purchasePrice || p.costPrice || 0;
+      }
+    }
+    return qty * cost;
+  };
   
   const [file1Items, setFile1Items] = useState<any[] | null>(null);
   const [file1Name, setFile1Name] = useState('');
@@ -153,6 +167,9 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
           oldData.matched = true;
         }
         
+        const oldCap = oldData ? calculateCapital(oldData, oldData.qty) : null;
+        const newCap = calculateCapital(currData, currData.qty);
+        
         comparisonList.push({
           key: currData.barcode || currData.name,
           name: currData.name,
@@ -168,12 +185,18 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
           
           oldProfit: oldData ? oldData.profit : null,
           newProfit: currData.profit,
-          profitDiff: oldData ? (currData.profit - oldData.profit) : currData.profit
+          profitDiff: oldData ? (currData.profit - oldData.profit) : currData.profit,
+
+          oldCapital: oldCap,
+          newCapital: newCap,
+          capitalDiff: oldCap !== null ? (newCap - oldCap) : newCap
         });
       }
       
       // Add missing from old
       for (const oldData of oldItemsCopy.filter((o: any) => !o.matched)) {
+        const oldCap = calculateCapital(oldData, oldData.qty);
+
         comparisonList.push({
           key: oldData.barcode || oldData.name,
           name: oldData.name,
@@ -190,6 +213,11 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
           oldProfit: oldData.profit,
           newProfit: 0,
           profitDiff: -oldData.profit,
+          
+          oldCapital: oldCap,
+          newCapital: 0,
+          capitalDiff: -oldCap,
+
           deleted: true
         });
       }
@@ -238,6 +266,33 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
     setFile1Name('');
     setComparisonResult(null);
   };
+
+  const overallSummary = useMemo(() => {
+    if (!comparisonResult) return null;
+    let totalOldProfit = 0;
+    let totalNewProfit = 0;
+    let totalOldCapital = 0;
+    let totalNewCapital = 0;
+
+    comparisonResult.forEach((item: any) => {
+      totalOldProfit += item.oldProfit || 0;
+      totalNewProfit += item.newProfit || 0;
+      totalOldCapital += item.oldCapital || 0;
+      totalNewCapital += item.newCapital || 0;
+    });
+
+    const profitDiff = totalNewProfit - totalOldProfit;
+    const capitalDiff = totalNewCapital - totalOldCapital;
+
+    return {
+      totalOldProfit,
+      totalNewProfit,
+      profitDiff,
+      totalOldCapital,
+      totalNewCapital,
+      capitalDiff,
+    };
+  }, [comparisonResult]);
 
   return (
     <AnimatePresence>
@@ -370,6 +425,38 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
                 </div>
               ) : (
                 <div className="space-y-4">
+                  
+                  {/* Overall Summary Card */}
+                  {overallSummary && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2">
+                      {/* Profit Summary */}
+                      <div className="bg-brand-50 dark:bg-brand-900/20 border border-brand-100 dark:border-brand-800 rounded-xl p-4 flex items-center justify-between">
+                        <div>
+                          <div className="text-xs text-brand-600/80 dark:text-brand-400/80 font-bold mb-1">الفرق الإجمالي في الأرباح</div>
+                          <div className={cn("font-black text-lg", overallSummary.profitDiff > 0 ? "text-emerald-600" : overallSummary.profitDiff < 0 ? "text-red-600" : "text-brand-700 dark:text-brand-300")}>
+                            {overallSummary.profitDiff > 0 ? '+' : ''}{formatCurrency(overallSummary.profitDiff, settings.currency, settings.language)}
+                          </div>
+                        </div>
+                        <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0", overallSummary.profitDiff > 0 ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20" : overallSummary.profitDiff < 0 ? "bg-red-100 text-red-600 dark:bg-red-500/20" : "bg-brand-100 text-brand-600 dark:bg-brand-500/20")}>
+                          {overallSummary.profitDiff > 0 ? <TrendingUp size={20} /> : overallSummary.profitDiff < 0 ? <TrendingDown size={20} /> : <Minus size={20} />}
+                        </div>
+                      </div>
+
+                      {/* Capital Summary */}
+                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-4 flex items-center justify-between">
+                        <div>
+                          <div className="text-xs text-blue-600/80 dark:text-blue-400/80 font-bold mb-1">الفرق الإجمالي في رأس المال (القيمة المتبقية)</div>
+                          <div className={cn("font-black text-lg", overallSummary.capitalDiff > 0 ? "text-emerald-600" : overallSummary.capitalDiff < 0 ? "text-red-600" : "text-blue-700 dark:text-blue-300")}>
+                            {overallSummary.capitalDiff > 0 ? '+' : ''}{formatCurrency(overallSummary.capitalDiff, settings.currency, settings.language)}
+                          </div>
+                        </div>
+                        <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0", overallSummary.capitalDiff > 0 ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20" : overallSummary.capitalDiff < 0 ? "bg-red-100 text-red-600 dark:bg-red-500/20" : "bg-blue-100 text-blue-600 dark:bg-blue-500/20")}>
+                          {overallSummary.capitalDiff > 0 ? <TrendingUp size={20} /> : overallSummary.capitalDiff < 0 ? <TrendingDown size={20} /> : <Minus size={20} />}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-lg border border-zinc-100 dark:border-zinc-700">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
                       <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 p-1 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-x-auto w-full sm:w-auto">
