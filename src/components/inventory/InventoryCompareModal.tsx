@@ -13,7 +13,7 @@ interface InventoryCompareModalProps {
   products?: any[];
 }
 
-type CompareMode = 'quantity' | 'sold' | 'profit';
+type CompareMode = 'quantity' | 'sold' | 'profit' | 'capital';
 
 export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ show, onClose, products = [] }) => {
   const { t } = useTranslation();
@@ -254,6 +254,12 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
         diff = item.profitDiff;
         format = (v) => formatCurrency(v, settings.currency, settings.language);
         break;
+      case 'capital':
+        oldVal = item.oldCapital;
+        newVal = item.newCapital;
+        diff = item.capitalDiff;
+        format = (v) => formatCurrency(v, settings.currency, settings.language);
+        break;
       case 'quantity':
       default:
         oldVal = item.oldQty;
@@ -263,7 +269,14 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
     }
 
     const isNew = oldVal === null;
-    return { oldVal, newVal, diff, format, isNew };
+    let pct = 0;
+    if (oldVal > 0) {
+      pct = (diff / oldVal) * 100;
+    } else if (diff > 0) {
+      pct = 100;
+    }
+    
+    return { oldVal, newVal, diff, format, isNew, pct };
   };
 
   const resetState = () => {
@@ -307,21 +320,14 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
   return (
     <AnimatePresence>
       {show && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex flex-col bg-zinc-50 dark:bg-zinc-950 overflow-hidden">
           <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-          />
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="relative w-full max-w-3xl bg-white dark:bg-zinc-900 rounded-xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="flex flex-col w-full h-full"
           >
-            <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-800/50">
+            <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-white dark:bg-zinc-900 shadow-sm z-10 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center text-brand-600">
                   <FileSpreadsheet size={20} />
@@ -434,7 +440,7 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
                   )}
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="flex flex-col h-full gap-4 pb-20">
                   
                   {/* Overall Summary Card */}
                   {overallSummary && (
@@ -483,24 +489,30 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
 
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-lg border border-zinc-100 dark:border-zinc-700">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-                      <div className="flex items-center gap-2 bg-white dark:bg-zinc-900 p-1 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-x-auto w-full sm:w-auto">
+                      <div className="flex items-center gap-1 sm:gap-2 bg-white dark:bg-zinc-900 p-1 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-x-auto w-full no-scrollbar">
                         <button 
                           onClick={() => setCompareMode('quantity')}
-                          className={cn("px-4 py-1.5 text-sm font-bold rounded-md whitespace-nowrap transition-colors", compareMode === 'quantity' ? "bg-brand-50 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200")}
+                          className={cn("px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold rounded-md whitespace-nowrap transition-colors", compareMode === 'quantity' ? "bg-brand-50 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200")}
                         >
                           الكمية المتبقية
                         </button>
                         <button 
                           onClick={() => setCompareMode('sold')}
-                          className={cn("px-4 py-1.5 text-sm font-bold rounded-md whitespace-nowrap transition-colors", compareMode === 'sold' ? "bg-brand-50 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200")}
+                          className={cn("px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold rounded-md whitespace-nowrap transition-colors", compareMode === 'sold' ? "bg-brand-50 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200")}
                         >
                           المباع
                         </button>
                         <button 
                           onClick={() => setCompareMode('profit')}
-                          className={cn("px-4 py-1.5 text-sm font-bold rounded-md whitespace-nowrap transition-colors", compareMode === 'profit' ? "bg-brand-50 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200")}
+                          className={cn("px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold rounded-md whitespace-nowrap transition-colors", compareMode === 'profit' ? "bg-brand-50 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200")}
                         >
                           الربح
+                        </button>
+                        <button 
+                          onClick={() => setCompareMode('capital')}
+                          className={cn("px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold rounded-md whitespace-nowrap transition-colors", compareMode === 'capital' ? "bg-brand-50 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200")}
+                        >
+                          القيمة المتبقية
                         </button>
                       </div>
                       
@@ -527,15 +539,15 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
                     </button>
                   </div>
                   
-                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm">
-                    <div className="overflow-x-auto max-h-[50vh] overflow-y-auto">
-                      <table className="w-full text-sm text-right">
-                        <thead className="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 sticky top-0 border-b border-zinc-200 dark:border-zinc-700 z-10 whitespace-nowrap">
+                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm flex-1 flex flex-col min-h-[500px]">
+                    <div className="overflow-x-auto overflow-y-auto flex-1">
+                      <table className="w-full text-xs sm:text-sm text-right relative">
+                        <thead className="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 sticky top-0 border-b border-zinc-200 dark:border-zinc-700 z-10 whitespace-nowrap shadow-sm">
                           <tr>
-                            <th className="py-3 px-4 font-bold min-w-[140px]">المنتج</th>
-                            <th className="py-3 px-4 text-center font-bold min-w-[100px]">الجرد 1</th>
-                            <th className="py-3 px-4 text-center font-bold min-w-[100px]">الجرد 2</th>
-                            <th className="py-3 px-4 text-center font-bold min-w-[100px]">الفرق</th>
+                            <th className="py-3 px-2 sm:px-4 font-bold text-right">المنتج</th>
+                            <th className="py-3 px-2 sm:px-4 text-center font-bold">الجرد 1</th>
+                            <th className="py-3 px-2 sm:px-4 text-center font-bold">الجرد 2</th>
+                            <th className="py-3 px-2 sm:px-4 text-center font-bold">الفرق</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -555,6 +567,8 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
                                 return b.soldDiff - a.soldDiff || b.newSold - a.newSold;
                               } else if (compareMode === 'profit') {
                                 return b.profitDiff - a.profitDiff || b.newProfit - a.newProfit;
+                              } else if (compareMode === 'capital') {
+                                return b.capitalDiff - a.capitalDiff || b.newCapital - a.newCapital;
                               } else {
                                 return a.newQty - b.newQty || a.qtyDiff - b.qtyDiff;
                               }
@@ -571,33 +585,44 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
                             }
 
                             return sortedResult.map((item: any, idx: number) => {
-                              const { oldVal, newVal, diff, format, isNew } = renderMetric(item);
+                              const { oldVal, newVal, diff, format, isNew, pct } = renderMetric(item);
                             const isDeleted = item.deleted;
                             
                             return (
                               <tr key={idx} className={cn("hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors", isDeleted && "opacity-60")}>
-                                <td className="py-3 px-4">
+                                <td className="py-3 px-2 sm:px-4">
                                   <div className="font-bold text-zinc-900 dark:text-zinc-100">{item.name}</div>
-                                  <div className="text-[10px] text-zinc-400 mt-0.5">
+                                  <div className="text-[10px] text-zinc-400 mt-1 flex flex-wrap gap-1">
                                     {isNew && <span className="text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded font-medium">منتج جديد</span>}
                                     {isDeleted && <span className="text-red-500 bg-red-50 px-1.5 py-0.5 rounded font-medium">غير متوفر حالياً</span>}
+                                    {compareMode === 'capital' && item.newQty > 0 && item.newSold === 0 && <span className="text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded font-medium">منتج راكد</span>}
                                   </div>
                                 </td>
-                                <td className="py-3 px-4 text-center font-medium text-zinc-500">
+                                <td className="py-3 px-2 sm:px-4 text-center font-medium text-zinc-500">
                                   {isNew ? '—' : format(oldVal)}
                                 </td>
-                                <td className="py-3 px-4 text-center font-bold text-zinc-900 dark:text-zinc-100">
+                                <td className="py-3 px-2 sm:px-4 text-center font-bold text-zinc-900 dark:text-zinc-100">
                                   {format(newVal)}
                                 </td>
-                                <td className="py-3 px-4">
-                                  <div className={cn(
-                                    "flex items-center justify-center gap-1 font-bold rounded-lg py-1 px-2 mx-auto w-fit whitespace-nowrap",
-                                    diff > 0 ? "text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-500/10" : 
-                                    diff < 0 ? "text-red-700 bg-red-50 dark:text-red-400 dark:bg-red-500/10" : 
-                                    "text-zinc-500 bg-zinc-50 dark:text-zinc-400 dark:bg-zinc-800"
-                                  )}>
-                                    {diff > 0 ? <TrendingUp size={14} /> : diff < 0 ? <TrendingDown size={14} /> : <Minus size={14} />}
-                                    <span dir="ltr">{diff > 0 ? '+' : ''}{format(diff)}</span>
+                                <td className="py-3 px-2 sm:px-4">
+                                  <div className="flex flex-col items-center justify-center gap-1">
+                                    <div className={cn(
+                                      "flex items-center justify-center gap-1 font-bold rounded-lg py-1 px-2 mx-auto w-fit whitespace-nowrap",
+                                      diff > 0 ? "text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-500/10" : 
+                                      diff < 0 ? "text-red-700 bg-red-50 dark:text-red-400 dark:bg-red-500/10" : 
+                                      "text-zinc-500 bg-zinc-50 dark:text-zinc-400 dark:bg-zinc-800"
+                                    )}>
+                                      {diff > 0 ? <TrendingUp size={14} /> : diff < 0 ? <TrendingDown size={14} /> : <Minus size={14} />}
+                                      <span dir="ltr">{diff > 0 ? '+' : ''}{format(diff)}</span>
+                                    </div>
+                                    {diff !== 0 && !isNew && !isDeleted && pct !== undefined && (
+                                      <div className={cn(
+                                        "text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center",
+                                        diff > 0 ? "text-emerald-600 bg-emerald-500/10" : "text-red-600 bg-red-500/10"
+                                      )}>
+                                        <span dir="ltr">{diff > 0 ? '+' : ''}{pct.toFixed(1)}%</span>
+                                      </div>
+                                    )}
                                   </div>
                                 </td>
                               </tr>
