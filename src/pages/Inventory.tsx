@@ -37,6 +37,43 @@ import { logAudit } from '../lib/auditLogger';
 
 
 
+
+function distributeQuantityToProducts(originalProducts: any[], newTotalQty: number) {
+  const currentTotal = originalProducts.reduce((sum, p) => sum + (p.quantity || 0), 0);
+  const diff = newTotalQty - currentTotal;
+  
+  if (diff === 0) {
+    return originalProducts.map(p => ({ product: p, newQty: p.quantity || 0 }));
+  }
+
+  const products = originalProducts.map(p => ({ ...p, currentQty: p.quantity || 0 }));
+
+  if (diff > 0) {
+    products[products.length - 1].currentQty += diff;
+  } else {
+    let remainingToDeduct = Math.abs(diff);
+    for (let i = 0; i < products.length; i++) {
+      if (remainingToDeduct <= 0) break;
+      
+      const p = products[i];
+      if (p.currentQty > 0) {
+        const deductAmount = Math.min(p.currentQty, remainingToDeduct);
+        p.currentQty -= deductAmount;
+        remainingToDeduct -= deductAmount;
+      }
+    }
+    
+    if (remainingToDeduct > 0) {
+      products[products.length - 1].currentQty -= remainingToDeduct;
+    }
+  }
+
+  return products.map(p => ({
+    product: p,
+    newQty: p.currentQty
+  }));
+}
+
 export default function Inventory() {
   const { t } = useTranslation();
   const { user, settings, showToast } = useAppContext();
@@ -62,6 +99,46 @@ export default function Inventory() {
   const [loading, setLoading] = useState(products.length === 0);
   
   const [currentPage, setCurrentPage] = useState(1);
+
+  const groupedProducts = useMemo(() => {
+    const groups: Record<string, any> = {};
+
+    products.forEach(p => {
+      const key = (p.barcode || p.name).trim().toLowerCase();
+      
+      if (!groups[key]) {
+        groups[key] = {
+          id: key, // Using this as the fake product ID
+          name: p.name,
+          barcode: p.barcode || p.barcode2 || '',
+          category: p.category,
+          quantity: 0,
+          sellingPrice: p.sellingPrice || 0,
+          purchasePrice: p.purchasePrice || p.costPrice || 0,
+          costPrice: p.costPrice || p.purchasePrice || 0,
+          piecesPerBox: p.piecesPerBox,
+          hasLocalImage: p.hasLocalImage,
+          hasCloudImage: p.hasCloudImage,
+          isGroup: true,
+          originalProducts: []
+        };
+      }
+      
+      groups[key].originalProducts.push(p);
+      groups[key].quantity += (p.quantity || 0);
+    });
+
+    Object.values(groups).forEach(group => {
+      group.originalProducts.sort((a: any, b: any) => {
+        const timeA = a.updatedAt?.seconds || 0;
+        const timeB = b.updatedAt?.seconds || 0;
+        return timeA - timeB;
+      });
+    });
+
+    return Object.values(groups);
+  }, [products]);
+
   const ITEMS_PER_PAGE = 20;
 
   const [modalConfig, setModalConfig] = useState<{
@@ -127,7 +204,7 @@ export default function Inventory() {
   const handleScan = (decodedText: string) => {
     setIsScannerOpen(false);
     
-    const foundProduct = products.find(p => p.barcode === decodedText || p.barcode2 === decodedText);
+    const foundProduct = groupedProducts.find(p => p.barcode === decodedText || p.id === decodedText.toLowerCase());
     
     if (foundProduct) {
       setSearchTerm(decodedText);
@@ -172,7 +249,7 @@ export default function Inventory() {
         remainingValue 
       };
     });
-  }, [products, inventoryData]);
+  }, [groupedProducts, inventoryData]);
 
   const handleClearInventory = () => {
     if (Object.keys(inventoryData).length === 0 && Object.keys(checkedProducts).length === 0) return;
@@ -264,9 +341,10 @@ export default function Inventory() {
   }, [searchTerm]);
 
   const filteredProducts = useMemo(() => {
-    if (!products) return [];
+    if (!groupedProducts) return [];
+    const productsToFilter = groupedProducts;
     const s = searchTerm.toLowerCase();
-    const filtered = products.filter(p => {
+    const filtered = productsToFilter.filter((p: any) => {
       const matchSearch = p.name?.toLowerCase().includes(s) || p.barcode?.includes(s) || p.barcode2?.includes(s);
       const matchCat = categoryFilter === 'all' || p.category === categoryFilter;
       const matchUninventoried = !showUninventoriedOnly || !checkedProducts[p.id];
@@ -278,7 +356,7 @@ export default function Inventory() {
       if (categoryCompare !== 0) return categoryCompare;
       return (a.name || '').localeCompare(b.name || '', settings.language);
     });
-  }, [products, searchTerm, categoryFilter, showUninventoriedOnly, inventoryData]);
+  }, [groupedProducts, searchTerm, categoryFilter, showUninventoriedOnly, inventoryData]);
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
   const sortedProducts = filteredProducts.slice(
@@ -287,9 +365,9 @@ export default function Inventory() {
   );
 
   const progress = useMemo(() => {
-    if (!products || products.length === 0) return 0;
+    if (!groupedProducts || groupedProducts.length === 0) return 0;
     const completed = Object.keys(inventoryData).length;
-    return Math.round((completed / products.length) * 100);
+    return Math.round((completed / groupedProducts.length) * 100);
   }, [products, inventoryData]);
 
   const getCountBreakdown = (total: number, piecesPerBox: number) => {
@@ -349,43 +427,64 @@ export default function Inventory() {
         let totalRemainingValue = 0;
         const items: any[] = [];
 
-        // calculate remaining value for ALL products
-        products.forEach(p => {
-          const actualQty = inventoryData[p.id];
-          const finalQty = actualQty !== undefined ? Number(actualQty) : Number(p.quantity || 0);
-          totalRemainingValue += finalQty * (Number(p.purchasePrice || p.costPrice) || 0);
+        // Process grouped products
+        groupedProducts.forEach(group => {
+          const actualQty = inventoryData[group.id];
+          const groupFinalQty = actualQty !== undefined ? Number(actualQty) : Number(group.quantity || 0);
           
-          const sold = Number(p.quantity || 0) - finalQty;
-          const remainingValue = finalQty * (Number(p.purchasePrice || p.costPrice) || 0);
+          let groupRevenue = 0;
+          let groupCost = 0;
+          let groupProfit = 0;
+          let groupRemainingValue = 0;
           
-          const revenue = sold * Number(p.sellingPrice || 0);
-          const profit = revenue - (sold * (Number(p.purchasePrice || p.costPrice) || 0));
+          const distributed = distributeQuantityToProducts(group.originalProducts, groupFinalQty);
+          
+          distributed.forEach(({ product, newQty }) => {
+             const oldQty = product.quantity || 0;
+             const itemSold = oldQty - newQty;
+             
+             const cost = Number(product.purchasePrice || product.costPrice || 0);
+             const price = Number(product.sellingPrice || 0);
+             
+             groupRemainingValue += newQty * cost;
+             
+             if (itemSold > 0) {
+                groupRevenue += itemSold * price;
+                groupCost += itemSold * cost;
+                groupProfit += itemSold * (price - cost);
+             }
+          });
+
+          totalRemainingValue += groupRemainingValue;
+          const sold = Number(group.quantity || 0) - groupFinalQty;
           
           if (sold > 0) {
-            totalRevenue += revenue;
-            totalProfit += profit;
+            totalRevenue += groupRevenue;
+            totalProfit += groupProfit;
           }
           
           items.push({ 
-            productName: p.name, 
-            category: p.category,
-            barcode: p.barcode || p.barcode2 || '',
-            purchasePrice: p.purchasePrice || p.costPrice || 0,
-            sellingPrice: p.sellingPrice || 0,
-            quantityBefore: p.quantity || 0, 
-            quantityAfter: finalQty, 
+            productName: group.name, 
+            category: group.category,
+            barcode: group.barcode || '',
+            purchasePrice: group.purchasePrice || 0,
+            sellingPrice: group.sellingPrice || 0,
+            quantityBefore: group.quantity || 0, 
+            quantityAfter: groupFinalQty, 
             salesCalculated: sold, 
-            profit: sold > 0 ? profit : 0,
-            remainingValue 
+            profit: sold > 0 ? groupProfit : 0,
+            remainingValue: groupRemainingValue 
           });
           
           if (actualQty !== undefined) {
-            const productRef = doc(db, `users/${user.uid}/products`, p.id!);
-            batch.update(productRef, {
-              quantity: finalQty,
-              posQuantity: finalQty,
-              updatedAt: auditTime,
-              lastInventoryDate: auditTime
+            distributed.forEach(({ product, newQty }) => {
+              const productRef = doc(db, `users/${user.uid}/products`, product.id!);
+              batch.update(productRef, {
+                quantity: newQty,
+                posQuantity: newQty,
+                updatedAt: auditTime,
+                lastInventoryDate: auditTime
+              });
             });
           }
         });
