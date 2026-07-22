@@ -249,13 +249,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         {children}
         
         {/* Simple Toast Overlay */}
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] space-y-2 w-full max-w-xs px-4">
+        <div className="fixed top-32 left-1/2 -translate-x-1/2 z-[100] space-y-2 w-full max-w-xs px-4 pointer-events-none">
           {toasts.map(toast => (
             <div 
               key={toast.id}
               className={cn(
-                "p-4 rounded-lg shadow-2xl border text-sm font-bold text-center animate-in fade-in slide-in-from-top-4 duration-300",
-                toast.type === 'success' ? "bg-emerald-600 text-white border-emerald-500" : 
+                "p-4 rounded-lg shadow-xl border text-sm font-bold text-center animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-auto",
+                toast.type === 'success' ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20" : 
                 toast.type === 'error' ? "bg-[#B34C36] text-white border-[#B34C36]/50" :
                 "bg-brand-600 text-white border-brand-500"
               )}
