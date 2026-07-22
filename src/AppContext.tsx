@@ -249,7 +249,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         {children}
         
         {/* Simple Toast Overlay */}
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] space-y-2 w-full max-w-xs px-4">
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] space-y-2 w-full max-w-xs px-4">
           {toasts.map(toast => (
             <div 
               key={toast.id}
