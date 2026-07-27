@@ -21,7 +21,7 @@ function getDb(): Promise<IDBDatabase> {
 export async function saveLocalImage(productId: string, file: File | Blob): Promise<void> {
   try {
     const db = await getDb();
-    return new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
       const request = store.put(file, productId);
@@ -29,6 +29,9 @@ export async function saveLocalImage(productId: string, file: File | Blob): Prom
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('image-downloaded', { detail: { productId } }));
+    }
   } catch (error) {
     console.error('Failed to save image locally:', error);
     throw error;
@@ -55,18 +58,20 @@ export async function getLocalImage(productId: string): Promise<Blob | null> {
 export async function deleteLocalImage(productId: string): Promise<void> {
   try {
     const db = await getDb();
-    return new Promise((resolve, reject) => {
+    await new Promise<void>((resolve) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
       const request = store.delete(productId);
       
       request.onsuccess = () => resolve();
       request.onerror = () => {
-         // Ignore delete errors as they might just mean it was never there
          console.warn('Failed to delete image', request.error);
          resolve();
       };
     });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('image-downloaded', { detail: { productId } }));
+    }
   } catch (error) {
     console.warn('Failed to setup DB for delete', error);
   }

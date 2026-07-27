@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { X, ScanBarcode, Trash2, Camera, ImagePlus, Copy, ChevronDown, ChevronUp } from 'lucide-react';
 import { useCategories } from '../../hooks/useCategories';
 import { Product } from '../../types';
-import { getLocalImage } from '../../lib/localImages';
+import { getLocalImage, saveLocalImage } from '../../lib/localImages';
+import { downloadCloudImage } from '../../lib/cloudImages';
+import { useAppContext } from '../../AppContext';
 
 interface ProductEditModalProps {
   product: Product | null;
@@ -20,6 +22,7 @@ interface ProductEditModalProps {
 export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, scannedBarcode, scannedBarcode2 = '', onScan, onCopy }: ProductEditModalProps) {
   const { t } = useTranslation();
   const { categories } = useCategories();
+  const { user } = useAppContext();
   const [piecesPerBox, setPiecesPerBox] = useState<number | string>(1);
   const [subItemsPerPiece, setSubItemsPerPiece] = useState<number | string>(1);
   const [boxPrice, setBoxPrice] = useState<number | string>('');
@@ -41,6 +44,8 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
 
   useEffect(() => {
     let url: string | null = null;
+    let isMounted = true;
+
     if (isOpen) {
       if (product) {
         setPiecesPerBox(product.piecesPerBox || 1);
@@ -49,22 +54,40 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
         setPiecePrice(product.purchasePrice || '');
         setCategory(product.category || (categories[0]?.name || ""));
         const fetchId = product.id || product._copiedFromId;
-        if (product.hasLocalImage && fetchId) {
-           getLocalImage(fetchId).then(blob => {
+        if ((product.hasLocalImage || product.hasCloudImage) && fetchId) {
+           getLocalImage(fetchId).then(async (blob) => {
+              if (!isMounted) return;
               if (blob) {
                  url = URL.createObjectURL(blob);
                  setImagePreview(url);
                  if (product._copiedFromId) {
                    setImageFile(blob);
                  }
+              } else if (product.hasCloudImage && user) {
+                 try {
+                   const cloudBlob = await downloadCloudImage(user.uid, fetchId);
+                   if (cloudBlob && isMounted) {
+                     await saveLocalImage(fetchId, cloudBlob).catch(console.error);
+                     url = URL.createObjectURL(cloudBlob);
+                     setImagePreview(url);
+                     if (product._copiedFromId) {
+                       setImageFile(cloudBlob);
+                     }
+                   }
+                 } catch (e) {
+                   console.warn("Failed to download cloud image in edit modal:", e);
+                 }
               }
-           });
+           }).catch(console.error);
+        } else {
+           setImagePreview(null);
         }
       } else {
         setPiecesPerBox(1);
         setBoxPrice('');
         setPiecePrice('');
         setCategory(categories[0]?.name || "");
+        setImagePreview(null);
       }
       setBarcode(product?.barcode || scannedBarcode || '');
       setBarcode2(product?.barcode2 || scannedBarcode2 || '');
@@ -72,12 +95,12 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
       setUnit(product?.unit || 'piece');
       setImageFile(null);
       setImageRemoved(false);
-      if (!product?.hasLocalImage) setImagePreview(null);
     }
     return () => {
+      isMounted = false;
       if (url) URL.revokeObjectURL(url);
     };
-  }, [isOpen, product]);
+  }, [isOpen, product, user]);
 
   useEffect(() => {
     if (isOpen && scannedBarcode) setBarcode(scannedBarcode);
@@ -149,6 +172,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
       setImagePreview(URL.createObjectURL(file));
       setImageRemoved(false);
     }
+    e.target.value = '';
   };
 
   const handleRemoveImage = () => {
@@ -177,7 +201,12 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
       quantity: product?.quantity ?? 0,
       minQuantity: parseFloat((formData.get('minQuantity') as string)?.replace(',', '.') || '0') || 0,
     };
-    await onSave(productData, imageFile, imageRemoved);
+    try {
+      await onSave(productData, imageFile, imageRemoved);
+    } catch (error) {
+      console.error(error);
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -214,15 +243,16 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
             <form onSubmit={handleSubmit} className="space-y-3 text-right">
               {/* Image Picker */}
               <div className="flex justify-center mb-4">
-                <div className="relative group">
-                  <div className="w-24 h-24 rounded-[20px] bg-zinc-100 dark:bg-zinc-800 border-2 border-dashed border-zinc-300 dark:border-zinc-700 flex flex-col items-center justify-center overflow-hidden transition-colors hover:border-brand-500 overflow-hidden relative">
+                <div className="relative group/picker">
+                  <div className="w-24 h-24 rounded-[20px] bg-zinc-100 dark:bg-zinc-800 border-2 border-dashed border-zinc-300 dark:border-zinc-700 flex flex-col items-center justify-center overflow-hidden transition-colors hover:border-brand-500 relative">
                     {imagePreview ? (
                       <div className="w-full h-full relative">
                         <img src={imagePreview} alt="Product" className="w-full h-full object-cover" />
                         <button
                           type="button"
                           onClick={handleRemoveImage}
-                          className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-black/70 backdrop-blur-sm"
+                          title="حذف الصورة"
+                          className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 hover:bg-red-600 transition-colors backdrop-blur-sm z-10"
                         >
                           <X size={14} />
                         </button>
@@ -234,24 +264,24 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                       </div>
                     )}
                   </div>
-                  {!imagePreview && (
-                    <div className="absolute -bottom-2 -right-2 flex gap-1">
-                      <button
-                        type="button"
-                        onClick={() => cameraInputRef.current?.click()}
-                        className="h-8 w-8 bg-brand-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-brand-600 active:scale-95 transition-all"
-                      >
-                        <Camera size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="h-8 w-8 bg-zinc-700 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-zinc-800 active:scale-95 transition-all"
-                      >
-                        <ImagePlus size={14} />
-                      </button>
-                    </div>
-                  )}
+                  <div className="absolute -bottom-2 -right-2 flex gap-1 z-20">
+                    <button
+                      type="button"
+                      onClick={() => cameraInputRef.current?.click()}
+                      title="الكاميرا"
+                      className="h-8 w-8 bg-brand-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-brand-600 active:scale-95 transition-all"
+                    >
+                      <Camera size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      title="المعرض"
+                      className="h-8 w-8 bg-zinc-700 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-zinc-800 active:scale-95 transition-all"
+                    >
+                      <ImagePlus size={14} />
+                    </button>
+                  </div>
                   <input
                     type="file"
                     accept="image/*"

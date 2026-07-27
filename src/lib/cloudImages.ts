@@ -2,21 +2,32 @@ import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
 export async function uploadCloudImage(userId: string, productId: string, blob: Blob): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      try {
-        const base64data = reader.result as string;
-        await setDoc(doc(db, `users/${userId}/productImages/${productId}`), {
-          base64: base64data
-        });
+  return new Promise((resolve) => {
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        try {
+          const base64data = reader.result as string;
+          if (base64data) {
+            await setDoc(doc(db, `users/${userId}/productImages/${productId}`), {
+              base64: base64data
+            });
+          }
+          resolve();
+        } catch (error) {
+          console.warn("Failed to upload cloud image document:", error);
+          resolve();
+        }
+      };
+      reader.onerror = (err) => {
+        console.warn("FileReader error during uploadCloudImage:", err);
         resolve();
-      } catch (error) {
-        reject(error);
-      }
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
+      };
+      reader.readAsDataURL(blob);
+    } catch (e) {
+      console.warn("uploadCloudImage error:", e);
+      resolve();
+    }
   });
 }
 

@@ -247,7 +247,7 @@ export default function Products() {
       showToast(t('stock_updated_success'), 'success');
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/products`);
-      throw err; // throw error so the modal knows transaction failed and resets isSaving state
+      throw err;
     }
   };
 
@@ -257,7 +257,17 @@ export default function Products() {
     try {
       const batch = writeBatch(db);
       
-      const hasLocalImageValue = !!imageFile || !!(editingProduct?.hasLocalImage && !imageRemoved);
+      let compressedBlob: Blob | null = null;
+      if (imageFile) {
+        try {
+          compressedBlob = await compressImage(imageFile);
+        } catch (err) {
+          console.warn("Failed to compress image, using original file:", err);
+          compressedBlob = imageFile;
+        }
+      }
+      
+      const hasLocalImageValue = !!compressedBlob || !!(editingProduct?.hasLocalImage && !imageRemoved);
       const hasCloudImageValue = settings.syncImages ? hasLocalImageValue : (Boolean(editingProduct?.hasCloudImage) && !imageRemoved);
 
       if (editingProduct?.id) {
@@ -291,8 +301,7 @@ export default function Products() {
              deleteCloudImage(user.uid, editingProduct.id!)
            ]).catch(console.error);
         }
-        if (imageFile) {
-           const compressedBlob = await compressImage(imageFile);
+        if (compressedBlob) {
            await saveLocalImage(editingProduct.id!, compressedBlob).catch(console.error);
            if (settings.syncImages) {
              uploadCloudImage(user.uid, editingProduct.id!, compressedBlob).catch(console.error);
@@ -353,11 +362,11 @@ export default function Products() {
           hasCloudImage: hasCloudImageValue,
           updatedAt: null,
         };
+
         setCreatedNewProduct(newProd);
         setIsSmartPopupOpen(true);
         
-        if (imageFile) {
-           const compressedBlob = await compressImage(imageFile);
+        if (compressedBlob) {
            await saveLocalImage(productRef.id, compressedBlob).catch(console.error);
            if (settings.syncImages) {
              uploadCloudImage(user.uid, productRef.id, compressedBlob).catch(console.error);
@@ -374,7 +383,7 @@ export default function Products() {
 
     } catch (err) {
       handleFirestoreError(err, editingProduct ? OperationType.UPDATE : OperationType.CREATE, `users/${user.uid}/products`);
-      throw err; // throw error so the modal knows transaction failed and resets isSaving state
+      throw err;
     }
   };
 
