@@ -175,15 +175,17 @@ export default function CatalogMode() {
                   key={product.id}
                   className="bg-white dark:bg-[#1E293B] rounded-[20px] border border-[#D9D9D8] dark:border-[#334155] overflow-hidden shadow-sm hover:border-[#7C94B8] dark:hover:border-[#7C94B8]/50 transition-colors group flex flex-col"
                 >
-                  <div className="h-48 w-full border-b border-[#D9D9D8]/50 dark:border-[#334155]/50 overflow-hidden">
-                    <ProductImage 
-                      productId={product.id} 
-                      hasLocalImage={product.hasLocalImage}
-                      hasCloudImage={product.hasCloudImage}
-                      FallbackIcon={categoryIcons[appCategories.find(c => c.name === product.category)?.icon || 'Package'] || Package}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
-                    />
-                  </div>
+                  { (product.hasLocalImage || product.hasCloudImage) && (
+                    <div className="h-48 w-full border-b border-[#D9D9D8]/50 dark:border-[#334155]/50 overflow-hidden">
+                      <ProductImage 
+                        productId={product.id} 
+                        hasLocalImage={product.hasLocalImage}
+                        hasCloudImage={product.hasCloudImage}
+                        FallbackIcon={categoryIcons[appCategories.find(c => c.name === product.category)?.icon || 'Package'] || Package}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                      />
+                    </div>
+                  )}
                   <div className="p-4 sm:p-5 flex-1 flex flex-col">
                     <h3 className="text-base sm:text-lg font-bold text-[#2A4D88] dark:text-[#E2E8F0] line-clamp-2 leading-tight mb-2 group-hover:text-[#1e3b6e] dark:group-hover:text-white transition-colors">
                         {product.name}
