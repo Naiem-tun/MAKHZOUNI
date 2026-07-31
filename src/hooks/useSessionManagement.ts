@@ -4,16 +4,19 @@ import { db } from '../lib/firebase';
 import { handleFirestoreError } from '../lib/utils';
 import { OperationType } from '../types';
 import { syncTracker } from '../lib/syncTracker';
+import { logAudit } from '../lib/auditLogger';
 
 export function useSessionManagement(user: any, activeSupplier: any, setActiveSupplier: any, isSessionSummaryOpen: boolean, setIsSessionSummaryOpen: any, showToast: any, t: any, settings?: any) {
   const [sessionFinalTotal, setSessionFinalTotal] = useState<string>('');
   const [sessionDifference, setSessionDifference] = useState<string>('');
+  const [recordAsExpense, setRecordAsExpense] = useState<boolean>(true);
   const [isSavingSession, setIsSavingSession] = useState(false);
 
   useEffect(() => {
     if (isSessionSummaryOpen && activeSupplier) {
       setSessionFinalTotal((activeSupplier.sessionTotal || 0).toFixed(3));
-      setSessionDifference((0).toFixed(3));
+      setSessionDifference('');
+      setRecordAsExpense(true);
     }
   }, [isSessionSummaryOpen, activeSupplier]);
 
@@ -25,6 +28,7 @@ export function useSessionManagement(user: any, activeSupplier: any, setActiveSu
     try {
       const supplierId = activeSupplier.id;
       const amount = Number(sessionFinalTotal) || 0;
+      const extraTax = Number(sessionDifference) || 0;
       
       // ✅ 1. أغلق الـ modal أولاً للحصول على استجابة فورية فائقة السرعة
       setIsSessionSummaryOpen(false);
@@ -44,8 +48,31 @@ export function useSessionManagement(user: any, activeSupplier: any, setActiveSu
            console.error("Error saving session transaction:", err);
         });
       }
+
+      // ✅ 2. ربط مبلغ الأداءات/الضرائب المضاف بقسم المصاريف إذا كان الخيار مفّعلاً (recordAsExpense)
+      if (extraTax > 0 && recordAsExpense) {
+        const expensesPath = `users/${user.uid}/expenses`;
+        const supplierName = activeSupplier.name || t('supplier') || 'مورد';
+        const expenseDesc = `TVA (${supplierName})`;
+
+        syncTracker.track(addDoc(collection(db, expensesPath), {
+          description: expenseDesc,
+          amount: extraTax,
+          category: t('taxes_and_fees') || 'ضرائب ورسوم',
+          date: Timestamp.now(),
+          audited: false
+        }).then(docRef => {
+          logAudit('create', 'expense', docRef.id, expenseDesc, `تسجيل مصروف تلقائي (أداءة/ضريبة) من حصة المورد بقيمة: ${extraTax}`);
+        })).catch(err => {
+          console.error("Error saving supplier tax expense:", err);
+        });
+      }
       
-      showToast(t('session_saved_success') || 'تم حفظ الجلسة بنجاح ✅', 'success');
+      if (extraTax > 0 && recordAsExpense) {
+        showToast(t('session_saved_with_expense_success') || 'تم حفظ الجلسة وتسجيل الأداءات كمصروف بنجاح ✅', 'success');
+      } else {
+        showToast(t('session_saved_success') || 'تم حفظ الجلسة بنجاح ✅', 'success');
+      }
       setActiveSupplier(null);
     } catch (err: any) {
       console.error(err);
@@ -60,6 +87,8 @@ export function useSessionManagement(user: any, activeSupplier: any, setActiveSu
     setSessionFinalTotal,
     sessionDifference,
     setSessionDifference,
+    recordAsExpense,
+    setRecordAsExpense,
     isSavingSession,
     handleEndSessionConfirm
   };

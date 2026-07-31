@@ -445,7 +445,12 @@ const resources = {
       "pos_quick": "شاشة البيع بالتجزئة (الكاشير POS)",
       "pos_quick_desc": "تسجيل مبيعات جديدة للزبائن مع خصم فوري من المخزون وتحديث الكاشير.",
       "invoice_calc_quick": "فاتورة مشتريات (حاسبة الفواتير)",
-      "invoice_calc_quick_desc": "إضافة سلع جديدة، حساب الأرباح، وضبط تكلفة المشتريات ومزامنة المخازن."
+      "invoice_calc_quick_desc": "إضافة سلع جديدة، حساب الأرباح، وضبط تكلفة المشتريات ومزامنة المخازن.",
+      "supplier_tax_expense": "TVA",
+      "taxes_and_fees": "ضرائب ورسوم",
+      "tax_expense_linked_hint": "(تُسجل تلقائياً كـ مصروف)",
+      "record_tax_as_expense": "تسجيل المبلغ تلقائياً كـ مصروف في قسم المصاريف",
+      "session_saved_with_expense_success": "تم حفظ الجلسة وتسجيل TVA كمصروف بنجاح ✅"
     }
   },
 };
