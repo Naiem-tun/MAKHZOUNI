@@ -76,15 +76,13 @@ export default function Expenses() {
     return true;
   });
 
-  const totalThisMonth = expenses.reduce((acc, curr) => {
-    if (curr.audited) return acc;
-    const expenseDate = safeParseDate(curr.date);
-    const now = new Date();
-    if (expenseDate && expenseDate.getMonth() === now.getMonth() && expenseDate.getFullYear() === now.getFullYear()) {
-      return acc + curr.amount;
-    }
-    return acc;
-  }, 0);
+  const displayTotal = filteredExpenses.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+
+  const displayLabel = filter === 'pending'
+    ? t('pending_expenses')
+    : filter === 'audited'
+      ? t('audited_expenses')
+      : t('all_expenses');
 
   return (
     <div className="space-y-5 pb-24" dir="rtl">
@@ -107,9 +105,9 @@ export default function Expenses() {
       <div className="px-1">
         <div className="p-5 bg-amber-50/50 dark:bg-amber-950/10 rounded-lg border border-amber-100/50 dark:border-amber-900/20 flex items-center justify-between">
           <div className="space-y-0.5">
-            <span className="text-[9px] font-black text-amber-600/70 uppercase tracking-widest">{t('pending_expenses')}</span>
+            <span className="text-[9px] font-black text-amber-600/70 uppercase tracking-widest">{displayLabel}</span>
             <div className="text-2xl font-black text-zinc-900 dark:text-white">
-              {formatCurrency(totalThisMonth, settings.currency, settings.language)}
+              {formatCurrency(displayTotal, settings.currency, settings.language)}
             </div>
           </div>
           <div className="w-10 h-10 rounded-lg bg-white dark:bg-amber-900/40 text-amber-600 flex items-center justify-center shadow-sm">

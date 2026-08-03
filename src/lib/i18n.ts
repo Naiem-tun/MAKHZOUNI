@@ -177,6 +177,8 @@ const resources = {
       "available_stock": "المتوفر",
       "out_of_stock": "نفذ",
       "pending_expenses": "مصاريف بانتظار الجرد",
+      "audited_expenses": "إجمالي المصاريف المقيدة",
+      "all_expenses": "إجمالي جميع المصاريف",
       "operation_history": "سجل العمليات",
       "audited": "المُقيدة",
       "suppliers_book": "مدونة الموردين",
