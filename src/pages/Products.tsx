@@ -203,8 +203,8 @@ export default function Products() {
       batch.update(productRef, {
         quantity: increment(addedQty),
         posQuantity: currentPosQty + addedQty,
-        purchasePrice: piecePrice,
-        boxPurchasePrice: boxPrice,
+        purchasePrice: parseFloat((piecePrice || 0).toFixed(3)),
+        boxPurchasePrice: parseFloat((boxPrice || 0).toFixed(3)),
         updatedAt: serverTimestamp(),
       });
 

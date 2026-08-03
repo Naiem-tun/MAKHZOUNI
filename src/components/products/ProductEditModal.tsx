@@ -45,8 +45,8 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
       if (product) {
         setPiecesPerBox(product.piecesPerBox || 1);
         setSubItemsPerPiece(product.subItemsPerPiece || 1);
-        setBoxPrice(product.boxPurchasePrice || '');
-        setPiecePrice(product.purchasePrice || '');
+        setBoxPrice(product.boxPurchasePrice ? parseFloat(Number(product.boxPurchasePrice).toFixed(3)) : '');
+        setPiecePrice(product.purchasePrice ? parseFloat(Number(product.purchasePrice).toFixed(3)) : '');
         setCategory(product.category || (categories[0]?.name || ""));
         const fetchId = product.id || product._copiedFromId;
         if (product.hasLocalImage && fetchId) {
@@ -162,17 +162,21 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
     if (isSaving) return;
     setIsSaving(true);
     const formData = new FormData(e.currentTarget);
+    const rawPurchasePrice = parseFloat((formData.get('purchasePrice') as string)?.replace(',', '.') || '0') || 0;
+    const rawSellingPrice = parseFloat((formData.get('sellingPrice') as string)?.replace(',', '.') || '0') || 0;
+    const rawBoxPurchasePrice = parseFloat((formData.get('boxPurchasePrice') as string)?.replace(',', '.') || '0') || 0;
+
     const productData = {
       name: formData.get('name') as string,
       category: formData.get('category') as string,
-      purchasePrice: parseFloat((formData.get('purchasePrice') as string)?.replace(',', '.') || '0') || 0,
-      sellingPrice: parseFloat((formData.get('sellingPrice') as string)?.replace(',', '.') || '0') || 0,
+      purchasePrice: parseFloat(rawPurchasePrice.toFixed(3)),
+      sellingPrice: parseFloat(rawSellingPrice.toFixed(3)),
       barcode: formData.get('barcode') as string,
       barcode2: formData.get('barcode2') as string,
       piecesPerBox: parseFloat((formData.get('piecesPerBox') as string)?.replace(',', '.') || '0') || 1,
       subItemsPerPiece: parseFloat((formData.get('subItemsPerPiece') as string)?.replace(',', '.') || '0') || 1,
       unit: formData.get('unit') as string || 'piece',
-      boxPurchasePrice: parseFloat((formData.get('boxPurchasePrice') as string)?.replace(',', '.') || '0') || 0,
+      boxPurchasePrice: parseFloat(rawBoxPurchasePrice.toFixed(3)),
       // Keep existing stock values if editing, or default to 0 for new products
       quantity: product?.quantity ?? 0,
       minQuantity: parseFloat((formData.get('minQuantity') as string)?.replace(',', '.') || '0') || 0,
