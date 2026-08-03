@@ -495,7 +495,7 @@ export default function Analytics() {
                         <div className="text-left">
                           <span className="block text-[10px] font-bold text-zinc-400 mb-0.5">{t('piece')}</span>
                           <span className="text-xs font-black text-zinc-600 dark:text-zinc-300 bg-zinc-200/50 dark:bg-zinc-700/50 px-2 py-0.5 rounded-lg">
-                            {cat.totalQuantity.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                            {(cat.totalQuantity || 0).toLocaleString('en-US', { maximumFractionDigits: 2 })}
                           </span>
                         </div>
                       </div>
