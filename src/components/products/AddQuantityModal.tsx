@@ -36,8 +36,8 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
 
   useEffect(() => {
     if (product) {
-      setBoxPrice(product.boxPurchasePrice || 0);
-      setPiecePrice(product.purchasePrice || 0);
+      setBoxPrice(product.boxPurchasePrice ? parseFloat(Number(product.boxPurchasePrice).toFixed(3)) : 0);
+      setPiecePrice(product.purchasePrice ? parseFloat(Number(product.purchasePrice).toFixed(3)) : 0);
       setNumBoxes(0);
       setExtraPieces(0);
       setIsSaving(false);
@@ -47,14 +47,14 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
   const handleQtyBoxPriceChange = (val: number) => {
     setBoxPrice(val);
     if (product?.piecesPerBox && product.piecesPerBox > 0) {
-      setPiecePrice(val / product.piecesPerBox);
+      setPiecePrice(parseFloat((val / product.piecesPerBox).toFixed(3)));
     }
   };
 
   const handleQtyPiecePriceChange = (val: number) => {
     setPiecePrice(val);
     if (product?.piecesPerBox) {
-      setBoxPrice(val * product.piecesPerBox);
+      setBoxPrice(parseFloat((val * product.piecesPerBox).toFixed(3)));
     }
   };
 
@@ -65,8 +65,10 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
     e.preventDefault();
     if (addedQty <= 0 || isSaving) return;
     setIsSaving(true);
+    const finalBoxPrice = parseFloat((boxPrice || 0).toFixed(3));
+    const finalPiecePrice = parseFloat((piecePrice || 0).toFixed(3));
     try {
-      await onConfirm(numBoxes, extraPieces, boxPrice, piecePrice);
+      await onConfirm(numBoxes, extraPieces, finalBoxPrice, finalPiecePrice);
     } catch (err) {
       setIsSaving(false);
     }
@@ -79,7 +81,9 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
       e.currentTarget.blur();
       if (addedQty <= 0 || isSaving) return;
       setIsSaving(true);
-      onConfirm(numBoxes, extraPieces, boxPrice, piecePrice).catch(() => setIsSaving(false));
+      const finalBoxPrice = parseFloat((boxPrice || 0).toFixed(3));
+      const finalPiecePrice = parseFloat((piecePrice || 0).toFixed(3));
+      onConfirm(numBoxes, extraPieces, finalBoxPrice, finalPiecePrice).catch(() => setIsSaving(false));
     }
   };
 
