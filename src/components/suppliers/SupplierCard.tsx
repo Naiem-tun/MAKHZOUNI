@@ -115,7 +115,8 @@ export function SupplierCard({
               <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500 shrink-0">{s.typeOfGoods}</span>
             </div>
             <div className="flex items-center gap-2">
-              {isToday && <span className="text-[10px] font-bold text-brand-600">{t('visits_today')}</span>}
+              {isToday && <span className="text-[10px] font-bold text-brand-600 bg-brand-50 dark:bg-brand-900/40 px-1.5 py-0.5 rounded-lg">{t('visits_today')}</span>}
+              {s.isMissed && !isToday && <span className="text-[10px] font-bold text-[#B34C36] bg-[#B34C36]/10 px-1.5 py-0.5 rounded-lg">{t('missed_visit')}</span>}
             </div>
           </div>
         </div>

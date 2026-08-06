@@ -118,6 +118,7 @@ const resources = {
       "suppliers_subtitle": "سجل الإنفاق اليدوي والموردين",
       "operations": "عمليات",
       "visits_today": "يزورك اليوم",
+      "missed_visit": "زيارة فائتة",
       "debts_book": "دفتر الديون",
       "debts_subtitle": "إدارة الكريدي والديون",
       "add_person": "إضافة شخص",

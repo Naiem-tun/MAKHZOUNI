@@ -116,6 +116,12 @@ export default function Suppliers() {
     const bIsToday = !!b.visitDays?.includes(today);
     if (aIsToday && !bIsToday) return -1;
     if (!aIsToday && bIsToday) return 1;
+    
+    const aIsMissed = !!a.isMissed;
+    const bIsMissed = !!b.isMissed;
+    if (aIsMissed && !bIsMissed) return -1;
+    if (!aIsMissed && bIsMissed) return 1;
+
     const nameA = a.name || '';
     const nameB = b.name || '';
     return nameA.localeCompare(nameB, 'ar');
