@@ -94,7 +94,8 @@ export function SupplierCard({
                   </span>
                   
                   {uploadedReports.map((report, idx) => {
-                    const val = report.data[s.name] || 0;
+                    const normalizeName = (name: string) => name.trim().replace(/أ|إ|آ/g, "ا").replace(/ة/g, "ه").replace(/ي/g, "ى").replace(/\s+/g, " ");
+                    const val = report.data[s.name] ?? report.data[normalizeName(s.name)] ?? 0;
                     const diff = (s.totalPaid || 0) - val;
                     const match = report.name.match(/\((\d+)\)/);
                     const shortName = match ? match[0] : `(${idx + 1})`;

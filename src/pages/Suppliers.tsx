@@ -339,7 +339,16 @@ export default function Suppliers() {
           showToast('الملف فارغ أو لا يحتوي على بيانات صحيحة', 'error');
           return;
         }
-
+        const normalizeName = (name: string) => name.trim().replace(/أ|إ|آ/g, "ا").replace(/ة/g, "ه").replace(/ي/g, "ى").replace(/\s+/g, " ");
+        const parseNumber = (val: string) => {
+          let str = val.replace(/\s/g, "");
+          if (str.includes(",") && !str.includes(".")) {
+            str = str.replace(",", ".");
+          } else if (str.includes(",") && str.includes(".")) {
+            str = str.replace(/,/g, "");
+          }
+          return parseFloat(str) || 0;
+        };
         const reportData: Record<string, number> = {};
         
         // Skip header row
@@ -347,14 +356,30 @@ export default function Suppliers() {
           const row = data[i];
           if (!row || row.length < 2) continue;
           
-          const supplierName = row[0]?.toString().trim();
-          let amount = parseFloat(row[1]?.toString().replace(/[^\d.-]/g, '')) || 0;
+          let col0 = row[0]?.toString() || "";
+          let col1 = row[1]?.toString() || "";
           
-          if (supplierName) {
-            reportData[supplierName] = amount;
+          const isNumber = (str: string) => /^[\d\s.,-]+$/.test(str.trim()) && str.trim().length > 0;
+          
+          let supplierName = "";
+          let amount = 0;
+          
+          if (isNumber(col1) && !isNumber(col0)) {
+            supplierName = col0;
+            amount = parseNumber(col1);
+          } else if (isNumber(col0) && !isNumber(col1)) {
+            supplierName = col1;
+            amount = parseNumber(col0);
+          } else {
+            supplierName = col0;
+            amount = parseNumber(col1);
+          }
+          
+          if (supplierName.trim()) {
+            reportData[supplierName.trim()] = amount;
+            reportData[normalizeName(supplierName)] = amount;
           }
         }
-
         const newReport = {
           id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
           name: file.name.replace('.xlsx', '').replace('.csv', ''),
