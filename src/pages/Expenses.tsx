@@ -103,14 +103,14 @@ export default function Expenses() {
 
       {/* Summary Card */}
       <div className="px-1">
-        <div className="p-5 bg-amber-50/50 dark:bg-amber-950/10 rounded-lg border border-amber-100/50 dark:border-amber-900/20 flex items-center justify-between">
+        <div className="p-5 bg-brand-50/50 dark:bg-brand-950/10 rounded-lg border border-brand-100/50 dark:border-brand-900/20 flex items-center justify-between">
           <div className="space-y-0.5">
-            <span className="text-[9px] font-black text-amber-600/70 uppercase tracking-widest">{displayLabel}</span>
+            <span className="text-[9px] font-black text-brand-600/70 uppercase tracking-widest">{displayLabel}</span>
             <div className="text-2xl font-black text-zinc-900 dark:text-white">
               {formatCurrency(displayTotal, settings.currency, settings.language)}
             </div>
           </div>
-          <div className="w-10 h-10 rounded-lg bg-white dark:bg-amber-900/40 text-amber-600 flex items-center justify-center shadow-sm">
+          <div className="w-10 h-10 rounded-lg bg-white dark:bg-brand-900/40 text-brand-600 flex items-center justify-center shadow-sm">
             <Wallet size={20} />
           </div>
         </div>
@@ -152,7 +152,7 @@ export default function Expenses() {
         
         {loading ? (
           <div className="py-12 flex justify-center">
-            <div className="w-6 h-6 border-2 border-amber-600 border-t-transparent animate-spin rounded-full" />
+            <div className="w-6 h-6 border-2 border-brand-600 border-t-transparent animate-spin rounded-full" />
           </div>
         ) : filteredExpenses.length === 0 ? (
           <div className="py-10 text-center text-zinc-400 text-xs font-bold bg-white dark:bg-zinc-900 rounded-lg border border-dashed border-zinc-200 dark:border-zinc-800">
@@ -185,7 +185,7 @@ export default function Expenses() {
                         </div>
                       )}
                       {!expense.audited && (
-                        <div className="text-[7px] font-black text-amber-500 flex items-center gap-0.5 bg-amber-50 dark:bg-amber-900/20 px-1 py-0.5 rounded">
+                        <div className="text-[7px] font-black text-brand-500 flex items-center gap-0.5 bg-brand-50 dark:bg-brand-900/20 px-1 py-0.5 rounded">
                           <Clock size={8} />
                           {t('waiting_label')}
                         </div>
@@ -197,7 +197,7 @@ export default function Expenses() {
                         {formatAppDate(safeParseDate(expense.date), settings.language, t)}
                       </div>
                       {expense.category && (
-                        <div className="text-[8px] text-amber-600 font-black bg-amber-50 dark:bg-amber-950/30 px-1.5 py-0.5 rounded-md">
+                        <div className="text-[8px] text-brand-600 font-black bg-brand-50 dark:bg-brand-950/30 px-1.5 py-0.5 rounded-md">
                           {expense.category === 'عام' ? t('general_cat') : 
                            expense.category === 'فواتير' ? t('bills_cat') : 
                            expense.category === 'كراء' ? t('rent_cat') : 
@@ -262,7 +262,7 @@ export default function Expenses() {
                       placeholder="0.000" 
                       required 
                       autoFocus
-                      className="w-full rounded-lg border border-zinc-100 p-3 text-right outline-none dark:bg-zinc-800 dark:border-zinc-700 focus:ring-2 focus:ring-amber-500/20 transition-all font-black text-2xl text-amber-600" 
+                      className="w-full rounded-lg border border-zinc-100 p-3 text-right outline-none dark:bg-zinc-800 dark:border-zinc-700 focus:ring-2 focus:ring-brand-500/20 transition-all font-black text-2xl text-brand-600" 
                     />
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-zinc-300">{settings.currency}</div>
                   </div>
@@ -273,7 +273,7 @@ export default function Expenses() {
                   <input 
                     name="description" 
                     placeholder={t('expense_placeholder')} 
-                    className="w-full rounded-lg border border-zinc-100 p-3 text-right outline-none dark:bg-zinc-800 dark:border-zinc-700 focus:ring-2 focus:ring-amber-500/20 transition-all font-bold text-sm" 
+                    className="w-full rounded-lg border border-zinc-100 p-3 text-right outline-none dark:bg-zinc-800 dark:border-zinc-700 focus:ring-2 focus:ring-brand-500/20 transition-all font-bold text-sm" 
                   />
                 </div>
                 
@@ -281,7 +281,7 @@ export default function Expenses() {
                   <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest px-2">{t('category')}</label>
                   <select 
                     name="category"
-                    className="w-full rounded-lg border border-zinc-100 p-3 text-right outline-none dark:bg-zinc-800 dark:border-zinc-700 focus:ring-2 focus:ring-amber-500/20 transition-all font-bold text-sm appearance-none bg-white dark:bg-zinc-800"
+                    className="w-full rounded-lg border border-zinc-100 p-3 text-right outline-none dark:bg-zinc-800 dark:border-zinc-700 focus:ring-2 focus:ring-brand-500/20 transition-all font-bold text-sm appearance-none bg-white dark:bg-zinc-800"
                   >
                     <option value="عام">{t('general_cat')}</option>
                     <option value="فواتير">{t('bills_cat')}</option>
