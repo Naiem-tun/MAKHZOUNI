@@ -45,6 +45,7 @@ export interface UserSettings {
   receiptThankYouMessage?: string;
   receiptPolicy?: string;
   receiptPaperSize?: '80mm' | '58mm';
+  lastSuppliersClearDate?: any;
 }
 
 export interface CashTransaction {

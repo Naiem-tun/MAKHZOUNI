@@ -23,7 +23,7 @@ import { Download, FileText } from 'lucide-react';
 
 export default function Suppliers() {
   const { t } = useTranslation();
-  const { user, showToast, settings, activeSupplier, setActiveSupplier, setIsSessionSummaryOpen } = useAppContext();
+  const { user, showToast, settings, updateSettings, activeSupplier, setActiveSupplier, setIsSessionSummaryOpen } = useAppContext();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [transactions, setTransactions] = useState<SupplierTransaction[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
@@ -42,6 +42,7 @@ export default function Suppliers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [uploadedReports, setUploadedReports] = useState<{ id: string; name: string; data: Record<string, number> }[]>([]);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [isTrackingMode, setIsTrackingMode] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const days = [
@@ -84,10 +85,40 @@ export default function Suppliers() {
     };
   }, [user]);
 
+  const earliestTxDate = transactions.length > 0 
+    ? new Date(Math.min(...transactions.map(t => safeParseDate(t.date).getTime())))
+    : new Date();
+  const trackingStartDate = settings.lastSuppliersClearDate 
+    ? new Date(settings.lastSuppliersClearDate)
+    : earliestTxDate;
+  const trackingEndDate = new Date();
+
   const suppliersWithTotals = suppliers.map(s => {
     const supplierTx = transactions.filter(t => t.supplierId === s.id);
     const totalPaid = supplierTx.reduce((acc, t) => acc + (t.amount || 0), 0);
     const txCount = supplierTx.length;
+    
+    let visitHistory: ('attended' | 'missed')[] = [];
+    
+    if (s.visitDays && s.visitDays.length > 0) {
+      const current = new Date(trackingStartDate);
+      current.setHours(0, 0, 0, 0);
+      const end = new Date(trackingEndDate);
+      end.setHours(23, 59, 59, 999);
+      
+      while (current <= end) {
+        if (s.visitDays.includes(current.getDay())) {
+          const hasTx = supplierTx.some(t => {
+            const d = safeParseDate(t.date);
+            return d.getFullYear() === current.getFullYear() &&
+                   d.getMonth() === current.getMonth() &&
+                   d.getDate() === current.getDate();
+          });
+          visitHistory.push(hasTx ? 'attended' : 'missed');
+        }
+        current.setDate(current.getDate() + 1);
+      }
+    }
     
     // Check for missed visit
     // A visit is considered "missed" if today > visitDay AND no transaction exists for THIS specific week's visitDay
@@ -110,7 +141,7 @@ export default function Suppliers() {
       return !hasTxForDay;
     });
 
-    return { ...s, totalPaid, txCount, isMissed };
+    return { ...s, totalPaid, txCount, isMissed, visitHistory };
   }).sort((a, b) => {
     const aIsToday = !!a.visitDays?.includes(today);
     const bIsToday = !!b.visitDays?.includes(today);
@@ -218,6 +249,7 @@ export default function Suppliers() {
         deleteDoc(doc(db, `users/${user.uid}/supplierTransactions`, t.id!))
       );
       await Promise.all(deletePromises);
+      await updateSettings({ lastSuppliersClearDate: new Date().toISOString() });
       logAudit('delete', 'purchase', 'all', 'جميع الموردين', `حذف جميع المعاملات (${transactions.length} معاملة)`);
       showToast(t('all_supplier_transactions_cleared_success'));
       setIsClearAllConfirmOpen(false);
@@ -440,6 +472,8 @@ export default function Suppliers() {
         exportToExcel={exportToExcel}
         fileInputRef={fileInputRef}
         setIsClearAllConfirmOpen={setIsClearAllConfirmOpen}
+        isTrackingMode={isTrackingMode}
+        setIsTrackingMode={setIsTrackingMode}
       />
 
       <SupplierSearchBar
@@ -469,6 +503,7 @@ export default function Suppliers() {
             setIsSessionSummaryOpen={setIsSessionSummaryOpen}
             setActiveSupplier={setActiveSupplier}
             setIsAddTxModalOpen={setIsAddTxModalOpen}
+            isTrackingMode={isTrackingMode}
           />
         ))}
       </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Printer, FileSpreadsheet, Activity, Trash2 } from 'lucide-react';
+import { FileText, Printer, FileSpreadsheet, Activity, Trash2, ListChecks } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface SupplierToolbarProps {
@@ -10,6 +10,8 @@ interface SupplierToolbarProps {
   exportToExcel: () => void;
   fileInputRef: React.RefObject<HTMLInputElement>;
   setIsClearAllConfirmOpen: (open: boolean) => void;
+  isTrackingMode: boolean;
+  setIsTrackingMode: (mode: boolean) => void;
 }
 
 export function SupplierToolbar({
@@ -19,7 +21,9 @@ export function SupplierToolbar({
   setIsPrintModalOpen,
   exportToExcel,
   fileInputRef,
-  setIsClearAllConfirmOpen
+  setIsClearAllConfirmOpen,
+  isTrackingMode,
+  setIsTrackingMode
 }: SupplierToolbarProps) {
   const { t } = useTranslation();
 
@@ -68,6 +72,18 @@ export function SupplierToolbar({
         <span className="hidden sm:inline">مقارنة بـ Excel</span>
       </button>
 
+      <button
+        onClick={() => setIsTrackingMode(!isTrackingMode)}
+        className={`h-10 px-3 flex items-center gap-2 rounded-lg shadow-sm active:scale-95 transition-all text-sm font-bold ${
+          isTrackingMode 
+            ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-500/20' 
+            : 'bg-white text-zinc-600 border border-zinc-100 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800'
+        }`}
+        title="وضع المتابعة"
+      >
+        <ListChecks size={18} />
+        <span className="hidden sm:inline">المتابعة</span>
+      </button>
       <button 
         onClick={() => setIsClearAllConfirmOpen(true)}
         className="w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg shadow-sm hover:text-[#B34C36] dark:hover:text-[#B34C36] text-zinc-300 dark:text-zinc-700 active:scale-95 transition-transform"

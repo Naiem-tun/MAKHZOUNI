@@ -6,7 +6,7 @@ import { Supplier, Debt } from '../../types';
 import { formatCurrency } from '../../lib/utils';
 
 interface SupplierCardProps {
-  supplier: Supplier & { txCount?: number, totalPaid?: number, isMissed?: boolean };
+  supplier: Supplier & { txCount?: number, totalPaid?: number, isMissed?: boolean, visitHistory?: ('attended' | 'missed')[] };
   debts: Debt[];
   isToday: boolean;
   uploadedReports: any[];
@@ -22,6 +22,7 @@ interface SupplierCardProps {
   setIsSessionSummaryOpen: (open: boolean) => void;
   setActiveSupplier: (supplier: any) => void;
   setIsAddTxModalOpen: (open: boolean) => void;
+  isTrackingMode?: boolean;
 }
 
 export function SupplierCard({
@@ -40,7 +41,8 @@ export function SupplierCard({
   setIsHistoryModalOpen,
   setIsSessionSummaryOpen,
   setActiveSupplier,
-  setIsAddTxModalOpen
+  setIsAddTxModalOpen,
+  isTrackingMode
 }: SupplierCardProps) {
   const { t } = useTranslation();
 
@@ -115,8 +117,17 @@ export function SupplierCard({
               <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500 shrink-0">{s.typeOfGoods}</span>
             </div>
             <div className="flex items-center gap-2">
-              {isToday && <span className="text-[10px] font-bold text-brand-600 bg-brand-50 dark:bg-brand-900/40 px-1.5 py-0.5 rounded-lg">{t('visits_today')}</span>}
-              {s.isMissed && !isToday && <span className="text-[10px] font-bold text-[#B34C36] bg-[#B34C36]/10 px-1.5 py-0.5 rounded-lg">{t('missed_visit')}</span>}
+              {isToday && !isTrackingMode && <span className="text-[10px] font-bold text-brand-600 bg-brand-50 dark:bg-brand-900/40 px-1.5 py-0.5 rounded-lg">{t('visits_today')}</span>}
+              {s.isMissed && !isToday && !isTrackingMode && <span className="text-[10px] font-bold text-[#B34C36] bg-[#B34C36]/10 px-1.5 py-0.5 rounded-lg">{t('missed_visit')}</span>}
+              {isTrackingMode && s.visitHistory && s.visitHistory.length > 0 && (
+                <div className="flex items-center gap-1 text-[12px] font-bold tracking-widest">
+                  {s.visitHistory.slice(-5).map((status, idx) => (
+                    <span key={idx} className={status === 'attended' ? 'text-emerald-500' : 'text-red-500'}>
+                      {status === 'attended' ? '✓' : '×'}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
