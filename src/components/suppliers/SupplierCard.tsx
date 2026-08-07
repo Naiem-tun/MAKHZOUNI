@@ -123,7 +123,7 @@ export function SupplierCard({
               {s.isMissed && !isToday && !isTrackingMode && <span className="text-[10px] font-bold text-[#B34C36] bg-[#B34C36]/10 px-1.5 py-0.5 rounded-lg">{t('missed_visit')}</span>}
               {isTrackingMode && s.visitHistory && s.visitHistory.length > 0 && (
                 <div className="flex items-center gap-1.5 text-[14px] font-bold tracking-widest" dir="ltr">
-                  {s.visitHistory.slice(-5).map((visit, idx) => {
+                  {[...s.visitHistory].reverse().slice(0, 5).map((visit, idx) => {
                     if (visit.status === 'attended') return <span key={idx} className="text-emerald-600 dark:text-emerald-500" title="حضر">✓</span>;
                     if (visit.status === 'absent') return <span key={idx} className="text-[#B34C36]" title="غياب مؤكد">×</span>;
                     if (visit.status === 'pending') return <Clock key={idx} className="w-3.5 h-3.5 text-brand-600" title="في الانتظار اليوم" />;
