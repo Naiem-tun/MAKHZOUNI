@@ -1,12 +1,12 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
-import { Phone, Square, Play, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Phone, Square, Play, Plus, Edit2, Trash2, Clock } from 'lucide-react';
 import { Supplier, Debt } from '../../types';
 import { formatCurrency } from '../../lib/utils';
 
 interface SupplierCardProps {
-  supplier: Supplier & { txCount?: number, totalPaid?: number, isMissed?: boolean, visitHistory?: ('attended' | 'missed')[] };
+  supplier: Supplier & { txCount?: number, totalPaid?: number, isMissed?: boolean, visitHistory?: { status: 'attended' | 'absent' | 'pending' | 'unknown', date: string }[] };
   debts: Debt[];
   isToday: boolean;
   uploadedReports: any[];
@@ -23,6 +23,7 @@ interface SupplierCardProps {
   setActiveSupplier: (supplier: any) => void;
   setIsAddTxModalOpen: (open: boolean) => void;
   isTrackingMode?: boolean;
+  onMarkAbsent: (supplierId: string, dateIso: string) => void;
 }
 
 export function SupplierCard({
@@ -42,7 +43,8 @@ export function SupplierCard({
   setIsSessionSummaryOpen,
   setActiveSupplier,
   setIsAddTxModalOpen,
-  isTrackingMode
+  isTrackingMode,
+  onMarkAbsent
 }: SupplierCardProps) {
   const { t } = useTranslation();
 
@@ -120,12 +122,22 @@ export function SupplierCard({
               {isToday && !isTrackingMode && <span className="text-[10px] font-bold text-brand-600 bg-brand-50 dark:bg-brand-900/40 px-1.5 py-0.5 rounded-lg">{t('visits_today')}</span>}
               {s.isMissed && !isToday && !isTrackingMode && <span className="text-[10px] font-bold text-[#B34C36] bg-[#B34C36]/10 px-1.5 py-0.5 rounded-lg">{t('missed_visit')}</span>}
               {isTrackingMode && s.visitHistory && s.visitHistory.length > 0 && (
-                <div className="flex items-center gap-1 text-[12px] font-bold tracking-widest">
-                  {s.visitHistory.slice(-5).map((status, idx) => (
-                    <span key={idx} className={status === 'attended' ? 'text-emerald-500' : 'text-red-500'}>
-                      {status === 'attended' ? '✓' : '×'}
-                    </span>
-                  ))}
+                <div className="flex items-center gap-1.5 text-[14px] font-bold tracking-widest" dir="ltr">
+                  {s.visitHistory.slice(-5).map((visit, idx) => {
+                    if (visit.status === 'attended') return <span key={idx} className="text-emerald-600 dark:text-emerald-500" title="حضر">✓</span>;
+                    if (visit.status === 'absent') return <span key={idx} className="text-[#B34C36]" title="غياب مؤكد">×</span>;
+                    if (visit.status === 'pending') return <Clock key={idx} className="w-3.5 h-3.5 text-brand-600" title="في الانتظار اليوم" />;
+                    return (
+                      <button 
+                        key={idx}
+                        onClick={(e) => { e.stopPropagation(); onMarkAbsent(s.id!, visit.date); }}
+                        className="text-zinc-300 hover:text-[#B34C36] transition-colors cursor-pointer text-[12px]"
+                        title="اضغط لتسجيل غياب مؤكد"
+                      >
+                        ؟
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>

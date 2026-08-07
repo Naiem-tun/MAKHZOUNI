@@ -98,23 +98,37 @@ export default function Suppliers() {
     const totalPaid = supplierTx.reduce((acc, t) => acc + (t.amount || 0), 0);
     const txCount = supplierTx.length;
     
-    let visitHistory: ('attended' | 'missed')[] = [];
+    let visitHistory: { status: 'attended' | 'absent' | 'pending' | 'unknown', date: string }[] = [];
     
     if (s.visitDays && s.visitDays.length > 0) {
       const current = new Date(trackingStartDate);
       current.setHours(0, 0, 0, 0);
       const end = new Date(trackingEndDate);
       end.setHours(23, 59, 59, 999);
+      const todayDate = new Date();
+      todayDate.setHours(0, 0, 0, 0);
       
       while (current <= end) {
         if (s.visitDays.includes(current.getDay())) {
-          const hasTx = supplierTx.some(t => {
+          const txsForDay = supplierTx.filter(t => {
             const d = safeParseDate(t.date);
             return d.getFullYear() === current.getFullYear() &&
                    d.getMonth() === current.getMonth() &&
                    d.getDate() === current.getDate();
           });
-          visitHistory.push(hasTx ? 'attended' : 'missed');
+          
+          if (txsForDay.length > 0) {
+            const isConfirmedAbsent = txsForDay.some(t => t.amount === 0 && t.note === 'غياب');
+            if (isConfirmedAbsent) {
+              visitHistory.push({ status: 'absent', date: current.toISOString() });
+            } else {
+              visitHistory.push({ status: 'attended', date: current.toISOString() });
+            }
+          } else if (current.getTime() === todayDate.getTime()) {
+             visitHistory.push({ status: 'pending', date: current.toISOString() });
+          } else {
+             visitHistory.push({ status: 'unknown', date: current.toISOString() });
+          }
         }
         current.setDate(current.getDate() + 1);
       }
@@ -257,6 +271,24 @@ export default function Suppliers() {
       handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/supplierTransactions`);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleMarkAbsent = async (supplierId: string, dateIso: string) => {
+    if (!user) return;
+    try {
+      const date = new Date(dateIso);
+      date.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
+      await addDoc(collection(db, `users/${user.uid}/supplierTransactions`), {
+        supplierId,
+        amount: 0,
+        date: date.toISOString(),
+        note: 'غياب',
+        updatedAt: serverTimestamp()
+      });
+      showToast('تم تسجيل الغياب');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}/supplierTransactions`);
     }
   };
 
@@ -504,6 +536,7 @@ export default function Suppliers() {
             setActiveSupplier={setActiveSupplier}
             setIsAddTxModalOpen={setIsAddTxModalOpen}
             isTrackingMode={isTrackingMode}
+            onMarkAbsent={handleMarkAbsent}
           />
         ))}
       </div>
