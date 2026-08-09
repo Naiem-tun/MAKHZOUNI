@@ -106,6 +106,7 @@ const Analytics = lazy(() => import("./pages/Analytics"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const AuditLogs = lazy(() => import("./pages/AuditLogs"));
 const Invoices = lazy(() => import("./pages/Invoices"));
+const CustomerTracking = lazy(() => import("./pages/CustomerTracking"));
 
 
 function AppContent() {
@@ -193,6 +194,7 @@ function AppContent() {
   const allTabs = [
     { id: "dashboard", label: t("dashboard"), icon: LayoutDashboard },
     { id: "products", label: t("products"), icon: Package },
+    { id: "customer-tracking", label: "حساب الحرفاء", icon: UserCheck },
     { id: "suppliers", label: t("suppliers"), icon: Truck },
     { id: "debts", label: t("debts"), icon: BookOpen },
     { id: "inventory", label: t("inventory"), icon: ClipboardCheck },
@@ -229,6 +231,7 @@ function AppContent() {
     [
       "dashboard",
       "products",
+      "customer-tracking",
       "suppliers",
       "debts",
       "inventory",
@@ -246,6 +249,7 @@ function AppContent() {
       ![
         "dashboard",
         "products",
+        "customer-tracking",
         "suppliers",
         "debts",
         "inventory",
@@ -470,6 +474,9 @@ function AppContent() {
                 </div>
                 <div className={activeTab === "products" ? "block" : "hidden"}>
                   {mountedTabs.has("products") && <Products />}
+                </div>
+                <div className={activeTab === "customer-tracking" ? "block" : "hidden"}>
+                  {mountedTabs.has("customer-tracking") && <CustomerTracking />}
                 </div>
                 <div className={activeTab === "suppliers" ? "block" : "hidden"}>
                   {mountedTabs.has("suppliers") && <Suppliers />}
