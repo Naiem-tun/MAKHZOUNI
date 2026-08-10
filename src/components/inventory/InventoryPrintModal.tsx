@@ -60,7 +60,151 @@ export const InventoryPrintModal: React.FC<InventoryPrintModalProps> = ({
   });
 
   const handlePrint = () => {
-    window.print();
+    const printIframe = document.createElement('iframe');
+    printIframe.style.position = 'fixed';
+    printIframe.style.right = '0';
+    printIframe.style.bottom = '0';
+    printIframe.style.width = '0';
+    printIframe.style.height = '0';
+    printIframe.style.border = '0';
+    document.body.appendChild(printIframe);
+
+    const doc = printIframe.contentWindow?.document;
+    if (!doc) return;
+
+    const rowsHtml = filteredProducts.map((p, idx) => `
+      <tr>
+        <td style="text-align: center; font-weight: bold; border: 1px solid #333; padding: 6px;">${idx + 1}</td>
+        <td style="font-weight: bold; border: 1px solid #333; padding: 6px; text-align: right;">${p.name || ''}</td>
+        <td style="border: 1px solid #333; padding: 6px; text-align: right; font-family: monospace;">${p.barcode || '-'}</td>
+        <td style="border: 1px solid #333; padding: 6px; text-align: right;">${p.category || '-'}</td>
+        ${showSystemQuantity ? `<td style="text-align: center; font-weight: bold; border: 1px solid #333; padding: 6px;">${p.quantity || 0}</td>` : ''}
+        <td style="border: 1px solid #333; padding: 6px; background-color: #fefce8; height: 26px;"></td>
+        <td style="border: 1px solid #333; padding: 6px; height: 26px;"></td>
+      </tr>
+    `).join('');
+
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html dir="rtl" lang="ar">
+      <head>
+        <meta charset="utf-8">
+        <title>كشف جرد المخزون الفعلي</title>
+        <style>
+          @page {
+            size: A4 portrait;
+            margin: 10mm;
+          }
+          * {
+            box-sizing: border-box;
+          }
+          body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            direction: rtl;
+            margin: 0;
+            padding: 10px;
+            color: #000;
+            background: #fff;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+          }
+          .store-name {
+            font-size: 20px;
+            font-weight: 900;
+            margin-bottom: 4px;
+          }
+          .doc-title {
+            font-size: 15px;
+            font-weight: bold;
+            color: #333;
+          }
+          .meta {
+            text-align: left;
+            font-size: 11px;
+            line-height: 1.6;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+          }
+          th {
+            background-color: #f1f5f9;
+            border: 1px solid #000;
+            padding: 8px 6px;
+            font-weight: bold;
+            text-align: right;
+          }
+          .footer {
+            margin-top: 35px;
+            padding-top: 15px;
+            border-top: 1px solid #ccc;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: bold;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div class="store-name">${settings.storeName || 'المحل التجارية'}</div>
+            <div class="doc-title">كشف جرد المخزون الفعلي (اليدوي)</div>
+          </div>
+          <div class="meta">
+            <div>التاريخ: <strong>${currentDateStr}</strong></div>
+            <div>عدد المنتجات: <strong>${filteredProducts.length}</strong></div>
+            <div>القسم: <strong>${selectedCategory === 'all' ? 'جميع الأقسام' : selectedCategory}</strong></div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 35px; text-align: center;">#</th>
+              <th>اسم المنتج</th>
+              <th style="width: 110px;">الباركود</th>
+              <th style="width: 90px;">القسم</th>
+              ${showSystemQuantity ? `<th style="width: 70px; text-align: center;">السيستم</th>` : ''}
+              <th style="width: 100px; text-align: center; background-color: #fef08a;">الكمية الفعلية</th>
+              <th style="width: 110px;">ملاحظات</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml || '<tr><td colSpan="7" style="text-align: center; padding: 20px;">لا توجد منتجات في هذا القسم</td></tr>'}
+          </tbody>
+        </table>
+
+        <div class="footer">
+          <div>اسم المكلف بالجرد: ________________________</div>
+          <div>التوقيع: ________________________</div>
+        </div>
+
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 250);
+          };
+        </script>
+      </body>
+      </html>
+    `);
+    doc.close();
+
+    setTimeout(() => {
+      if (document.body.contains(printIframe)) {
+        document.body.removeChild(printIframe);
+      }
+    }, 3000);
   };
 
   const currentDateStr = new Date().toLocaleDateString('ar-TN', {
