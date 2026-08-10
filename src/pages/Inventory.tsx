@@ -949,7 +949,7 @@ export default function Inventory() {
       <InventoryPrintModal 
         show={showPrintModal}
         onClose={() => setShowPrintModal(false)}
-        products={products}
+        products={groupedProducts}
         categories={categories}
       />
     </div>
