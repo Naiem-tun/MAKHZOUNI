@@ -196,10 +196,21 @@ const CustomerRow = ({
 
 export default function CustomerTracking() {
   const { user, settings, showToast } = useAppContext();
+  const cycleStartDay = settings.cycleStartDay || 18;
+  const cycleEndDay = settings.cycleEndDay || 18;
   const [customers, setCustomers] = useState<LedgerCustomer[]>([]);
   const [monthData, setMonthData] = useState<MonthlyData>({ status: 'open', records: {} });
   
-  const [currentDate, setCurrentDate] = useState(new Date());
+  // Helper to determine initial cycle base date
+  const getInitialCycleDate = () => {
+    const now = new Date();
+    if (now.getDate() < cycleStartDay) {
+      return new Date(now.getFullYear(), now.getMonth() - 1, cycleStartDay);
+    }
+    return new Date(now.getFullYear(), now.getMonth(), cycleStartDay);
+  };
+
+  const [currentDate, setCurrentDate] = useState(getInitialCycleDate);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'unpaid' | 'remaining' | 'fully_paid'>('all');
   
@@ -253,8 +264,19 @@ export default function CustomerTracking() {
     'جويلية', 'أوت', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
   ];
   
-  const currentMonthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
-  const formattedMonth = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+  const startYear = currentDate.getFullYear();
+  const startMonthIndex = currentDate.getMonth();
+  const endMonthIndex = (startMonthIndex + 1) % 12;
+  const endYear = startMonthIndex === 11 ? startYear + 1 : startYear;
+
+  const currentMonthKey = `${startYear}-${String(startMonthIndex + 1).padStart(2, '0')}`;
+  
+  const startMonthName = monthNames[startMonthIndex];
+  const endMonthName = monthNames[endMonthIndex];
+
+  const formattedCycleRange = startYear === endYear
+    ? `${cycleStartDay} ${startMonthName} - ${cycleEndDay} ${endMonthName} ${startYear}`
+    : `${cycleStartDay} ${startMonthName} ${startYear} - ${cycleEndDay} ${endMonthName} ${endYear}`;
   
   // Load Customers
   useEffect(() => {
@@ -382,8 +404,12 @@ export default function CustomerTracking() {
       updatedAt: serverTimestamp()
     }, { merge: true });
     
-    showToast(confirmModal.isClosing ? 'تم إغلاق الشهر' : 'تم إعادة فتح الشهر');
+    showToast(confirmModal.isClosing ? 'تم إغلاق الدورة المالية بنجاح' : 'تم إعادة فتح الدورة المالية');
     setConfirmModal({ isOpen: false, isClosing: false });
+
+    if (confirmModal.isClosing) {
+      nextMonth();
+    }
   };
 
   const filterCounts = useMemo(() => {
@@ -453,8 +479,8 @@ export default function CustomerTracking() {
 
   const totalDifference = totalAccount - totalPayment;
 
-  const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-  const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, cycleStartDay));
+  const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, cycleStartDay));
 
   const isClosed = monthData.status === 'closed';
   const isLoading = isLoadingCustomers || isLoadingMonth;
@@ -468,7 +494,7 @@ export default function CustomerTracking() {
             حساب الحرفاء
           </h1>
           <p className="text-zinc-500 dark:text-zinc-400 mt-1">
-            دفتر إلكتروني مستقل لتسجيل حسابات الحرفاء شهرياً
+            دفتر إلكتروني لتسجيل حسابات الحرفاء بنظام الدورات المالية (من {cycleStartDay} إلى {cycleEndDay})
           </p>
         </div>
         
@@ -502,7 +528,7 @@ export default function CustomerTracking() {
               )}
             >
               {isClosed ? <Unlock size={20} /> : <Lock size={20} />}
-              {isClosed ? 'إعادة فتح الشهر' : 'إغلاق الشهر'}
+              {isClosed ? 'إعادة فتح الدورة' : 'إغلاق الدورة'}
             </button>
           )}
 
@@ -518,25 +544,25 @@ export default function CustomerTracking() {
         </div>
       </header>
 
-      {/* Month Navigation */}
+      {/* Cycle Navigation */}
       <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm">
         <div className="flex items-center justify-between">
-          <button onClick={prevMonth} className="p-4 rounded-xl bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 transition-colors border border-zinc-200 dark:border-zinc-700">
+          <button onClick={prevMonth} className="p-4 rounded-xl bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 transition-colors border border-zinc-200 dark:border-zinc-700" title="الدورة السابقة">
             <ChevronRight size={24} />
           </button>
           <div className="text-center">
-            <span className="text-sm font-bold text-zinc-500 uppercase tracking-wider block mb-2">الشهر المحدد</span>
+            <span className="text-sm font-bold text-zinc-500 uppercase tracking-wider block mb-2">الدورة المالية المحددة</span>
             <div className="flex items-center justify-center gap-3">
-              <span className="text-3xl font-black text-brand-700 dark:text-brand-400">{formattedMonth}</span>
+              <span className="text-2xl sm:text-3xl font-black text-brand-700 dark:text-brand-400">{formattedCycleRange}</span>
               {isClosed && (
                 <div className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-1 border border-zinc-200 dark:border-zinc-700">
                   <Lock size={14} />
-                  مغلق
+                  مغلقة
                 </div>
               )}
             </div>
           </div>
-          <button onClick={nextMonth} className="p-4 rounded-xl bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 transition-colors border border-zinc-200 dark:border-zinc-700">
+          <button onClick={nextMonth} className="p-4 rounded-xl bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 transition-colors border border-zinc-200 dark:border-zinc-700" title="الدورة التالية">
             <ChevronLeft size={24} />
           </button>
         </div>
@@ -585,7 +611,7 @@ export default function CustomerTracking() {
             <div className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg text-zinc-500 dark:text-zinc-400">
               <Users size={20} />
             </div>
-            <span className="font-bold text-zinc-700 dark:text-zinc-300 text-sm">حرفاء هذا الشهر</span>
+            <span className="font-bold text-zinc-700 dark:text-zinc-300 text-sm">حرفاء هذه الدورة</span>
           </div>
           <div className="text-2xl font-black text-zinc-900 dark:text-white">
             {activeCustomersCount}
@@ -737,12 +763,12 @@ export default function CustomerTracking() {
                 {confirmModal.isClosing ? <Lock size={32} /> : <Unlock size={32} />}
               </div>
               <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
-                {confirmModal.isClosing ? 'إغلاق الشهر' : 'إعادة فتح الشهر'}
+                {confirmModal.isClosing ? 'إغلاق الدورة المالية' : 'إعادة فتح الدورة المالية'}
               </h3>
               <p className="text-zinc-500 dark:text-zinc-400 mb-6">
                 {confirmModal.isClosing 
-                  ? `هل أنت متأكد من إغلاق شهر ${formattedMonth}؟ لا يمكن تعديل البيانات بعد الإغلاق.` 
-                  : `هل أنت متأكد من إعادة فتح شهر ${formattedMonth}؟`}
+                  ? `هل أنت متأكد من إغلاق الدورة المالية (${formattedCycleRange})؟ ستبدأ بعدها الدورة الجديدة تلقائياً.` 
+                  : `هل أنت متأكد من إعادة فتح الدورة المالية (${formattedCycleRange})؟`}
               </p>
               <div className="flex gap-3">
                 <button

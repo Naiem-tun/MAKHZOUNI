@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, ScanBarcode, CheckCircle2, Check,
   Package, Wallet, FileText, ClipboardCheck, Trash2, History,
-  X, PlusCircle, MinusCircle, ArrowRight, Download, Receipt, FileBarChart, TrendingUp, Activity
+  X, PlusCircle, MinusCircle, ArrowRight, Download, Receipt, FileBarChart, TrendingUp, Activity, Printer
 } from 'lucide-react';
 import { 
   collection, 
@@ -30,6 +30,7 @@ import { InventoryReportView } from '../components/inventory/InventoryReportView
 import { HistoryModal } from '../components/inventory/HistoryModal';
 import { ExpensesModal } from '../components/inventory/ExpensesModal';
 import { InventoryCompareModal } from '../components/inventory/InventoryCompareModal';
+import { InventoryPrintModal } from '../components/inventory/InventoryPrintModal';
 
 import { InventoryItem } from '../components/inventory/InventoryItem';
 import { useTranslation } from 'react-i18next';
@@ -166,6 +167,7 @@ export default function Inventory() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   
   const [showCompareModal, setShowCompareModal] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
   
   const [showReportView, setShowReportView] = useState(false);
   const [currentReport, setCurrentReport] = useState<any>(null);
@@ -713,6 +715,13 @@ export default function Inventory() {
           <span className="hidden sm:inline">مقارنة بـ Excel</span>
         </button>
         <button 
+          onClick={() => setShowPrintModal(true)}
+          className="w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg shadow-sm text-zinc-600 dark:text-zinc-400 active:scale-95 transition-transform"
+          title="طباعة كشف الجرد الورقي"
+        >
+          <Printer size={18} />
+        </button>
+        <button 
           onClick={() => setShowDetailedControls(!showDetailedControls)}
           className={cn(
             "w-10 h-10 flex items-center justify-center border rounded-lg shadow-sm active:scale-95 transition-all",
@@ -935,6 +944,13 @@ export default function Inventory() {
         onClose={() => setShowCompareModal(false)}
         currentReportItems={getDraftItems()}
         products={products}
+      />
+
+      <InventoryPrintModal 
+        show={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        products={products}
+        categories={categories}
       />
     </div>
   );

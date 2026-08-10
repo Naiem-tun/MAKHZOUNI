@@ -196,6 +196,8 @@ export default function SettingsPage() {
     receiptThankYouMessage: settings.receiptThankYouMessage || '',
     receiptPolicy: settings.receiptPolicy || '',
     receiptPaperSize: settings.receiptPaperSize || '80mm',
+    cycleStartDay: settings.cycleStartDay || 18,
+    cycleEndDay: settings.cycleEndDay || 18,
   });
   const [isSaving, setIsSaving] = useState(false);
   const handleSaveStoreSettings = async () => {
@@ -326,6 +328,41 @@ export default function SettingsPage() {
                 placeholder="0000"
                 className="w-full h-12 px-4 rounded-lg bg-zinc-50 dark:bg-zinc-800 border-none text-sm font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center tracking-[0.5em]"
               />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-zinc-500 mr-2">تحديد الدورة المالية للحرفاء (بداية ونهاية الدورة)</label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-semibold text-zinc-400 mr-1">يوم البداية:</span>
+                  <select
+                    value={tempSettings.cycleStartDay}
+                    onChange={(e) => setTempSettings(prev => ({ ...prev, cycleStartDay: parseInt(e.target.value) || 18 }))}
+                    className="w-full h-11 px-3 rounded-lg bg-zinc-50 dark:bg-zinc-800 border-none text-xs font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center cursor-pointer"
+                  >
+                    {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
+                      <option key={day} value={day}>
+                        يوم {day}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-[10px] font-semibold text-zinc-400 mr-1">يوم النهاية:</span>
+                  <select
+                    value={tempSettings.cycleEndDay}
+                    onChange={(e) => setTempSettings(prev => ({ ...prev, cycleEndDay: parseInt(e.target.value) || 18 }))}
+                    className="w-full h-11 px-3 rounded-lg bg-zinc-50 dark:bg-zinc-800 border-none text-xs font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center cursor-pointer"
+                  >
+                    {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
+                      <option key={day} value={day}>
+                        يوم {day}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <p className="text-[10px] text-zinc-400 mr-2">تبدأ الدورة من يوم {tempSettings.cycleStartDay} وتغلق يوم {tempSettings.cycleEndDay} من الشهر القادم.</p>
             </div>
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold text-zinc-500 mr-2">كلمة سر حذف البيانات</label>

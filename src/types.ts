@@ -46,6 +46,8 @@ export interface UserSettings {
   receiptPolicy?: string;
   receiptPaperSize?: '80mm' | '58mm';
   lastSuppliersClearDate?: any;
+  cycleStartDay?: number;
+  cycleEndDay?: number;
 }
 
 export interface CashTransaction {
