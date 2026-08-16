@@ -27,6 +27,7 @@ import { AddQuantityModal } from '../components/products/AddQuantityModal';
 import { ProductEditModal } from '../components/products/ProductEditModal';
 import { PriceNegotiationModal } from '../components/products/PriceNegotiationModal';
 import { SmartPurchasePopup } from '../components/products/SmartPurchasePopup';
+import { PurchaseInvoiceModal } from '../components/products/PurchaseInvoiceModal';
 import { deleteLocalImage, saveLocalImage } from '../lib/localImages';
 import { uploadCloudImage, deleteCloudImage } from '../lib/cloudImages';
 import { compressImage } from '../lib/imageCompressor';
@@ -80,6 +81,17 @@ export default function Products() {
   const [createdNewProduct, setCreatedNewProduct] = useState<Product | null>(null);
   const [isSmartPopupOpen, setIsSmartPopupOpen] = useState(false);
   const [pendingQuantityProduct, setPendingQuantityProduct] = useState<Product | null>(null);
+  const [isPurchaseInvoiceModalOpen, setIsPurchaseInvoiceModalOpen] = useState(false);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    const suppQ = collection(db, `users/${user.uid}/suppliers`);
+    const unsub = onSnapshot(suppQ, (snap) => {
+      setSuppliers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    return () => unsub();
+  }, [user]);
 
   useEffect(() => {
     if (activeSupplier && pendingQuantityProduct) {
@@ -253,6 +265,13 @@ export default function Products() {
 
   const handleSaveProduct = async (productData: any, imageFile?: File | Blob | null, imageRemoved?: boolean) => {
     if (!user) return;
+
+    const purchase = Number(productData.purchasePrice) || 0;
+    const selling = Number(productData.sellingPrice) || 0;
+    if (selling <= purchase) {
+      showToast(`خطأ: يجب أن يكون سعر البيع (${selling}) أكبر دائمًا من سعر الشراء (${purchase})`, 'error');
+      throw new Error('يجب أن يكون سعر البيع أكبر من سعر الشراء دائمًا');
+    }
 
     try {
       const batch = writeBatch(db);
@@ -478,11 +497,16 @@ export default function Products() {
     }
   };
 
+  const priceErrorsCount = useMemo(() => {
+    return products.filter(p => (Number(p.sellingPrice) || 0) <= (Number(p.purchasePrice) || 0)).length;
+  }, [products]);
+
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
       const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            p.barcode?.includes(searchTerm) ||
-                           p.barcode2?.includes(searchTerm);
+                           p.barcode2?.includes(searchTerm) ||
+                           p.aliases?.some(a => a.toLowerCase().includes(searchTerm.toLowerCase()));
       
       let matchesStock = true;
       if (stockFilter === 'available') {
@@ -491,6 +515,8 @@ export default function Products() {
         matchesStock = (p.quantity || 0) <= (p.minQuantity || 0) && (p.quantity || 0) > 0;
       } else if (stockFilter === 'out') {
         matchesStock = (p.quantity || 0) <= 0;
+      } else if (stockFilter === 'price_error') {
+        matchesStock = (Number(p.sellingPrice) || 0) <= (Number(p.purchasePrice) || 0);
       }
 
       const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
@@ -525,11 +551,16 @@ export default function Products() {
       setScannerTarget('search');
       setIsScannerOpen(true);
     };
+    const invoiceModalHandler = () => {
+      setIsPurchaseInvoiceModalOpen(true);
+    };
     window.addEventListener('open-product-modal', productHandler);
     window.addEventListener('open-barcode-scanner-products', scannerHandler);
+    window.addEventListener('open-purchase-invoice-modal', invoiceModalHandler);
     return () => {
       window.removeEventListener('open-product-modal', productHandler);
       window.removeEventListener('open-barcode-scanner-products', scannerHandler);
+      window.removeEventListener('open-purchase-invoice-modal', invoiceModalHandler);
     };
   }, []);
 
@@ -542,6 +573,7 @@ export default function Products() {
           setScannedBarcode2('');
           setIsModalOpen(true);
         }} 
+        onOpenInvoiceModal={() => setIsPurchaseInvoiceModalOpen(true)}
       />
 
       {/* Search & Filters */}
@@ -557,11 +589,28 @@ export default function Products() {
         showPosStock={showPosStock}
         setShowPosStock={setShowPosStock}
         categories={categories}
+        priceErrorsCount={priceErrorsCount}
         onOpenScanner={() => {
           setScannerTarget('search');
           setIsScannerOpen(true);
         }}
       />
+
+      {/* Alert banner for pricing errors if any exist */}
+      {priceErrorsCount > 0 && stockFilter !== 'price_error' && (
+        <div 
+          onClick={() => setStockFilter('price_error')}
+          className="p-3 bg-red-50 hover:bg-red-100/80 dark:bg-red-950/30 dark:hover:bg-red-950/50 border border-red-200 dark:border-red-800/60 rounded-xl flex items-center justify-between gap-3 text-red-700 dark:text-red-300 text-xs font-bold cursor-pointer transition-all active:scale-[0.99] shadow-sm"
+        >
+          <div className="flex items-center gap-2">
+            <AlertCircle size={18} className="shrink-0 text-red-600 dark:text-red-400" />
+            <span>تم اكتشاف <span className="underline decoration-red-500 font-extrabold">{priceErrorsCount}</span> منتج(ات) بها خطأ في التسعير (سعر البيع أقل أو يساوي سعر الشراء).</span>
+          </div>
+          <span className="shrink-0 text-[11px] bg-red-600 text-white px-2.5 py-1 rounded-lg hover:bg-red-700 transition-colors">
+            عرض وتصحيح
+          </span>
+        </div>
+      )}
       
       {error && (
         <div className={cn(
@@ -706,6 +755,13 @@ export default function Products() {
         type={modalConfig.type}
         onConfirm={modalConfig.onConfirm}
         onCancel={() => setModalConfig(prev => ({ ...prev, show: false }))}
+      />
+
+      <PurchaseInvoiceModal
+        isOpen={isPurchaseInvoiceModalOpen}
+        onClose={() => setIsPurchaseInvoiceModalOpen(false)}
+        products={products}
+        suppliers={suppliers}
       />
     </div>
   );

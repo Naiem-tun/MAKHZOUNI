@@ -203,13 +203,24 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
                           step="0.001"
                           value={piecePrice || ''}
                           onChange={(e) => handleQtyPiecePriceChange(parseFloat(e.target.value.replace(',', '.')) || 0)}
-                          className="w-full rounded-lg border border-zinc-200 bg-white py-3 text-center font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
+                          className={`w-full rounded-lg border py-3 text-center font-bold outline-none focus:ring-2 transition-colors ${
+                            (product?.sellingPrice && piecePrice > 0 && piecePrice >= product.sellingPrice)
+                              ? 'border-red-500 bg-red-50/50 text-red-600 focus:ring-red-500 dark:bg-red-950/20 dark:border-red-500 dark:text-red-400'
+                              : 'border-zinc-200 bg-white text-zinc-900 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white'
+                          }`}
                           enterKeyHint="done"
                           inputMode="decimal"
                           onKeyDown={handleKeyDown}
                         />
                       </div>
                     </div>
+
+                    {product?.sellingPrice && piecePrice > 0 && piecePrice >= product.sellingPrice && (
+                      <p className="text-[11px] font-bold text-red-500 text-right flex items-center justify-end gap-1">
+                        <span>تنبيه: سعر الشراء الجديد ({piecePrice.toFixed(3)}) يجب أن يكون أقل من سعر البيع ({product.sellingPrice.toFixed(3)})</span>
+                        <AlertCircle size={13} className="shrink-0" />
+                      </p>
+                    )}
 
                     <div className="rounded-lg border-2 border-dashed border-zinc-100 p-4 dark:border-zinc-800 space-y-3">
                       <div className="flex items-center justify-between">

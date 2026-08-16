@@ -10,7 +10,7 @@ const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
-    base: './',
+    base: '/',
     plugins: [
       react(), 
       tailwindcss(),
@@ -83,12 +83,14 @@ export default defineConfig(({mode}) => {
           ],
           display: 'standalone',
           background_color: '#ffffff',
-          start_url: './index.html',
+          start_url: '/',
         }
       })
     ],
+    build: {
+      target: 'es2022',
+    },
     define: {
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       '__APP_VERSION__': JSON.stringify(packageJson.version),
     },
     resolve: {

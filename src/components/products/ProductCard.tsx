@@ -54,6 +54,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
     : (basePurchasePrice > 0 ? (profit / basePurchasePrice) * 100 : 0);
 
   const isPurchaseDisabled = settings.requireSupplierSession && !activeSupplier;
+  const hasPriceError = (product.sellingPrice || 0) <= (product.purchasePrice || 0);
 
   const unitMap: Record<string, string> = {
     piece: 'قطعة',
@@ -88,7 +89,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
         drag="x"
         dragConstraints={{ left: -112, right: 0 }}
         dragElastic={0.1}
-        className="relative z-10 flex items-center justify-between gap-3 bg-white p-3 shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 rounded-lg cursor-pointer"
+        className={cn(
+          "relative z-10 flex items-center justify-between gap-3 bg-white p-3 shadow-sm border rounded-lg cursor-pointer transition-colors",
+          hasPriceError
+            ? "border-red-300 bg-red-50/20 dark:bg-red-950/10 dark:border-red-800/60"
+            : "border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800"
+        )}
         onClick={(e) => {
           if (onCardClick) {
             onCardClick(product);
@@ -100,7 +106,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <ProductIcon product={product} className={cn("w-8 h-8 shrink-0", product.hasLocalImage ? "rounded-[12px]" : "")} />
           <div className="min-w-0 flex-1 flex flex-col">
-            <h3 className="text-base font-medium text-black dark:text-white leading-tight mb-0.5 truncate">{product.name}</h3>
+            <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+              <h3 className="text-base font-medium text-black dark:text-white leading-tight truncate">{product.name}</h3>
+              {hasPriceError && (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 border border-red-200 dark:border-red-800 shrink-0">
+                  ⚠️ خطأ تسعير
+                </span>
+              )}
+            </div>
             <div className="flex flex-col gap-0.5 text-[10px] text-neutral-500 font-bold">
               {showPosStock ? (
                 <div className="flex items-center gap-1.5 bg-neutral-100/60 dark:bg-zinc-800/40 border border-neutral-200/50 dark:border-zinc-700/40 px-1.5 py-0.5 rounded w-fit text-[9px] font-bold text-neutral-500 dark:text-neutral-400">

@@ -53,6 +53,14 @@ export default function DraftProducts() {
     e.preventDefault();
     if (!user || !editingDraft || !editingDraft.id) return;
     
+    const pPrice = Number(editingDraft.purchasePrice) || 0;
+    const sPrice = Number(editingDraft.sellingPrice) || 0;
+
+    if (sPrice <= pPrice) {
+      alert(`شرط التحقق: يجب أن يكون سعر البيع (${sPrice}) أكبر دائمًا من سعر الشراء (${pPrice})`);
+      return;
+    }
+
     setIsSaving(true);
     try {
       const batch = writeBatch(db);

@@ -77,6 +77,8 @@ export interface Product {
   piecesPerBox?: number;
   subItemsPerPiece?: number;
   boxPurchasePrice?: number;
+  boxSellingPrice?: number;
+  aliases?: string[];
   hasLocalImage?: boolean;
   hasCloudImage?: boolean;
   _copiedFromId?: string;

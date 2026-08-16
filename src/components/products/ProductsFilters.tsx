@@ -17,6 +17,7 @@ interface ProductsFiltersProps {
   showPosStock?: boolean;
   setShowPosStock?: (show: boolean) => void;
   categories: Category[];
+  priceErrorsCount?: number;
   onOpenScanner: () => void;
 }
 
@@ -32,6 +33,7 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
   showPosStock,
   setShowPosStock,
   categories,
+  priceErrorsCount = 0,
   onOpenScanner
 }) => {
   const { t } = useTranslation();
@@ -56,12 +58,21 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const stockOptions = [
-    { value: 'all', label: t('all_stock') },
-    { value: 'available', label: t('available_stock') },
-    { value: 'low', label: t('low_stock') },
-    { value: 'out', label: t('out_of_stock') }
-  ];
+  const stockOptions = useMemo(() => {
+    const opts = [
+      { value: 'all', label: t('all_stock') },
+      { value: 'available', label: t('available_stock') },
+      { value: 'low', label: t('low_stock') },
+      { value: 'out', label: t('out_of_stock') }
+    ];
+    if (priceErrorsCount > 0) {
+      opts.push({
+        value: 'price_error',
+        label: `⚠️ أخطاء التسعير (${priceErrorsCount})`
+      });
+    }
+    return opts;
+  }, [priceErrorsCount, t]);
 
   const categoryOptions = useMemo(() => {
     const options = [{ value: 'all', label: t('all_categories') }];

@@ -126,7 +126,7 @@ export function SupplierCard({
                   {[...s.visitHistory].reverse().slice(0, 5).map((visit, idx) => {
                     if (visit.status === 'attended') return <span key={idx} className="text-emerald-600 dark:text-emerald-500" title="حضر">✓</span>;
                     if (visit.status === 'absent') return <span key={idx} className="text-[#B34C36]" title="غياب مؤكد">×</span>;
-                    if (visit.status === 'pending') return <Clock key={idx} className="w-3.5 h-3.5 text-brand-600" title="في الانتظار اليوم" />;
+                    if (visit.status === 'pending') return <span key={idx} title="في الانتظار اليوم"><Clock className="w-3.5 h-3.5 text-brand-600" /></span>;
                     return (
                       <button 
                         key={idx}

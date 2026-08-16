@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, ScanBarcode, Trash2, Camera, ImagePlus, Copy, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, ScanBarcode, Trash2, Camera, ImagePlus, Copy, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 import { useCategories } from '../../hooks/useCategories';
 import { Product } from '../../types';
 import { getLocalImage } from '../../lib/localImages';
@@ -24,6 +24,8 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
   const [subItemsPerPiece, setSubItemsPerPiece] = useState<number | string>(1);
   const [boxPrice, setBoxPrice] = useState<number | string>('');
   const [piecePrice, setPiecePrice] = useState<number | string>('');
+  const [sellingPrice, setSellingPrice] = useState<number | string>('');
+  const [priceError, setPriceError] = useState<string | null>(null);
   const [barcode, setBarcode] = useState('');
   const [barcode2, setBarcode2] = useState('');
   const [showBarcode2, setShowBarcode2] = useState(false);
@@ -42,11 +44,32 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
   useEffect(() => {
     let url: string | null = null;
     if (isOpen) {
+      setPriceError(null);
       if (product) {
-        setPiecesPerBox(product.piecesPerBox || 1);
+        const ppb = product.piecesPerBox && Number(product.piecesPerBox) > 0 ? Number(product.piecesPerBox) : 1;
+        setPiecesPerBox(ppb);
         setSubItemsPerPiece(product.subItemsPerPiece || 1);
-        setBoxPrice(product.boxPurchasePrice ? parseFloat(Number(product.boxPurchasePrice).toFixed(3)) : '');
-        setPiecePrice(product.purchasePrice ? parseFloat(Number(product.purchasePrice).toFixed(3)) : '');
+        setSellingPrice(product.sellingPrice !== undefined && product.sellingPrice !== null ? product.sellingPrice : '');
+
+        const rawBoxPrice = product.boxPurchasePrice ? Number(product.boxPurchasePrice) : 0;
+        const rawPiecePrice = product.purchasePrice ? Number(product.purchasePrice) : 0;
+
+        if (ppb > 1) {
+          if (rawBoxPrice > 0) {
+            setBoxPrice(parseFloat(rawBoxPrice.toFixed(3)));
+            // Ensure piece price is accurately calculated as box price divided by pieces per box
+            setPiecePrice(parseFloat((rawBoxPrice / ppb).toFixed(3)));
+          } else if (rawPiecePrice > 0) {
+            setPiecePrice(parseFloat(rawPiecePrice.toFixed(3)));
+            setBoxPrice(parseFloat((rawPiecePrice * ppb).toFixed(3)));
+          } else {
+            setBoxPrice('');
+            setPiecePrice('');
+          }
+        } else {
+          setBoxPrice(rawBoxPrice > 0 ? parseFloat(rawBoxPrice.toFixed(3)) : '');
+          setPiecePrice(rawPiecePrice > 0 ? parseFloat(rawPiecePrice.toFixed(3)) : '');
+        }
         setCategory(product.category || (categories[0]?.name || ""));
         const fetchId = product.id || product._copiedFromId;
         if (product.hasLocalImage && fetchId) {
@@ -64,6 +87,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
         setPiecesPerBox(1);
         setBoxPrice('');
         setPiecePrice('');
+        setSellingPrice('');
         setCategory(categories[0]?.name || "");
       }
       setBarcode(product?.barcode || scannedBarcode || '');
@@ -92,6 +116,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
 
   const handleBoxPriceChange = (valStr: string) => {
     setBoxPrice(valStr);
+    setPriceError(null);
     const parsed = parseFloat(valStr) || 0;
     const pieces = parseFloat(String(piecesPerBox)) || 0;
     if (pieces > 0 && parsed > 0) {
@@ -103,6 +128,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
 
   const handlePiecePriceChange = (valStr: string) => {
     setPiecePrice(valStr);
+    setPriceError(null);
     const parsed = parseFloat(valStr) || 0;
     const pieces = parseFloat(String(piecesPerBox)) || 0;
     if (parsed > 0) {
@@ -112,8 +138,14 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
     }
   };
 
+  const handleSellingPriceChange = (valStr: string) => {
+    setSellingPrice(valStr);
+    setPriceError(null);
+  };
+
   const handlePiecesChange = (valStr: string) => {
     setPiecesPerBox(valStr);
+    setPriceError(null);
     const parsed = parseFloat(valStr) || 0;
     const currentBoxPrice = parseFloat(String(boxPrice)) || 0;
     if (parsed > 0 && currentBoxPrice > 0) {
@@ -160,20 +192,42 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (isSaving) return;
-    setIsSaving(true);
+    
     const formData = new FormData(e.currentTarget);
-    const rawPurchasePrice = parseFloat((formData.get('purchasePrice') as string)?.replace(',', '.') || '0') || 0;
+    const ppb = parseFloat((formData.get('piecesPerBox') as string)?.replace(',', '.') || '0') || 1;
+    let rawPurchasePrice = parseFloat((formData.get('purchasePrice') as string)?.replace(',', '.') || '0') || 0;
     const rawSellingPrice = parseFloat((formData.get('sellingPrice') as string)?.replace(',', '.') || '0') || 0;
-    const rawBoxPurchasePrice = parseFloat((formData.get('boxPurchasePrice') as string)?.replace(',', '.') || '0') || 0;
+    let rawBoxPurchasePrice = parseFloat((formData.get('boxPurchasePrice') as string)?.replace(',', '.') || '0') || 0;
+
+    // Ensure price consistency for box products
+    if (ppb > 1) {
+      if (rawBoxPurchasePrice > 0 && (rawPurchasePrice === 0 || Math.abs(rawPurchasePrice - rawBoxPurchasePrice) < 0.001 || rawPurchasePrice > rawBoxPurchasePrice)) {
+        rawPurchasePrice = rawBoxPurchasePrice / ppb;
+      } else if (rawPurchasePrice > 0 && rawBoxPurchasePrice === 0) {
+        rawBoxPurchasePrice = rawPurchasePrice * ppb;
+      }
+    }
+
+    const finalPurchasePrice = parseFloat(rawPurchasePrice.toFixed(3));
+    const finalSellingPrice = parseFloat(rawSellingPrice.toFixed(3));
+
+    // Strict validation: selling price must ALWAYS be strictly greater than purchase price
+    if (finalSellingPrice <= finalPurchasePrice) {
+      setPriceError(`شرط التحقق: يجب أن يكون سعر البيع (${finalSellingPrice}) أكبر دائمًا من سعر الشراء (${finalPurchasePrice})`);
+      return;
+    }
+
+    setIsSaving(true);
+    setPriceError(null);
 
     const productData = {
       name: formData.get('name') as string,
       category: formData.get('category') as string,
-      purchasePrice: parseFloat(rawPurchasePrice.toFixed(3)),
-      sellingPrice: parseFloat(rawSellingPrice.toFixed(3)),
+      purchasePrice: finalPurchasePrice,
+      sellingPrice: finalSellingPrice,
       barcode: formData.get('barcode') as string,
       barcode2: formData.get('barcode2') as string,
-      piecesPerBox: parseFloat((formData.get('piecesPerBox') as string)?.replace(',', '.') || '0') || 1,
+      piecesPerBox: ppb,
       subItemsPerPiece: parseFloat((formData.get('subItemsPerPiece') as string)?.replace(',', '.') || '0') || 1,
       unit: formData.get('unit') as string || 'piece',
       boxPurchasePrice: parseFloat(rawBoxPurchasePrice.toFixed(3)),
@@ -181,7 +235,11 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
       quantity: product?.quantity ?? 0,
       minQuantity: parseFloat((formData.get('minQuantity') as string)?.replace(',', '.') || '0') || 0,
     };
-    await onSave(productData, imageFile, imageRemoved);
+    try {
+      await onSave(productData, imageFile, imageRemoved);
+    } catch (err) {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -482,39 +540,68 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
               </div>
 
               {/* 5. Prices Row */}
-              <div className="grid grid-cols-2 gap-3 text-right">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-500">{t('piece_purchase_price')}</label>
-                  <input 
-                    name="purchasePrice" 
-                    type="number" 
-                    step="0.001" 
-                    value={piecePrice}
-                    onChange={(e) => handlePiecePriceChange(e.target.value)}
-                    required 
-                    onKeyDown={handleKeyDown}
-                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
-                  />
+              <div className="space-y-1 text-right">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-zinc-500">{t('piece_purchase_price')}</label>
+                    <input 
+                      name="purchasePrice" 
+                      type="number" 
+                      step="0.001" 
+                      value={piecePrice}
+                      onChange={(e) => handlePiecePriceChange(e.target.value)}
+                      required 
+                      onKeyDown={handleKeyDown}
+                      className={`w-full rounded-lg border px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 transition-colors ${
+                        (parseFloat(String(sellingPrice)) > 0 && parseFloat(String(piecePrice)) > 0 && parseFloat(String(sellingPrice)) <= parseFloat(String(piecePrice)))
+                          ? 'border-amber-400 bg-amber-50/50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 focus:ring-amber-500'
+                          : 'border-zinc-200 bg-zinc-50 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white'
+                      }`} 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-zinc-500">{t('selling_price')}</label>
+                    <input 
+                      name="sellingPrice" 
+                      type="number" 
+                      step="0.001" 
+                      value={sellingPrice} 
+                      onChange={(e) => handleSellingPriceChange(e.target.value)}
+                      required 
+                      onKeyDown={handleKeyDown}
+                      className={`w-full rounded-lg border px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 transition-colors ${
+                        (parseFloat(String(sellingPrice)) > 0 && parseFloat(String(piecePrice)) > 0 && parseFloat(String(sellingPrice)) <= parseFloat(String(piecePrice)))
+                          ? 'border-red-500 bg-red-50/50 dark:bg-red-950/20 text-red-600 dark:text-red-400 focus:ring-red-500'
+                          : 'border-zinc-200 bg-zinc-50 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white'
+                      }`} 
+                    />
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-500">{t('selling_price')}</label>
-                  <input 
-                    name="sellingPrice" 
-                    type="number" 
-                    step="0.001" 
-                    defaultValue={product?.sellingPrice || ''} 
-                    required 
-                    onKeyDown={handleKeyDown}
-                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
-                  />
-                </div>
+
+                {/* Real-time inline warning */}
+                {parseFloat(String(sellingPrice)) > 0 && parseFloat(String(piecePrice)) > 0 && parseFloat(String(sellingPrice)) <= parseFloat(String(piecePrice)) && (
+                  <p className="text-[11px] font-bold text-red-500 pt-0.5 flex items-center justify-end gap-1">
+                    <span>يجب أن يكون سعر البيع أكبر من سعر الشراء ({parseFloat(String(piecePrice)).toFixed(3)})</span>
+                    <AlertCircle size={13} className="shrink-0" />
+                  </p>
+                )}
               </div>
+
+              {/* Price validation error banner */}
+              {priceError && (
+                <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 rounded-lg text-red-600 dark:text-red-400 text-xs font-bold flex items-center justify-between gap-2 text-right">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle size={16} className="shrink-0 text-red-500" />
+                    <span>{priceError}</span>
+                  </div>
+                </div>
+              )}
 
               <div className="pt-3">
                 <button 
                   type="submit" 
-                  disabled={isSaving}
-                  className="w-full rounded-lg bg-brand-600 py-3 text-sm font-bold text-white transition-all hover:bg-brand-700 active:scale-95 shadow-lg shadow-brand-600/10 disabled:opacity-50"
+                  disabled={isSaving || (parseFloat(String(sellingPrice)) > 0 && parseFloat(String(piecePrice)) > 0 && parseFloat(String(sellingPrice)) <= parseFloat(String(piecePrice)))}
+                  className="w-full rounded-lg bg-brand-600 py-3 text-sm font-bold text-white transition-all hover:bg-brand-700 active:scale-95 shadow-lg shadow-brand-600/10 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSaving ? <div className="animate-spin w-5 h-5 border-2 border-white rounded-full border-t-transparent mx-auto"></div> : t('save')}
                 </button>
