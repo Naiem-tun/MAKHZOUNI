@@ -66,7 +66,7 @@ async function startServer() {
    - suggestedCategory: التصنيف المقترح للمنتج.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-3.7-flash",
         contents: {
           parts: [imagePart, { text: promptText }],
         },
@@ -102,7 +102,8 @@ async function startServer() {
         },
       });
 
-      const jsonText = response.text || "{}";
+      let jsonText = response.text || "{}";
+      jsonText = jsonText.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim();
       const data = JSON.parse(jsonText);
       res.json({ success: true, data });
     } catch (err: any) {
