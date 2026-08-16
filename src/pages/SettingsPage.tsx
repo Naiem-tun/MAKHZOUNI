@@ -53,7 +53,9 @@ import {
   Grid,
   FileDown,
   CloudUpload,
-  Calculator
+  Calculator,
+  Sparkles,
+  Key
 } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { collection, getDocs, doc, setDoc, writeBatch, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
@@ -199,6 +201,8 @@ export default function SettingsPage() {
     cycleStartDay: settings.cycleStartDay || 18,
     cycleEndDay: settings.cycleEndDay || 18,
   });
+  const [geminiApiKey, setGeminiApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
+  const [isSavingKey, setIsSavingKey] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const handleSaveStoreSettings = async () => {
     setIsSaving(true);
@@ -792,6 +796,63 @@ export default function SettingsPage() {
               {isSaving ? <span className="animate-spin text-xl">↻</span> : <Check size={20} />}
               <span>حفظ إعدادات الفاتورة</span>
             </button>
+          </div>
+        </div>
+
+        {/* Gemini AI Settings Group */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800 shadow-sm divide-y divide-zinc-100 dark:divide-zinc-800">
+          <div className="px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 text-right flex items-center justify-between">
+            <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400">الذكاء الاصطناعي (Gemini AI)</h3>
+            <span className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-md">
+              <Sparkles size={12} />
+              تحليل الفواتير
+            </span>
+          </div>
+
+          <div className="p-4 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                <Key size={20} />
+              </div>
+              <div className="text-right">
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">مفتاح Gemini API Key</h3>
+                <p className="text-[11px] text-zinc-400 mt-0.5">لتشغيل ميزة قراءة ومسح الفواتير بالذكاء الاصطناعي على Vercel وجميع المتصفحات</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-1">
+              <input
+                type="password"
+                value={geminiApiKey}
+                onChange={(e) => setGeminiApiKey(e.target.value)}
+                placeholder="AIzaSy..."
+                className="w-full h-11 px-4 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-mono text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500/30"
+              />
+
+              <div className="flex items-center justify-between text-[11px]">
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-brand-600 dark:text-brand-400 underline font-semibold"
+                >
+                  الحصول على مفتاح مجاني من Google AI Studio
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const trimmed = geminiApiKey.trim();
+                    localStorage.setItem('gemini_api_key', trimmed);
+                    setStatus({ type: 'success', msg: 'تم حفظ مفتاح Gemini بنجاح في جهازك' });
+                    setTimeout(() => setStatus(null), 3000);
+                  }}
+                  className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors"
+                >
+                  حفظ المفتاح
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
