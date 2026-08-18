@@ -54,45 +54,54 @@ html.dark, html.dark body {
 
 @media print {
   @page {
-    margin: 10mm;
-    size: auto;
+    margin: 8mm;
+    size: A4 portrait;
   }
   
   html, body {
     height: auto !important;
     overflow: visible !important;
     background-color: white !important;
+    color: black !important;
   }
   
   body * {
     visibility: hidden;
   }
 
-  .print-only, .print-only * {
+  .print-only, 
+  .print-only *,
+  #printable-inventory-sheet, 
+  #printable-inventory-sheet *,
+  #pdf-report-content, 
+  #pdf-report-content * {
     visibility: visible !important;
   }
-
-  #pdf-report-content, #pdf-report-content * {
-    visibility: visible;
-  }
   
+  #printable-inventory-sheet,
   #pdf-report-content {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    margin: 0;
-    padding: 0;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
     background-color: white !important;
     color: black !important;
+    display: block !important;
   }
   
-  .print-hidden, .print-hidden * {
+  .print-hidden, 
+  .print-hidden *,
+  .no-print,
+  .no-print * {
     display: none !important;
+    visibility: hidden !important;
   }
 
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 }
