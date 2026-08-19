@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Check, PlusCircle, Package } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { cn } from '../../lib/utils';
+import { cn, cleanQuantity, formatQuantity } from '../../lib/utils';
 import { ProductIcon } from './ProductIcon';
 import { useAppContext } from '../../AppContext';
 
@@ -42,13 +42,13 @@ export const InventoryItem = React.memo(({
   const unitText = product.unit ? (unitMap[product.unit] || t(product.unit) || 'قطعة') : t('piece');
 
   const getCountBreakdown = (total: number, piecesPerBox: number) => {
-    if (total === undefined || total === null) total = 0;
+    const cleanTotal = cleanQuantity(total);
     
     if (settings.defaultStockView === 'boxes' && piecesPerBox && piecesPerBox > 1) {
-      return `${(total / piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ${t('box')}`;
+      return `${(cleanTotal / piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ${t('box')}`;
     }
     
-    return `${total} ${unitText}`;
+    return `${formatQuantity(cleanTotal)} ${unitText}`;
   };
 
   return (
@@ -76,10 +76,10 @@ export const InventoryItem = React.memo(({
           <div className="flex items-center gap-1 mb-1.5 opacity-60">
             <span className="text-[10px] text-zinc-400 dark:text-zinc-500">{t('stock')}:</span>
             <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold">
-              {settings.defaultStockView === 'boxes' ? getCountBreakdown(product.quantity || 0, product.piecesPerBox || 1) : `${product.quantity || 0} ${unitText}`}
+              {settings.defaultStockView === 'boxes' ? getCountBreakdown(product.quantity || 0, product.piecesPerBox || 1) : `${formatQuantity(product.quantity || 0)} ${unitText}`}
             </span>
           </div>
-          {(inventoryQuantity || 0) > 0 && (
+          {cleanQuantity(inventoryQuantity) > 0 && (
             <div className="flex items-center gap-1">
               <div className="inline-flex items-center gap-1 bg-brand-500 text-white px-2 py-0.5 rounded-full text-[9px] font-black shadow-sm ring-2 ring-white dark:ring-zinc-900">
                 <Check size={8} strokeWidth={4} />

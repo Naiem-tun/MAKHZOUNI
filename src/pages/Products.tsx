@@ -5,7 +5,7 @@ import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimest
 import { db } from '../lib/firebase';
 import { Product, OperationType } from '../types';
 import { syncTracker } from '../lib/syncTracker';
-import { handleFirestoreError, cn } from '../lib/utils';
+import { handleFirestoreError, cn, cleanQuantity, formatQuantity, sanitizeProduct } from '../lib/utils';
 import { logAudit } from '../lib/auditLogger';
 import { 
   Plus, 
@@ -132,7 +132,7 @@ export default function Products() {
     const path = `users/${user.uid}/products`;
     const q = collection(db, path);
     return onSnapshot(q, (snap) => {
-      const fetchedProducts = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+      const fetchedProducts = snap.docs.map(doc => sanitizeProduct({ id: doc.id, ...doc.data() } as Product));
       setProducts(fetchedProducts);
       localStorage.setItem(`products_cache_${user.uid}`, JSON.stringify(fetchedProducts));
       setLoading(false);
@@ -176,8 +176,8 @@ export default function Products() {
   const performQuantitySave = async (numBoxes: number, extraPieces: number, boxPrice: number, piecePrice: number) => {
     if (!user || !quantityProduct) return;
 
-    const addedQty = (numBoxes * (quantityProduct.piecesPerBox || 1)) + extraPieces;
-    const newQty = (quantityProduct.quantity || 0) + addedQty;
+    const addedQty = cleanQuantity((numBoxes * (quantityProduct.piecesPerBox || 1)) + extraPieces);
+    const newQty = cleanQuantity((quantityProduct.quantity || 0) + addedQty);
 
     try {
       // Find if this product is monitored
@@ -211,10 +211,10 @@ export default function Products() {
       });
 
       // Update product stock
-      const currentPosQty = quantityProduct.posQuantity !== undefined ? quantityProduct.posQuantity : quantityProduct.quantity;
+      const currentPosQty = cleanQuantity(quantityProduct.posQuantity !== undefined ? quantityProduct.posQuantity : quantityProduct.quantity);
       batch.update(productRef, {
         quantity: increment(addedQty),
-        posQuantity: currentPosQty + addedQty,
+        posQuantity: cleanQuantity(currentPosQty + addedQty),
         purchasePrice: parseFloat((piecePrice || 0).toFixed(3)),
         boxPurchasePrice: parseFloat((boxPrice || 0).toFixed(3)),
         updatedAt: serverTimestamp(),

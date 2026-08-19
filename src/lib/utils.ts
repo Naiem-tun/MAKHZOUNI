@@ -29,13 +29,56 @@ export function safeParseFloat(val: any): number {
   return isNaN(parsed) ? 0 : parsed;
 }
 
+export function cleanQuantity(val: any): number {
+  if (val === undefined || val === null || val === '') return 0;
+  const num = typeof val === 'number' ? val : parseFloat(String(val).replace(',', '.'));
+  if (isNaN(num)) return 0;
+  // If absolute value is smaller than 1e-5 (e.g. -1.6653345369377348e-16), snap to 0
+  if (Math.abs(num) < 0.00001) return 0;
+  // Round to 4 decimal places to eliminate IEEE-754 precision noise (like 0.8000000000000007)
+  const rounded = Math.round((num + Number.EPSILON) * 10000) / 10000;
+  return Math.abs(rounded) < 0.00001 ? 0 : rounded;
+}
+
+export function formatQuantity(val: any, maxDecimals: number = 3): string {
+  const cleaned = cleanQuantity(val);
+  if (cleaned === 0) return '0';
+  const fixed = cleaned.toFixed(maxDecimals);
+  return parseFloat(fixed).toString();
+}
+
+export function sanitizeProduct<T extends Record<string, any>>(prod: T): T {
+  if (!prod) return prod;
+  const sanitized = { ...prod } as any;
+  if ('quantity' in prod) {
+    sanitized.quantity = cleanQuantity(prod.quantity);
+  }
+  if ('posQuantity' in prod) {
+    sanitized.posQuantity = cleanQuantity(prod.posQuantity);
+  }
+  if ('minQuantity' in prod) {
+    sanitized.minQuantity = cleanQuantity(prod.minQuantity);
+  }
+  if ('purchasePrice' in prod && typeof prod.purchasePrice === 'number') {
+    sanitized.purchasePrice = parseFloat(prod.purchasePrice.toFixed(3));
+  }
+  if ('sellingPrice' in prod && typeof prod.sellingPrice === 'number') {
+    sanitized.sellingPrice = parseFloat(prod.sellingPrice.toFixed(3));
+  }
+  if ('boxPurchasePrice' in prod && typeof prod.boxPurchasePrice === 'number') {
+    sanitized.boxPurchasePrice = parseFloat(prod.boxPurchasePrice.toFixed(3));
+  }
+  return sanitized;
+}
+
 export const getCountBreakdown = (total: number, piecesPerBox: number) => {
-  if (piecesPerBox <= 1) return total.toString();
-  const boxes = Math.floor(total / piecesPerBox);
-  const pieces = total % piecesPerBox;
-  if (boxes > 0 && pieces > 0) return `${boxes}c + ${pieces}p`;
+  const cleanTotal = cleanQuantity(total);
+  if (piecesPerBox <= 1) return formatQuantity(cleanTotal);
+  const boxes = Math.floor(cleanTotal / piecesPerBox);
+  const pieces = cleanQuantity(cleanTotal % piecesPerBox);
+  if (boxes > 0 && pieces > 0) return `${boxes}c + ${formatQuantity(pieces)}p`;
   if (boxes > 0) return `${boxes}c`;
-  return `${pieces}p`;
+  return `${formatQuantity(pieces)}p`;
 };
 
 export function safeParseDate(val: any): Date {

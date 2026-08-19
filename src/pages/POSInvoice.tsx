@@ -28,8 +28,8 @@ import {
   collection, onSnapshot, writeBatch, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { forceStopAllCameras } from '../components/common/BarcodeScanner';
-import {
-  Product } from '../types';
+import { Product } from '../types';
+import { cleanQuantity, formatQuantity } from '../lib/utils';
 
 import {
   BarcodeScanner } from '../components/common/BarcodeScanner';
@@ -598,19 +598,20 @@ export default function POSInvoice() {
         
         if (deductInventory && p) {
           const productRef = doc(db, `users/${user.uid}/products`, item.productId);
-          const currentPosQty = p.posQuantity !== undefined ? p.posQuantity : p.quantity;
-          const currentQty = p.quantity !== undefined ? p.quantity : 0;
+          const currentPosQty = cleanQuantity(p.posQuantity !== undefined ? p.posQuantity : p.quantity);
+          const currentQty = cleanQuantity(p.quantity !== undefined ? p.quantity : 0);
+          const itemQuantityToDeduct = cleanQuantity(item.quantity);
           
           if (settings.posDeductInventory) {
             // Deduct directly from main warehouse inventory (quantity)
             batch.update(productRef, {
-              quantity: Math.max(0, currentQty - item.quantity),
+              quantity: Math.max(0, cleanQuantity(currentQty - itemQuantityToDeduct)),
               updatedAt: serverTimestamp()
             });
           } else {
             // Deduct from cashier's inventory (posQuantity) only, and NOT from main warehouse inventory
             batch.update(productRef, {
-              posQuantity: Math.max(0, currentPosQty - item.quantity),
+              posQuantity: Math.max(0, cleanQuantity(currentPosQty - itemQuantityToDeduct)),
               updatedAt: serverTimestamp()
             });
           }

@@ -20,7 +20,7 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
-import { cn, safeParseFloat, handleFirestoreError, formatCurrency, safeParseDate, formatAppDate } from '../lib/utils';
+import { cn, safeParseFloat, handleFirestoreError, formatCurrency, safeParseDate, formatAppDate, cleanQuantity, formatQuantity } from '../lib/utils';
 import { OperationType } from '../types';
 import { ProductPagination } from '../components/products/ProductPagination';
 import { useCategories, categoryIcons } from '../hooks/useCategories';
@@ -40,17 +40,18 @@ import { logAudit } from '../lib/auditLogger';
 
 
 function distributeQuantityToProducts(originalProducts: any[], newTotalQty: number) {
-  const currentTotal = originalProducts.reduce((sum, p) => sum + (p.quantity || 0), 0);
-  const diff = newTotalQty - currentTotal;
+  const cleanTargetTotal = cleanQuantity(newTotalQty);
+  const currentTotal = originalProducts.reduce((sum, p) => sum + cleanQuantity(p.quantity || 0), 0);
+  const diff = cleanQuantity(cleanTargetTotal - currentTotal);
   
   if (diff === 0) {
-    return originalProducts.map(p => ({ product: p, newQty: p.quantity || 0 }));
+    return originalProducts.map(p => ({ product: p, newQty: cleanQuantity(p.quantity || 0) }));
   }
 
-  const products = originalProducts.map(p => ({ ...p, currentQty: p.quantity || 0 }));
+  const products = originalProducts.map(p => ({ ...p, currentQty: cleanQuantity(p.quantity || 0) }));
 
   if (diff > 0) {
-    products[products.length - 1].currentQty += diff;
+    products[products.length - 1].currentQty = cleanQuantity(products[products.length - 1].currentQty + diff);
   } else {
     let remainingToDeduct = Math.abs(diff);
     for (let i = 0; i < products.length; i++) {
@@ -59,19 +60,19 @@ function distributeQuantityToProducts(originalProducts: any[], newTotalQty: numb
       const p = products[i];
       if (p.currentQty > 0) {
         const deductAmount = Math.min(p.currentQty, remainingToDeduct);
-        p.currentQty -= deductAmount;
-        remainingToDeduct -= deductAmount;
+        p.currentQty = cleanQuantity(p.currentQty - deductAmount);
+        remainingToDeduct = cleanQuantity(remainingToDeduct - deductAmount);
       }
     }
     
     if (remainingToDeduct > 0) {
-      products[products.length - 1].currentQty -= remainingToDeduct;
+      products[products.length - 1].currentQty = cleanQuantity(products[products.length - 1].currentQty - remainingToDeduct);
     }
   }
 
   return products.map(p => ({
     product: p,
-    newQty: p.currentQty
+    newQty: cleanQuantity(p.currentQty)
   }));
 }
 
@@ -482,8 +483,8 @@ export default function Inventory() {
             distributed.forEach(({ product, newQty }) => {
               const productRef = doc(db, `users/${user.uid}/products`, product.id!);
               batch.update(productRef, {
-                quantity: newQty,
-                posQuantity: newQty,
+                quantity: cleanQuantity(newQty),
+                posQuantity: cleanQuantity(newQty),
                 updatedAt: auditTime,
                 lastInventoryDate: auditTime
               });

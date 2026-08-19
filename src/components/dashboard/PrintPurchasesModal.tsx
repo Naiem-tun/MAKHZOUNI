@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { formatAppDate, safeParseDate, formatCurrency } from '../../lib/utils';
+import { formatAppDate, safeParseDate, formatCurrency, formatQuantity, cleanQuantity } from '../../lib/utils';
 import { Transaction } from '../../types';
 import * as html2pdf from 'html2pdf.js';
 import { X, ExternalLink, Loader2 } from 'lucide-react';
@@ -126,7 +126,7 @@ export function PrintPurchasesModal({
           tableHtml += `
             <tr style="border-bottom: 1px solid #e5e7eb; page-break-inside: avoid;">
               <td style="padding: 10px;text-align: right;font-size: 13px; padding-right: 20px;">${p.productName || 'غير معروف'}</td>
-              <td style="padding: 10px;text-align: center;font-size: 13px;">${p.quantityChange || 0}</td>
+              <td style="padding: 10px;text-align: center;font-size: 13px;">${formatQuantity(p.quantityChange)}</td>
               <td style="padding: 10px;text-align: center;font-size: 13px;font-weight: 600;">${formatCurrency(p.amount || 0, settings.currency)}</td>
               <td style="padding: 10px;text-align: left;font-size: 12px;color:#6b7280;" dir="ltr">${formatAppDate(safeParseDate(p.date), settings.language, t)}</td>
             </tr>

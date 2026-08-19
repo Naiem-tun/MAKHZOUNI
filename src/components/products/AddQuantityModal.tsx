@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, History, TrendingUp, TrendingDown, Minus, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Product } from '../../types';
-import { formatCurrency, cn } from '../../lib/utils';
+import { formatCurrency, cn, cleanQuantity, formatQuantity } from '../../lib/utils';
 import { useAppContext } from '../../AppContext';
 
 interface AddQuantityModalProps {
@@ -58,8 +58,9 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
     }
   };
 
-  const addedQty = (numBoxes * (product?.piecesPerBox || 1)) + extraPieces;
-  const newTotalQty = (product?.quantity || 0) + addedQty;
+  const addedQty = cleanQuantity((numBoxes * (product?.piecesPerBox || 1)) + extraPieces);
+  const currentStock = cleanQuantity(product?.quantity);
+  const newTotalQty = cleanQuantity(currentStock + addedQty);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,12 +133,12 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
                         <div className="flex items-baseline justify-center gap-1">
                           {settings.defaultStockView === 'boxes' && product.piecesPerBox && product.piecesPerBox > 1 ? (
                             <>
-                              <span className="text-lg font-bold text-zinc-900 dark:text-white">{((product.quantity || 0) / product.piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+                              <span className="text-lg font-bold text-zinc-900 dark:text-white">{(cleanQuantity(product.quantity) / product.piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                               <span className="text-[8px] font-bold text-zinc-400">كرتونة</span>
                             </>
                           ) : (
                             <>
-                              <span className="text-lg font-bold text-zinc-900 dark:text-white">{product.quantity}</span>
+                              <span className="text-lg font-bold text-zinc-900 dark:text-white">{formatQuantity(product.quantity)}</span>
                               <span className="text-[8px] font-bold text-zinc-400">{unitText}</span>
                             </>
                           )}
@@ -232,7 +233,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
                             </>
                           ) : (
                             <>
-                              <span className="text-sm font-bold text-zinc-900 dark:text-white">{addedQty}</span>
+                              <span className="text-sm font-bold text-zinc-900 dark:text-white">{formatQuantity(addedQty)}</span>
                               <span className="text-[10px] font-bold text-zinc-400">{unitText}</span>
                             </>
                           )}
@@ -249,7 +250,7 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
                             </>
                           ) : (
                             <>
-                              <span className="text-lg font-bold text-brand-600">{newTotalQty}</span>
+                              <span className="text-lg font-bold text-brand-600">{formatQuantity(newTotalQty)}</span>
                               <span className="text-[10px] font-bold text-zinc-400">{unitText}</span>
                             </>
                           )}

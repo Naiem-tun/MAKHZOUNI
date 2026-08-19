@@ -31,7 +31,7 @@ import {
   Ghost
 } from 'lucide-react';
 import { Card } from '../components/UI';
-import { cn, formatCurrency, safeParseFloat, safeDispatchEvent, safeParseDate, formatAppDate } from '../lib/utils';
+import { cn, formatCurrency, safeParseFloat, safeDispatchEvent, safeParseDate, formatAppDate, cleanQuantity, formatQuantity, sanitizeProduct } from '../lib/utils';
 import { Product, Transaction, OperationType, Supplier } from '../types';
 import { handleFirestoreError } from '../lib/utils';
 import { logAudit } from '../lib/auditLogger';
@@ -111,7 +111,7 @@ const Dashboard = memo(() => {
     const suppliersQuery = collection(db, suppliersPath);
 
     const unsubProducts = onSnapshot(productsQuery, (snap) => {
-      setProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
+      setProducts(snap.docs.map(doc => sanitizeProduct({ id: doc.id, ...doc.data() } as Product)));
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, productsPath);
     });
@@ -120,14 +120,15 @@ const Dashboard = memo(() => {
       setAllPurchases(snap.docs.map(doc => {
         const data = doc.data();
         const parsedDate = safeParseDate(data.date);
+        const cleanQtyAdded = cleanQuantity(data.qtyAdded);
         
         return { 
           id: doc.id, 
           productId: data.productId,
           productName: data.productName,
-          quantityChange: data.qtyAdded,
+          quantityChange: cleanQtyAdded,
           amount: data.amount || 0,
-          price: data.qtyAdded > 0 ? (data.amount / data.qtyAdded) : 0,
+          price: cleanQtyAdded > 0 ? (data.amount / cleanQtyAdded) : 0,
           supplierId: data.supplierId || null,
           supplierName: data.supplierName || null,
           date: parsedDate
@@ -492,8 +493,8 @@ const Dashboard = memo(() => {
                               <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-900 px-2 py-0.5 rounded-md">
                                 <span className="text-zinc-900 dark:text-white">
                                   {settings.defaultStockView === 'boxes' && p.piecesPerBox && p.piecesPerBox > 1
-                                    ? ((p.quantityChange || 0) / p.piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-                                    : p.quantityChange}
+                                    ? ((cleanQuantity(p.quantityChange) / p.piecesPerBox)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+                                    : formatQuantity(p.quantityChange)}
                                 </span>
                                 <span>
                                   {settings.defaultStockView === 'boxes' && p.piecesPerBox && p.piecesPerBox > 1

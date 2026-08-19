@@ -5,7 +5,7 @@ import { Package, Plus, SquarePen, Lock } from 'lucide-react';
 import { Product } from '../../types';
 import { useAppContext } from '../../AppContext';
 import { useCategories, categoryIcons } from '../../hooks/useCategories';
-import { cn, formatCurrency } from '../../lib/utils';
+import { cn, formatCurrency, cleanQuantity, formatQuantity } from '../../lib/utils';
 import { ProductImage } from './ProductImage';
 
 interface ProductCardProps {
@@ -121,20 +121,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
                   {settings.defaultStockView === 'boxes' && product.piecesPerBox && product.piecesPerBox > 1 ? (
                     <>
                       <span className="text-teal-600 dark:text-teal-400 font-extrabold font-mono">
-                        {((product.posQuantity !== undefined ? product.posQuantity : product.quantity) / product.piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} <span className="opacity-50 font-normal">كرتونة</span>
+                        {(cleanQuantity(product.posQuantity !== undefined ? product.posQuantity : product.quantity) / product.piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} <span className="opacity-50 font-normal">كرتونة</span>
                       </span>
                       <span className="text-[9px] text-neutral-400 font-medium">
-                        ({product.posQuantity !== undefined ? product.posQuantity : product.quantity} {unitText})
+                        ({formatQuantity(product.posQuantity !== undefined ? product.posQuantity : product.quantity)} {unitText})
                       </span>
                     </>
                   ) : (
                     <>
                       <span className="text-teal-600 dark:text-teal-400 font-extrabold font-mono">
-                        {product.posQuantity !== undefined ? product.posQuantity : product.quantity} <span className="opacity-50 font-normal">{unitText}</span>
+                        {formatQuantity(product.posQuantity !== undefined ? product.posQuantity : product.quantity)} <span className="opacity-50 font-normal">{unitText}</span>
                       </span>
                       {showBoxInfo && product.piecesPerBox && product.piecesPerBox > 1 && (
                         <span className="text-[9px] text-neutral-400 font-medium">
-                          ({Math.floor((product.posQuantity !== undefined ? product.posQuantity : product.quantity) / product.piecesPerBox)} كرتونة و {(product.posQuantity !== undefined ? product.posQuantity : product.quantity) % product.piecesPerBox} {unitText})
+                          ({Math.floor(cleanQuantity(product.posQuantity !== undefined ? product.posQuantity : product.quantity) / product.piecesPerBox)} كرتونة و {formatQuantity(cleanQuantity(product.posQuantity !== undefined ? product.posQuantity : product.quantity) % product.piecesPerBox)} {unitText})
                         </span>
                       )}
                     </>
@@ -145,21 +145,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
                   <span className="opacity-70">{t('stock_label')}:</span>
                   {settings.defaultStockView === 'boxes' && product.piecesPerBox && product.piecesPerBox > 1 ? (
                     <>
-                      <span className={cn("font-extrabold font-mono", (product.quantity || 0) <= (product.minQuantity ?? 0) ? "text-delete-text" : "text-blue-600 dark:text-blue-400")}>
-                        {((product.quantity || 0) / product.piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} <span className="opacity-50 font-normal">كرتونة</span>
+                      <span className={cn("font-extrabold font-mono", cleanQuantity(product.quantity) <= (product.minQuantity ?? 0) ? "text-delete-text" : "text-blue-600 dark:text-blue-400")}>
+                        {(cleanQuantity(product.quantity) / product.piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} <span className="opacity-50 font-normal">كرتونة</span>
                       </span>
                       <span className="text-[9px] text-neutral-400 font-medium">
-                        ({product.quantity || 0} {unitText})
+                        ({formatQuantity(product.quantity)} {unitText})
                       </span>
                     </>
                   ) : (
                     <>
-                      <span className={cn("font-extrabold font-mono", (product.quantity || 0) <= (product.minQuantity ?? 0) ? "text-delete-text" : "text-blue-600 dark:text-blue-400")}>
-                        {product.quantity || 0} <span className="opacity-50 font-normal">{unitText}</span>
+                      <span className={cn("font-extrabold font-mono", cleanQuantity(product.quantity) <= (product.minQuantity ?? 0) ? "text-delete-text" : "text-blue-600 dark:text-blue-400")}>
+                        {formatQuantity(product.quantity)} <span className="opacity-50 font-normal">{unitText}</span>
                       </span>
                       {showBoxInfo && product.piecesPerBox && product.piecesPerBox > 1 && (
                         <span className="text-[9px] text-neutral-400 font-medium">
-                          ({Math.floor(product.quantity / product.piecesPerBox)} كرتونة و {product.quantity % product.piecesPerBox} {unitText})
+                          ({Math.floor(cleanQuantity(product.quantity) / product.piecesPerBox)} كرتونة و {formatQuantity(cleanQuantity(product.quantity) % product.piecesPerBox)} {unitText})
                         </span>
                       )}
                     </>

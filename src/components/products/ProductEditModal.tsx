@@ -4,6 +4,7 @@ import { X, ScanBarcode, Trash2, Camera, ImagePlus, Copy, ChevronDown, ChevronUp
 import { useCategories } from '../../hooks/useCategories';
 import { Product } from '../../types';
 import { getLocalImage } from '../../lib/localImages';
+import { cleanQuantity, formatQuantity } from '../../lib/utils';
 
 interface ProductEditModalProps {
   product: Product | null;
@@ -232,8 +233,9 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
       unit: formData.get('unit') as string || 'piece',
       boxPurchasePrice: parseFloat(rawBoxPurchasePrice.toFixed(3)),
       // Keep existing stock values if editing, or default to 0 for new products
-      quantity: product?.quantity ?? 0,
-      minQuantity: parseFloat((formData.get('minQuantity') as string)?.replace(',', '.') || '0') || 0,
+      quantity: cleanQuantity(product?.quantity ?? 0),
+      posQuantity: cleanQuantity(product?.posQuantity !== undefined ? product.posQuantity : (product?.quantity ?? 0)),
+      minQuantity: cleanQuantity(formData.get('minQuantity')),
     };
     try {
       await onSave(productData, imageFile, imageRemoved);

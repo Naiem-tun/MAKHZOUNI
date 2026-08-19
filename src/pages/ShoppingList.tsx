@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
+import { formatQuantity } from '../lib/utils';
 import { 
   Plus, 
   Trash2, 
@@ -215,7 +216,7 @@ export default function ShoppingList() {
                 >
                   <div className="flex flex-col">
                     <span className="text-sm font-medium text-zinc-900 dark:text-white">{p.name}</span>
-                    <span className="text-[10px] font-bold text-brand-500">{t('available')}: {p.quantity} {p.unit}</span>
+                    <span className="text-[10px] font-bold text-brand-500">{t('available')}: {formatQuantity(p.quantity)} {p.unit}</span>
                   </div>
                   <Plus size={16} className="text-zinc-300" />
                 </button>
