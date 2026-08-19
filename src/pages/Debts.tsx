@@ -174,15 +174,17 @@ export default function Debts() {
 
   return (
     <div className="space-y-6 pb-24">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('debts_book')}</h1>
-          <p className="text-zinc-500 dark:text-zinc-400">{t('debts_subtitle')}</p>
+      <header className="flex items-center justify-between gap-3">
+        <div className="text-right min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white leading-tight truncate">{t('debts_book')}</h1>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">{t('debts_subtitle')}</p>
         </div>
-        <button onClick={() => { setEditingDebt(null); setDebtType(activeTab); setIsModalOpen(true); }} className="flex items-center justify-center gap-2 h-11 px-4 sm:px-5 rounded-lg bg-brand-600 text-sm font-bold text-white transition-all hover:bg-brand-700 shadow-lg shadow-brand-500/20 active:scale-95 whitespace-nowrap">
-          <UserPlus size={18} strokeWidth={3} />
-          {t('add_person')}
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button onClick={() => { setEditingDebt(null); setDebtType(activeTab); setIsModalOpen(true); }} className="flex items-center justify-center gap-2 h-11 px-4 sm:px-5 rounded-xl bg-brand-600 text-sm font-bold text-white transition-all hover:bg-brand-700 shadow-md shadow-brand-500/20 active:scale-95 whitespace-nowrap">
+            <UserPlus size={18} strokeWidth={2.5} />
+            <span>{t('add_person')}</span>
+          </button>
+        </div>
       </header>
 
       <div className="flex bg-zinc-50 dark:bg-zinc-800/50 p-1 rounded-lg border border-zinc-100 dark:border-zinc-800">

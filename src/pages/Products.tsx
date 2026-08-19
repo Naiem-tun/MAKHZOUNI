@@ -694,9 +694,9 @@ export default function Products() {
                 ...productToCopy,
                 id: undefined,
                 quantity: 0,
-                purchasePrice: 0,
-                sellingPrice: 0,
-                boxPurchasePrice: 0,
+                purchasePrice: undefined as any,
+                sellingPrice: undefined as any,
+                boxPurchasePrice: undefined as any,
                 _copiedFromId: productToCopy.id,
               });
               setIsModalOpen(true);

@@ -39,6 +39,7 @@ export interface UserSettings {
   deleteDataPassword?: string;
   syncImages?: boolean;
   enablePOS?: boolean;
+  enableAIInvoice?: boolean;
   posDeductInventory?: boolean;
   showCashierStockButton?: boolean;
   receiptLogo?: string;

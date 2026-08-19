@@ -50,7 +50,9 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
         const ppb = product.piecesPerBox && Number(product.piecesPerBox) > 0 ? Number(product.piecesPerBox) : 1;
         setPiecesPerBox(ppb);
         setSubItemsPerPiece(product.subItemsPerPiece || 1);
-        setSellingPrice(product.sellingPrice !== undefined && product.sellingPrice !== null ? product.sellingPrice : '');
+        
+        const rawSellingPrice = product.sellingPrice !== undefined && product.sellingPrice !== null ? Number(product.sellingPrice) : 0;
+        setSellingPrice(rawSellingPrice > 0 ? rawSellingPrice : '');
 
         const rawBoxPrice = product.boxPurchasePrice ? Number(product.boxPurchasePrice) : 0;
         const rawPiecePrice = product.purchasePrice ? Number(product.purchasePrice) : 0;
@@ -496,7 +498,8 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                       name="minQuantity" 
                       type="number" 
                       step="any"
-                      defaultValue={product?.minQuantity ?? 0} 
+                      defaultValue={product?.minQuantity ? product.minQuantity : ''} 
+                      placeholder="0"
                       onKeyDown={handleKeyDown}
                       className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
                     />
