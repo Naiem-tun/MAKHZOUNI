@@ -136,6 +136,7 @@ export default function Suppliers() {
     
     // Check for missed visit
     // A visit is considered "missed" if today > visitDay AND no transaction exists for THIS specific week's visitDay
+    // AND targetDate is on or after the trackingStartDate (to avoid marking days before clear date / inventory reset as missed)
     const isMissed = s.visitDays?.some(day => {
       if (day >= today) return false; // Not passed yet or is today
 
@@ -145,6 +146,11 @@ export default function Suppliers() {
 
       const targetDate = new Date(startOfWeek);
       targetDate.setDate(targetDate.getDate() + day);
+
+      // If the scheduled visit day for this week was BEFORE the reset/clear date, don't count it as missed
+      if (targetDate.getTime() < trackingStartDate.getTime()) {
+        return false;
+      }
 
       const hasTxForDay = transactions.some(t => {
         if (t.supplierId !== s.id) return false;

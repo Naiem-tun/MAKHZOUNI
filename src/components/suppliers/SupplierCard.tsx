@@ -164,7 +164,7 @@ export function SupplierCard({
               </button>
             ) : (
               <button 
-                onClick={(e) => { e.stopPropagation(); setActiveSupplier({ id: s.id!, name: s.name }); }} 
+                onClick={(e) => { e.stopPropagation(); setActiveSupplier({ id: s.id!, name: s.name, visitDays: s.visitDays }); }} 
                 className="w-10 h-10 flex items-center justify-center rounded-lg bg-brand-50 text-brand-600 hover:bg-brand-100 transition-all font-bold shadow-sm"
                 title={t('start_supplier_session')}
               >

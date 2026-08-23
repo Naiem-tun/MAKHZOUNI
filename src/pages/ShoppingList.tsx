@@ -18,7 +18,6 @@ import {
   Trash2, 
   StickyNote,
   ListTodo,
-  X,
   ScanLine,
   Camera,
   PackagePlus,
@@ -129,14 +128,9 @@ export default function ShoppingList() {
   return (
     <div className="max-w-lg mx-auto space-y-6 pb-32 pt-6 px-4" dir="rtl">
       {/* Header matching screenshot style */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-1">{t('shopping_list')}</h1>
-          <p className="text-xs text-zinc-500 font-medium">{t('needs_record_subtitle')}</p>
-        </div>
-        <button className="h-9 w-9 flex items-center justify-center text-zinc-300 hover:text-zinc-500 transition-all bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-100 dark:border-zinc-700">
-          <X size={18} />
-        </button>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-1">{t('shopping_list')}</h1>
+        <p className="text-xs text-zinc-500 font-medium">{t('needs_record_subtitle')}</p>
       </div>
 
       {/* Scanner Modal */}
