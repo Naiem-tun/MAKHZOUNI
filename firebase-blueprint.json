@@ -130,6 +130,10 @@
       "schema": "object",
       "description": "Daily or periodic reports"
     },
+    "/users/{userId}/auditLogs/{id}": {
+      "schema": "object",
+      "description": "Immutable administrative audit log records"
+    },
     "/users/{userId}/expenses/{id}": {
       "schema": "object",
       "description": "Expense records"

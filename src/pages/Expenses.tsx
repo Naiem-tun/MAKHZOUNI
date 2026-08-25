@@ -6,7 +6,7 @@ import { db } from '../lib/firebase';
 import { Expense } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Wallet, Plus, Trash2, X, ReceiptText, Calendar, Tag, CheckCheck, Clock } from 'lucide-react';
-import { formatCurrency, cn, safeParseDate, formatAppDate } from '../lib/utils';
+import { formatCurrency, cn, safeParseDate, formatAppDate, roundMoney } from '../lib/utils';
 import { logAudit } from '../lib/auditLogger';
 
 export default function Expenses() {
@@ -35,7 +35,7 @@ export default function Expenses() {
     e.preventDefault();
     if (!user) return;
     const formData = new FormData(e.currentTarget);
-    const amount = parseFloat(formData.get('amount') as string);
+    const amount = roundMoney(parseFloat(formData.get('amount') as string));
     const description = (formData.get('description') as string).trim() || t('expense');
     const category = formData.get('category') as string;
 
@@ -53,7 +53,7 @@ export default function Expenses() {
         date: Timestamp.now(),
         audited: false
       }).then((docRef) => {
-        logAudit('create', 'expense', docRef.id, description, `تسجيل مصروف جديد بقيمة: ${amount}`);
+        logAudit('create', 'expense', docRef.id, description, `تسجيل مصروف جديد بقيمة: ${roundMoney(amount)}`);
       }).catch(err => {
         console.error("Async expense add failed:", err);
       });
@@ -65,7 +65,7 @@ export default function Expenses() {
   const handleDeleteExpense = (expense: Expense) => {
     if (!user || !expense.id) return;
     deleteDoc(doc(db, `users/${user.uid}/expenses`, expense.id)).then(() => {
-        logAudit('delete', 'expense', expense.id!, expense.description, `حذف مصروف بقيمة: ${expense.amount}`);
+        logAudit('delete', 'expense', expense.id!, expense.description, `حذف مصروف بقيمة: ${roundMoney(expense.amount)}`);
     }).catch(console.error);
   };
 

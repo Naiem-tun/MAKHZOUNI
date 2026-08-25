@@ -7,7 +7,7 @@ import { Supplier, SupplierTransaction, Debt, OperationType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { syncTracker } from '../lib/syncTracker';
 import { Truck, Plus, Phone, Trash2, Edit2, X, RotateCcw, UserPlus, Eye, Receipt, History, CirclePlus, Calendar, Search, Play, Square, Printer, FileSpreadsheet, Activity } from 'lucide-react';
-import { formatCurrency, handleFirestoreError, safeParseDate, formatAppDate } from '../lib/utils';
+import { formatCurrency, handleFirestoreError, safeParseDate, formatAppDate, roundMoney } from '../lib/utils';
 import { logAudit } from '../lib/auditLogger';
 import { PrintSupplierTxModal } from '../components/suppliers/PrintSupplierTxModal';
 import { SupplierFormModal } from '../components/suppliers/SupplierFormModal';
@@ -309,7 +309,7 @@ export default function Suppliers() {
     if (!user || !selectedSupplier || isSaving) return;
     setIsSaving(true);
     const formData = new FormData(e.currentTarget);
-    const amount = parseFloat(formData.get('amount') as string) || 0;
+    const amount = roundMoney(parseFloat(formData.get('amount') as string) || 0);
     const dateInput = formData.get('date') as string;
     const date = dateInput ? new Date(dateInput) : new Date();
     
@@ -327,7 +327,7 @@ export default function Suppliers() {
     
     syncTracker.track(addDoc(collection(db, `users/${user.uid}/supplierTransactions`), data)
       .then((docRef) => {
-        logAudit('create', 'purchase', docRef.id, selectedSupplier.name, `تسجيل فاتورة مورد بقيمة: ${amount}`);
+        logAudit('create', 'purchase', docRef.id, selectedSupplier.name, `تسجيل فاتورة مورد بقيمة: ${roundMoney(amount)}`);
       })
       .catch(err => {
         handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}/supplierTransactions`);
@@ -350,7 +350,7 @@ export default function Suppliers() {
       
       deleteDoc(doc(db, `users/${user.uid}/supplierTransactions`, targetId)).then(() => {
         if (txToDelete) {
-           logAudit('delete', 'purchase', targetId, supplierName, `حذف معاملة بقيمة: ${txToDelete.amount}`);
+           logAudit('delete', 'purchase', targetId, supplierName, `حذف معاملة بقيمة: ${roundMoney(txToDelete.amount)}`);
         }
       }).catch(err => {
         handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/supplierTransactions`);

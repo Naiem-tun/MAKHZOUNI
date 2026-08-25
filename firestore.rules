@@ -60,6 +60,32 @@ service cloud.firestore {
               data.date is string;
     }
 
+    function isValidReport(data) {
+      return data.keys().hasAll(['date', 'totalRevenue', 'totalProfit', 'totalRemainingValue', 'items', 'type']) &&
+             data.date is timestamp &&
+             data.totalRevenue is number &&
+             data.totalProfit is number &&
+             data.totalRemainingValue is number &&
+             data.items is list &&
+             data.type is string &&
+             (data.get('surplusValueUnverified', 0) is number && data.get('surplusValueUnverified', 0) >= 0) &&
+             (data.get('surplusItemsCount', 0) is number && data.get('surplusItemsCount', 0) >= 0) &&
+             (data.get('surplusTotalQuantity', 0) is number && data.get('surplusTotalQuantity', 0) >= 0) &&
+             (data.get('totalExpenses', 0) is number) &&
+             (data.get('netProfit', 0) is number) &&
+             (data.get('expensesDeducted', false) is bool);
+    }
+
+    function isValidAuditLog(data) {
+      return data.keys().hasAll(['action', 'entityType', 'entityId', 'entityName', 'timestamp']) &&
+             data.action is string && data.action.size() <= 50 &&
+             data.entityType is string && data.entityType.size() <= 100 &&
+             data.entityId is string && data.entityId.size() <= 128 &&
+             data.entityName is string && data.entityName.size() <= 200 &&
+             data.timestamp is timestamp &&
+             (data.get('details', '') is string || data.get('details', null) == null);
+    }
+
     // -- PATHS --
     match /users/{userId} {
       // User settings
@@ -108,6 +134,19 @@ service cloud.firestore {
         allow create: if isOwner(userId) && isValidId(transactionId) && isValidTransaction(incoming());
         allow update: if isOwner(userId) && isValidId(transactionId) && isValidTransaction(incoming());
         allow delete: if isOwner(userId) && isValidId(transactionId);
+      }
+
+      // Reports (Inventory & Periodic)
+      match /reports/{reportId} {
+        allow get, list, delete: if isOwner(userId) && isValidId(reportId);
+        allow create, update: if isOwner(userId) && isValidId(reportId) && isValidReport(incoming());
+      }
+
+      // Audit Logs (Immutable / Append-Only)
+      match /auditLogs/{logId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidAuditLog(incoming());
+        allow update, delete: if false; // Strict immutability for audit integrity
       }
 
       // Catch-all for subcollections not explicitly defined yet but in blueprint

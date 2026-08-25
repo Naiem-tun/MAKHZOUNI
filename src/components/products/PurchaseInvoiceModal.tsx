@@ -558,8 +558,6 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, onS
   const [items, setItems] = useState<ExtractedItem[]>([]);
   
   const [isSaving, setIsSaving] = useState(false);
-  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
-  const [customApiKeyInput, setCustomApiKeyInput] = useState(localStorage.getItem('gemini_api_key') || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
@@ -615,7 +613,7 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, onS
     return null;
   };
 
-  const handleAnalyzeInvoice = async (overrideKey?: string) => {
+  const handleAnalyzeInvoice = async () => {
     if (!imagePreview) {
       showToast('يرجى التقاط أو اختيار صورة الفاتورة أولاً', 'error');
       return;
@@ -625,7 +623,7 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, onS
     setAnalyzeStep('جاري قراءة الفاتورة واستخراج البيانات بالذكاء الاصطناعي...');
 
     try {
-      const data = await scanInvoiceWithGemini(imagePreview, imageMime, overrideKey);
+      const data = await scanInvoiceWithGemini(imagePreview, imageMime);
 
       // Extract Supplier Name
       if (data.supplierName) {
@@ -698,11 +696,7 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, onS
       showToast('تم تحليل الفاتورة بنجاح واستخراج المنتجات!', 'success');
     } catch (err: any) {
       console.error(err);
-      if (err.message && err.message.includes('KEY_REQUIRED')) {
-        setShowApiKeyModal(true);
-      } else {
-        showToast(err.message || 'تعذر قراءة الفاتورة بالذكاء الاصطناعي', 'error');
-      }
+      showToast(err.message || 'تعذر قراءة الفاتورة بالذكاء الاصطناعي', 'error');
     } finally {
       setIsAnalyzing(false);
     }
@@ -1775,78 +1769,6 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, onS
             </button>
           </div>
         </div>
-
-        {/* Gemini API Key Dialog (Shown on static hosts like Vercel if backend secret is absent) */}
-        {showApiKeyModal && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-md w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
-              <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400">
-                <div className="p-3 bg-amber-100 dark:bg-amber-950/60 rounded-xl">
-                  <Key className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-base text-slate-900 dark:text-white">إدخال مفتاح Gemini API</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">لتفعيل الذكاء الاصطناعي على Vercel أو المتصفح</p>
-                </div>
-              </div>
-
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                لاستخدام ميزة مسح الفواتير بالذكاء الاصطناعي، يرجى لصق مفتاح <strong>Gemini API</strong> الخاص بك هنا. سيتم حفظه بأمان في جهازك لاستخدامه دائماً.
-              </p>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  مفتاح Gemini API Key:
-                </label>
-                <input
-                  type="password"
-                  value={customApiKeyInput}
-                  onChange={(e) => setCustomApiKeyInput(e.target.value)}
-                  placeholder="AIzaSy..."
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-hidden"
-                />
-              </div>
-
-              <div className="flex items-center justify-between text-[11px] text-blue-600 dark:text-blue-400">
-                <a
-                  href="https://aistudio.google.com/app/apikey"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline hover:opacity-80"
-                >
-                  الحصول على مفتاح مجاني من Google AI Studio
-                </a>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setShowApiKeyModal(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
-                  إلغاء
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const trimmed = customApiKeyInput.trim();
-                    if (!trimmed) {
-                      showToast('يرجى كتابة أو لصق المفتاح', 'error');
-                      return;
-                    }
-                    localStorage.setItem('gemini_api_key', trimmed);
-                    setShowApiKeyModal(false);
-                    showToast('تم حفظ مفتاح Gemini بنجاح!', 'success');
-                    handleAnalyzeInvoice(trimmed);
-                  }}
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/25"
-                >
-                  حفظ ومتابعة التحليل
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </motion.div>
     </div>
   );

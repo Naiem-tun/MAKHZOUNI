@@ -39,6 +39,24 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
     });
   }
 
+  // Calculate surplus statistics
+  const surplusItems = displayItems.filter((it: any) => it.isSurplus || (it.salesCalculated < 0));
+  const surplusCount = report.surplusItemsCount !== undefined 
+    ? report.surplusItemsCount 
+    : surplusItems.length;
+  const surplusTotalQty = report.surplusTotalQuantity !== undefined 
+    ? report.surplusTotalQuantity 
+    : surplusItems.reduce((acc: number, it: any) => acc + (it.surplusQuantity || Math.abs(it.salesCalculated || 0)), 0);
+  const surplusCostTotal = report.surplusValueUnverified !== undefined 
+    ? report.surplusValueUnverified 
+    : surplusItems.reduce((acc: number, it: any) => {
+        if (it.surplusCostValue !== undefined) return acc + it.surplusCostValue;
+        const prod = products.find(p => p.name === it.productName);
+        const cost = it.purchasePrice || prod?.purchasePrice || prod?.costPrice || 0;
+        const qty = it.surplusQuantity || Math.abs(it.salesCalculated || 0);
+        return acc + (qty * cost);
+      }, 0);
+
   const exportToExcel = () => {
     if (!displayItems || displayItems.length === 0) return;
     
@@ -52,6 +70,11 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
     wsData.push([t('profits_revenue') + " :"]);
     wsData.push([t('total_profit') + " :", Number(report.totalProfit) || 0]);
     wsData.push([t('total_remaining_value') + " :", Number(report.totalRemainingValue) || 0]);
+    if (surplusCostTotal > 0) {
+      wsData.push(["فائض مخزون غير مبرَّر (بسعر التكلفة) :", Number(surplusCostTotal) || 0]);
+      wsData.push(["عدد الأصناف الفائضة :", Number(surplusCount) || 0]);
+      wsData.push(["إجمالي الكمية الفائضة :", Number(surplusTotalQty) || 0]);
+    }
     wsData.push([]);
     
     // Table Headers
@@ -61,21 +84,25 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
       t('sold'),
       t('profit'),
       t('remaining_qty'),
-      t('remaining_value')
+      t('remaining_value'),
+      'ملاحظات / حالة الصنف'
     ]);
     
     // Rows
     displayItems.forEach((item: any) => {
       const remainingValue = item.remainingValue !== undefined ? item.remainingValue : ((products.find(p => p.name === item.productName)?.purchasePrice || products.find(p => p.name === item.productName)?.costPrice) || 0) * (item.quantityAfter || 0);
       const productBarcode = products.find(p => p.name === item.productName)?.barcode || '';
+      const isItemSurplus = item.isSurplus || (item.salesCalculated < 0);
+      const surplusQty = item.surplusQuantity || (isItemSurplus ? Math.abs(item.salesCalculated) : 0);
       
       wsData.push([
         item.productName || '',
         productBarcode,
-        Number(item.salesCalculated) || 0,
+        isItemSurplus ? `+${surplusQty} (فائض)` : (Number(item.salesCalculated) || 0),
         Number(item.profit) || 0,
         item.quantityAfter !== undefined ? Number(item.quantityAfter) : '',
-        Number(remainingValue) || 0
+        Number(remainingValue) || 0,
+        isItemSurplus ? `فائض مخزون غير مفسر (+${surplusQty})` : ''
       ]);
     });
     
@@ -200,19 +227,39 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 mb-6 sm:mb-8">
-          <div className="flex-1 p-5 rounded-lg bg-[#004eff] text-white shadow-sm">
-            <div className="text-[18px] mb-2 opacity-90">{t('total_profits')}</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 sm:mb-8">
+          <div className="p-5 rounded-lg bg-[#004eff] text-white shadow-sm">
+            <div className="text-[16px] mb-2 opacity-90">{t('total_profits')}</div>
             <div className="text-[24px] sm:text-[28px] font-bold inline-block" dir="ltr">
               {formatCurrency(report.totalProfit || 0, settings.currency, settings.language)}
             </div>
           </div>
-          <div className="flex-1 p-5 rounded-lg bg-[#021024] text-white shadow-sm">
-            <div className="text-[18px] mb-2 opacity-90">{t('total_remaining_value')}</div>
+          
+          <div className="p-5 rounded-lg bg-[#021024] text-white shadow-sm">
+            <div className="text-[16px] mb-2 opacity-90">{t('total_remaining_value')}</div>
             <div className="text-[24px] sm:text-[28px] font-bold inline-block" dir="ltr">
               {formatCurrency(report.totalRemainingValue !== undefined ? report.totalRemainingValue : report.items?.reduce((sum: number, item: any) => sum + (((products.find(p => p.name === item.productName)?.purchasePrice || products.find(p => p.name === item.productName)?.costPrice) || 0) * (item.quantityAfter || 0)), 0) || 0, settings.currency, settings.language)}
             </div>
           </div>
+
+          {surplusCostTotal > 0 && (
+            <div className="p-5 rounded-lg bg-amber-500 text-white shadow-sm border border-amber-600 sm:col-span-2 lg:col-span-1">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="text-[15px] font-black flex items-center gap-1.5">
+                  <span>فائض مخزون غير مبرَّر</span>
+                </div>
+                <span className="text-[11px] bg-black/20 px-2 py-0.5 rounded-full font-bold">
+                  {surplusCount} صنف (+{surplusTotalQty})
+                </span>
+              </div>
+              <div className="text-[22px] sm:text-[26px] font-black inline-block" dir="ltr">
+                {formatCurrency(surplusCostTotal, settings.currency, settings.language)}
+              </div>
+              <div className="text-[10.5px] opacity-90 mt-1 font-medium leading-tight">
+                قيمة تكلفة كميات ظهرت بالعد الفعلي وتزيد عن المسجل بالنظام
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="text-[14px] text-[#666666] mb-3">
@@ -231,19 +278,51 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
               </tr>
             </thead>
             <tbody>
-              {displayItems.map((item: any, i: number) => (
-                <tr key={i} className="even:bg-[#fafbfc]" style={{ pageBreakInside: 'avoid' }}>
-                  <td className="px-3 py-3 text-right border-b border-[#eeeeee]">{item.productName}</td>
-                  <td className="px-3 py-3 text-right border-b border-[#eeeeee]">{item.salesCalculated}</td>
-                  <td className="px-3 py-3 text-right border-b border-[#eeeeee]" dir="ltr">
-                    <div className="inline-block">{formatCurrency(item.profit || 0, settings.currency, settings.language)}</div>
-                  </td>
-                  <td className="px-3 py-3 text-right border-b border-[#eeeeee]">{item.quantityAfter ?? '—'}</td>
-                  <td className="px-3 py-3 text-right border-b border-[#eeeeee]" dir="ltr">
-                    <div className="inline-block">{formatCurrency(item.remainingValue !== undefined ? item.remainingValue : ((products.find(p => p.name === item.productName)?.purchasePrice || products.find(p => p.name === item.productName)?.costPrice) || 0) * (item.quantityAfter || 0), settings.currency, settings.language)}</div>
-                  </td>
-                </tr>
-              ))}
+              {displayItems.map((item: any, i: number) => {
+                const isItemSurplus = item.isSurplus || (item.salesCalculated < 0);
+                const surplusQty = item.surplusQuantity || (isItemSurplus ? Math.abs(item.salesCalculated) : 0);
+
+                return (
+                  <tr 
+                    key={i} 
+                    className={isItemSurplus ? "bg-amber-50/50 hover:bg-amber-50" : "even:bg-[#fafbfc]"} 
+                    style={{ pageBreakInside: 'avoid' }}
+                  >
+                    <td className="px-3 py-3 text-right border-b border-[#eeeeee]">
+                      <div className="font-semibold text-zinc-900">{item.productName}</div>
+                      {isItemSurplus && (
+                        <div className="text-[11px] text-amber-700 font-bold mt-0.5">
+                          زيادة غير مفسَّرة: المسجل ({item.quantityBefore ?? '—'}) ➔ الفعلي ({item.quantityAfter ?? '—'})
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-3 py-3 text-right border-b border-[#eeeeee]">
+                      {isItemSurplus ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300 font-black text-[11px] whitespace-nowrap shadow-xs">
+                          +{surplusQty} غير مفسَّر
+                        </span>
+                      ) : (
+                        <span className="font-medium">{item.salesCalculated}</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-3 text-right border-b border-[#eeeeee]" dir="ltr">
+                      <div className="inline-block">
+                        {isItemSurplus ? (
+                          <span className="text-zinc-400 font-mono text-xs">0.000</span>
+                        ) : (
+                          formatCurrency(item.profit || 0, settings.currency, settings.language)
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 text-right border-b border-[#eeeeee] font-semibold">{item.quantityAfter ?? '—'}</td>
+                    <td className="px-3 py-3 text-right border-b border-[#eeeeee]" dir="ltr">
+                      <div className="inline-block font-semibold">
+                        {formatCurrency(item.remainingValue !== undefined ? item.remainingValue : ((products.find(p => p.name === item.productName)?.purchasePrice || products.find(p => p.name === item.productName)?.costPrice) || 0) * (item.quantityAfter || 0), settings.currency, settings.language)}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -251,4 +330,4 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
 
     </motion.div>
   );
-}
+};

@@ -114,6 +114,12 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ show, onClose, loadi
                           <span className="text-sm font-black text-emerald-500 tracking-tight">+{formatCurrency(report.netProfit || 0, settings.currency, settings.language)}</span>
                         </div>
                       </div>
+                      {Number(report.surplusValueUnverified) > 0 && (
+                        <div className="flex items-center justify-between px-3 py-1.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-lg text-amber-800 dark:text-amber-300 text-xs font-bold cursor-pointer" onClick={() => onSelectReport(report)}>
+                          <span>⚠️ فائض مخزون غير مبرَّر:</span>
+                          <span dir="ltr">{formatCurrency(report.surplusValueUnverified, settings.currency, settings.language)} ({report.surplusItemsCount || 1} صنف)</span>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}

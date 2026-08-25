@@ -29,6 +29,19 @@ export function safeParseFloat(val: any): number {
   return isNaN(parsed) ? 0 : parsed;
 }
 
+/**
+ * تقريب مالي دقيق وآمن لـ 3 خانات عشرية (المليم التونسي / العملات المالية)
+ * يمنع تراكم أخطاء الفاصلة العائمة (IEEE 754 Floating Point Precision issues)
+ */
+export function roundMoney(val: any): number {
+  if (val === undefined || val === null || val === '') return 0;
+  const num = typeof val === 'number' ? val : parseFloat(String(val).replace(',', '.'));
+  if (isNaN(num) || !isFinite(num)) return 0;
+  if (Math.abs(num) < 0.00001) return 0;
+  const rounded = Math.round((num + Number.EPSILON) * 1000) / 1000;
+  return Math.abs(rounded) < 0.00001 ? 0 : rounded;
+}
+
 export function cleanQuantity(val: any): number {
   if (val === undefined || val === null || val === '') return 0;
   const num = typeof val === 'number' ? val : parseFloat(String(val).replace(',', '.'));

@@ -4,10 +4,20 @@ import { useAppContext } from '../AppContext';
 import { db, auth } from '../lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { AuditLog } from '../types';
-import { formatAppDate, safeParseDate } from '../lib/utils';
+import { formatAppDate, safeParseDate, roundMoney } from '../lib/utils';
 import { Activity, Plus, Edit2, Trash2, Package, Truck, CreditCard, ClipboardCheck, Wallet, ShoppingCart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import clsx from 'clsx';
+
+// Function to clean raw float anomalies in string details (e.g. 12.084999999999999 -> 12.085)
+function cleanAuditText(text?: string | null): string {
+  if (!text) return '';
+  return text.replace(/(\d+\.\d{4,})/g, (match) => {
+    const num = parseFloat(match);
+    if (isNaN(num)) return match;
+    return roundMoney(num).toString();
+  });
+}
 
 export default function AuditLogs() {
   const { t } = useTranslation();
@@ -135,12 +145,12 @@ export default function AuditLogs() {
                       {getActionName(log.action)}
                     </span>
                     <span className="text-sm font-medium text-zinc-900 dark:text-white break-words whitespace-normal">
-                      {getEntityName(log.entityType)}: {log.entityName}
+                      {getEntityName(log.entityType)}: {cleanAuditText(log.entityName)}
                     </span>
                   </div>
                   {log.details && (
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 break-words whitespace-normal mt-0.5">
-                      {log.details}
+                      {cleanAuditText(log.details)}
                     </p>
                   )}
                 </div>

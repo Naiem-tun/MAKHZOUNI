@@ -29,7 +29,7 @@ import {
 import { db } from '../lib/firebase';
 import { forceStopAllCameras } from '../components/common/BarcodeScanner';
 import { Product } from '../types';
-import { cleanQuantity, formatQuantity } from '../lib/utils';
+import { cleanQuantity, formatQuantity, roundMoney } from '../lib/utils';
 
 import {
   BarcodeScanner } from '../components/common/BarcodeScanner';
@@ -200,32 +200,32 @@ export default function POSInvoice() {
     const subItems = item.product?.subItemsPerPiece || 1;
 
     if (item.saleMode === 'box' && item.product?.piecesPerBox) {
-      return item.price * item.quantity * item.product.piecesPerBox;
+      return roundMoney(item.price * item.quantity * item.product.piecesPerBox);
     }
     
     if (item.saleMode === 'subpiece') {
-      return (item.price / subItems) * item.quantity;
+      return roundMoney((item.price / subItems) * item.quantity);
     }
     
     if (item.saleMode === 'gram') {
       if (isKgProduct && subItems > 1) {
-        return ((item.price / subItems) / 100) * item.quantity;
+        return roundMoney(((item.price / subItems) / 100) * item.quantity);
       }
-      return (item.price / 1000) * item.quantity;
+      return roundMoney((item.price / 1000) * item.quantity);
     }
     
     if (item.saleMode === 'kg') {
       if (isKgProduct && subItems > 1) {
-        return ((item.price / subItems) * 10) * item.quantity;
+        return roundMoney(((item.price / subItems) * 10) * item.quantity);
       }
-      return item.price * item.quantity;
+      return roundMoney(item.price * item.quantity);
     }
     
-    return item.price * item.quantity;
+    return roundMoney(item.price * item.quantity);
   };
 
   const calculateTotal = () => {
-    return items.reduce((sum, item) => sum + calculateItemTotal(item), 0);
+    return roundMoney(items.reduce((sum, item) => sum + calculateItemTotal(item), 0));
   };
 
   const generateInvoiceText = () => {
@@ -563,38 +563,38 @@ export default function POSInvoice() {
       let totalCost = 0;
       const invoiceItems = items.map(item => {
         const p = products.find(p => p.id === item.productId);
-        const itemTotal = calculateItemTotal(item);
+        const itemTotal = roundMoney(calculateItemTotal(item));
         
         let itemCost = 0;
         let unitCost = 0;
         if (p) {
-          unitCost = p.purchasePrice || p.costPrice || 0;
+          unitCost = roundMoney(p.purchasePrice || p.costPrice || 0);
           const isKgProduct = p.unit === 'kg';
           const subItems = p.subItemsPerPiece || 1;
 
           if (item.saleMode === 'box' && p.piecesPerBox) {
-            itemCost = (p.boxPurchasePrice || (unitCost * p.piecesPerBox)) * item.quantity;
+            itemCost = roundMoney((p.boxPurchasePrice || (unitCost * p.piecesPerBox)) * item.quantity);
           } else if (item.saleMode === 'subpiece') {
-            itemCost = (unitCost / subItems) * item.quantity;
+            itemCost = roundMoney((unitCost / subItems) * item.quantity);
           } else if (item.saleMode === 'gram') {
             if (isKgProduct && subItems > 1) {
-              itemCost = ((unitCost / subItems) / 100) * item.quantity;
+              itemCost = roundMoney(((unitCost / subItems) / 100) * item.quantity);
             } else {
-              itemCost = (unitCost / 1000) * item.quantity;
+              itemCost = roundMoney((unitCost / 1000) * item.quantity);
             }
           } else if (item.saleMode === 'kg') {
             if (isKgProduct && subItems > 1) {
-              itemCost = ((unitCost / subItems) * 10) * item.quantity;
+              itemCost = roundMoney(((unitCost / subItems) * 10) * item.quantity);
             } else {
-              itemCost = unitCost * item.quantity;
+              itemCost = roundMoney(unitCost * item.quantity);
             }
           } else {
-            itemCost = unitCost * item.quantity;
+            itemCost = roundMoney(unitCost * item.quantity);
           }
         }
         
-        totalAmount += itemTotal;
-        totalCost += itemCost;
+        totalAmount = roundMoney(totalAmount + itemTotal);
+        totalCost = roundMoney(totalCost + itemCost);
         
         if (deductInventory && p) {
           const productRef = doc(db, `users/${user.uid}/products`, item.productId);
@@ -621,19 +621,19 @@ export default function POSInvoice() {
           productId: item.productId,
           name: item.name,
           quantity: item.quantity,
-          price: item.price,
+          price: roundMoney(item.price),
           cost: unitCost,
           total: itemTotal,
-          profit: itemTotal - itemCost
+          profit: roundMoney(itemTotal - itemCost)
         };
       });
 
       const invoiceData = {
         invoiceNumber: Math.floor(100000 + Math.random() * 900000).toString(),
         items: invoiceItems,
-        totalAmount,
-        totalCost,
-        totalProfit: totalAmount - totalCost,
+        totalAmount: roundMoney(totalAmount),
+        totalCost: roundMoney(totalCost),
+        totalProfit: roundMoney(totalAmount - totalCost),
         createdAt: serverTimestamp()
       };
 

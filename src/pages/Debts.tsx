@@ -6,7 +6,7 @@ import { db } from '../lib/firebase';
 import { Debt, Supplier, OperationType } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { BookOpen, UserPlus, Trash2, Eye, Plus, Minus, X, CheckCircle2, History, Edit2, ArrowRightLeft, Truck } from 'lucide-react';
-import { formatCurrency, cn, handleFirestoreError } from '../lib/utils';
+import { formatCurrency, cn, handleFirestoreError, roundMoney } from '../lib/utils';
 import { logAudit } from '../lib/auditLogger';
 
 export default function Debts() {
@@ -97,11 +97,12 @@ export default function Debts() {
 
   const addPayment = (debt: Debt, amount: number, note: string = '') => {
     if (!user) return;
-    const newTotal = debt.totalAmount - amount;
+    const newTotal = roundMoney(debt.totalAmount - roundMoney(amount));
     const newStatus = newTotal <= 0 ? 'paid' : 'unpaid';
     const timestamp = new Date().toISOString();
-    const newPayments = [...(debt.payments || []), { amount, date: timestamp, note }];
-    const newHistory = [...(debt.history || []), { type: 'payment' as const, amount, date: timestamp, note }];
+    const cleanAmount = roundMoney(amount);
+    const newPayments = [...(debt.payments || []), { amount: cleanAmount, date: timestamp, note }];
+    const newHistory = [...(debt.history || []), { type: 'payment' as const, amount: cleanAmount, date: timestamp, note }];
     
     // UI Feedback
     showToast(t('payment_recorded_success'));
@@ -113,7 +114,7 @@ export default function Debts() {
       history: newHistory,
       updatedAt: serverTimestamp(),
     }).then(() => {
-        logAudit('update', 'debt', debt.id!, debt.customerName, `تسديد مبلغ: ${amount}`);
+        logAudit('update', 'debt', debt.id!, debt.customerName, `تسديد مبلغ: ${cleanAmount}`);
     }).catch(err => {
       console.error("Async payment update failed:", err);
     });
@@ -121,9 +122,10 @@ export default function Debts() {
 
   const addDebtAmount = (debt: Debt, amount: number, note: string = '') => {
     if (!user) return;
-    const newTotal = debt.totalAmount + amount;
+    const cleanAmount = roundMoney(amount);
+    const newTotal = roundMoney(debt.totalAmount + cleanAmount);
     const timestamp = new Date().toISOString();
-    const newHistory = [...(debt.history || []), { type: 'debt' as const, amount, date: timestamp, note }];
+    const newHistory = [...(debt.history || []), { type: 'debt' as const, amount: cleanAmount, date: timestamp, note }];
     
     showToast(t('debt_amount_added_success'));
 
@@ -133,7 +135,7 @@ export default function Debts() {
       history: newHistory,
       updatedAt: serverTimestamp(),
     }).then(() => {
-        logAudit('update', 'debt', debt.id!, debt.customerName, `إضافة مبلغ: ${amount}`);
+        logAudit('update', 'debt', debt.id!, debt.customerName, `إضافة مبلغ: ${cleanAmount}`);
     }).catch(err => {
       console.error("Async debt update failed:", err);
     });

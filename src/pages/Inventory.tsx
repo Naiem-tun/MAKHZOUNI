@@ -20,7 +20,7 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
-import { cn, safeParseFloat, handleFirestoreError, formatCurrency, safeParseDate, formatAppDate, cleanQuantity, formatQuantity } from '../lib/utils';
+import { cn, safeParseFloat, handleFirestoreError, formatCurrency, safeParseDate, formatAppDate, cleanQuantity, formatQuantity, roundMoney } from '../lib/utils';
 import { OperationType } from '../types';
 import { ProductPagination } from '../components/products/ProductPagination';
 import { useCategories, categoryIcons } from '../hooks/useCategories';
@@ -235,21 +235,29 @@ export default function Inventory() {
       const actualQty = inventoryData[p.id];
       const finalQty = actualQty !== undefined ? Number(actualQty) : Number(p.quantity || 0);
       const sold = Number(p.quantity || 0) - finalQty;
-      const remainingValue = finalQty * (Number(p.purchasePrice || p.costPrice) || 0);
-      const revenue = sold * Number(p.sellingPrice || 0);
-      const profit = revenue - (sold * (Number(p.purchasePrice || p.costPrice) || 0));
+      const purchasePrice = roundMoney(Number(p.purchasePrice || p.costPrice || 0));
+      const remainingValue = roundMoney(finalQty * purchasePrice);
+      const revenue = roundMoney(sold * Number(p.sellingPrice || 0));
+      const profit = roundMoney(revenue - (sold * purchasePrice));
+      
+      const isSurplus = sold < 0;
+      const surplusQuantity = isSurplus ? Math.abs(sold) : 0;
+      const surplusCostValue = isSurplus ? roundMoney(surplusQuantity * purchasePrice) : 0;
 
       return {
         productName: p.name, 
         category: p.category,
         barcode: p.barcode || p.barcode2 || '',
-        purchasePrice: p.purchasePrice || p.costPrice || 0,
+        purchasePrice,
         sellingPrice: p.sellingPrice || 0,
         quantityBefore: p.quantity || 0, 
         quantityAfter: finalQty, 
         salesCalculated: sold, 
         profit: sold > 0 ? profit : 0,
-        remainingValue 
+        remainingValue,
+        isSurplus,
+        surplusQuantity,
+        surplusCostValue
       };
     });
   }, [groupedProducts, inventoryData]);
@@ -428,6 +436,10 @@ export default function Inventory() {
         let totalRevenue = 0;
         let totalProfit = 0;
         let totalRemainingValue = 0;
+        let surplusValueUnverified = 0;
+        let surplusItemsCount = 0;
+        let surplusTotalQuantity = 0;
+        const surplusDetails: string[] = [];
         const items: any[] = [];
 
         // Process grouped products
@@ -446,37 +458,52 @@ export default function Inventory() {
              const oldQty = product.quantity || 0;
              const itemSold = oldQty - newQty;
              
-             const cost = Number(product.purchasePrice || product.costPrice || 0);
-             const price = Number(product.sellingPrice || 0);
+             const cost = roundMoney(Number(product.purchasePrice || product.costPrice || 0));
+             const price = roundMoney(Number(product.sellingPrice || 0));
              
-             groupRemainingValue += newQty * cost;
+             groupRemainingValue = roundMoney(groupRemainingValue + (newQty * cost));
              
              if (itemSold > 0) {
-                groupRevenue += itemSold * price;
-                groupCost += itemSold * cost;
-                groupProfit += itemSold * (price - cost);
+                groupRevenue = roundMoney(groupRevenue + (itemSold * price));
+                groupCost = roundMoney(groupCost + (itemSold * cost));
+                groupProfit = roundMoney(groupProfit + (itemSold * (price - cost)));
              }
           });
 
-          totalRemainingValue += groupRemainingValue;
+          totalRemainingValue = roundMoney(totalRemainingValue + groupRemainingValue);
           const sold = Number(group.quantity || 0) - groupFinalQty;
           
           if (sold > 0) {
-            totalRevenue += groupRevenue;
-            totalProfit += groupProfit;
+            totalRevenue = roundMoney(totalRevenue + groupRevenue);
+            totalProfit = roundMoney(totalProfit + groupProfit);
+          }
+
+          const isSurplus = sold < 0;
+          const surplusQuantity = isSurplus ? Math.abs(sold) : 0;
+          const purchasePrice = roundMoney(Number(group.purchasePrice || 0));
+          const surplusCostValue = isSurplus ? roundMoney(surplusQuantity * purchasePrice) : 0;
+
+          if (isSurplus) {
+            surplusValueUnverified = roundMoney(surplusValueUnverified + surplusCostValue);
+            surplusItemsCount += 1;
+            surplusTotalQuantity += surplusQuantity;
+            surplusDetails.push(`${group.name}: المسجل (${group.quantity || 0}) -> الفعلي (${groupFinalQty}) [زيادة غير مفسرة: +${surplusQuantity} بقيمة تكلفة ${surplusCostValue}]`);
           }
           
           items.push({ 
             productName: group.name, 
             category: group.category,
             barcode: group.barcode || '',
-            purchasePrice: group.purchasePrice || 0,
-            sellingPrice: group.sellingPrice || 0,
+            purchasePrice: roundMoney(group.purchasePrice || 0),
+            sellingPrice: roundMoney(group.sellingPrice || 0),
             quantityBefore: group.quantity || 0, 
             quantityAfter: groupFinalQty, 
             salesCalculated: sold, 
-            profit: sold > 0 ? groupProfit : 0,
-            remainingValue: groupRemainingValue 
+            profit: sold > 0 ? roundMoney(groupProfit) : 0,
+            remainingValue: roundMoney(groupRemainingValue),
+            isSurplus,
+            surplusQuantity,
+            surplusCostValue: roundMoney(surplusCostValue)
           });
           
           if (actualQty !== undefined) {
@@ -499,20 +526,23 @@ export default function Inventory() {
           where("audited", "==", false)
         );
         const expensesSnapshot = await getDocs(expensesQuery);
-        const actualExpensesAmount = expensesSnapshot.docs.reduce((acc, doc) => acc + (doc.data().amount || 0), 0);
+        const actualExpensesAmount = roundMoney(expensesSnapshot.docs.reduce((acc, doc) => acc + (doc.data().amount || 0), 0));
         const finalExpensesAmount = shouldDeductExpenses ? actualExpensesAmount : 0;
-        const netProfit = totalProfit - finalExpensesAmount;
+        const netProfit = roundMoney(totalProfit - finalExpensesAmount);
 
         // Prepare Report
         const reportsPath = `users/${user.uid}/reports`;
         const reportRef = doc(collection(db, reportsPath));
         batch.set(reportRef, {
           date: auditTime,
-          totalRevenue,
-          totalProfit,
-          totalRemainingValue,
-          totalExpenses: finalExpensesAmount, 
-          netProfit: netProfit,
+          totalRevenue: roundMoney(totalRevenue),
+          totalProfit: roundMoney(totalProfit),
+          totalRemainingValue: roundMoney(totalRemainingValue),
+          surplusValueUnverified: roundMoney(surplusValueUnverified),
+          surplusItemsCount,
+          surplusTotalQuantity,
+          totalExpenses: roundMoney(finalExpensesAmount), 
+          netProfit: roundMoney(netProfit),
           items,
           type: 'inventory',
           expensesDeducted: shouldDeductExpenses
@@ -540,7 +570,23 @@ export default function Inventory() {
 
         // Commit in the background
         batch.commit().then(() => {
-          logAudit('create', 'inventory', reportRef.id, `جرد ${formatAppDate(localNow, settings?.language || 'ar', t)}`, `تسجيل عملية جرد بإجمالي ربح: ${totalProfit}`);
+          logAudit(
+            'create',
+            'inventory',
+            reportRef.id,
+            `جرد ${formatAppDate(localNow, settings?.language || 'ar', t)}`,
+            `تسجيل عملية جرد بإجمالي ربح: ${roundMoney(totalProfit)}${surplusItemsCount > 0 ? ` | يوجد ${surplusItemsCount} صنف بزيادة غير مفسرة بقيمة تكلفة: ${roundMoney(surplusValueUnverified)}` : ''}`
+          );
+
+          if (surplusItemsCount > 0) {
+            logAudit(
+              'update',
+              'inventory',
+              reportRef.id,
+              'زيادات مخزون غير مفسرة أثناء الجرد',
+              `أصناف أظهرت فائضاً في الجرد الفعلي بعدد (${surplusItemsCount}) صنف وإجمالي كمية (+${surplusTotalQuantity}) بقيمة تكلفة ${roundMoney(surplusValueUnverified)} د.ت:\n${surplusDetails.join('\n')}`
+            );
+          }
         }).catch(err => {
           console.error("Inventory background sync failed:", err);
         });
@@ -549,11 +595,14 @@ export default function Inventory() {
         const newReport = {
           id: reportRef.id,
           date: localNow,
-          totalRevenue,
-          totalProfit,
-          totalRemainingValue,
-          totalExpenses: finalExpensesAmount,
-          netProfit,
+          totalRevenue: roundMoney(totalRevenue),
+          totalProfit: roundMoney(totalProfit),
+          totalRemainingValue: roundMoney(totalRemainingValue),
+          surplusValueUnverified: roundMoney(surplusValueUnverified),
+          surplusItemsCount,
+          surplusTotalQuantity,
+          totalExpenses: roundMoney(finalExpensesAmount),
+          netProfit: roundMoney(netProfit),
           items,
           expensesDeducted: shouldDeductExpenses
         };

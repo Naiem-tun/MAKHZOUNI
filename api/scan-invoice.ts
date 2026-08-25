@@ -15,15 +15,15 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { image, mimeType, apiKey: clientApiKey } = req.body || {};
+    const { image, mimeType } = req.body || {};
     if (!image) {
       return res.status(400).json({ error: "الصورة مطلوبة للتحليل" });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY || clientApiKey;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return res.status(500).json({ 
-        error: "مفتاح Gemini API غير مكوّن. يرجى إضافته في إعدادات البيئة (Environment Variables) في Vercel باسم GEMINI_API_KEY." 
+        error: "مفتاح Gemini API غير مكوّن في السيرفر. يرجى التأكد من ضبط متغير البيئة GEMINI_API_KEY." 
       });
     }
 
