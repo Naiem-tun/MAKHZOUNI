@@ -376,7 +376,14 @@ export default function InvoiceCalculator() {
             <Search size={20} />
           </div>
           <input 
-            type="text" 
+            type="search" 
+            name="calculator_search"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            data-lpignore="true"
+            data-form-type="other"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder={t('search_product_or_barcode') || 'ابحث باسم المنتج أو الباركود...'}
@@ -443,6 +450,11 @@ export default function InvoiceCalculator() {
                     <input
                       type="number"
                       step="any"
+                      inputMode="decimal"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      data-lpignore="true"
+                      data-form-type="other"
                       value={item.price || ''}
                       onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value.replace(',', '.')) || 0)}
                       className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg py-2 px-1 sm:px-3 text-sm sm:text-base font-bold text-zinc-900 dark:text-white text-center focus:ring-2 focus:ring-brand-500 h-10"
@@ -476,6 +488,11 @@ export default function InvoiceCalculator() {
                     <input
                       type="number"
                       step="any"
+                      inputMode="decimal"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      data-lpignore="true"
+                      data-form-type="other"
                       value={item.quantity || ''}
                       onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value.replace(',', '.')) || 0)}
                       className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg py-2 px-1 sm:px-3 text-sm sm:text-base font-bold text-zinc-900 dark:text-white text-center focus:ring-2 focus:ring-brand-500 h-10"

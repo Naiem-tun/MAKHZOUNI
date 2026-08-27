@@ -123,6 +123,10 @@ export const InventoryItem = React.memo(({
             type="number" 
             step="any"
             inputMode="decimal"
+            autoComplete="off"
+            autoCorrect="off"
+            data-lpignore="true"
+            data-form-type="other"
             value={inventoryQuantity ?? ''}
             onChange={(e) => onChangeQuantity(product.id, e.target.value.replace(',', '.'))}
             className="w-16 h-9 text-center text-sm font-black bg-zinc-100/50 dark:bg-zinc-800 border border-zinc-100 dark:border-neutral-800 rounded-lg outline-none focus:ring-2 focus:ring-brand-500/20 dark:text-white placeholder:text-zinc-300 transition-all font-mono"

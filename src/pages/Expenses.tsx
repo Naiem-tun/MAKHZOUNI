@@ -16,6 +16,9 @@ export default function Expenses() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'pending' | 'audited' | 'all'>('pending');
+  const [expenseAmount, setExpenseAmount] = useState('');
+  const [expenseDescription, setExpenseDescription] = useState('');
+  const [expenseCategory, setExpenseCategory] = useState('عام');
 
   useEffect(() => {
     if (!user) return;
@@ -31,19 +34,21 @@ export default function Expenses() {
     });
   }, [user]);
 
-  const handleAddExpense = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleAddExpense = (e?: React.FormEvent | React.KeyboardEvent) => {
+    if (e && 'preventDefault' in e) e.preventDefault();
     if (!user) return;
-    const formData = new FormData(e.currentTarget);
-    const amount = roundMoney(parseFloat(formData.get('amount') as string));
-    const description = (formData.get('description') as string).trim() || t('expense');
-    const category = formData.get('category') as string;
+    const amount = roundMoney(parseFloat(expenseAmount.replace(',', '.')));
+    const description = expenseDescription.trim() || t('expense');
+    const category = expenseCategory || 'عام';
 
     if (isNaN(amount) || amount <= 0) return;
 
     // UI Feedback
     showToast(t('expense_added_success'));
     setIsModalOpen(false);
+    setExpenseAmount('');
+    setExpenseDescription('');
+    setExpenseCategory('عام');
 
     try {
       addDoc(collection(db, `users/${user.uid}/expenses`), {
@@ -251,17 +256,28 @@ export default function Expenses() {
                 <h2 className="text-xl font-black text-zinc-900 dark:text-white">{t('add_expense_title')}</h2>
               </div>
               
-              <form onSubmit={handleAddExpense} className="space-y-4">
+              <div className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest px-2">{t('amount_required')}</label>
                   <div className="relative">
                     <input 
-                      name="amount" 
-                      type="number" 
-                      step="0.001" 
+                      type="text" 
+                      inputMode="decimal"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-bwignore="true"
+                      data-protonpass-ignore="true"
+                      data-form-type="other"
                       placeholder="0.000" 
                       required 
                       autoFocus
+                      value={expenseAmount}
+                      onChange={(e) => setExpenseAmount(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleAddExpense(e); }}
                       className="w-full rounded-lg border border-zinc-100 p-3 text-right outline-none dark:bg-zinc-800 dark:border-zinc-700 focus:ring-2 focus:ring-brand-500/20 transition-all font-black text-2xl text-brand-600" 
                     />
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-zinc-300">{settings.currency}</div>
@@ -271,8 +287,20 @@ export default function Expenses() {
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest px-2">{t('description_optional')}</label>
                   <input 
-                    name="description" 
+                    type="text"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
+                    data-protonpass-ignore="true"
+                    data-form-type="other"
                     placeholder={t('expense_placeholder')} 
+                    value={expenseDescription}
+                    onChange={(e) => setExpenseDescription(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleAddExpense(e); }}
                     className="w-full rounded-lg border border-zinc-100 p-3 text-right outline-none dark:bg-zinc-800 dark:border-zinc-700 focus:ring-2 focus:ring-brand-500/20 transition-all font-bold text-sm" 
                   />
                 </div>
@@ -280,7 +308,8 @@ export default function Expenses() {
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest px-2">{t('category')}</label>
                   <select 
-                    name="category"
+                    value={expenseCategory}
+                    onChange={(e) => setExpenseCategory(e.target.value)}
                     className="w-full rounded-lg border border-zinc-100 p-3 text-right outline-none dark:bg-zinc-800 dark:border-zinc-700 focus:ring-2 focus:ring-brand-500/20 transition-all font-bold text-sm appearance-none bg-white dark:bg-zinc-800"
                   >
                     <option value="عام">{t('general_cat')}</option>
@@ -292,14 +321,19 @@ export default function Expenses() {
                 </div>
 
                 <div className="flex flex-col gap-2 pt-4">
-                  <button type="submit" className="w-full rounded-lg py-3.5 font-black text-white shadow-lg shadow-[#B34C36]/20 active:scale-95 transition-all text-sm" style={{ backgroundColor: '#B34C36' }}>
+                  <button 
+                    type="button" 
+                    onClick={() => handleAddExpense()} 
+                    className="w-full rounded-lg py-3.5 font-black text-white shadow-lg shadow-[#B34C36]/20 active:scale-95 transition-all text-sm" 
+                    style={{ backgroundColor: '#B34C36' }}
+                  >
                     {t('confirm_expense')}
                   </button>
                   <button type="button" onClick={() => setIsModalOpen(false)} className="w-full rounded-lg bg-zinc-50 dark:bg-zinc-800 py-3 text-xs font-bold text-zinc-500 active:scale-95 transition-all">
                     {t('cancel')}
                   </button>
                 </div>
-              </form>
+              </div>
             </motion.div>
           </div>
         )}

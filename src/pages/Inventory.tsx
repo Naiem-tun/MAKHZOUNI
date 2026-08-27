@@ -824,6 +824,14 @@ export default function Inventory() {
           <div className="relative flex-1">
             <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-300" size={16} />
             <input 
+              type="search"
+              name="inventory_search"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              data-lpignore="true"
+              data-form-type="other"
               className="w-full h-11 pr-10 pl-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg outline-none text-[13px] placeholder:text-zinc-300"
               placeholder={t('search_product_inventory_placeholder')} 
               value={searchTerm} 

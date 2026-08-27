@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
 import { Package, Plus, SquarePen, Lock } from 'lucide-react';
@@ -7,6 +7,7 @@ import { useAppContext } from '../../AppContext';
 import { useCategories, categoryIcons } from '../../hooks/useCategories';
 import { cn, formatCurrency, cleanQuantity, formatQuantity } from '../../lib/utils';
 import { ProductImage } from './ProductImage';
+import { auditProduct } from '../../lib/priceAuditor';
 
 interface ProductCardProps {
   product: Product;
@@ -54,7 +55,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
     : (basePurchasePrice > 0 ? (profit / basePurchasePrice) * 100 : 0);
 
   const isPurchaseDisabled = settings.requireSupplierSession && !activeSupplier;
-  const hasPriceError = (product.sellingPrice || 0) <= (product.purchasePrice || 0);
+  const enablePriceAudit = settings.enablePriceAudit ?? true;
+  const audit = useMemo(() => auditProduct(product), [product]);
+  const hasPriceError = enablePriceAudit && audit.hasIssues;
+  const mainIssue = audit.issues[0];
 
   const unitMap: Record<string, string> = {
     piece: 'قطعة',
@@ -109,8 +113,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
             <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
               <h3 className="text-base font-medium text-black dark:text-white leading-tight truncate">{product.name}</h3>
               {hasPriceError && (
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 border border-red-200 dark:border-red-800 shrink-0">
-                  ⚠️ خطأ تسعير
+                <span className={cn(
+                  "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold border shrink-0",
+                  mainIssue?.severity === 'error'
+                    ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 border-red-200 dark:border-red-800"
+                    : mainIssue?.severity === 'warning'
+                      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800"
+                      : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+                )}>
+                  ⚠️ {mainIssue?.title || 'خطأ تسعير'}
                 </span>
               )}
             </div>

@@ -123,7 +123,14 @@ export default function DraftProducts() {
       <div className="relative">
         <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400" size={20} />
         <input 
-          type="text"
+          type="search"
+          name="draft_search"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          data-lpignore="true"
+          data-form-type="other"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="ابحث بالاسم أو الباركود..."
@@ -205,7 +212,29 @@ export default function DraftProducts() {
               </div>
 
               <div className="p-6 overflow-y-auto hidden-scrollbar">
-                <form id="draft-form" onSubmit={handleSaveToMain} className="space-y-6">
+                <form id="draft-form" onSubmit={handleSaveToMain} autoComplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-protonpass-ignore="true" className="space-y-6">
+                  {/* Name */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">اسم المنتج</label>
+                    <input
+                      type="text"
+                      name="draft_product_name"
+                      autoComplete="one-time-code"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-bwignore="true"
+                      data-protonpass-ignore="true"
+                      data-form-type="other"
+                      required
+                      value={editingDraft.name}
+                      onChange={e => setEditingDraft({ ...editingDraft, name: e.target.value })}
+                      className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl h-12 px-4 focus:border-brand-500 outline-none font-bold"
+                    />
+                  </div>
+
                   {/* Prices */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -214,6 +243,14 @@ export default function DraftProducts() {
                         type="number"
                         step="0.001"
                         required
+                        inputMode="decimal"
+                        autoComplete="one-time-code"
+                        autoCorrect="off"
+                        data-lpignore="true"
+                        data-1p-ignore="true"
+                        data-bwignore="true"
+                        data-protonpass-ignore="true"
+                        data-form-type="other"
                         value={editingDraft.purchasePrice || ''}
                         onChange={e => setEditingDraft({ ...editingDraft, purchasePrice: parseFloat(e.target.value.replace(',', '.')) || 0 })}
                         className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl h-12 px-4 focus:border-brand-500 outline-none text-left cursor-text"
@@ -226,6 +263,14 @@ export default function DraftProducts() {
                         type="number"
                         step="0.001"
                         required
+                        inputMode="decimal"
+                        autoComplete="one-time-code"
+                        autoCorrect="off"
+                        data-lpignore="true"
+                        data-1p-ignore="true"
+                        data-bwignore="true"
+                        data-protonpass-ignore="true"
+                        data-form-type="other"
                         value={editingDraft.sellingPrice || ''}
                         onChange={e => setEditingDraft({ ...editingDraft, sellingPrice: parseFloat(e.target.value.replace(',', '.')) || 0 })}
                         className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl h-12 px-4 focus:border-brand-500 outline-none text-left cursor-text text-brand-600 dark:text-brand-400 font-bold"
@@ -240,6 +285,14 @@ export default function DraftProducts() {
                     <input
                       type="number"
                       step="any"
+                      inputMode="decimal"
+                      autoComplete="one-time-code"
+                      autoCorrect="off"
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-bwignore="true"
+                      data-protonpass-ignore="true"
+                      data-form-type="other"
                       value={editingDraft.quantity || ''}
                       onChange={e => setEditingDraft({ ...editingDraft, quantity: parseFloat(e.target.value.replace(',', '.')) || 0 })}
                       className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl h-12 px-4 outline-none focus:border-brand-500"

@@ -38,21 +38,62 @@ export function SupplierTransactionModal({
                 <p className="text-xs text-zinc-500">{t('suppliers')}: {selectedSupplier.name}</p>
               </div>
             </div>
-            <form onSubmit={handleAddTransaction} className="space-y-4 text-right">
+            <form onSubmit={handleAddTransaction} autoComplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-protonpass-ignore="true" className="space-y-4 text-right">
               <div>
                 <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('purchase_price')}</label>
             <div className="relative">
-              <input name="amount" type="number" step="0.001" placeholder="0.000" required className="w-full rounded-lg border bg-zinc-50 p-4 pr-12 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700 font-mono text-lg" />
+              <input 
+                name="amount" 
+                type="number" 
+                step="0.001" 
+                inputMode="decimal"
+                autoComplete="one-time-code"
+                autoCorrect="off"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-bwignore="true"
+                data-protonpass-ignore="true"
+                data-form-type="other"
+                placeholder="0.000" 
+                required 
+                className="w-full rounded-lg border bg-zinc-50 p-4 pr-12 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700 font-mono text-lg" 
+              />
               <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-zinc-400">{currency}</span>
             </div>
           </div>
           <div>
             <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('date')}</label>
-            <input name="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
+            <input 
+              name="date" 
+              type="date" 
+              autoComplete="one-time-code"
+              autoCorrect="off"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-bwignore="true"
+              data-protonpass-ignore="true"
+              data-form-type="other"
+              defaultValue={new Date().toISOString().split('T')[0]} 
+              className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" 
+            />
           </div>
           <div>
             <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('notes')}</label>
-            <input name="note" placeholder={t('record_payment_note_placeholder')} className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
+            <input 
+              name="note" 
+              type="text"
+              autoComplete="one-time-code"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-bwignore="true"
+              data-protonpass-ignore="true"
+              data-form-type="other"
+              placeholder={t('record_payment_note_placeholder')} 
+              className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" 
+            />
           </div>
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={() => setIsAddTxModalOpen(false)} className="flex-1 rounded-lg bg-zinc-100 py-3 font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">{t('cancel')}</button>

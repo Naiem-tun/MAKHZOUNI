@@ -263,7 +263,16 @@ function ProductPairSelector({
       <div className="relative flex items-center">
         <Search className="absolute right-2.5 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
         <input
-          type="text"
+          type="search"
+          name="invoice_search_stock"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          data-lpignore="true"
+          data-1p-ignore="true"
+          data-bwignore="true"
+          data-form-type="other"
           value={searchTerm}
           onChange={(e) => {
             setSearchTerm(e.target.value);
@@ -1242,6 +1251,15 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, onS
                 <Building2 className="w-4 h-4 absolute right-3 top-2.5 text-slate-400" />
                 <input
                   type="text"
+                  name="invoice_supplier_name"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  data-bwignore="true"
+                  data-form-type="other"
                   value={supplierName}
                   onChange={(e) => setSupplierName(e.target.value)}
                   placeholder="اسم المورد أو الشركات"
@@ -1258,6 +1276,15 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, onS
                 <FileText className="w-4 h-4 absolute right-3 top-2.5 text-slate-400" />
                 <input
                   type="text"
+                  name="invoice_doc_number"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  data-bwignore="true"
+                  data-form-type="other"
                   value={invoiceNumber}
                   onChange={(e) => setInvoiceNumber(e.target.value)}
                   placeholder="مثال: #9401"
@@ -1398,6 +1425,15 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, onS
                           </label>
                           <input
                             type="text"
+                            name={`item_name_${item.id}`}
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            spellCheck={false}
+                            data-lpignore="true"
+                            data-1p-ignore="true"
+                            data-bwignore="true"
+                            data-form-type="other"
                             value={item.name}
                             onChange={(e) => handleItemChange(item.id, 'name', e.target.value)}
                             placeholder="اسم المنتج"
@@ -1450,6 +1486,13 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, onS
                             <input
                               type="number"
                               min="1"
+                              inputMode="numeric"
+                              autoComplete="off"
+                              autoCorrect="off"
+                              data-lpignore="true"
+                              data-1p-ignore="true"
+                              data-bwignore="true"
+                              data-form-type="other"
                               value={item.piecesPerBox || 1}
                               onChange={(e) => handleItemChange(item.id, 'piecesPerBox', Math.max(1, parseInt(e.target.value) || 1))}
                               className="w-full px-1.5 py-1 text-xs text-center border border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white rounded font-black text-slate-700 dark:text-slate-200"
@@ -1463,6 +1506,13 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, onS
                             <input
                               type="number"
                               min="1"
+                              inputMode="decimal"
+                              autoComplete="off"
+                              autoCorrect="off"
+                              data-lpignore="true"
+                              data-1p-ignore="true"
+                              data-bwignore="true"
+                              data-form-type="other"
                               value={item.quantity}
                               onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value)}
                               className="w-full px-1.5 py-1 text-xs text-center border border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white rounded font-black text-blue-600 dark:text-blue-400"
@@ -1489,6 +1539,13 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, onS
                             <input
                               type="number"
                               step="0.001"
+                              inputMode="decimal"
+                              autoComplete="off"
+                              autoCorrect="off"
+                              data-lpignore="true"
+                              data-1p-ignore="true"
+                              data-bwignore="true"
+                              data-form-type="other"
                               value={item.costPrice}
                               onChange={(e) => handleItemChange(item.id, 'costPrice', e.target.value)}
                               className="w-full px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded font-bold"
@@ -1507,6 +1564,13 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, onS
                             <input
                               type="number"
                               step="0.001"
+                              inputMode="decimal"
+                              autoComplete="off"
+                              autoCorrect="off"
+                              data-lpignore="true"
+                              data-1p-ignore="true"
+                              data-bwignore="true"
+                              data-form-type="other"
                               value={item.sellingPrice}
                               onChange={(e) => handleItemChange(item.id, 'sellingPrice', e.target.value)}
                               className="w-full px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded font-bold text-emerald-600 dark:text-emerald-400"
@@ -1569,6 +1633,15 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, onS
                             <td className="p-2">
                               <input
                                 type="text"
+                                name={`table_item_name_${item.id}`}
+                                autoComplete="off"
+                                autoCorrect="off"
+                                autoCapitalize="off"
+                                spellCheck={false}
+                                data-lpignore="true"
+                                data-1p-ignore="true"
+                                data-bwignore="true"
+                                data-form-type="other"
                                 value={item.name}
                                 onChange={(e) => handleItemChange(item.id, 'name', e.target.value)}
                                 placeholder="اسم المنتج"
@@ -1592,6 +1665,15 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, onS
                             <td className="p-2">
                               <input
                                 type="text"
+                                name={`table_item_barcode_${item.id}`}
+                                autoComplete="off"
+                                autoCorrect="off"
+                                autoCapitalize="off"
+                                spellCheck={false}
+                                data-lpignore="true"
+                                data-1p-ignore="true"
+                                data-bwignore="true"
+                                data-form-type="other"
                                 value={item.barcode || ''}
                                 onChange={(e) => handleItemChange(item.id, 'barcode', e.target.value)}
                                 placeholder="الباركود"
@@ -1616,6 +1698,13 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, onS
                               <input
                                 type="number"
                                 min="1"
+                                inputMode="numeric"
+                                autoComplete="off"
+                                autoCorrect="off"
+                                data-lpignore="true"
+                                data-1p-ignore="true"
+                                data-bwignore="true"
+                                data-form-type="other"
                                 value={item.piecesPerBox || 1}
                                 onChange={(e) => handleItemChange(item.id, 'piecesPerBox', Math.max(1, parseInt(e.target.value) || 1))}
                                 className="w-full px-1.5 py-1 text-center border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded font-black text-slate-700 dark:text-slate-200"
@@ -1627,6 +1716,13 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, onS
                               <input
                                 type="number"
                                 min="1"
+                                inputMode="decimal"
+                                autoComplete="off"
+                                autoCorrect="off"
+                                data-lpignore="true"
+                                data-1p-ignore="true"
+                                data-bwignore="true"
+                                data-form-type="other"
                                 value={item.quantity}
                                 onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value)}
                                 className="w-full px-2 py-1 text-center border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded font-black text-blue-600 dark:text-blue-400"
@@ -1643,6 +1739,13 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, onS
                               <input
                                 type="number"
                                 step="0.001"
+                                inputMode="decimal"
+                                autoComplete="off"
+                                autoCorrect="off"
+                                data-lpignore="true"
+                                data-1p-ignore="true"
+                                data-bwignore="true"
+                                data-form-type="other"
                                 value={item.costPrice}
                                 onChange={(e) => handleItemChange(item.id, 'costPrice', e.target.value)}
                                 className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded font-bold"
@@ -1661,6 +1764,13 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, onS
                               <input
                                 type="number"
                                 step="0.001"
+                                inputMode="decimal"
+                                autoComplete="off"
+                                autoCorrect="off"
+                                data-lpignore="true"
+                                data-1p-ignore="true"
+                                data-bwignore="true"
+                                data-form-type="other"
                                 value={item.sellingPrice}
                                 onChange={(e) => handleItemChange(item.id, 'sellingPrice', e.target.value)}
                                 className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded font-bold text-emerald-600 dark:text-emerald-400"

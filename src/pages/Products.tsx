@@ -28,6 +28,8 @@ import { ProductEditModal } from '../components/products/ProductEditModal';
 import { PriceNegotiationModal } from '../components/products/PriceNegotiationModal';
 import { SmartPurchasePopup } from '../components/products/SmartPurchasePopup';
 import { PurchaseInvoiceModal } from '../components/products/PurchaseInvoiceModal';
+import { PriceAuditModal } from '../components/products/PriceAuditModal';
+import { auditAllProducts } from '../lib/priceAuditor';
 import { deleteLocalImage, saveLocalImage } from '../lib/localImages';
 import { uploadCloudImage, deleteCloudImage } from '../lib/cloudImages';
 import { compressImage } from '../lib/imageCompressor';
@@ -82,6 +84,7 @@ export default function Products() {
   const [isSmartPopupOpen, setIsSmartPopupOpen] = useState(false);
   const [pendingQuantityProduct, setPendingQuantityProduct] = useState<Product | null>(null);
   const [isPurchaseInvoiceModalOpen, setIsPurchaseInvoiceModalOpen] = useState(false);
+  const [isPriceAuditModalOpen, setIsPriceAuditModalOpen] = useState(false);
   const [suppliers, setSuppliers] = useState<any[]>([]);
 
   useEffect(() => {
@@ -497,9 +500,27 @@ export default function Products() {
     }
   };
 
-  const priceErrorsCount = useMemo(() => {
-    return products.filter(p => (Number(p.sellingPrice) || 0) <= (Number(p.purchasePrice) || 0)).length;
+  const enablePriceAudit = settings.enablePriceAudit ?? true;
+
+  const auditedProducts = useMemo(() => {
+    return auditAllProducts(products);
   }, [products]);
+
+  const auditMap = useMemo(() => {
+    const map = new Map<string, boolean>();
+    if (!enablePriceAudit) return map;
+    auditedProducts.forEach(a => {
+      if (a.hasIssues && a.product.id) {
+        map.set(a.product.id, true);
+      }
+    });
+    return map;
+  }, [auditedProducts, enablePriceAudit]);
+
+  const priceErrorsCount = useMemo(() => {
+    if (!enablePriceAudit) return 0;
+    return auditedProducts.filter(a => a.hasIssues).length;
+  }, [auditedProducts, enablePriceAudit]);
 
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
@@ -516,7 +537,7 @@ export default function Products() {
       } else if (stockFilter === 'out') {
         matchesStock = (p.quantity || 0) <= 0;
       } else if (stockFilter === 'price_error') {
-        matchesStock = (Number(p.sellingPrice) || 0) <= (Number(p.purchasePrice) || 0);
+        matchesStock = p.id ? !!auditMap.get(p.id) : (Number(p.sellingPrice) || 0) <= (Number(p.purchasePrice) || 0);
       }
 
       const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
@@ -532,7 +553,7 @@ export default function Products() {
       const nameB = b.name || '';
       return nameA.localeCompare(nameB, settings.language);
     });
-  }, [products, searchTerm, stockFilter, categoryFilter, settings.language]);
+  }, [products, searchTerm, stockFilter, categoryFilter, settings.language, auditMap]);
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
   const paginatedProducts = filteredProducts.slice(
@@ -554,13 +575,18 @@ export default function Products() {
     const invoiceModalHandler = () => {
       setIsPurchaseInvoiceModalOpen(true);
     };
+    const priceAuditHandler = () => {
+      setIsPriceAuditModalOpen(true);
+    };
     window.addEventListener('open-product-modal', productHandler);
     window.addEventListener('open-barcode-scanner-products', scannerHandler);
     window.addEventListener('open-purchase-invoice-modal', invoiceModalHandler);
+    window.addEventListener('open-price-audit-modal', priceAuditHandler);
     return () => {
       window.removeEventListener('open-product-modal', productHandler);
       window.removeEventListener('open-barcode-scanner-products', scannerHandler);
       window.removeEventListener('open-purchase-invoice-modal', invoiceModalHandler);
+      window.removeEventListener('open-price-audit-modal', priceAuditHandler);
     };
   }, []);
 
@@ -574,6 +600,8 @@ export default function Products() {
           setIsModalOpen(true);
         }} 
         onOpenInvoiceModal={() => setIsPurchaseInvoiceModalOpen(true)}
+        onOpenPriceAudit={() => setIsPriceAuditModalOpen(true)}
+        priceIssuesCount={priceErrorsCount}
       />
 
       {/* Search & Filters */}
@@ -597,17 +625,27 @@ export default function Products() {
       />
 
       {/* Alert banner for pricing errors if any exist */}
-      {priceErrorsCount > 0 && stockFilter !== 'price_error' && (
+      {priceErrorsCount > 0 && (
         <div 
-          onClick={() => setStockFilter('price_error')}
-          className="p-3 bg-red-50 hover:bg-red-100/80 dark:bg-red-950/30 dark:hover:bg-red-950/50 border border-red-200 dark:border-red-800/60 rounded-xl flex items-center justify-between gap-3 text-red-700 dark:text-red-300 text-xs font-bold cursor-pointer transition-all active:scale-[0.99] shadow-sm"
+          onClick={() => setIsPriceAuditModalOpen(true)}
+          className="p-3.5 bg-gradient-to-r from-amber-500/10 via-red-500/10 to-amber-500/10 hover:from-amber-500/20 hover:to-amber-500/20 border border-amber-300 dark:border-amber-700/60 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-900 dark:text-amber-200 text-xs font-bold cursor-pointer transition-all active:scale-[0.99] shadow-sm"
         >
-          <div className="flex items-center gap-2">
-            <AlertCircle size={18} className="shrink-0 text-red-600 dark:text-red-400" />
-            <span>تم اكتشاف <span className="underline decoration-red-500 font-extrabold">{priceErrorsCount}</span> منتج(ات) بها خطأ في التسعير (سعر البيع أقل أو يساوي سعر الشراء).</span>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+              <AlertCircle size={18} />
+            </div>
+            <div>
+              <p className="text-sm font-black text-zinc-900 dark:text-white">
+                تنبيه التدقيق الذكي: تم رصد {priceErrorsCount} منتج(ات) تحتاج مراجعة الأسعار والتجزئة
+              </p>
+              <p className="text-zinc-600 dark:text-zinc-400 font-normal text-[11px] mt-0.5">
+                يشمل ذلك شبهة إدخال سعر العلبة للقطعة الواحدة، البيع بأقل من سعر التكلفة، أو عدم تطابق كرتونة الجملة والتجزئة.
+              </p>
+            </div>
           </div>
-          <span className="shrink-0 text-[11px] bg-red-600 text-white px-2.5 py-1 rounded-lg hover:bg-red-700 transition-colors">
-            عرض وتصحيح
+          <span className="shrink-0 self-end sm:self-auto text-xs bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5">
+            <span>فتح أداة التدقيق والتصحيح</span>
+            <span className="bg-amber-800/60 px-1.5 py-0.5 rounded font-mono text-[10px]">{priceErrorsCount}</span>
           </span>
         </div>
       )}
@@ -762,6 +800,16 @@ export default function Products() {
         onClose={() => setIsPurchaseInvoiceModalOpen(false)}
         products={products}
         suppliers={suppliers}
+      />
+
+      <PriceAuditModal
+        isOpen={isPriceAuditModalOpen}
+        onClose={() => setIsPriceAuditModalOpen(false)}
+        products={products}
+        onOpenProductEdit={(product) => {
+          setEditingProduct(product);
+          setIsModalOpen(true);
+        }}
       />
     </div>
   );

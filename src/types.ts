@@ -40,6 +40,7 @@ export interface UserSettings {
   syncImages?: boolean;
   enablePOS?: boolean;
   enableAIInvoice?: boolean;
+  enablePriceAudit?: boolean;
   posDeductInventory?: boolean;
   showCashierStockButton?: boolean;
   receiptLogo?: string;
@@ -84,6 +85,8 @@ export interface Product {
   hasCloudImage?: boolean;
   _copiedFromId?: string;
   isDraft?: boolean;
+  priceVerified?: boolean;
+  priceVerifiedAt?: any;
   updatedAt: any;
 }
 

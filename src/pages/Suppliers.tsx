@@ -192,9 +192,9 @@ export default function Suppliers() {
     setIsSaving(true);
     const formData = new FormData(e.currentTarget);
     const data: any = {
-      name: formData.get('name') as string,
-      phone: formData.get('phone') as string,
-      typeOfGoods: formData.get('typeOfGoods') as string,
+      name: ((formData.get('supplier_name') || formData.get('name')) as string || '').trim(),
+      phone: ((formData.get('supplier_phone') || formData.get('phone')) as string || '').trim(),
+      typeOfGoods: ((formData.get('supplier_goods') || formData.get('typeOfGoods')) as string || '').trim(),
       visitDays: selectedVisitDays,
       updatedAt: serverTimestamp(),
     };

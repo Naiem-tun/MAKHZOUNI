@@ -93,7 +93,14 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
           <Search size={20} />
         </div>
         <input 
-          type="text" 
+          type="search" 
+          name="product_search"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          data-lpignore="true"
+          data-form-type="other"
           placeholder={t('search_product_placeholder')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}

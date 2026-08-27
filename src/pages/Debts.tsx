@@ -23,6 +23,10 @@ export default function Debts() {
   const [deleteConfirmName, setDeleteConfirmName] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'receivable' | 'payable'>('receivable');
   
+  // Debt Form states
+  const [debtCustomerName, setDebtCustomerName] = useState('');
+  const [debtPhone, setDebtPhone] = useState('');
+
   // New action modal states
   const [actionDebt, setActionDebt] = useState<Debt | null>(null);
   const [actionType, setActionType] = useState<'debt' | 'payment' | 'select'>('select');
@@ -47,14 +51,16 @@ export default function Debts() {
     };
   }, [user]);
 
-  const handleSaveDebt = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSaveDebt = async (e?: React.FormEvent | React.KeyboardEvent) => {
+    if (e && 'preventDefault' in e) e.preventDefault();
     if (!user || isSaving) return;
+    const customerName = debtCustomerName.trim();
+    if (!customerName) return;
+
     setIsSaving(true);
-    const formData = new FormData(e.currentTarget);
     const data = {
-      customerName: formData.get('customerName') as string,
-      phone: formData.get('phone') as string,
+      customerName,
+      phone: debtPhone.trim(),
       type: editingDebt ? (editingDebt.type || 'receivable') : debtType,
       totalAmount: editingDebt ? editingDebt.totalAmount : 0,
       status: editingDebt ? editingDebt.status : 'paid' as const,
@@ -64,6 +70,8 @@ export default function Debts() {
     };
 
     setIsModalOpen(false);
+    setDebtCustomerName('');
+    setDebtPhone('');
     
     if (editingDebt) {
       showToast(t('debt_updated_success'));
@@ -166,10 +174,17 @@ export default function Debts() {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingDebt(null);
+    setDebtCustomerName('');
+    setDebtPhone('');
   };
 
   useEffect(() => {
-    const handler = () => setIsModalOpen(true);
+    const handler = () => {
+      setEditingDebt(null);
+      setDebtCustomerName('');
+      setDebtPhone('');
+      setIsModalOpen(true);
+    };
     window.addEventListener('open-debt-modal', handler);
     return () => window.removeEventListener('open-debt-modal', handler);
   }, []);
@@ -182,7 +197,7 @@ export default function Debts() {
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">{t('debts_subtitle')}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <button onClick={() => { setEditingDebt(null); setDebtType(activeTab); setIsModalOpen(true); }} className="flex items-center justify-center gap-2 h-11 px-4 sm:px-5 rounded-xl bg-brand-600 text-sm font-bold text-white transition-all hover:bg-brand-700 shadow-md shadow-brand-500/20 active:scale-95 whitespace-nowrap">
+          <button onClick={() => { setEditingDebt(null); setDebtCustomerName(''); setDebtPhone(''); setDebtType(activeTab); setIsModalOpen(true); }} className="flex items-center justify-center gap-2 h-11 px-4 sm:px-5 rounded-xl bg-brand-600 text-sm font-bold text-white transition-all hover:bg-brand-700 shadow-md shadow-brand-500/20 active:scale-95 whitespace-nowrap">
             <UserPlus size={18} strokeWidth={2.5} />
             <span>{t('add_person')}</span>
           </button>
@@ -212,7 +227,12 @@ export default function Debts() {
             {/* Hidden Actions Layer */}
             <div className="absolute inset-y-0 right-0 flex items-center pr-1 gap-1 z-0">
               <button 
-                onClick={() => { setEditingDebt(d); setIsModalOpen(true); }}
+                onClick={() => { 
+                  setEditingDebt(d); 
+                  setDebtCustomerName(d.customerName || '');
+                  setDebtPhone(d.phone || '');
+                  setIsModalOpen(true); 
+                }}
                 className="h-[calc(100%-8px)] w-16 bg-edit-bg border border-edit-border rounded-lg flex flex-col items-center justify-center gap-1 text-edit-text"
               >
                 <Edit2 size={18} />
@@ -277,7 +297,7 @@ export default function Debts() {
               <h2 className="mb-6 text-2xl font-bold text-zinc-900 dark:text-white">
                 {editingDebt ? t('edit_debt_data') : t('add_new_debt')}
               </h2>
-              <form onSubmit={handleSaveDebt} className="space-y-4">
+              <div className="space-y-4">
                 {!editingDebt && (
                   <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg mb-4">
                     <button 
@@ -298,15 +318,25 @@ export default function Debts() {
                 )}
                 
                 <input 
-                  name="customerName" 
+                  type="text"
                   list={debtType === 'payable' ? 'suppliers-list' : undefined}
                   autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  data-bwignore="true"
+                  data-protonpass-ignore="true"
+                  data-form-type="other"
                   placeholder={
                     editingDebt 
                       ? t('customer_name_placeholder') 
                       : (debtType === 'payable' ? t('supplier_name_or_person') : t('customer_name_placeholder'))
                   } 
-                  defaultValue={editingDebt?.customerName} 
+                  value={debtCustomerName}
+                  onChange={(e) => setDebtCustomerName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSaveDebt(e); }}
                   required 
                   className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800" 
                 />
@@ -319,14 +349,32 @@ export default function Debts() {
                   </datalist>
                 )}
 
-                <input name="phone" type="tel" placeholder={t('phone_optional_placeholder')} defaultValue={editingDebt?.phone} className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 text-left dir-ltr" style={{ direction: 'ltr' }} />
+                <input 
+                  type="text"
+                  inputMode="tel"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  data-bwignore="true"
+                  data-protonpass-ignore="true"
+                  data-form-type="other"
+                  placeholder={t('phone_optional_placeholder')} 
+                  value={debtPhone}
+                  onChange={(e) => setDebtPhone(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSaveDebt(e); }}
+                  className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 text-left dir-ltr" 
+                  style={{ direction: 'ltr' }} 
+                />
                 <div className="flex gap-3 pt-4">
                   <button type="button" onClick={closeModal} className="flex-1 rounded-lg bg-zinc-100 py-3 font-semibold text-zinc-600 border border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700">{t('cancel')}</button>
-                  <button type="submit" disabled={isSaving} className="flex-1 rounded-lg bg-brand-600 py-3 font-semibold text-white disabled:opacity-50">
+                  <button type="button" onClick={() => handleSaveDebt()} disabled={isSaving || !debtCustomerName.trim()} className="flex-1 rounded-lg bg-brand-600 py-3 font-semibold text-white disabled:opacity-50">
                     {isSaving ? t('saving') : (editingDebt ? t('update') : t('add'))}
                   </button>
                 </div>
-              </form>
+              </div>
             </motion.div>
           </div>
         )}
@@ -365,24 +413,35 @@ export default function Debts() {
               )}
 
               {(actionType === 'debt' || actionType === 'payment') && (
-                <form onSubmit={(e) => {
-                  e.preventDefault();
-                  const amount = parseFloat(actionAmount);
-                  if (amount > 0) {
-                    if (actionType === 'payment') addPayment(actionDebt, amount, actionNote);
-                    else addDebtAmount(actionDebt, amount, actionNote);
-                  }
-                  setActionDebt(null);
-                  setActionAmount('');
-                  setActionNote('');
-                  setActionType('select');
-                }} className="space-y-4">
+                <div className="space-y-4">
                   <div>
                     <input 
-                      type="number" 
-                      step="0.001" 
+                      type="text" 
+                      inputMode="decimal"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-bwignore="true"
+                      data-protonpass-ignore="true"
+                      data-form-type="other"
                       value={actionAmount}
                       onChange={(e) => setActionAmount(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const amount = parseFloat(actionAmount.replace(',', '.'));
+                          if (amount > 0 && actionDebt) {
+                            if (actionType === 'payment') addPayment(actionDebt, amount, actionNote);
+                            else addDebtAmount(actionDebt, amount, actionNote);
+                            setActionDebt(null);
+                            setActionAmount('');
+                            setActionNote('');
+                            setActionType('select');
+                          }
+                        }
+                      }}
                       placeholder={t('enter_amount_placeholder')} 
                       autoFocus
                       required 
@@ -400,18 +459,55 @@ export default function Debts() {
                   </div>
                   <input
                     type="text"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
+                    data-protonpass-ignore="true"
+                    data-form-type="other"
                     value={actionNote}
                     onChange={(e) => setActionNote(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const amount = parseFloat(actionAmount.replace(',', '.'));
+                        if (amount > 0 && actionDebt) {
+                          if (actionType === 'payment') addPayment(actionDebt, amount, actionNote);
+                          else addDebtAmount(actionDebt, amount, actionNote);
+                          setActionDebt(null);
+                          setActionAmount('');
+                          setActionNote('');
+                          setActionType('select');
+                        }
+                      }
+                    }}
                     placeholder={t('note_optional', 'ملاحظة (اختياري)')}
                     className="w-full rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-right outline-none focus:ring-2 focus:ring-brand-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                   />
                   <div className="flex gap-3 pt-2">
-                    <button type="submit" disabled={!actionAmount || isSaving} className={`flex-1 rounded-lg py-3 font-semibold text-white transition-opacity ${actionType === 'payment' ? 'bg-emerald-500' : 'bg-[#B34C36]'} disabled:opacity-50`}>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        const amount = parseFloat(actionAmount.replace(',', '.'));
+                        if (amount > 0 && actionDebt) {
+                          if (actionType === 'payment') addPayment(actionDebt, amount, actionNote);
+                          else addDebtAmount(actionDebt, amount, actionNote);
+                          setActionDebt(null);
+                          setActionAmount('');
+                          setActionNote('');
+                          setActionType('select');
+                        }
+                      }}
+                      disabled={!actionAmount || isSaving} 
+                      className={`flex-1 rounded-lg py-3 font-semibold text-white transition-opacity ${actionType === 'payment' ? 'bg-emerald-500' : 'bg-[#B34C36]'} disabled:opacity-50`}
+                    >
                       {t('confirm')}
                     </button>
                     <button type="button" onClick={() => setActionType('select')} className="flex-1 rounded-lg bg-zinc-100 py-3 font-semibold text-zinc-600 border border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700">{t('cancel')}</button>
                   </div>
-                </form>
+                </div>
               )}
             </motion.div>
           </div>

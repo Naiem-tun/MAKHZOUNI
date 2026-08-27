@@ -134,6 +134,15 @@ const CustomerRow = ({
           )}
           <input 
             type="text"
+            name="customer_name_track"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            data-lpignore="true"
+            data-1p-ignore="true"
+            data-bwignore="true"
+            data-form-type="other"
             value={nameVal}
             onChange={(e) => setNameVal(e.target.value)}
             onBlur={handleNameBlur}
@@ -149,6 +158,14 @@ const CustomerRow = ({
           <span className="block text-[11px] font-bold text-zinc-500 dark:text-zinc-400 mb-1">الحساب</span>
           <input 
              type="number"
+             step="0.001"
+             inputMode="decimal"
+             autoComplete="off"
+             autoCorrect="off"
+             data-lpignore="true"
+             data-1p-ignore="true"
+             data-bwignore="true"
+             data-form-type="other"
              value={accountVal}
              onChange={(e) => setAccountVal(e.target.value)}
              onBlur={handleAccountBlur}
@@ -163,6 +180,14 @@ const CustomerRow = ({
           <span className="block text-[11px] font-bold text-zinc-500 dark:text-zinc-400 mb-1">الدفع</span>
           <input 
              type="number"
+             step="0.001"
+             inputMode="decimal"
+             autoComplete="off"
+             autoCorrect="off"
+             data-lpignore="true"
+             data-1p-ignore="true"
+             data-bwignore="true"
+             data-form-type="other"
              value={paymentVal}
              onChange={(e) => setPaymentVal(e.target.value)}
              onBlur={handlePaymentBlur}
@@ -623,7 +648,16 @@ export default function CustomerTracking() {
         <div className="relative flex-1">
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400" size={20} />
           <input
-            type="text"
+            type="search"
+            name="customer_search"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            data-lpignore="true"
+            data-1p-ignore="true"
+            data-bwignore="true"
+            data-form-type="other"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="ابحث عن اسم الحريف..."
@@ -815,13 +849,22 @@ export default function CustomerTracking() {
                 </button>
               </div>
 
-              <form onSubmit={handleAddCustomer} className="p-6 space-y-5">
+              <form onSubmit={handleAddCustomer} autoComplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" className="p-6 space-y-5">
                 <div>
                   <label className="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">
                     اسم الحريف
                   </label>
                   <input
                     type="text"
+                    name="new_customer_name"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
+                    data-form-type="other"
                     required
                     value={newCustomerName}
                     onChange={(e) => setNewCustomerName(e.target.value)}

@@ -158,6 +158,11 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
                         <input 
                           type="number" 
                           step="any"
+                          name="num_boxes_input"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          data-lpignore="true"
+                          data-form-type="other"
                           value={numBoxes || ''}
                           onChange={(e) => setNumBoxes(parseFloat(e.target.value.replace(',', '.')) || 0)}
                           className="w-full rounded-lg border border-zinc-200 bg-white py-4 text-center text-xl font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
@@ -172,6 +177,11 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
                         <input 
                           type="number" 
                           step="any"
+                          name="extra_pieces_input"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          data-lpignore="true"
+                          data-form-type="other"
                           value={extraPieces || ''}
                           onChange={(e) => setExtraPieces(parseFloat(e.target.value.replace(',', '.')) || 0)}
                           className="w-full rounded-lg border border-zinc-200 bg-white py-4 text-center text-xl font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
@@ -189,6 +199,11 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
                         <input 
                           type="number" 
                           step="0.001"
+                          name="box_price_input"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          data-lpignore="true"
+                          data-form-type="other"
                           value={boxPrice || ''}
                           onChange={(e) => handleQtyBoxPriceChange(parseFloat(e.target.value.replace(',', '.')) || 0)}
                           className="w-full rounded-lg border border-zinc-200 bg-white py-3 text-center font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
@@ -202,6 +217,11 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
                         <input 
                           type="number" 
                           step="0.001"
+                          name="piece_price_input"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          data-lpignore="true"
+                          data-form-type="other"
                           value={piecePrice || ''}
                           onChange={(e) => handleQtyPiecePriceChange(parseFloat(e.target.value.replace(',', '.')) || 0)}
                           className={`w-full rounded-lg border py-3 text-center font-bold outline-none focus:ring-2 transition-colors ${

@@ -21,6 +21,8 @@ interface ProductEditModalProps {
 export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, scannedBarcode, scannedBarcode2 = '', onScan, onCopy }: ProductEditModalProps) {
   const { t } = useTranslation();
   const { categories } = useCategories();
+  const [productName, setProductName] = useState('');
+  const [minQuantity, setMinQuantity] = useState<number | string>('');
   const [piecesPerBox, setPiecesPerBox] = useState<number | string>(1);
   const [subItemsPerPiece, setSubItemsPerPiece] = useState<number | string>(1);
   const [boxPrice, setBoxPrice] = useState<number | string>('');
@@ -47,6 +49,8 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
     if (isOpen) {
       setPriceError(null);
       if (product) {
+        setProductName(product.name || '');
+        setMinQuantity(product.minQuantity !== undefined && product.minQuantity !== null ? product.minQuantity : '');
         const ppb = product.piecesPerBox && Number(product.piecesPerBox) > 0 ? Number(product.piecesPerBox) : 1;
         setPiecesPerBox(ppb);
         setSubItemsPerPiece(product.subItemsPerPiece || 1);
@@ -76,18 +80,21 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
         setCategory(product.category || (categories[0]?.name || ""));
         const fetchId = product.id || product._copiedFromId;
         if (product.hasLocalImage && fetchId) {
-           getLocalImage(fetchId).then(blob => {
-              if (blob) {
-                 url = URL.createObjectURL(blob);
-                 setImagePreview(url);
-                 if (product._copiedFromId) {
-                   setImageFile(blob);
-                 }
+          getLocalImage(fetchId).then(blob => {
+            if (blob) {
+              url = URL.createObjectURL(blob);
+              setImagePreview(url);
+              if (product._copiedFromId) {
+                setImageFile(blob);
               }
-           });
+            }
+          });
         }
       } else {
+        setProductName('');
+        setMinQuantity('');
         setPiecesPerBox(1);
+        setSubItemsPerPiece(1);
         setBoxPrice('');
         setPiecePrice('');
         setSellingPrice('');
@@ -120,8 +127,8 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
   const handleBoxPriceChange = (valStr: string) => {
     setBoxPrice(valStr);
     setPriceError(null);
-    const parsed = parseFloat(valStr) || 0;
-    const pieces = parseFloat(String(piecesPerBox)) || 0;
+    const parsed = parseFloat(valStr.replace(',', '.')) || 0;
+    const pieces = parseFloat(String(piecesPerBox).replace(',', '.')) || 0;
     if (pieces > 0 && parsed > 0) {
       setPiecePrice(parseFloat((parsed / pieces).toFixed(3)));
     } else if (parsed === 0) {
@@ -132,8 +139,8 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
   const handlePiecePriceChange = (valStr: string) => {
     setPiecePrice(valStr);
     setPriceError(null);
-    const parsed = parseFloat(valStr) || 0;
-    const pieces = parseFloat(String(piecesPerBox)) || 0;
+    const parsed = parseFloat(valStr.replace(',', '.')) || 0;
+    const pieces = parseFloat(String(piecesPerBox).replace(',', '.')) || 0;
     if (parsed > 0) {
       setBoxPrice(parseFloat((parsed * pieces).toFixed(3)));
     } else if (parsed === 0) {
@@ -149,58 +156,24 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
   const handlePiecesChange = (valStr: string) => {
     setPiecesPerBox(valStr);
     setPriceError(null);
-    const parsed = parseFloat(valStr) || 0;
-    const currentBoxPrice = parseFloat(String(boxPrice)) || 0;
+    const parsed = parseFloat(valStr.replace(',', '.')) || 0;
+    const currentBoxPrice = parseFloat(String(boxPrice).replace(',', '.')) || 0;
     if (parsed > 0 && currentBoxPrice > 0) {
       setPiecePrice(parseFloat((currentBoxPrice / parsed).toFixed(3)));
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      e.stopPropagation();
-      e.currentTarget.blur();
-      // The form submission will be handled by the form's submit button or we can trigger it
-      const form = e.currentTarget.closest('form');
-      if (form) {
-        form.requestSubmit();
-      }
-    }
-  };
-
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      setIsSaving(false);
-    }
-  }, [isOpen]);
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-      setImageRemoved(false);
-    }
-  };
-
-  const handleRemoveImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
-    setImageRemoved(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handlePerformSave = async () => {
     if (isSaving) return;
-    
-    const formData = new FormData(e.currentTarget);
-    const ppb = parseFloat((formData.get('piecesPerBox') as string)?.replace(',', '.') || '0') || 1;
-    let rawPurchasePrice = parseFloat((formData.get('purchasePrice') as string)?.replace(',', '.') || '0') || 0;
-    const rawSellingPrice = parseFloat((formData.get('sellingPrice') as string)?.replace(',', '.') || '0') || 0;
-    let rawBoxPurchasePrice = parseFloat((formData.get('boxPurchasePrice') as string)?.replace(',', '.') || '0') || 0;
+    const trimmedName = productName.trim();
+    if (!trimmedName) return;
+
+    const ppb = parseFloat(String(piecesPerBox).replace(',', '.')) || 1;
+    let rawPurchasePrice = parseFloat(String(piecePrice).replace(',', '.')) || 0;
+    const rawSellingPrice = parseFloat(String(sellingPrice).replace(',', '.')) || 0;
+    let rawBoxPurchasePrice = parseFloat(String(boxPrice).replace(',', '.')) || 0;
 
     // Ensure price consistency for box products
     if (ppb > 1) {
@@ -224,26 +197,56 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
     setPriceError(null);
 
     const productData = {
-      name: formData.get('name') as string,
-      category: formData.get('category') as string,
+      name: trimmedName,
+      category: category || (categories[0]?.name || ""),
       purchasePrice: finalPurchasePrice,
       sellingPrice: finalSellingPrice,
-      barcode: formData.get('barcode') as string,
-      barcode2: formData.get('barcode2') as string,
+      barcode: barcode.trim(),
+      barcode2: barcode2.trim(),
       piecesPerBox: ppb,
-      subItemsPerPiece: parseFloat((formData.get('subItemsPerPiece') as string)?.replace(',', '.') || '0') || 1,
-      unit: formData.get('unit') as string || 'piece',
+      subItemsPerPiece: parseFloat(String(subItemsPerPiece).replace(',', '.')) || 1,
+      unit: unit || 'piece',
       boxPurchasePrice: parseFloat(rawBoxPurchasePrice.toFixed(3)),
       // Keep existing stock values if editing, or default to 0 for new products
       quantity: cleanQuantity(product?.quantity ?? 0),
       posQuantity: cleanQuantity(product?.posQuantity !== undefined ? product.posQuantity : (product?.quantity ?? 0)),
-      minQuantity: cleanQuantity(formData.get('minQuantity')),
+      minQuantity: cleanQuantity(minQuantity),
     };
     try {
       await onSave(productData, imageFile, imageRemoved);
     } catch (err) {
       setIsSaving(false);
     }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      e.currentTarget.blur();
+      handlePerformSave();
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsSaving(false);
+    }
+  }, [isOpen]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+      setImageRemoved(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setImageRemoved(true);
   };
 
   return (
@@ -277,7 +280,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
               {product && product.id ? t('edit') : t('add_product')}
             </h2>
             
-            <form onSubmit={handleSubmit} className="space-y-3 text-right">
+            <div className="space-y-3 text-right">
               {/* Image Picker */}
               <div className="flex justify-center mb-4">
                 <div className="relative group">
@@ -340,8 +343,18 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-zinc-500">{t('name')}</label>
                 <input 
-                  name="name" 
-                  defaultValue={product?.name} 
+                  type="text"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  data-bwignore="true"
+                  data-protonpass-ignore="true"
+                  data-form-type="other"
+                  value={productName}
+                  onChange={(e) => setProductName(e.target.value)}
                   required 
                   onKeyDown={handleKeyDown}
                   className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-right font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
@@ -365,7 +378,16 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                   </div>
                   <div className="relative group">
                     <input 
-                      name="barcode" 
+                      type="text"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-bwignore="true"
+                      data-protonpass-ignore="true"
+                      data-form-type="other"
                       value={barcode}
                       onChange={(e) => setBarcode(e.target.value)}
                       onKeyDown={handleKeyDown}
@@ -389,7 +411,16 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                     <label className="text-[10px] font-bold text-zinc-500 flex justify-end">{t('barcode')}</label>
                     <div className="relative group">
                       <input 
-                        name="barcode2" 
+                        type="text"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
+                        data-lpignore="true"
+                        data-1p-ignore="true"
+                        data-bwignore="true"
+                        data-protonpass-ignore="true"
+                        data-form-type="other"
                         value={barcode2}
                         onChange={(e) => setBarcode2(e.target.value)}
                         onKeyDown={handleKeyDown}
@@ -415,7 +446,6 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-zinc-500">{t('category')}</label>
                   <div className="relative">
-                    <input type="hidden" name="category" value={category} />
                     <button
                       type="button"
                       onClick={() => setShowCategoryMenu(!showCategoryMenu)}
@@ -446,7 +476,6 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-zinc-500">{t('unit') || 'الوحدة'}</label>
                   <div className="relative">
-                    <input type="hidden" name="unit" value={unit} />
                     <button
                       type="button"
                       onClick={() => setShowUnitMenu(!showUnitMenu)}
@@ -495,10 +524,19 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-zinc-500">{t('min_quantity')}</label>
                     <input 
-                      name="minQuantity" 
-                      type="number" 
-                      step="any"
-                      defaultValue={product?.minQuantity ? product.minQuantity : ''} 
+                      type="text" 
+                      inputMode="decimal"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-bwignore="true"
+                      data-protonpass-ignore="true"
+                      data-form-type="other"
+                      value={minQuantity}
+                      onChange={(e) => setMinQuantity(e.target.value)}
                       placeholder="0"
                       onKeyDown={handleKeyDown}
                       className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
@@ -507,8 +545,17 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-zinc-500">{"عدد الحبات في القطعة (وحدة صغرى)"}</label>
                     <input 
-                      name="subItemsPerPiece" 
-                      type="number" 
+                      type="text" 
+                      inputMode="numeric"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-bwignore="true"
+                      data-protonpass-ignore="true"
+                      data-form-type="other"
                       value={subItemsPerPiece}
                       onChange={(e) => setSubItemsPerPiece(e.target.value)}
                       onKeyDown={handleKeyDown}
@@ -522,8 +569,17 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-zinc-500">{t('pieces_in_box')}</label>
                   <input 
-                    name="piecesPerBox" 
-                    type="number" 
+                    type="text" 
+                    inputMode="numeric"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
+                    data-protonpass-ignore="true"
+                    data-form-type="other"
                     value={piecesPerBox}
                     onChange={(e) => handlePiecesChange(e.target.value)}
                     onKeyDown={handleKeyDown}
@@ -533,9 +589,17 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-zinc-500">{t('box_purchase_price')}</label>
                   <input 
-                    name="boxPurchasePrice" 
-                    type="number" 
-                    step="0.001"
+                    type="text" 
+                    inputMode="decimal"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
+                    data-protonpass-ignore="true"
+                    data-form-type="other"
                     value={boxPrice}
                     onChange={(e) => handleBoxPriceChange(e.target.value)}
                     onKeyDown={handleKeyDown}
@@ -550,9 +614,17 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-zinc-500">{t('piece_purchase_price')}</label>
                     <input 
-                      name="purchasePrice" 
-                      type="number" 
-                      step="0.001" 
+                      type="text" 
+                      inputMode="decimal"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-bwignore="true"
+                      data-protonpass-ignore="true"
+                      data-form-type="other"
                       value={piecePrice}
                       onChange={(e) => handlePiecePriceChange(e.target.value)}
                       required 
@@ -567,9 +639,17 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-zinc-500">{t('selling_price')}</label>
                     <input 
-                      name="sellingPrice" 
-                      type="number" 
-                      step="0.001" 
+                      type="text" 
+                      inputMode="decimal"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-bwignore="true"
+                      data-protonpass-ignore="true"
+                      data-form-type="other"
                       value={sellingPrice} 
                       onChange={(e) => handleSellingPriceChange(e.target.value)}
                       required 
@@ -583,12 +663,35 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                   </div>
                 </div>
 
-                {/* Real-time inline warning */}
+                {/* Real-time inline warning for loss */}
                 {parseFloat(String(sellingPrice)) > 0 && parseFloat(String(piecePrice)) > 0 && parseFloat(String(sellingPrice)) <= parseFloat(String(piecePrice)) && (
                   <p className="text-[11px] font-bold text-red-500 pt-0.5 flex items-center justify-end gap-1">
                     <span>يجب أن يكون سعر البيع أكبر من سعر الشراء ({parseFloat(String(piecePrice)).toFixed(3)})</span>
                     <AlertCircle size={13} className="shrink-0" />
                   </p>
+                )}
+
+                {/* Real-time warning for box price entered as piece price */}
+                {Number(piecesPerBox) > 1 && parseFloat(String(piecePrice)) > 0 && parseFloat(String(sellingPrice)) >= (parseFloat(String(piecePrice)) * Number(piecesPerBox) * 0.8) && (
+                  <div className="mt-2 p-2.5 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/60 rounded-lg text-purple-900 dark:text-purple-200 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 font-bold">
+                      <AlertCircle size={15} className="text-purple-600 shrink-0" />
+                      <span>هل أدخلت سعر بيع العلبة كاملة ({sellingPrice}) بدلاً من سعر القطعة؟</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const ppb = Number(piecesPerBox) || 1;
+                        const sp = parseFloat(String(sellingPrice)) || 0;
+                        if (ppb > 0 && sp > 0) {
+                          setSellingPrice(parseFloat((sp / ppb).toFixed(3)));
+                        }
+                      }}
+                      className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-[11px] font-black shrink-0 transition-colors shadow-sm"
+                    >
+                      تقسيم على {piecesPerBox} حبات ({parseFloat(((parseFloat(String(sellingPrice)) || 0) / (Number(piecesPerBox) || 1)).toFixed(3))})
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -604,8 +707,9 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
 
               <div className="pt-3">
                 <button 
-                  type="submit" 
-                  disabled={isSaving || (parseFloat(String(sellingPrice)) > 0 && parseFloat(String(piecePrice)) > 0 && parseFloat(String(sellingPrice)) <= parseFloat(String(piecePrice)))}
+                  type="button" 
+                  onClick={handlePerformSave}
+                  disabled={isSaving || !productName.trim() || (parseFloat(String(sellingPrice)) > 0 && parseFloat(String(piecePrice)) > 0 && parseFloat(String(sellingPrice)) <= parseFloat(String(piecePrice)))}
                   className="w-full rounded-lg bg-brand-600 py-3 text-sm font-bold text-white transition-all hover:bg-brand-700 active:scale-95 shadow-lg shadow-brand-600/10 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSaving ? <div className="animate-spin w-5 h-5 border-2 border-white rounded-full border-t-transparent mx-auto"></div> : t('save')}
@@ -626,7 +730,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                   </button>
                 </>
               )}
-            </form>
+            </div>
           </div>
         </div>
       )}

@@ -235,7 +235,16 @@ export default function Invoices() {
               <div className="relative flex-1">
                 <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400" />
                 <input
-                  type="text"
+                  type="search"
+                  name="invoices_search"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  data-bwignore="true"
+                  data-form-type="other"
                   placeholder="البحث برقم الفاتورة أو اسم منتج..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}

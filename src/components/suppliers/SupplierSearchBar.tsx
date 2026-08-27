@@ -16,7 +16,14 @@ export function SupplierSearchBar({ searchQuery, setSearchQuery, uploadedReports
       {/* Search Bar */}
       <div className="relative group">
         <input 
-          type="text" 
+          type="search" 
+          name="supplier_search"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          data-lpignore="true"
+          data-form-type="other"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={t('search')} 

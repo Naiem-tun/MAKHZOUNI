@@ -51,18 +51,62 @@ export function SupplierFormModal({
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
           <motion.div key={editingSupplier?.id || 'new'} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-lg bg-white p-8 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
             <h2 className="mb-6 text-2xl font-bold text-zinc-900 dark:text-white">{editingSupplier ? t('edit_supplier_data') : t('add_new_supplier')}</h2>
-            <form onSubmit={handleSave} className="space-y-4 text-right">
+            <form onSubmit={handleSave} autoComplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-protonpass-ignore="true" className="space-y-4 text-right">
               <div>
                 <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('name')}</label>
-                <input name="name" placeholder={t('supplier_name_placeholder')} defaultValue={editingSupplier?.name} required className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700 font-bold" />
+                <input 
+                  name="supplier_name" 
+                  type="text"
+                  autoComplete="one-time-code"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  data-bwignore="true"
+                  data-protonpass-ignore="true"
+                  data-form-type="other"
+                  placeholder={t('supplier_name_placeholder')} 
+                  defaultValue={editingSupplier?.name} 
+                  required 
+                  className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700 font-bold" 
+                />
               </div>
               <div>
                 <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('phone_number')}</label>
-            <input name="phone" placeholder={t('supplier_phone_placeholder')} defaultValue={editingSupplier?.phone} className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
+            <input 
+              name="supplier_phone" 
+              type="tel"
+              autoComplete="one-time-code"
+              autoCorrect="off"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-bwignore="true"
+              data-protonpass-ignore="true"
+              data-form-type="other"
+              placeholder={t('supplier_phone_placeholder')} 
+              defaultValue={editingSupplier?.phone} 
+              className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" 
+            />
           </div>
           <div>
             <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('category')}</label>
-            <input name="typeOfGoods" placeholder={t('supplier_goods_placeholder')} defaultValue={editingSupplier?.typeOfGoods} className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" />
+            <input 
+              name="supplier_goods" 
+              type="text"
+              autoComplete="one-time-code"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-bwignore="true"
+              data-protonpass-ignore="true"
+              data-form-type="other"
+              placeholder={t('supplier_goods_placeholder')} 
+              defaultValue={editingSupplier?.typeOfGoods} 
+              className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" 
+            />
           </div>
           <div>
             <label className="text-xs font-bold text-zinc-400 mb-3 block">{t('weekly_visit_days')}</label>
