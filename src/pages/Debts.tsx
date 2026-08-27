@@ -318,9 +318,9 @@ export default function Debts() {
                 )}
                 
                 <input 
-                  type="text"
+                  type="search"
                   list={debtType === 'payable' ? 'suppliers-list' : undefined}
-                  autoComplete="off"
+                  autoComplete="new-password"
                   autoCorrect="off"
                   autoCapitalize="off"
                   spellCheck={false}
@@ -350,9 +350,9 @@ export default function Debts() {
                 )}
 
                 <input 
-                  type="text"
-                  inputMode="tel"
-                  autoComplete="off"
+                  type="search"
+                  inputMode="numeric"
+                  autoComplete="new-password"
                   autoCorrect="off"
                   autoCapitalize="off"
                   spellCheck={false}
@@ -418,7 +418,7 @@ export default function Debts() {
                     <input 
                       type="text" 
                       inputMode="decimal"
-                      autoComplete="off"
+                      autoComplete="new-password"
                       autoCorrect="off"
                       autoCapitalize="off"
                       spellCheck={false}
@@ -458,8 +458,8 @@ export default function Debts() {
                     )}
                   </div>
                   <input
-                    type="text"
-                    autoComplete="off"
+                    type="search"
+                    autoComplete="new-password"
                     autoCorrect="off"
                     autoCapitalize="off"
                     spellCheck={false}

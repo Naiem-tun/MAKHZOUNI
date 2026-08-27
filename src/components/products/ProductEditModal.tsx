@@ -343,8 +343,8 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-zinc-500">{t('name')}</label>
                 <input 
-                  type="text"
-                  autoComplete="off"
+                  type="search"
+                  autoComplete="new-password"
                   autoCorrect="off"
                   autoCapitalize="off"
                   spellCheck={false}
@@ -378,8 +378,8 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                   </div>
                   <div className="relative group">
                     <input 
-                      type="text"
-                      autoComplete="off"
+                      type="search"
+                      autoComplete="new-password"
                       autoCorrect="off"
                       autoCapitalize="off"
                       spellCheck={false}
@@ -411,8 +411,8 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                     <label className="text-[10px] font-bold text-zinc-500 flex justify-end">{t('barcode')}</label>
                     <div className="relative group">
                       <input 
-                        type="text"
-                        autoComplete="off"
+                        type="search"
+                        autoComplete="new-password"
                         autoCorrect="off"
                         autoCapitalize="off"
                         spellCheck={false}
@@ -526,7 +526,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                     <input 
                       type="text" 
                       inputMode="decimal"
-                      autoComplete="off"
+                      autoComplete="new-password"
                       autoCorrect="off"
                       autoCapitalize="off"
                       spellCheck={false}
@@ -547,7 +547,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                     <input 
                       type="text" 
                       inputMode="numeric"
-                      autoComplete="off"
+                      autoComplete="new-password"
                       autoCorrect="off"
                       autoCapitalize="off"
                       spellCheck={false}
@@ -571,7 +571,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                   <input 
                     type="text" 
                     inputMode="numeric"
-                    autoComplete="off"
+                    autoComplete="new-password"
                     autoCorrect="off"
                     autoCapitalize="off"
                     spellCheck={false}
@@ -591,7 +591,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                   <input 
                     type="text" 
                     inputMode="decimal"
-                    autoComplete="off"
+                    autoComplete="new-password"
                     autoCorrect="off"
                     autoCapitalize="off"
                     spellCheck={false}
@@ -616,7 +616,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                     <input 
                       type="text" 
                       inputMode="decimal"
-                      autoComplete="off"
+                      autoComplete="new-password"
                       autoCorrect="off"
                       autoCapitalize="off"
                       spellCheck={false}
@@ -641,7 +641,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                     <input 
                       type="text" 
                       inputMode="decimal"
-                      autoComplete="off"
+                      autoComplete="new-password"
                       autoCorrect="off"
                       autoCapitalize="off"
                       spellCheck={false}

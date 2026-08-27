@@ -261,9 +261,10 @@ export default function Expenses() {
                   <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest px-2">{t('amount_required')}</label>
                   <div className="relative">
                     <input 
-                      type="text" 
+                      type="search" 
+                      name="app_expense_amt"
                       inputMode="decimal"
-                      autoComplete="off"
+                      autoComplete="new-password"
                       autoCorrect="off"
                       autoCapitalize="off"
                       spellCheck={false}
@@ -287,8 +288,9 @@ export default function Expenses() {
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest px-2">{t('description_optional')}</label>
                   <input 
-                    type="text"
-                    autoComplete="off"
+                    type="search"
+                    name="app_expense_desc"
+                    autoComplete="new-password"
                     autoCorrect="off"
                     autoCapitalize="off"
                     spellCheck={false}
