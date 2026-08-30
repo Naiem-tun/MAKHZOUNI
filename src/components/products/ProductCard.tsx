@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { Package, Plus, SquarePen, Lock } from 'lucide-react';
 import { Product } from '../../types';
 import { useAppContext } from '../../AppContext';
+import { useStaffAuth } from '../../contexts/StaffAuthContext';
 import { useCategories, categoryIcons } from '../../hooks/useCategories';
 import { cn, formatCurrency, cleanQuantity, formatQuantity } from '../../lib/utils';
 import { ProductImage } from './ProductImage';
@@ -43,7 +44,10 @@ const ProductIcon = ({ product, className }: { product: Product, className?: str
 export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBoxInfo, showPosStock, onEdit, onAddQuantity, onCardClick }) => {
   const { t, i18n } = useTranslation();
   const { settings, activeSupplier, showToast } = useAppContext();
+  const { checkPermission, currentStaff } = useStaffAuth();
   const language = i18n.language;
+
+  const canViewCostPrices = checkPermission('canViewCostPrices');
 
   const baseSellingPrice = showBoxInfo ? (product.sellingPrice || 0) * (product.piecesPerBox || 1) : (product.sellingPrice || 0);
   const basePurchasePrice = showBoxInfo ? (product.boxPurchasePrice || ((product.purchasePrice || 0) * (product.piecesPerBox || 1))) : (product.purchasePrice || 0);
@@ -74,23 +78,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
   return (
     <div className="relative group overflow-hidden rounded-lg">
       {/* Background layer for profit (Revealed when swiped left/right) */}
-      <div className="absolute inset-y-0 right-0 flex items-center pr-4 z-0 w-28 justify-end bg-brand-50 dark:bg-brand-900/20" dir="ltr">
-        <div className="flex flex-col items-end opacity-90 transition-opacity">
-          <span className="text-[10px] font-bold text-brand-600 dark:text-brand-400">
-            {t('profit_margin')} {showBoxInfo && product.piecesPerBox && product.piecesPerBox > 1 ? `(${t('box')})` : ''}
-          </span>
-          <span className="text-sm font-black text-brand-700 dark:text-brand-300">
-             {formatCurrency(profit, settings.currency, language)} 
-           </span>
-          <span className="text-[10px] font-bold text-brand-600 bg-brand-100 dark:bg-brand-800/50 px-1 rounded mt-0.5">
-            {profitMargin.toFixed(1)}%
-          </span>
+      {canViewCostPrices && (
+        <div className="absolute inset-y-0 right-0 flex items-center pr-4 z-0 w-28 justify-end bg-brand-50 dark:bg-brand-900/20" dir="ltr">
+          <div className="flex flex-col items-end opacity-90 transition-opacity">
+            <span className="text-[10px] font-bold text-brand-600 dark:text-brand-400">
+              {t('profit_margin')} {showBoxInfo && product.piecesPerBox && product.piecesPerBox > 1 ? `(${t('box')})` : ''}
+            </span>
+            <span className="text-sm font-black text-brand-700 dark:text-brand-300">
+              {formatCurrency(profit, settings.currency, language)} 
+            </span>
+            <span className="text-[10px] font-bold text-brand-600 bg-brand-100 dark:bg-brand-800/50 px-1 rounded mt-0.5">
+              {`${profitMargin.toFixed(1)}%`}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Foreground card */}
       <motion.div
-        drag="x"
+        drag={canViewCostPrices ? "x" : false}
         dragConstraints={{ left: -112, right: 0 }}
         dragElastic={0.1}
         className={cn(
@@ -177,20 +183,35 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
                   )}
                 </div>
               )}
-              <div className="flex items-center gap-1 font-mono font-bold text-[12px] text-neutral-700 dark:text-neutral-300">
+              <div className="flex items-center gap-1.5 font-mono font-bold text-[12px] text-neutral-700 dark:text-neutral-300">
                 {showBoxInfo ? (
                   <>
-                    <span className="text-brand-600 dark:text-brand-400">
-                      {formatCurrency(product.boxPurchasePrice || 0, settings.currency, language)}
-                    </span>
-                    <span className="opacity-30">/</span>
+                    {canViewCostPrices && (
+                      <>
+                        <span className="text-brand-600 dark:text-brand-400">
+                          {formatCurrency(product.boxPurchasePrice || 0, settings.currency, language)}
+                        </span>
+                        <span className="opacity-30">/</span>
+                      </>
+                    )}
                     <span className="font-sans text-neutral-400">{t('box')} ({product.piecesPerBox} {unitText})</span>
+                    {!canViewCostPrices && (
+                      <span className="text-emerald-600 dark:text-emerald-400 font-extrabold mr-1">
+                        {formatCurrency((product.sellingPrice || 0) * (product.piecesPerBox || 1), settings.currency, language)}
+                      </span>
+                    )}
                   </>
                 ) : (
                   <>
-                    <span>{!(settings.showFinancials ?? true) ? '••••••' : formatCurrency(product.purchasePrice || 0, settings.currency, language)}</span>
-                    <span className="opacity-30">.</span>
-                    <span>{formatCurrency(product.sellingPrice || 0, settings.currency, language)}</span>
+                    {canViewCostPrices && (settings.showFinancials ?? true) ? (
+                      <>
+                        <span>{formatCurrency(product.purchasePrice || 0, settings.currency, language)}</span>
+                        <span className="opacity-30">.</span>
+                      </>
+                    ) : null}
+                    <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">
+                      {formatCurrency(product.sellingPrice || 0, settings.currency, language)}
+                    </span>
                   </>
                 )}
               </div>

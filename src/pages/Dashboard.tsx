@@ -2,6 +2,7 @@ import React, { useState, useMemo, memo, useEffect } from 'react';
 import { collection, onSnapshot, query, limit, orderBy, where, doc, deleteDoc, updateDoc, getDoc, addDoc, increment, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
+import { useStaffAuth } from '../contexts/StaffAuthContext';
 import { syncTracker } from '../lib/syncTracker';
 import { 
   Package, 
@@ -41,7 +42,11 @@ import { DashboardCarousel } from '../components/dashboard/DashboardCarousel';
 import { useTranslation } from 'react-i18next';
 const Dashboard = memo(() => {
   const { user, settings, showToast } = useAppContext();
+  const { checkPermission } = useStaffAuth();
   const { t } = useTranslation();
+
+  const canViewCostPrices = checkPermission('canViewCostPrices');
+  const canViewFinancialReports = checkPermission('canViewFinancialReports');
   const [products, setProducts] = useState<Product[]>([]);
   const [allPurchases, setAllPurchases] = useState<Transaction[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
@@ -295,7 +300,10 @@ const Dashboard = memo(() => {
 
   const greeting = getGreeting();
 
-  const formatPrivateValue = (val: number) => !showFinancials ? '••••••' : formatCurrency(val, settings.currency, language);
+  const formatPrivateValue = (val: number) => 
+    (!showFinancials || !canViewCostPrices || !canViewFinancialReports)
+      ? '••••••' 
+      : formatCurrency(val, settings.currency, language);
 
   const onAddProduct = () => {
     safeDispatchEvent('open-product-modal');

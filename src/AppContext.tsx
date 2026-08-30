@@ -74,7 +74,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isCatalogMode, setIsCatalogModeState] = useState(() => {
     return localStorage.getItem('isCatalogMode') === 'true';
   });
-  const [activeTab, setActiveTab] = useState('products');
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname.replace(/^\//, '').toLowerCase();
+      const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
+      const searchParams = new URLSearchParams(window.location.search);
+      const tabParam = searchParams.get('tab')?.toLowerCase();
+      if (path === 'staff' || path === 'staff-management' || hash === 'staff' || tabParam === 'staff') {
+        return 'staff';
+      }
+    }
+    return 'products';
+  });
 
   const setIsCatalogMode = (val: boolean) => {
     setIsCatalogModeState(val);

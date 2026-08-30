@@ -16,19 +16,48 @@ import {
 import { collection, query, getDocs, orderBy, limit, where, onSnapshot, doc, writeBatch, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
-import { formatCurrency, safeParseDate, formatAppDate } from '../lib/utils';
+import { useStaffAuth } from '../contexts/StaffAuthContext';
+import { formatCurrency, safeParseDate, formatAppDate, safeDispatchEvent } from '../lib/utils';
+import { ShieldAlert, Lock, Users } from 'lucide-react';
 
 export default function Analytics() {
   const { t } = useTranslation();
   const { settings, user } = useAppContext();
+  const { checkPermission, currentStaff } = useStaffAuth();
   const [products, setProducts] = useState<any[]>([]);
   const [inventoryReports, setInventoryReports] = useState<any[]>([]);
   const [purchases, setPurchases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'menu' | 'financial' | 'rankings' | 'purchases' | 'categories'>('menu');
 
+  const canViewFinancials = checkPermission('canViewFinancialReports');
+
   const language = settings.language || 'ar';
   const showFinancials = settings.showFinancials ?? true;
+
+  if (!canViewFinancials) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] p-6 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-4 shadow-sm border border-amber-200 dark:border-amber-800/50">
+          <ShieldAlert size={32} />
+        </div>
+        <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
+          الوصول مقيد
+        </h2>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-md mb-6">
+          حسابك الحالي ({currentStaff?.name || 'المستخدم'}) لا يملك صلاحية الاطلاع على التقارير المالية والإحصائيات الحساسة.
+        </p>
+        <button
+          type="button"
+          onClick={() => safeDispatchEvent('open-staff-switcher')}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition active:scale-95"
+        >
+          <Users size={16} />
+          <span>تبديل الموظف / إدخال PIN المشرف</span>
+        </button>
+      </div>
+    );
+  }
 
   useEffect(() => {
     const handleOpenAnalyticsTab = (e: any) => {

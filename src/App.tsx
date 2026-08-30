@@ -8,7 +8,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, Suspense, lazy, useRef } from "react";
+import { useState, useEffect, useMemo, Suspense, lazy, useRef } from "react";
 import { AppProvider, useAppContext } from "./AppContext";
 import { syncTracker } from "./lib/syncTracker";
 import { AppHeader } from "./components/layout/AppHeader";
@@ -63,6 +63,7 @@ import {
   RotateCcw,
   Activity,
   Coins,
+  Users,
 } from "lucide-react";
 import { signInWithGoogle, auth } from "./lib/firebase";
 
@@ -105,9 +106,14 @@ import DraftProducts from "./pages/DraftProducts";
 const Analytics = lazy(() => import("./pages/Analytics"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const AuditLogs = lazy(() => import("./pages/AuditLogs"));
+const StaffManagement = lazy(() => import("./pages/StaffManagement"));
 const Invoices = lazy(() => import("./pages/Invoices"));
 const CustomerTracking = lazy(() => import("./pages/CustomerTracking"));
 
+
+import { StaffAuthProvider, useStaffAuth } from "./contexts/StaffAuthContext";
+import { StaffLockScreen } from "./components/auth/StaffLockScreen";
+import { StaffSwitcherModal } from "./components/auth/StaffSwitcherModal";
 
 function AppContent() {
   const {
@@ -129,6 +135,7 @@ function AppContent() {
     activeTab,
     setActiveTab,
   } = useAppContext();
+  const { currentStaff, checkPermission } = useStaffAuth();
   const { t } = useTranslation();
   const [mountedTabs, setMountedTabs] = useState<Set<string>>(
     new Set(["products"]),
@@ -139,6 +146,52 @@ function AppContent() {
   const [isFinancialsOpen, setIsFinancialsOpen] = useState(false);
   const [showSyncMenu, setShowSyncMenu] = useState(false);
   const [showQuickActionModal, setShowQuickActionModal] = useState(false);
+  const [isStaffSwitcherOpen, setIsStaffSwitcherOpen] = useState(false);
+
+  useEffect(() => {
+    const handleOpenSwitcher = () => setIsStaffSwitcherOpen(true);
+    window.addEventListener("open-staff-switcher", handleOpenSwitcher);
+    return () => window.removeEventListener("open-staff-switcher", handleOpenSwitcher);
+  }, []);
+
+  useEffect(() => {
+    const handleSwitchTab = (e: any) => {
+      if (e.detail) {
+        setActiveTab(e.detail);
+      }
+    };
+    window.addEventListener("switch-tab", handleSwitchTab);
+    return () => window.removeEventListener("switch-tab", handleSwitchTab);
+  }, [setActiveTab]);
+
+  // Role based automatic redirection if on forbidden screen
+  useEffect(() => {
+    if (!currentStaff) return;
+    if (currentStaff.role === "storekeeper") {
+      const forbiddenForStorekeeper = [
+        "pos",
+        "invoice-calculator",
+        "reports",
+        "expenses",
+        "debts",
+        "settings",
+        "audit-logs",
+      ];
+      if (forbiddenForStorekeeper.includes(activeTab)) {
+        setActiveTab("inventory");
+      }
+    } else if (currentStaff.role === "cashier") {
+      const forbiddenForCashier = [
+        "reports",
+        "expenses",
+        "settings",
+        "audit-logs",
+      ];
+      if (forbiddenForCashier.includes(activeTab)) {
+        setActiveTab("pos");
+      }
+    }
+  }, [currentStaff?.role, activeTab, setActiveTab]);
 
   useEffect(() => {
     const handleClickOutside = () => setShowSyncMenu(false);
@@ -191,6 +244,8 @@ function AppContent() {
     }
   }, [settings.darkMode]);
 
+  const role = currentStaff?.role || "admin";
+
   const allTabs = [
     { id: "dashboard", label: t("dashboard"), icon: LayoutDashboard },
     { id: "products", label: t("products"), icon: Package },
@@ -216,6 +271,7 @@ function AppContent() {
     },
 
     // Bottom standalone tabs
+    { id: "staff", label: "إدارة الطاقم والصلاحيات", icon: Users },
     { id: "settings", label: t("settings"), icon: Settings },
     { id: "draft-products", label: "قائمة النقل", icon: PackagePlus },
     { id: "monitored-products", label: "المنتجات تحت المراقبة", icon: Eye },
@@ -227,8 +283,14 @@ function AppContent() {
     },
   ];
 
-  const mainPagesTabs = allTabs.filter((tab) =>
-    [
+  const mainPagesTabs = allTabs.filter((tab) => {
+    if (role === "storekeeper") {
+      return ["inventory", "products", "suppliers", "draft-products"].includes(tab.id);
+    }
+    if (role === "cashier") {
+      return ["pos", "products", "customer-tracking", "debts", "invoices"].includes(tab.id);
+    }
+    return [
       "dashboard",
       "products",
       "customer-tracking",
@@ -237,27 +299,42 @@ function AppContent() {
       "inventory",
       "invoices",
       "expenses",
-    ].includes(tab.id),
-  );
-  const toolbarTabs = allTabs.filter((tab) =>
-    ["dashboard", "products", "suppliers", "debts", "inventory"].includes(
-      tab.id,
-    ),
-  );
-  const otherTabs = allTabs.filter(
-    (tab) =>
-      ![
-        "dashboard",
-        "products",
-        "customer-tracking",
-        "suppliers",
-        "debts",
-        "inventory",
-        "invoices",
-        "expenses",
-        "reports",
-      ].includes(tab.id),
-  );
+    ].includes(tab.id);
+  });
+
+  const toolbarTabs = useMemo(() => {
+    if (role === "storekeeper") {
+      const storekeeperTabIds = ["inventory", "products", "suppliers", "draft-products"];
+      return allTabs.filter((tab) => storekeeperTabIds.includes(tab.id));
+    }
+    if (role === "cashier") {
+      const cashierTabIds = ["pos", "products", "debts", "invoices", "customer-tracking"];
+      return allTabs.filter((tab) => cashierTabIds.includes(tab.id));
+    }
+    return allTabs.filter((tab) =>
+      ["dashboard", "products", "suppliers", "debts", "inventory"].includes(tab.id),
+    );
+  }, [role, allTabs]);
+
+  const otherTabs = allTabs.filter((tab) => {
+    if (role === "storekeeper") {
+      return ["monitored-products", "shopping-list", "catalog-mode"].includes(tab.id);
+    }
+    if (role === "cashier") {
+      return ["shopping-list", "invoice-calculator", "catalog-mode"].includes(tab.id);
+    }
+    return ![
+      "dashboard",
+      "products",
+      "customer-tracking",
+      "suppliers",
+      "debts",
+      "inventory",
+      "invoices",
+      "expenses",
+      "reports",
+    ].includes(tab.id);
+  });
 
   const reportsSubpages = [
     {
@@ -435,7 +512,12 @@ function AppContent() {
         <div
           className={`flex flex-col bg-[#F4F7FB] dark:bg-[#0B1121] font-sans transition-colors duration-300 relative min-h-[100dvh]`}
         >
-          <AppHeader setMobileMenuOpen={setMobileMenuOpen} activeTab={activeTab} setActiveTab={setActiveTab} />
+          <AppHeader
+            setMobileMenuOpen={setMobileMenuOpen}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            onOpenStaffSwitcher={() => setIsStaffSwitcherOpen(true)}
+          />
 
           {/* Mobile Menu */}
           <AppMobileMenu
@@ -446,6 +528,7 @@ function AppContent() {
             mainPagesTabs={mainPagesTabs}
             reportsSubpages={reportsSubpages}
             otherTabs={otherTabs}
+            onOpenStaffSwitcher={() => setIsStaffSwitcherOpen(true)}
           />
 
           {/* Main Content */}
@@ -538,6 +621,9 @@ function AppContent() {
                 </div>
                 <div className={activeTab === "settings" ? "block" : "hidden"}>
                   {mountedTabs.has("settings") && <SettingsPage />}
+                </div>
+                <div className={activeTab === "staff" || activeTab === "staff-management" ? "block" : "hidden"}>
+                  {(mountedTabs.has("staff") || mountedTabs.has("staff-management")) && <StaffManagement />}
                 </div>
                 <div className={activeTab === "audit-logs" ? "block" : "hidden"}>
                   {mountedTabs.has("audit-logs") && <AuditLogs />}
@@ -650,6 +736,13 @@ function AppContent() {
           </AnimatePresence>
 
           <SessionSummaryModal />
+
+          {/* Staff Auth Modals & Lock Screen */}
+          <StaffLockScreen onOpenSwitcher={() => setIsStaffSwitcherOpen(true)} />
+          <StaffSwitcherModal
+            isOpen={isStaffSwitcherOpen}
+            onClose={() => setIsStaffSwitcherOpen(false)}
+          />
         </div>
       )}
     </>
@@ -659,7 +752,9 @@ function AppContent() {
 export default function App() {
   return (
     <AppProvider>
-      <AppContent />
+      <StaffAuthProvider>
+        <AppContent />
+      </StaffAuthProvider>
     </AppProvider>
   );
 }

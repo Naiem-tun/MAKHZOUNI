@@ -16,6 +16,7 @@ import {
   getDocFromServer, 
   persistentLocalCache, 
   persistentMultipleTabManager,
+  CACHE_SIZE_UNLIMITED,
   Firestore
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
@@ -23,9 +24,11 @@ import firebaseConfig from '../../firebase-applet-config.json';
 // Initialize Firebase with singleton pattern
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
+// Initialize Firestore with IndexedDB Multi-Tab Offline Persistence and unlimited cache size
 export const db: Firestore = initializeFirestore(app, {
   localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager()
+    tabManager: persistentMultipleTabManager(),
+    cacheSizeBytes: CACHE_SIZE_UNLIMITED
   })
 }, firebaseConfig.firestoreDatabaseId);
 

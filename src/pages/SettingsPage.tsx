@@ -55,9 +55,12 @@ import {
   CloudUpload,
   Calculator,
   Sparkles,
-  Key
+  Key,
+  Users,
+  ShieldCheck
 } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
+import { useStaffAuth } from '../contexts/StaffAuthContext';
 import { collection, getDocs, doc, setDoc, writeBatch, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { handleFirestoreError } from '../lib/utils';
 import { OperationType } from '../types';
@@ -72,7 +75,9 @@ import { DataManagement } from '../components/settings/DataManagement';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
-  const { settings, updateSettings, toggleDarkMode, setLanguage, user, setIsCatalogMode } = useAppContext();
+  const { settings, updateSettings, toggleDarkMode, setLanguage, user, setIsCatalogMode, setActiveTab } = useAppContext();
+  const { currentStaff, checkPermission } = useStaffAuth();
+  const canManageStaff = checkPermission('canManageStaff') || currentStaff?.role === 'admin';
   const [activeView, setActiveView] = useState<View>('main');
   const [isClearDataModalOpen, setIsClearDataModalOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
@@ -80,6 +85,20 @@ export default function SettingsPage() {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info', msg: string } | null>(null);
+
+  const [tempSettings, setTempSettings] = useState({
+    storeName: settings.storeName || 'مخزوني',
+    currency: settings.currency || 'د.ت',
+    catalogPin: settings.catalogPin || '0000',
+    deleteDataPassword: settings.deleteDataPassword || '1234',
+    receiptLogo: settings.receiptLogo || '',
+    receiptThankYouMessage: settings.receiptThankYouMessage || '',
+    receiptPolicy: settings.receiptPolicy || '',
+    receiptPaperSize: settings.receiptPaperSize || '80mm',
+    cycleStartDay: settings.cycleStartDay || 18,
+    cycleEndDay: settings.cycleEndDay || 18,
+  });
+  const [isSaving, setIsSaving] = useState(false);
 
   const [isSyncingOldImages, setIsSyncingOldImages] = useState(false);
   const [syncProgress, setSyncProgress] = useState<{ current: number, total: number } | null>(null);
@@ -189,19 +208,6 @@ export default function SettingsPage() {
     { id: 'data', label: t('data_export'), subtitle: t('export_import_data'), icon: Database, color: 'text-zinc-500' },
   ];
 
-  const [tempSettings, setTempSettings] = useState({
-    storeName: settings.storeName || 'مخزوني',
-    currency: settings.currency || 'د.ت',
-    catalogPin: settings.catalogPin || '0000',
-    deleteDataPassword: settings.deleteDataPassword || '1234',
-    receiptLogo: settings.receiptLogo || '',
-    receiptThankYouMessage: settings.receiptThankYouMessage || '',
-    receiptPolicy: settings.receiptPolicy || '',
-    receiptPaperSize: settings.receiptPaperSize || '80mm',
-    cycleStartDay: settings.cycleStartDay || 18,
-    cycleEndDay: settings.cycleEndDay || 18,
-  });
-  const [isSaving, setIsSaving] = useState(false);
   const handleSaveStoreSettings = async () => {
     setIsSaving(true);
     try {
@@ -870,6 +876,23 @@ export default function SettingsPage() {
               <div>
                 <h3 className="text-sm font-bold text-brand-600 dark:text-brand-400">{t('enter_catalog_mode') || 'الدخول لوضع الكتالوج'}</h3>
                 <p className="text-[11px] text-zinc-400 mt-0.5">{t('catalog_mode_desc') || 'يعرض المنتجات والأسعار للعملاء'}</p>
+              </div>
+            </div>
+            <ChevronLeft className="text-zinc-400" size={18} />
+          </button>
+
+          {/* Staff Management Link */}
+          <button
+            onClick={() => setActiveTab('staff')}
+            className="w-full flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors text-right"
+          >
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center dark:bg-blue-950/40 dark:text-blue-400">
+                <Users size={20} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-blue-600 dark:text-blue-400">إدارة طاقم العمل والصلاحيات</h3>
+                <p className="text-[11px] text-zinc-400 mt-0.5">إضافة الكاشير، مسؤولي المخزن، وتعيين رموز PIN</p>
               </div>
             </div>
             <ChevronLeft className="text-zinc-400" size={18} />
