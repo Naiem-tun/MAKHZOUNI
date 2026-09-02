@@ -38,6 +38,7 @@ import { formatCurrency } from '../../lib/utils';
 import { logAudit } from '../../lib/auditLogger';
 import { getLocalImage, saveLocalImage } from '../../lib/localImages';
 import { scanInvoiceWithGemini } from '../../lib/geminiScan';
+import { syncSupplierFinancialsForReceipt } from '../../lib/supplierFinanceSync';
 
 interface ExtractedItem {
   id: string;
@@ -595,6 +596,26 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
         
         let costPrice = Number(it.costPrice) || 0;
         let sellingPrice = Number(it.sellingPrice) || 0;
+
+        // Auto-fix existing receipts: If unitType is carton, ppb > 1, but costPrice or sellingPrice was saved as single piece price
+        if (it.unitType === 'carton' && ppb > 1) {
+          const knownPieceCost = matched?.purchasePrice || matched?.costPrice || 0;
+          const knownPieceSelling = matched?.sellingPrice || 0;
+
+          // If costPrice is equal to or close to single piece cost, convert it to carton cost
+          if (knownPieceCost > 0 && Math.abs(costPrice - knownPieceCost) < 0.005) {
+            costPrice = matched?.boxPurchasePrice || parseFloat((costPrice * ppb).toFixed(3));
+          } else if (costPrice > 0 && knownPieceCost > 0 && costPrice <= (knownPieceCost * 1.5) && ppb >= 2) {
+            costPrice = matched?.boxPurchasePrice || parseFloat((costPrice * ppb).toFixed(3));
+          }
+
+          // If sellingPrice is equal to or close to single piece selling price, convert to carton selling price
+          if (knownPieceSelling > 0 && Math.abs(sellingPrice - knownPieceSelling) < 0.005) {
+            sellingPrice = matched?.boxSellingPrice || parseFloat((sellingPrice * ppb).toFixed(3));
+          } else if (sellingPrice > 0 && knownPieceSelling > 0 && sellingPrice <= (knownPieceSelling * 1.5) && ppb >= 2) {
+            sellingPrice = matched?.boxSellingPrice || parseFloat((sellingPrice * ppb).toFixed(3));
+          }
+        }
         
         // If cost is 0 and user is manager, pre-fill from previous known cost
         if (costPrice <= 0 && matched && (matched.purchasePrice || matched.costPrice)) {
@@ -813,6 +834,19 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
         }
       }
 
+      let matchedCost = item.costPrice;
+      if (matchedCost <= 0) {
+        if (matchedProd.purchasePrice || matchedProd.costPrice) {
+          const knownCost = matchedProd.purchasePrice || matchedProd.costPrice || 0;
+          matchedCost = item.unitType === 'carton' ? (matchedProd.boxPurchasePrice || parseFloat((knownCost * ppb).toFixed(3))) : knownCost;
+        }
+      } else if (item.unitType === 'carton' && ppb > 1 && matchedProd.purchasePrice && Math.abs(matchedCost - matchedProd.purchasePrice) < 0.005) {
+        matchedCost = matchedProd.boxPurchasePrice || parseFloat((matchedProd.purchasePrice * ppb).toFixed(3));
+      }
+
+      const itemQty = Number(item.quantity) || 1;
+      const finalTotal = parseFloat((itemQty * (matchedCost || 0)).toFixed(3));
+
       return {
         ...item,
         matchedProductId: matchedProd.id,
@@ -821,7 +855,9 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
         name: item.originalInvoiceName || item.name || matchedProd.name,
         originalInvoiceName: item.originalInvoiceName || item.name,
         piecesPerBox: ppb,
+        costPrice: matchedCost,
         sellingPrice: matchedSelling,
+        total: finalTotal,
         isNewProduct: false,
       };
     }));
@@ -1029,6 +1065,24 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
       };
 
       await setDoc(receiptRef, receiptPayload, { merge: true });
+
+      // مزامنة المعاملة المالية في حساب المورد مباشرة لتعكس أي تعديل يجريه المدير العام
+      try {
+        await syncSupplierFinancialsForReceipt(db, user.uid, {
+          id: receiptRef.id,
+          ...receiptPayload
+        }, {
+          status: 'pending',
+          finalTotal: calculateGrandTotal(),
+          paymentMethod,
+          supplierId: selectedSupplierId,
+          supplierName,
+          invoiceNumber: invoiceNumber.trim() || receiptPayload.receiptNumber,
+          action: 'update'
+        });
+      } catch (finErr) {
+        console.warn("Failed to sync pending receipt financials:", finErr);
+      }
 
       // Immediate local cache update
       try {
@@ -1260,40 +1314,8 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
         });
       }
 
-      // 3. Create Supplier Transaction / Debt if applicable
+      // 3. Update or create GoodsReceipt document to record General Manager's Approval
       const totalAmount = calculateGrandTotal();
-
-      if (finalSupplierId) {
-        const suppTxRef = doc(collection(db, `users/${user.uid}/supplierTransactions`));
-        batch.set(suppTxRef, {
-          supplierId: finalSupplierId,
-          amount: paymentMethod === 'cash' ? totalAmount : 0,
-          date: invoiceDate || now.toISOString(),
-          note: `فاتورة توريد رقم #${invoiceNumber || 'آلية'} بقيمة ${formatCurrency(totalAmount, settings.currency)} (${paymentMethod === 'cash' ? 'مدفوعة كاش' : 'آجل / دين'})`,
-          updatedAt: serverTimestamp()
-        });
-
-        // If debt / credit
-        if (paymentMethod === 'credit') {
-          const debtRef = doc(collection(db, `users/${user.uid}/debts`));
-          batch.set(debtRef, {
-            customerName: `المورد: ${finalSupplierName}`,
-            phone: '',
-            totalAmount: totalAmount,
-            status: 'unpaid',
-            type: 'payable', // الدين للمورد (علينا)
-            history: [{
-              type: 'debt',
-              amount: totalAmount,
-              date: now.toISOString(),
-              note: `فاتورة شراء رقم #${invoiceNumber || 'آلية'}`
-            }],
-            updatedAt: serverTimestamp()
-          });
-        }
-      }
-
-      // 4. Update or create GoodsReceipt document to record General Manager's Approval
       const receiptDocRef = initialReceipt?.id
         ? doc(db, `users/${user.uid}/goodsReceipts`, initialReceipt.id)
         : doc(collection(db, `users/${user.uid}/goodsReceipts`));
@@ -1343,6 +1365,35 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
       batch.set(receiptDocRef, receiptRecord, { merge: true });
 
       await batch.commit();
+
+      // 4. مزامنة المعاملات المالية للمورد والدين بدقة تامة تعكس أي تعديل في الأسعار أو الكميات أجراه المدير العام
+      if (finalSupplierId) {
+        try {
+          await syncSupplierFinancialsForReceipt(db, user.uid, {
+            id: receiptDocRef.id,
+            sessionId: initialReceipt?.sessionId,
+            supplierTransactionId: initialReceipt?.supplierTransactionId,
+            debtId: initialReceipt?.debtId,
+            receiptNumber: receiptRecord.receiptNumber,
+            invoiceNumber: receiptRecord.invoiceNumber,
+            invoiceDate: receiptRecord.invoiceDate,
+            supplierId: finalSupplierId,
+            supplierName: finalSupplierName,
+            paymentMethod,
+            totalAmount
+          }, {
+            status: 'approved',
+            finalTotal: totalAmount,
+            paymentMethod,
+            supplierId: finalSupplierId,
+            supplierName: finalSupplierName,
+            invoiceNumber: invoiceNumber.trim() || receiptRecord.receiptNumber,
+            action: 'approve'
+          });
+        } catch (finErr) {
+          console.warn("Failed to sync supplier financials on invoice approval:", finErr);
+        }
+      }
 
       await logAudit(
         initialReceipt?.id ? 'update' : 'create',

@@ -174,6 +174,11 @@ export interface SupplierTransaction {
   amount: number;
   date: any;
   note: string;
+  receiptId?: string;
+  sessionId?: string;
+  invoiceNumber?: string;
+  status?: 'pending' | 'approved' | 'rejected';
+  paymentMethod?: 'cash' | 'credit';
   updatedAt: any;
 }
 
@@ -310,6 +315,8 @@ export interface GoodsReceipt {
   invoiceDate?: string;
   supplierId?: string;
   supplierName?: string;
+  sessionId?: string;
+  sessionClosed?: boolean;
   paymentMethod?: 'cash' | 'credit';
   status: 'pending' | 'approved' | 'rejected';
   items: GoodsReceiptItem[];
@@ -319,6 +326,8 @@ export interface GoodsReceipt {
   submittedBy?: StaffActor;
   reviewedBy?: StaffActor;
   rejectedReason?: string;
+  supplierTransactionId?: string;
+  debtId?: string;
   createdAt: any;
   approvedAt?: any;
 }

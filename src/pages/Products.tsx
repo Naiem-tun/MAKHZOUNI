@@ -239,60 +239,190 @@ export default function Products() {
     const newQty = cleanQuantity((quantityProduct.quantity || 0) + addedQty);
 
     try {
-      // If staff does NOT have cost price permission (e.g. worker/cashier), create an individual Goods Receipt for this specific product arrival
+      // If staff does NOT have cost price permission (e.g. worker/cashier), group items into a consolidated Goods Receipt for the session / General Manager
       if (!canViewCostPrices) {
         const nowIso = new Date().toISOString();
-        const addedItemTotal = (quantityProduct.purchasePrice || 0) * addedQty;
-        
-        const receiptItem: GoodsReceiptItem = {
-          id: `item-${Date.now()}`,
-          name: quantityProduct.name,
-          barcode: quantityProduct.barcode,
-          quantity: numBoxes > 0 ? numBoxes : extraPieces,
-          unitType: numBoxes > 0 ? 'carton' : 'piece',
-          piecesPerBox: quantityProduct.piecesPerBox || 1,
-          costPrice: quantityProduct.purchasePrice || 0,
-          sellingPrice: quantityProduct.sellingPrice || 0,
-          total: addedItemTotal,
-          matchedProductId: quantityProduct.id,
-          matchedProductName: quantityProduct.name
-        };
+        const ppb = quantityProduct.piecesPerBox && quantityProduct.piecesPerBox > 0 ? quantityProduct.piecesPerBox : 1;
+        const pieceCost = Number(quantityProduct.purchasePrice) || Number(quantityProduct.costPrice) || 0;
+        const boxCost = Number(quantityProduct.boxPurchasePrice) || parseFloat((pieceCost * ppb).toFixed(3));
+        const pieceSelling = Number(quantityProduct.sellingPrice) || 0;
+        const boxSelling = Number(quantityProduct.boxSellingPrice) || parseFloat((pieceSelling * ppb).toFixed(3));
 
-        const receiptRef = doc(collection(db, `users/${user.uid}/goodsReceipts`));
-        const receiptNumber = `RC-${Date.now().toString().slice(-6)}`;
+        const effectiveBoxCost = boxPrice > 0 ? boxPrice : boxCost;
+        const effectivePieceCost = piecePrice > 0 ? piecePrice : pieceCost;
 
-        const newReceipt: GoodsReceipt = {
-          id: receiptRef.id,
-          receiptNumber,
-          invoiceDate: nowIso.split('T')[0],
-          supplierId: activeSupplier?.id || undefined,
-          supplierName: activeSupplier?.name || 'مورد غير محدد',
-          paymentMethod: 'cash',
-          status: 'pending',
-          items: [receiptItem],
-          totalAmount: addedItemTotal,
-          totalItemsCount: 1,
-          totalUnitsCount: addedQty,
-          submittedBy: currentStaff ? {
-            staffId: currentStaff.id,
-            staffName: currentStaff.name,
-            role: currentStaff.role
-          } : {
-            staffId: 'staff',
-            staffName: 'الموظف / أمين المخزن',
-            role: 'cashier'
-          },
-          createdAt: serverTimestamp(),
-          createdAtTimestamp: Date.now()
-        } as any;
+        const newItemsToAdd: GoodsReceiptItem[] = [];
 
-        await setDoc(receiptRef, newReceipt);
-        await logAudit('create', 'purchase', receiptRef.id, receiptNumber, `إرسال إذن استلام منتج للمدير العام: ${quantityProduct.name} (+${addedQty})`);
-        
-        setIsQuantityModalOpen(false);
-        setQuantityProduct(null);
-        showToast(`تم إرسال إذن استلام (${quantityProduct.name}) إلى المدير العام للاعتماد 📋`, 'success');
-        return;
+        if (numBoxes > 0) {
+          newItemsToAdd.push({
+            id: `item-${Date.now()}-box`,
+            name: quantityProduct.name,
+            barcode: quantityProduct.barcode,
+            quantity: numBoxes,
+            unitType: 'carton',
+            piecesPerBox: ppb,
+            costPrice: effectiveBoxCost,
+            sellingPrice: boxSelling,
+            total: parseFloat((numBoxes * effectiveBoxCost).toFixed(3)),
+            matchedProductId: quantityProduct.id,
+            matchedProductName: quantityProduct.name
+          });
+        }
+
+        if (extraPieces > 0) {
+          newItemsToAdd.push({
+            id: `item-${Date.now()}-pcs`,
+            name: quantityProduct.name,
+            barcode: quantityProduct.barcode,
+            quantity: extraPieces,
+            unitType: 'piece',
+            piecesPerBox: ppb,
+            costPrice: effectivePieceCost,
+            sellingPrice: pieceSelling,
+            total: parseFloat((extraPieces * effectivePieceCost).toFixed(3)),
+            matchedProductId: quantityProduct.id,
+            matchedProductName: quantityProduct.name
+          });
+        }
+
+        if (newItemsToAdd.length === 0) {
+          setIsQuantityModalOpen(false);
+          setQuantityProduct(null);
+          return;
+        }
+
+        // Check if there is an existing pending GoodsReceipt for this active session / supplier
+        const activeReceipt = goodsReceipts.find(r => {
+          if (r.status !== 'pending' && r.status !== undefined) return false;
+          if (r.sessionClosed) return false;
+          if (activeSupplier) {
+            if (activeSupplier.sessionId && r.sessionId === activeSupplier.sessionId) return true;
+            if (activeSupplier.id && r.supplierId === activeSupplier.id && (!r.sessionId || r.sessionId === activeSupplier.sessionId)) return true;
+            return false;
+          } else {
+            return !r.supplierId && !r.sessionId;
+          }
+        });
+
+        if (activeReceipt && activeReceipt.id) {
+          // Append / merge items into existing receipt
+          const updatedItems = [...(activeReceipt.items || [])];
+          for (const addedItem of newItemsToAdd) {
+            const existingIdx = updatedItems.findIndex(it => 
+              (it.matchedProductId === addedItem.matchedProductId || it.name === addedItem.name) &&
+              it.unitType === addedItem.unitType
+            );
+            if (existingIdx >= 0) {
+              const cur = updatedItems[existingIdx];
+              const newQty = (Number(cur.quantity) || 0) + addedItem.quantity;
+              const unitCost = Number(cur.costPrice) || addedItem.costPrice || 0;
+              updatedItems[existingIdx] = {
+                ...cur,
+                quantity: newQty,
+                costPrice: unitCost,
+                total: parseFloat((newQty * unitCost).toFixed(3))
+              };
+            } else {
+              updatedItems.push(addedItem);
+            }
+          }
+
+          const totalAmount = parseFloat(updatedItems.reduce((sum, it) => sum + (Number(it.total) || 0), 0).toFixed(3));
+          const totalUnitsCount = updatedItems.reduce((sum, it) => {
+            const q = Number(it.quantity) || 0;
+            return sum + (it.unitType === 'carton' ? (q * (Number(it.piecesPerBox) || 1)) : q);
+          }, 0);
+          const totalItemsCount = updatedItems.length;
+
+          const receiptRef = doc(db, `users/${user.uid}/goodsReceipts`, activeReceipt.id);
+          await updateDoc(receiptRef, {
+            items: updatedItems,
+            totalAmount,
+            totalUnitsCount,
+            totalItemsCount,
+            supplierId: activeSupplier?.id || activeReceipt.supplierId || null,
+            supplierName: activeSupplier?.name || activeReceipt.supplierName || 'مورد غير محدد',
+            sessionId: activeSupplier?.sessionId || activeReceipt.sessionId || null,
+            updatedAt: serverTimestamp()
+          });
+
+          // Update activeSupplier session total
+          if (activeSupplier) {
+            const addedAmount = newItemsToAdd.reduce((sum, it) => sum + (Number(it.total) || 0), 0);
+            setActiveSupplier(prev => prev ? { ...prev, sessionTotal: parseFloat(((prev.sessionTotal || 0) + addedAmount).toFixed(3)) } : null);
+          }
+
+          // Update local cache
+          try {
+            const cacheKey = `cached_goods_receipts_${user.uid}`;
+            const prevCache: any[] = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+            const idx = prevCache.findIndex(r => r.id === activeReceipt!.id);
+            if (idx >= 0) {
+              prevCache[idx] = { ...prevCache[idx], items: updatedItems, totalAmount, totalUnitsCount, totalItemsCount };
+              localStorage.setItem(cacheKey, JSON.stringify(prevCache));
+            }
+          } catch (e) {}
+
+          await logAudit('update', 'purchase', activeReceipt.id, activeReceipt.receiptNumber || 'Goods Receipt', `إضافة منتج (${quantityProduct.name}) لفاتورة استلام البضاعة للمدير العام`);
+
+          setIsQuantityModalOpen(false);
+          setQuantityProduct(null);
+          showToast(`تمت إضافة (${quantityProduct.name}) إلى فاتورة الاستلام المجمعة للمدير العام 📋 (${updatedItems.length} صنف)`, 'success');
+          return;
+        } else {
+          // Create a new pending receipt for this session / arrival
+          const receiptRef = doc(collection(db, `users/${user.uid}/goodsReceipts`));
+          const receiptNumber = `RC-${Date.now().toString().slice(-6)}`;
+          const totalAmount = parseFloat(newItemsToAdd.reduce((sum, it) => sum + (Number(it.total) || 0), 0).toFixed(3));
+          const totalUnitsCount = addedQty;
+
+          const newReceipt: GoodsReceipt = {
+            id: receiptRef.id,
+            receiptNumber,
+            invoiceDate: nowIso.split('T')[0],
+            supplierId: activeSupplier?.id || undefined,
+            supplierName: activeSupplier?.name || 'مورد غير محدد',
+            sessionId: activeSupplier?.sessionId || undefined,
+            sessionClosed: false,
+            paymentMethod: 'credit',
+            status: 'pending',
+            items: newItemsToAdd,
+            totalAmount,
+            totalItemsCount: newItemsToAdd.length,
+            totalUnitsCount,
+            submittedBy: currentStaff ? {
+              staffId: currentStaff.id,
+              staffName: currentStaff.name,
+              role: currentStaff.role
+            } : {
+              staffId: 'staff',
+              staffName: 'الموظف / أمين المخزن',
+              role: 'cashier'
+            },
+            createdAt: serverTimestamp(),
+            createdAtTimestamp: Date.now()
+          } as any;
+
+          await setDoc(receiptRef, newReceipt);
+
+          if (activeSupplier) {
+            setActiveSupplier(prev => prev ? { ...prev, sessionTotal: parseFloat(((prev.sessionTotal || 0) + totalAmount).toFixed(3)) } : null);
+          }
+
+          try {
+            const cacheKey = `cached_goods_receipts_${user.uid}`;
+            const prevCache: any[] = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+            prevCache.unshift({ id: receiptRef.id, ...newReceipt });
+            localStorage.setItem(cacheKey, JSON.stringify(prevCache));
+          } catch (e) {}
+
+          await logAudit('create', 'purchase', receiptRef.id, receiptNumber, `إنشاء فاتورة استلام بضاعة للمدير العام: ${quantityProduct.name} (+${addedQty})`);
+          
+          setIsQuantityModalOpen(false);
+          setQuantityProduct(null);
+          showToast(`تم إنشاء فاتورة استلام للمدير العام وإضافة (${quantityProduct.name}) 📋`, 'success');
+          return;
+        }
       }
 
       // Find if this product is monitored (Manager direct approval flow)

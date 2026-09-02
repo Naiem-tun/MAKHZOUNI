@@ -25,8 +25,8 @@ interface AppContextType {
   setLanguage: (lang: 'ar' | 'en') => void;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   categories: Category[];
-  activeSupplier: { id: string; name: string; sessionTotal?: number; visitDays?: number[] } | null;
-  setActiveSupplier: React.Dispatch<React.SetStateAction<{ id: string; name: string; sessionTotal?: number; visitDays?: number[] } | null>>;
+  activeSupplier: { id: string; name: string; sessionTotal?: number; visitDays?: number[]; sessionId?: string } | null;
+  setActiveSupplier: React.Dispatch<React.SetStateAction<{ id: string; name: string; sessionTotal?: number; visitDays?: number[]; sessionId?: string } | null>>;
   isSessionSummaryOpen: boolean;
   setIsSessionSummaryOpen: (val: boolean) => void;
   isCatalogMode: boolean;
@@ -66,9 +66,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [activeSupplier, setActiveSupplier] = useState<{ id: string; name: string; sessionTotal?: number; visitDays?: number[] } | null>(() => {
+  const [activeSupplier, setActiveSupplier] = useState<{ id: string; name: string; sessionTotal?: number; visitDays?: number[]; sessionId?: string } | null>(() => {
     const saved = localStorage.getItem('active_supplier_session');
-    return saved ? JSON.parse(saved) : null;
+    if (!saved) return null;
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed && parsed.id && !parsed.sessionId) {
+        parsed.sessionId = `sess_${Date.now()}`;
+      }
+      return parsed;
+    } catch {
+      return null;
+    }
   });
   const [isSessionSummaryOpen, setIsSessionSummaryOpen] = useState(false);
   const [isCatalogMode, setIsCatalogModeState] = useState(() => {

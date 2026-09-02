@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, addDoc, serverTimestamp, Timestamp, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, Timestamp, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { handleFirestoreError, safeParseDate } from '../lib/utils';
 import { OperationType } from '../types';
@@ -132,6 +132,31 @@ export function useSessionManagement(
       
       const saveTimestamp = Timestamp.fromDate(selectedDate);
 
+      // ✅ 1. ربط وإغلاق أي إذن استلام بضائع معلق مرتبط بهذه الجلسة
+      let primaryReceiptId: string | null = null;
+      try {
+        const rcCol = collection(db, `users/${user.uid}/goodsReceipts`);
+        const qSession = activeSupplier.sessionId 
+          ? query(rcCol, where('sessionId', '==', activeSupplier.sessionId))
+          : query(rcCol, where('supplierId', '==', supplierId), where('status', '==', 'pending'));
+        const rcSnap = await getDocs(qSession);
+        for (const docSnap of rcSnap.docs) {
+          const rData = docSnap.data();
+          if (!rData.sessionClosed && (rData.status === 'pending' || !rData.status)) {
+            if (!primaryReceiptId) primaryReceiptId = docSnap.id;
+            await updateDoc(docSnap.ref, {
+              sessionClosed: true,
+              invoiceDate: selectedDate.toISOString().split('T')[0],
+              totalAmount: amount > 0 ? amount : rData.totalAmount,
+              updatedAt: serverTimestamp()
+            });
+          }
+        }
+      } catch (rcErr) {
+        console.warn("Error finalizing session goods receipts:", rcErr);
+      }
+
+      // ✅ 2. تسجيل المعاملة في حساب المورد وربطها برقم إذن الاستلام ومعرّف الجلسة
       if (amount > 0) {
         const txPath = `users/${user.uid}/supplierTransactions`;
         
@@ -139,33 +164,28 @@ export function useSessionManagement(
           supplierId: supplierId,
           amount: amount,
           date: saveTimestamp,
-          note: t('session_purchases_total') || 'إجمالي مشتريات الجلسة',
+          note: t('session_purchases_total') || 'إجمالي مشتريات الجلسة (بانتظار تدقيق واعتماد المدير)',
+          sessionId: activeSupplier.sessionId || null,
+          receiptId: primaryReceiptId || null,
+          status: 'pending',
           updatedAt: serverTimestamp(),
-        }).then(docRef => {
-          // Do nothing
+        }).then(async docRef => {
+          if (primaryReceiptId) {
+            try {
+              await updateDoc(doc(db, `users/${user.uid}/goodsReceipts`, primaryReceiptId), {
+                supplierTransactionId: docRef.id,
+                updatedAt: serverTimestamp()
+              });
+            } catch (e) {
+              // ignore
+            }
+          }
         })).catch(err => {
            console.error("Error saving session transaction:", err);
         });
       }
 
-      // ✅ 2. ربط مبلغ الأداءات/الضرائب المضاف بقسم المصاريف إذا كان الخيار مفّعلاً (recordAsExpense)
-      if (extraTax > 0 && recordAsExpense) {
-        const expensesPath = `users/${user.uid}/expenses`;
-        const supplierName = activeSupplier.name || t('supplier') || 'مورد';
-        const expenseDesc = `TVA (${supplierName})`;
-
-        syncTracker.track(addDoc(collection(db, expensesPath), {
-          description: expenseDesc,
-          amount: extraTax,
-          category: t('taxes_and_fees') || 'ضرائب ورسوم',
-          date: saveTimestamp,
-          audited: false
-        }).then(docRef => {
-          logAudit('create', 'expense', docRef.id, expenseDesc, `تسجيل مصروف تلقائي (أداءة/ضريبة) من حصة المورد بقيمة: ${extraTax}`);
-        })).catch(err => {
-          console.error("Error saving supplier tax expense:", err);
-        });
-      }
+      // ✅ 3. ربط مبلغ الأداءات/الضرائب المضاف بقسم المصاريف إذا كان الخيار مفّعلاً (recordAsExpense)
       
       if (extraTax > 0 && recordAsExpense) {
         showToast(t('session_saved_with_expense_success') || 'تم حفظ الجلسة وتسجيل الأداءات كمصروف بنجاح ✅', 'success');
