@@ -229,31 +229,48 @@ export const StaffAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, [activeShift]);
 
-  // Auto-Lock Inactivity Timer
+  // Auto-Lock Inactivity Timer using refs for maximum performance without re-subscribing
+  const isLockedRef = useRef(isLocked);
+  isLockedRef.current = isLocked;
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+  const lastActivityTimestampRef = useRef(Date.now());
+
   const resetInactivityTimer = useCallback(() => {
     if (autoLockTimerRef.current) {
       clearTimeout(autoLockTimerRef.current);
     }
 
-    const autoLockMinutes = settings.autoLockMinutes ?? (settings.enableStaffAccounts ? 3 : 0);
+    const curStaff = currentStaffRef.current;
+    const curLocked = isLockedRef.current;
+    const curSettings = settingsRef.current;
+    const autoLockMinutes = curSettings.autoLockMinutes ?? (curSettings.enableStaffAccounts ? 3 : 0);
     
     // If auto-lock is enabled (> 0) and we have a logged-in user who is not already locked
-    if (autoLockMinutes > 0 && currentStaff && !isLocked) {
+    if (autoLockMinutes > 0 && curStaff && !curLocked) {
       autoLockTimerRef.current = setTimeout(() => {
         setIsLocked(true);
       }, autoLockMinutes * 60 * 1000);
     }
-  }, [settings.autoLockMinutes, settings.enableStaffAccounts, currentStaff, isLocked]);
+  }, []);
 
   useEffect(() => {
-    const events = ['mousedown', 'mousemove', 'keydown', 'touchstart', 'scroll', 'click'];
+    resetInactivityTimer();
+  }, [currentStaff, isLocked, settings.autoLockMinutes, settings.enableStaffAccounts, resetInactivityTimer]);
+
+  useEffect(() => {
+    const events = ['mousedown', 'keydown', 'touchstart', 'click'];
 
     const handleUserActivity = () => {
-      resetInactivityTimer();
+      const now = Date.now();
+      // Throttle to at most once every 3 seconds to ensure 0 UI lag
+      if (now - lastActivityTimestampRef.current > 3000) {
+        lastActivityTimestampRef.current = now;
+        resetInactivityTimer();
+      }
     };
 
     events.forEach((event) => window.addEventListener(event, handleUserActivity, { passive: true }));
-    resetInactivityTimer();
 
     return () => {
       events.forEach((event) => window.removeEventListener(event, handleUserActivity));

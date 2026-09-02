@@ -1,14 +1,11 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'motion/react';
 import { Package, Plus, SquarePen, Lock } from 'lucide-react';
 import { Product } from '../../types';
 import { useAppContext } from '../../AppContext';
 import { useStaffAuth } from '../../contexts/StaffAuthContext';
-import { useCategories, categoryIcons } from '../../hooks/useCategories';
 import { cn, formatCurrency, cleanQuantity, formatQuantity } from '../../lib/utils';
 import { ProductImage } from './ProductImage';
-import { auditProduct } from '../../lib/priceAuditor';
 
 interface ProductCardProps {
   product: Product;
@@ -20,11 +17,8 @@ interface ProductCardProps {
   onCardClick?: (product: Product) => void;
 }
 
-const ProductIcon = ({ product, className }: { product: Product, className?: string }) => {
-  const { categories } = useCategories();
-  const category = categories.find(c => c.name === product.category);
-  const iconName = category?.icon || 'Package';
-  const Icon = categoryIcons[iconName] || Package;
+const ProductIcon = React.memo(({ product, className }: { product: Product, className?: string }) => {
+  const Icon = Package;
   
   if ((product.hasLocalImage || product.hasCloudImage) && product.id) {
     return (
@@ -39,12 +33,12 @@ const ProductIcon = ({ product, className }: { product: Product, className?: str
       <Icon size={16} />
     </div>
   );
-};
+});
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBoxInfo, showPosStock, onEdit, onAddQuantity, onCardClick }) => {
+export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product, index, showBoxInfo, showPosStock, onEdit, onAddQuantity, onCardClick }) => {
   const { t, i18n } = useTranslation();
   const { settings, activeSupplier, showToast } = useAppContext();
-  const { checkPermission, currentStaff } = useStaffAuth();
+  const { checkPermission } = useStaffAuth();
   const language = i18n.language;
 
   const canViewCostPrices = checkPermission('canViewCostPrices');
@@ -53,16 +47,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
   const basePurchasePrice = showBoxInfo ? (product.boxPurchasePrice || ((product.purchasePrice || 0) * (product.piecesPerBox || 1))) : (product.purchasePrice || 0);
 
   const profit = baseSellingPrice - basePurchasePrice;
-  const calcMethod = settings.profitCalculationMethod || 'markup'; // markup: profit/cost * 100, margin: profit/sell * 100
+  const calcMethod = settings.profitCalculationMethod || 'markup';
   const profitMargin = calcMethod === 'margin' 
     ? (baseSellingPrice > 0 ? (profit / baseSellingPrice) * 100 : 0)
     : (basePurchasePrice > 0 ? (profit / basePurchasePrice) * 100 : 0);
 
   const isPurchaseDisabled = settings.requireSupplierSession && !activeSupplier;
   const enablePriceAudit = settings.enablePriceAudit ?? true;
-  const audit = useMemo(() => auditProduct(product), [product]);
-  const hasPriceError = enablePriceAudit && audit.hasIssues;
-  const mainIssue = audit.issues[0];
+  
+  // Fast inline price error check to avoid running heavy audit algorithms on every card
+  const hasPriceError = enablePriceAudit && (
+    (Number(product.sellingPrice) || 0) <= (Number(product.purchasePrice) || 0) ||
+    (Number(product.purchasePrice) || 0) <= 0 ||
+    (Number(product.sellingPrice) || 0) <= 0
+  );
 
   const unitMap: Record<string, string> = {
     piece: 'قطعة',
@@ -77,35 +75,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
 
   return (
     <div className="relative group overflow-hidden rounded-lg">
-      {/* Background layer for profit (Revealed when swiped left/right) */}
-      {canViewCostPrices && (
-        <div className="absolute inset-y-0 right-0 flex items-center pr-4 z-0 w-28 justify-end bg-brand-50 dark:bg-brand-900/20" dir="ltr">
-          <div className="flex flex-col items-end opacity-90 transition-opacity">
-            <span className="text-[10px] font-bold text-brand-600 dark:text-brand-400">
-              {t('profit_margin')} {showBoxInfo && product.piecesPerBox && product.piecesPerBox > 1 ? `(${t('box')})` : ''}
-            </span>
-            <span className="text-sm font-black text-brand-700 dark:text-brand-300">
-              {formatCurrency(profit, settings.currency, language)} 
-            </span>
-            <span className="text-[10px] font-bold text-brand-600 bg-brand-100 dark:bg-brand-800/50 px-1 rounded mt-0.5">
-              {`${profitMargin.toFixed(1)}%`}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Foreground card */}
-      <motion.div
-        drag={canViewCostPrices ? "x" : false}
-        dragConstraints={{ left: -112, right: 0 }}
-        dragElastic={0.1}
+      <div
         className={cn(
-          "relative z-10 flex items-center justify-between gap-3 bg-white p-3 shadow-sm border rounded-lg cursor-pointer transition-colors",
+          "relative z-10 flex items-center justify-between gap-3 bg-white p-3 shadow-sm border rounded-lg cursor-pointer transition-all hover:shadow-md",
           hasPriceError
             ? "border-red-300 bg-red-50/20 dark:bg-red-950/10 dark:border-red-800/60"
             : "border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800"
         )}
-        onClick={(e) => {
+        onClick={() => {
           if (onCardClick) {
             onCardClick(product);
           } else {
@@ -119,15 +96,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
             <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
               <h3 className="text-base font-medium text-black dark:text-white leading-tight truncate">{product.name}</h3>
               {hasPriceError && (
-                <span className={cn(
-                  "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold border shrink-0",
-                  mainIssue?.severity === 'error'
-                    ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 border-red-200 dark:border-red-800"
-                    : mainIssue?.severity === 'warning'
-                      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800"
-                      : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800"
-                )}>
-                  ⚠️ {mainIssue?.title || 'خطأ تسعير'}
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold border shrink-0 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 border-red-200 dark:border-red-800">
+                  ⚠️ خطأ تسعير
                 </span>
               )}
             </div>
@@ -258,8 +228,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
             <span className="text-xs font-bold">{t('add_quantity')}</span>
           </button>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
-};
+});
 

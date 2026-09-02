@@ -285,3 +285,41 @@ export interface Invoice {
   totalProfit: number;
   createdAt: any;
 }
+
+export interface GoodsReceiptItem {
+  id: string;
+  name: string;
+  barcode?: string;
+  quantity: number;
+  unitType: 'piece' | 'carton';
+  piecesPerBox: number;
+  costPrice?: number;
+  sellingPrice?: number;
+  total?: number;
+  matchedProductId?: string;
+  matchedProductName?: string;
+  copiedFromProductId?: string;
+  isNewProduct?: boolean;
+  originalInvoiceName?: string;
+}
+
+export interface GoodsReceipt {
+  id?: string;
+  receiptNumber?: string;
+  invoiceNumber?: string;
+  invoiceDate?: string;
+  supplierId?: string;
+  supplierName?: string;
+  paymentMethod?: 'cash' | 'credit';
+  status: 'pending' | 'approved' | 'rejected';
+  items: GoodsReceiptItem[];
+  totalAmount?: number;
+  totalItemsCount: number;
+  totalUnitsCount: number;
+  submittedBy?: StaffActor;
+  reviewedBy?: StaffActor;
+  rejectedReason?: string;
+  createdAt: any;
+  approvedAt?: any;
+}
+

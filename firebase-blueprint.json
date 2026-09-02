@@ -137,6 +137,10 @@
     "/users/{userId}/expenses/{id}": {
       "schema": "object",
       "description": "Expense records"
+    },
+    "/users/{userId}/goodsReceipts/{id}": {
+      "schema": "object",
+      "description": "Goods receipt notes and pending invoices for manager verification and approval"
     }
   }
 }

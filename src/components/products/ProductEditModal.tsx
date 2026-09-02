@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, ScanBarcode, Trash2, Camera, ImagePlus, Copy, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
+import { X, ScanBarcode, Trash2, Camera, ImagePlus, Copy, ChevronDown, ChevronUp, AlertCircle, Lock } from 'lucide-react';
 import { useCategories } from '../../hooks/useCategories';
 import { Product } from '../../types';
 import { getLocalImage } from '../../lib/localImages';
 import { cleanQuantity, formatQuantity } from '../../lib/utils';
+import { useStaffAuth } from '../../contexts/StaffAuthContext';
 
 interface ProductEditModalProps {
   product: Product | null;
@@ -21,6 +22,10 @@ interface ProductEditModalProps {
 export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, scannedBarcode, scannedBarcode2 = '', onScan, onCopy }: ProductEditModalProps) {
   const { t } = useTranslation();
   const { categories } = useCategories();
+  const { checkPermission } = useStaffAuth();
+  const canViewCostPrices = checkPermission('canViewCostPrices');
+  const canEditProductPrices = checkPermission('canEditProductPrices');
+
   const [productName, setProductName] = useState('');
   const [minQuantity, setMinQuantity] = useState<number | string>('');
   const [piecesPerBox, setPiecesPerBox] = useState<number | string>(1);
@@ -171,12 +176,14 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
     if (!trimmedName) return;
 
     const ppb = parseFloat(String(piecesPerBox).replace(',', '.')) || 1;
-    let rawPurchasePrice = parseFloat(String(piecePrice).replace(',', '.')) || 0;
-    const rawSellingPrice = parseFloat(String(sellingPrice).replace(',', '.')) || 0;
-    let rawBoxPurchasePrice = parseFloat(String(boxPrice).replace(',', '.')) || 0;
+    let rawPurchasePrice = canViewCostPrices ? (parseFloat(String(piecePrice).replace(',', '.')) || 0) : (product?.purchasePrice || 0);
+    const rawSellingPrice = canEditProductPrices 
+      ? (parseFloat(String(sellingPrice).replace(',', '.')) || 0)
+      : (product?.sellingPrice !== undefined ? Number(product.sellingPrice) : (parseFloat(String(sellingPrice).replace(',', '.')) || 0));
+    let rawBoxPurchasePrice = canViewCostPrices ? (parseFloat(String(boxPrice).replace(',', '.')) || 0) : (product?.boxPurchasePrice || 0);
 
-    // Ensure price consistency for box products
-    if (ppb > 1) {
+    // Ensure price consistency for box products if user can edit cost prices
+    if (canViewCostPrices && ppb > 1) {
       if (rawBoxPurchasePrice > 0 && (rawPurchasePrice === 0 || Math.abs(rawPurchasePrice - rawBoxPurchasePrice) < 0.001 || rawPurchasePrice > rawBoxPurchasePrice)) {
         rawPurchasePrice = rawBoxPurchasePrice / ppb;
       } else if (rawPurchasePrice > 0 && rawBoxPurchasePrice === 0) {
@@ -187,8 +194,8 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
     const finalPurchasePrice = parseFloat(rawPurchasePrice.toFixed(3));
     const finalSellingPrice = parseFloat(rawSellingPrice.toFixed(3));
 
-    // Strict validation: selling price must ALWAYS be strictly greater than purchase price
-    if (finalSellingPrice <= finalPurchasePrice) {
+    // Strict validation: only if user has cost view permission and cost price > 0
+    if (canViewCostPrices && finalPurchasePrice > 0 && finalSellingPrice > 0 && finalSellingPrice <= finalPurchasePrice) {
       setPriceError(`شرط التحقق: يجب أن يكون سعر البيع (${finalSellingPrice}) أكبر دائمًا من سعر الشراء (${finalPurchasePrice})`);
       return;
     }
@@ -565,7 +572,7 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                 </div>
               </div>
               {/* 4. Box Info Row */}
-              <div className="grid grid-cols-2 gap-3 text-right">
+              <div className={canViewCostPrices ? "grid grid-cols-2 gap-3 text-right" : "text-right"}>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-zinc-500">{t('pieces_in_box')}</label>
                   <input 
@@ -586,33 +593,9 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                     className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-500">{t('box_purchase_price')}</label>
-                  <input 
-                    type="text" 
-                    inputMode="decimal"
-                    autoComplete="new-password"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck={false}
-                    data-lpignore="true"
-                    data-1p-ignore="true"
-                    data-bwignore="true"
-                    data-protonpass-ignore="true"
-                    data-form-type="other"
-                    value={boxPrice}
-                    onChange={(e) => handleBoxPriceChange(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
-                  />
-                </div>
-              </div>
-
-              {/* 5. Prices Row */}
-              <div className="space-y-1 text-right">
-                <div className="grid grid-cols-2 gap-3">
+                {canViewCostPrices && (
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-500">{t('piece_purchase_price')}</label>
+                    <label className="text-[10px] font-bold text-zinc-500">{t('box_purchase_price')}</label>
                     <input 
                       type="text" 
                       inputMode="decimal"
@@ -625,19 +608,81 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                       data-bwignore="true"
                       data-protonpass-ignore="true"
                       data-form-type="other"
-                      value={piecePrice}
-                      onChange={(e) => handlePiecePriceChange(e.target.value)}
-                      required 
+                      value={boxPrice}
+                      onChange={(e) => handleBoxPriceChange(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      className={`w-full rounded-lg border px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 transition-colors ${
-                        (parseFloat(String(sellingPrice)) > 0 && parseFloat(String(piecePrice)) > 0 && parseFloat(String(sellingPrice)) <= parseFloat(String(piecePrice)))
-                          ? 'border-amber-400 bg-amber-50/50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 focus:ring-amber-500'
-                          : 'border-zinc-200 bg-zinc-50 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white'
-                      }`} 
+                      className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
                     />
                   </div>
+                )}
+              </div>
+
+              {/* 5. Prices Row */}
+              <div className="space-y-1 text-right">
+                {canViewCostPrices ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-zinc-500">{t('piece_purchase_price')}</label>
+                      <input 
+                        type="text" 
+                        inputMode="decimal"
+                        autoComplete="new-password"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
+                        data-lpignore="true"
+                        data-1p-ignore="true"
+                        data-bwignore="true"
+                        data-protonpass-ignore="true"
+                        data-form-type="other"
+                        value={piecePrice}
+                        onChange={(e) => handlePiecePriceChange(e.target.value)}
+                        required 
+                        onKeyDown={handleKeyDown}
+                        className={`w-full rounded-lg border px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 transition-colors ${
+                          (parseFloat(String(sellingPrice)) > 0 && parseFloat(String(piecePrice)) > 0 && parseFloat(String(sellingPrice)) <= parseFloat(String(piecePrice)))
+                            ? 'border-amber-400 bg-amber-50/50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 focus:ring-amber-500'
+                            : 'border-zinc-200 bg-zinc-50 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white'
+                        }`} 
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-zinc-500">{t('selling_price')}</label>
+                      <input 
+                        type="text" 
+                        inputMode="decimal"
+                        autoComplete="new-password"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
+                        data-lpignore="true"
+                        data-1p-ignore="true"
+                        data-bwignore="true"
+                        data-protonpass-ignore="true"
+                        data-form-type="other"
+                        value={sellingPrice} 
+                        onChange={(e) => handleSellingPriceChange(e.target.value)}
+                        disabled={!canEditProductPrices}
+                        required 
+                        onKeyDown={handleKeyDown}
+                        className={`w-full rounded-lg border px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 transition-colors ${
+                          !canEditProductPrices ? 'opacity-60 cursor-not-allowed bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800' :
+                          (parseFloat(String(sellingPrice)) > 0 && parseFloat(String(piecePrice)) > 0 && parseFloat(String(sellingPrice)) <= parseFloat(String(piecePrice)))
+                            ? 'border-red-500 bg-red-50/50 dark:bg-red-950/20 text-red-600 dark:text-red-400 focus:ring-red-500'
+                            : 'border-zinc-200 bg-zinc-50 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white'
+                        }`} 
+                      />
+                    </div>
+                  </div>
+                ) : (
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-500">{t('selling_price')}</label>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-semibold text-zinc-400 flex items-center gap-1">
+                        <Lock size={12} />
+                        أسعار الشراء والتكلفة محمية
+                      </span>
+                      <label className="text-[10px] font-bold text-zinc-500">{t('selling_price')}</label>
+                    </div>
                     <input 
                       type="text" 
                       inputMode="decimal"
@@ -652,16 +697,17 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                       data-form-type="other"
                       value={sellingPrice} 
                       onChange={(e) => handleSellingPriceChange(e.target.value)}
+                      disabled={!canEditProductPrices}
                       required 
                       onKeyDown={handleKeyDown}
                       className={`w-full rounded-lg border px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 transition-colors ${
-                        (parseFloat(String(sellingPrice)) > 0 && parseFloat(String(piecePrice)) > 0 && parseFloat(String(sellingPrice)) <= parseFloat(String(piecePrice)))
-                          ? 'border-red-500 bg-red-50/50 dark:bg-red-950/20 text-red-600 dark:text-red-400 focus:ring-red-500'
+                        !canEditProductPrices 
+                          ? 'opacity-60 cursor-not-allowed bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800' 
                           : 'border-zinc-200 bg-zinc-50 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white'
                       }`} 
                     />
                   </div>
-                </div>
+                )}
 
                 {/* Real-time inline warning for loss */}
                 {parseFloat(String(sellingPrice)) > 0 && parseFloat(String(piecePrice)) > 0 && parseFloat(String(sellingPrice)) <= parseFloat(String(piecePrice)) && (

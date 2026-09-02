@@ -149,6 +149,11 @@ service cloud.firestore {
         allow update, delete: if false; // Strict immutability for audit integrity
       }
 
+      // Goods Receipts & Pending Invoices
+      match /goodsReceipts/{receiptId} {
+        allow read, write: if isOwner(userId);
+      }
+
       // Catch-all for subcollections not explicitly defined yet but in blueprint
       match /{allSubcollections=**} {
         allow read, write: if isOwner(userId);

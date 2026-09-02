@@ -41,13 +41,14 @@ import { DashboardCarousel } from '../components/dashboard/DashboardCarousel';
 
 import { useTranslation } from 'react-i18next';
 const Dashboard = memo(() => {
-  const { user, settings, showToast } = useAppContext();
+  const { user, settings, showToast, setActiveTab } = useAppContext();
   const { checkPermission } = useStaffAuth();
   const { t } = useTranslation();
 
   const canViewCostPrices = checkPermission('canViewCostPrices');
   const canViewFinancialReports = checkPermission('canViewFinancialReports');
   const [products, setProducts] = useState<Product[]>([]);
+  const [goodsReceipts, setGoodsReceipts] = useState<any[]>([]);
   const [allPurchases, setAllPurchases] = useState<Transaction[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [debts, setDebts] = useState<any[]>([]);
@@ -167,6 +168,12 @@ const Dashboard = memo(() => {
       handleFirestoreError(error, OperationType.LIST, suppliersPath);
     });
 
+    const unsubReceipts = onSnapshot(collection(db, `users/${user.uid}/goodsReceipts`), (snap) => {
+      setGoodsReceipts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (err) => {
+      console.warn('Dashboard goodsReceipts error:', err);
+    });
+
     return () => {
       unsubProducts();
       unsubPurchases();
@@ -174,6 +181,7 @@ const Dashboard = memo(() => {
       unsubDebts();
       unsubSupplierTx();
       unsubSuppliers();
+      unsubReceipts();
     };
   }, [user]);
 
@@ -360,6 +368,10 @@ const Dashboard = memo(() => {
     }
   };
 
+  const pendingGoodsReceiptsCount = useMemo(() => {
+    return goodsReceipts.filter(r => r.status === 'pending' || !r.status).length;
+  }, [goodsReceipts]);
+
   return (
     <div className="pb-24 space-y-6" dir="rtl">
       <header className="flex items-center justify-between mb-4 pt-2 text-right">
@@ -374,6 +386,40 @@ const Dashboard = memo(() => {
           <Clock size={20} />
         </div>
       </header>
+
+      {/* PENDING GOODS RECEIPTS NOTIFICATION FOR MANAGER */}
+      {canViewCostPrices && pendingGoodsReceiptsCount > 0 && (
+        <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/20 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-md shrink-0 animate-bounce">
+              <Package size={24} className="text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-black text-sm sm:text-base">أذونات استلام جديدة بانتظار الاعتماد</span>
+                <span className="bg-red-600 text-white text-[11px] font-black px-2 py-0.5 rounded-full">
+                  {pendingGoodsReceiptsCount} شحنة معلقة
+                </span>
+              </div>
+              <p className="text-xs text-amber-100 mt-0.5">
+                قام أمين المخزن باستلام بضائع وفواتير جديدة، يرجى فحص وتدقيق الأسعار لترحيلها للمخزون والحسابات.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              setActiveTab('products');
+              setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('open-pending-receipts-modal'));
+              }, 150);
+            }}
+            className="w-full sm:w-auto shrink-0 px-4 py-2 bg-white hover:bg-amber-50 text-amber-900 text-xs font-black rounded-xl shadow-md transition-all active:scale-95 text-center"
+          >
+            فحص وتدقيق الأذونات 📋
+          </button>
+        </div>
+      )}
 
       {/* SECTION 1: MASTER HERO CARD (Modeled after screenshot dark blue cards) */}
       <div className="relative p-7 rounded-lg bg-brand-800 dark:bg-zinc-900 text-white shadow-xl shadow-brand-900/10 dark:shadow-none overflow-hidden">
