@@ -24,14 +24,12 @@ import {
 import * as html2pdf from 'html2pdf.js';
 import {
   useAppContext } from '../AppContext';
-import { useStaffAuth } from '../contexts/StaffAuthContext';
 import {
   collection, onSnapshot, writeBatch, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { forceStopAllCameras } from '../components/common/BarcodeScanner';
 import { Product } from '../types';
-import { cleanQuantity, formatQuantity, roundMoney, safeDispatchEvent } from '../lib/utils';
-import { ClipboardCheck, ShieldAlert, Users } from 'lucide-react';
+import { cleanQuantity, formatQuantity, roundMoney } from '../lib/utils';
 
 import {
   BarcodeScanner } from '../components/common/BarcodeScanner';
@@ -49,7 +47,6 @@ interface InvoiceItem {
 export default function POSInvoice() {
   const { t } = useTranslation();
   const { user, showToast, settings } = useAppContext();
-  const { currentStaff } = useStaffAuth();
   
   const [products, setProducts] = useState<Product[]>(() => {
     if (!user) return [];
@@ -58,32 +55,6 @@ export default function POSInvoice() {
       return cached ? JSON.parse(cached) : [];
     } catch { return []; }
   });
-
-  const [inputText, setInputText] = useState('');
-  const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [items, setItems] = useState<InvoiceItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('pos_invoice_items');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  const [heldInvoices, setHeldInvoices] = useState<{id: string, items: InvoiceItem[], time: number}[]>(() => {
-    try {
-      const saved = localStorage.getItem('pos_held_invoices');
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
-  });
-
-  const [showHeldInvoices, setShowHeldInvoices] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
-  const [isInlineScannerOpen, setIsInlineScannerOpen] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [showReceiptPreviewModal, setShowReceiptPreviewModal] = useState(false);
-  const [isCompleting, setIsCompleting] = useState(false);
-  const [deductInventory, setDeductInventory] = useState(settings.posDeductInventory ?? true);
 
   useEffect(() => {
     if (!user) return;
@@ -98,78 +69,33 @@ export default function POSInvoice() {
     });
   }, [user]);
 
+  const [inputText, setInputText] = useState('');
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [items, setItems] = useState<InvoiceItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('pos_invoice_items');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   useEffect(() => {
     localStorage.setItem('pos_invoice_items', JSON.stringify(items));
   }, [items]);
+  
+  const [heldInvoices, setHeldInvoices] = useState<{id: string, items: InvoiceItem[], time: number}[]>(() => {
+    try {
+      const saved = localStorage.getItem('pos_held_invoices');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
 
   useEffect(() => {
     localStorage.setItem('pos_held_invoices', JSON.stringify(heldInvoices));
   }, [heldInvoices]);
 
-  useEffect(() => {
-    const scannerHandler = () => {
-      setIsInlineScannerOpen(true);
-    };
-    window.addEventListener('open-barcode-scanner-pos', scannerHandler);
-    
-    // Cleanup Hook to forcefully stop any active camera tracks when leaving the POS page
-    return () => {
-      window.removeEventListener('open-barcode-scanner-pos', scannerHandler);
-      
-      // Stop all tracks in any active video elements using global tracking
-      forceStopAllCameras();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (inputText.trim().length > 1) {
-      const filtered = products.filter(p => 
-        p.name.toLowerCase().includes(inputText.toLowerCase()) ||
-        p.barcode?.includes(inputText) ||
-        p.barcode2?.includes(inputText) ||
-        p.aliases?.some(a => a.toLowerCase().includes(inputText.toLowerCase()))
-      ).slice(0, 5);
-      setSuggestions(filtered);
-    } else {
-      setSuggestions([]);
-    }
-  }, [inputText, products]);
-
-  if (currentStaff?.role === 'storekeeper') {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] p-6 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4 shadow-sm border border-blue-200 dark:border-blue-800/50">
-          <ClipboardCheck size={32} />
-        </div>
-        <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
-          شاشة مخصصة لنقاط البيع
-        </h2>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-md mb-6 leading-relaxed">
-          أهلاً {currentStaff.name}. حسابك مصنف كـ <strong>مسؤول مخزن</strong>، ومخصص لعمليات الجرد، إدخال المشتريات، ومراقبة الكميات.
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('switch-tab', { detail: 'inventory' }));
-            }}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition active:scale-95"
-          >
-            <ClipboardCheck size={16} />
-            <span>الانتقال لشاشة الجرد والمخزن</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => safeDispatchEvent('open-staff-switcher')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 font-bold text-xs transition active:scale-95"
-          >
-            <Users size={16} />
-            <span>تبديل الموظف</span>
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const [showHeldInvoices, setShowHeldInvoices] = useState(false);
 
   const holdCurrentInvoice = () => {
     if (items.length === 0) return;
@@ -199,6 +125,40 @@ export default function POSInvoice() {
     setShowHeldInvoices(false);
     showToast('تم استعادة الفاتورة', 'success');
   };
+
+  const [isCopied, setIsCopied] = useState(false);
+  const [isInlineScannerOpen, setIsInlineScannerOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [showReceiptPreviewModal, setShowReceiptPreviewModal] = useState(false);
+
+  useEffect(() => {
+    const scannerHandler = () => {
+      setIsInlineScannerOpen(true);
+    };
+    window.addEventListener('open-barcode-scanner-pos', scannerHandler);
+    
+    // Cleanup Hook to forcefully stop any active camera tracks when leaving the POS page
+    return () => {
+      window.removeEventListener('open-barcode-scanner-pos', scannerHandler);
+      
+      // Stop all tracks in any active video elements using global tracking
+      forceStopAllCameras();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (inputText.trim().length > 1) {
+      const filtered = products.filter(p => 
+        p.name.toLowerCase().includes(inputText.toLowerCase()) ||
+        p.barcode?.includes(inputText) ||
+        p.barcode2?.includes(inputText) ||
+        p.aliases?.some(a => a.toLowerCase().includes(inputText.toLowerCase()))
+      ).slice(0, 5);
+      setSuggestions(filtered);
+    } else {
+      setSuggestions([]);
+    }
+  }, [inputText, products]);
 
   const addItem = (product: any) => {
     let initialMode: 'box' | 'kg' | 'piece' | 'gram' | 'subpiece' = 'piece';
@@ -587,6 +547,9 @@ export default function POSInvoice() {
     }
   };
 
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [deductInventory, setDeductInventory] = useState(settings.posDeductInventory ?? true);
+
   const handleCompleteSale = async () => {
     if (!user || items.length === 0) return;
     try {
@@ -671,9 +634,6 @@ export default function POSInvoice() {
         totalAmount: roundMoney(totalAmount),
         totalCost: roundMoney(totalCost),
         totalProfit: roundMoney(totalAmount - totalCost),
-        cashierId: currentStaff?.id || 'admin',
-        cashierName: currentStaff?.name || 'المدير العام',
-        cashierRole: currentStaff?.role || 'admin',
         createdAt: serverTimestamp()
       };
 
@@ -717,16 +677,8 @@ export default function POSInvoice() {
             <Calculator size={24} />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">نقاط البيع (POS)</h1>
-              {currentStaff && (
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  {currentStaff.name} ({currentStaff.role === 'cashier' ? 'كاشير' : 'مشرف'})
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-zinc-500 font-medium mt-0.5">إنشاء فاتورة مبيعات سريعة للعملاء</p>
+            <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-1">نقاط البيع (POS)</h1>
+            <p className="text-xs text-zinc-500 font-medium">إنشاء فاتورة مبيعات للعملاء</p>
           </div>
         </div>
         

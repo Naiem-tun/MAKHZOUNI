@@ -25,8 +25,8 @@ interface AppContextType {
   setLanguage: (lang: 'ar' | 'en') => void;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   categories: Category[];
-  activeSupplier: { id: string; name: string; sessionTotal?: number; visitDays?: number[]; sessionId?: string } | null;
-  setActiveSupplier: React.Dispatch<React.SetStateAction<{ id: string; name: string; sessionTotal?: number; visitDays?: number[]; sessionId?: string } | null>>;
+  activeSupplier: { id: string; name: string; sessionTotal?: number; visitDays?: number[] } | null;
+  setActiveSupplier: React.Dispatch<React.SetStateAction<{ id: string; name: string; sessionTotal?: number; visitDays?: number[] } | null>>;
   isSessionSummaryOpen: boolean;
   setIsSessionSummaryOpen: (val: boolean) => void;
   isCatalogMode: boolean;
@@ -66,35 +66,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [activeSupplier, setActiveSupplier] = useState<{ id: string; name: string; sessionTotal?: number; visitDays?: number[]; sessionId?: string } | null>(() => {
+  const [activeSupplier, setActiveSupplier] = useState<{ id: string; name: string; sessionTotal?: number; visitDays?: number[] } | null>(() => {
     const saved = localStorage.getItem('active_supplier_session');
-    if (!saved) return null;
-    try {
-      const parsed = JSON.parse(saved);
-      if (parsed && parsed.id && !parsed.sessionId) {
-        parsed.sessionId = `sess_${Date.now()}`;
-      }
-      return parsed;
-    } catch {
-      return null;
-    }
+    return saved ? JSON.parse(saved) : null;
   });
   const [isSessionSummaryOpen, setIsSessionSummaryOpen] = useState(false);
   const [isCatalogMode, setIsCatalogModeState] = useState(() => {
     return localStorage.getItem('isCatalogMode') === 'true';
   });
-  const [activeTab, setActiveTab] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const path = window.location.pathname.replace(/^\//, '').toLowerCase();
-      const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
-      const searchParams = new URLSearchParams(window.location.search);
-      const tabParam = searchParams.get('tab')?.toLowerCase();
-      if (path === 'staff' || path === 'staff-management' || hash === 'staff' || tabParam === 'staff') {
-        return 'staff';
-      }
-    }
-    return 'products';
-  });
+  const [activeTab, setActiveTab] = useState('products');
 
   const setIsCatalogMode = (val: boolean) => {
     setIsCatalogModeState(val);

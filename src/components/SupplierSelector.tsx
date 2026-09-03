@@ -78,13 +78,7 @@ export function SupplierSelector() {
                   <button
                     key={s.id}
                     onClick={() => {
-                      setActiveSupplier({ 
-                        id: s.id!, 
-                        name: s.name, 
-                        visitDays: s.visitDays,
-                        sessionId: `sess_${Date.now()}`,
-                        sessionTotal: 0
-                      });
+                      setActiveSupplier({ id: s.id!, name: s.name, visitDays: s.visitDays });
                       setIsSupplierSelectorOpen(false);
                     }}
                     className="w-full flex items-center gap-4 p-4 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 hover:bg-brand-50 dark:hover:bg-brand-900/10 hover:text-brand-600 transition-all text-right border border-transparent hover:border-brand-100 group"

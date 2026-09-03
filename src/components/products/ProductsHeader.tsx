@@ -1,33 +1,25 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Sparkles, ShieldAlert, CheckCircle2, Clock } from 'lucide-react';
+import { Plus, Sparkles, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { useAppContext } from '../../AppContext';
-import { useStaffAuth } from '../../contexts/StaffAuthContext';
 
 interface ProductsHeaderProps {
   onAddProduct: () => void;
   onOpenInvoiceModal?: () => void;
   onOpenPriceAudit?: () => void;
-  onOpenPendingReceipts?: () => void;
   priceIssuesCount?: number;
-  pendingReceiptsCount?: number;
 }
 
 export const ProductsHeader: React.FC<ProductsHeaderProps> = ({ 
   onAddProduct, 
   onOpenInvoiceModal,
   onOpenPriceAudit,
-  onOpenPendingReceipts,
-  priceIssuesCount = 0,
-  pendingReceiptsCount = 0
+  priceIssuesCount = 0
 }) => {
   const { t } = useTranslation();
   const { settings } = useAppContext();
-  const { checkPermission } = useStaffAuth();
   const enableAIInvoice = settings.enableAIInvoice ?? true;
   const enablePriceAudit = settings.enablePriceAudit ?? true;
-  const canViewCostPrices = checkPermission('canViewCostPrices');
-  const canManageSuppliers = checkPermission('canManageSuppliers');
 
   return (
     <header className="flex items-center justify-between gap-3">
@@ -36,29 +28,7 @@ export const ProductsHeader: React.FC<ProductsHeaderProps> = ({
         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">{t('products_list_subtitle')}</p>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        {/* Pending Goods Receipts / Invoices for General Manager */}
-        {onOpenPendingReceipts && canViewCostPrices && (
-          <button
-            onClick={onOpenPendingReceipts}
-            className={`flex items-center justify-center gap-1.5 sm:gap-2 h-11 px-3 sm:px-4 rounded-xl border text-xs sm:text-sm font-bold transition-all shadow-sm active:scale-95 whitespace-nowrap ${
-              pendingReceiptsCount > 0
-                ? 'bg-amber-500 hover:bg-amber-600 border-amber-600 text-white shadow-md shadow-amber-500/25 ring-2 ring-amber-400/40'
-                : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700'
-            }`}
-            title="أذونات استلام وشحنات بانتظار الاعتماد المالي من المدير العام"
-          >
-            <Clock size={18} className={pendingReceiptsCount > 0 ? "text-white shrink-0 animate-spin-slow" : "text-zinc-400 shrink-0"} />
-            <span className="hidden sm:inline">أذونات الاستلام</span>
-            <span className="sm:hidden">أذونات</span>
-            {pendingReceiptsCount > 0 && (
-              <span className="bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full font-mono animate-bounce">
-                {pendingReceiptsCount}
-              </span>
-            )}
-          </button>
-        )}
-
-        {enablePriceAudit && onOpenPriceAudit && canViewCostPrices && (
+        {enablePriceAudit && onOpenPriceAudit && (
           <button
             onClick={onOpenPriceAudit}
             className={`flex items-center justify-center gap-1.5 sm:gap-2 h-11 px-3 sm:px-4 rounded-xl border text-xs sm:text-sm font-bold transition-all shadow-sm active:scale-95 whitespace-nowrap ${
@@ -79,15 +49,15 @@ export const ProductsHeader: React.FC<ProductsHeaderProps> = ({
           </button>
         )}
 
-        {enableAIInvoice && onOpenInvoiceModal && canManageSuppliers && (
+        {enableAIInvoice && onOpenInvoiceModal && (
           <button 
             onClick={onOpenInvoiceModal}
             className="flex items-center justify-center gap-1.5 sm:gap-2 h-11 px-3 sm:px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-xs sm:text-sm font-bold text-white transition-all shadow-md shadow-indigo-500/20 active:scale-95 whitespace-nowrap"
-            title="إدخال فاتورة توريد بضاعة"
+            title="إدخال فاتورة توريد بالذكاء الاصطناعي"
           >
             <Sparkles size={18} className="text-yellow-300 shrink-0" />
-            <span className="hidden sm:inline">فاتورة توريد بضاعة</span>
-            <span className="sm:hidden">فاتورة توريد</span>
+            <span className="hidden sm:inline">فاتورة بالذكاء الاصطناعي</span>
+            <span className="sm:hidden">فاتورة AI</span>
           </button>
         )}
         <button 

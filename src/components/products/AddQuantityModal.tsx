@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, History, TrendingUp, TrendingDown, Minus, AlertCircle, ShieldAlert, Lock } from 'lucide-react';
+import { X, History, TrendingUp, TrendingDown, Minus, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Product } from '../../types';
 import { formatCurrency, cn, cleanQuantity, formatQuantity } from '../../lib/utils';
 import { useAppContext } from '../../AppContext';
-import { useStaffAuth } from '../../contexts/StaffAuthContext';
 
 interface AddQuantityModalProps {
   product: Product | null;
@@ -17,9 +16,6 @@ interface AddQuantityModalProps {
 export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurchase }: AddQuantityModalProps) {
   const { t } = useTranslation();
   const { settings, activeSupplier } = useAppContext();
-  const { checkPermission } = useStaffAuth();
-  const canViewCostPrices = checkPermission('canViewCostPrices');
-
   const [numBoxes, setNumBoxes] = useState(0);
   const [extraPieces, setExtraPieces] = useState(0);
   const [boxPrice, setBoxPrice] = useState(0);
@@ -197,65 +193,54 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
                       </div>
                     </div>
 
-                    {canViewCostPrices ? (
-                      <>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-1 text-right">
-                            <label className="text-[10px] font-bold text-zinc-400 pr-1">{t('box_purchase_price')}</label>
-                            <input 
-                              type="number" 
-                              step="0.001"
-                              name="box_price_input"
-                              autoComplete="off"
-                              autoCorrect="off"
-                              data-lpignore="true"
-                              data-form-type="other"
-                              value={boxPrice || ''}
-                              onChange={(e) => handleQtyBoxPriceChange(parseFloat(e.target.value.replace(',', '.')) || 0)}
-                              className="w-full rounded-lg border border-zinc-200 bg-white py-3 text-center font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
-                              enterKeyHint="done"
-                              inputMode="decimal"
-                              onKeyDown={handleKeyDown}
-                            />
-                          </div>
-                          <div className="space-y-1 text-right">
-                            <label className="text-[10px] font-bold text-zinc-400 pr-1">{t('piece_purchase_price')}</label>
-                            <input 
-                              type="number" 
-                              step="0.001"
-                              name="piece_price_input"
-                              autoComplete="off"
-                              autoCorrect="off"
-                              data-lpignore="true"
-                              data-form-type="other"
-                              value={piecePrice || ''}
-                              onChange={(e) => handleQtyPiecePriceChange(parseFloat(e.target.value.replace(',', '.')) || 0)}
-                              className={`w-full rounded-lg border py-3 text-center font-bold outline-none focus:ring-2 transition-colors ${
-                                (product?.sellingPrice && piecePrice > 0 && piecePrice >= product.sellingPrice)
-                                  ? 'border-red-500 bg-red-50/50 text-red-600 focus:ring-red-500 dark:bg-red-950/20 dark:border-red-500 dark:text-red-400'
-                                  : 'border-zinc-200 bg-white text-zinc-900 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white'
-                              }`}
-                              enterKeyHint="done"
-                              inputMode="decimal"
-                              onKeyDown={handleKeyDown}
-                            />
-                          </div>
-                        </div>
-
-                        {product?.sellingPrice && piecePrice > 0 && piecePrice >= product.sellingPrice && (
-                          <p className="text-[11px] font-bold text-red-500 text-right flex items-center justify-end gap-1">
-                            <span>تنبيه: سعر الشراء الجديد ({piecePrice.toFixed(3)}) يجب أن يكون أقل من سعر البيع ({product.sellingPrice.toFixed(3)})</span>
-                            <AlertCircle size={13} className="shrink-0" />
-                          </p>
-                        )}
-                      </>
-                    ) : (
-                      <div className="rounded-xl bg-blue-50/70 dark:bg-blue-950/40 p-3 border border-blue-200/70 dark:border-blue-800/60 flex items-center gap-2 text-right">
-                        <Lock size={16} className="text-blue-600 dark:text-blue-400 shrink-0" />
-                        <p className="text-xs text-blue-800 dark:text-blue-200 font-medium leading-relaxed">
-                          <span className="font-bold">وضع استلام كميات للمخزن:</span> يتم توريد الكميات المدخلة للمخزون، بينما تبقى أسعار التكلفة والتسعير المالي محفوظة لدى الإدارة.
-                        </p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1 text-right">
+                        <label className="text-[10px] font-bold text-zinc-400 pr-1">{t('box_purchase_price')}</label>
+                        <input 
+                          type="number" 
+                          step="0.001"
+                          name="box_price_input"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          data-lpignore="true"
+                          data-form-type="other"
+                          value={boxPrice || ''}
+                          onChange={(e) => handleQtyBoxPriceChange(parseFloat(e.target.value.replace(',', '.')) || 0)}
+                          className="w-full rounded-lg border border-zinc-200 bg-white py-3 text-center font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
+                          enterKeyHint="done"
+                          inputMode="decimal"
+                          onKeyDown={handleKeyDown}
+                        />
                       </div>
+                      <div className="space-y-1 text-right">
+                        <label className="text-[10px] font-bold text-zinc-400 pr-1">{t('piece_purchase_price')}</label>
+                        <input 
+                          type="number" 
+                          step="0.001"
+                          name="piece_price_input"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          data-lpignore="true"
+                          data-form-type="other"
+                          value={piecePrice || ''}
+                          onChange={(e) => handleQtyPiecePriceChange(parseFloat(e.target.value.replace(',', '.')) || 0)}
+                          className={`w-full rounded-lg border py-3 text-center font-bold outline-none focus:ring-2 transition-colors ${
+                            (product?.sellingPrice && piecePrice > 0 && piecePrice >= product.sellingPrice)
+                              ? 'border-red-500 bg-red-50/50 text-red-600 focus:ring-red-500 dark:bg-red-950/20 dark:border-red-500 dark:text-red-400'
+                              : 'border-zinc-200 bg-white text-zinc-900 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white'
+                          }`}
+                          enterKeyHint="done"
+                          inputMode="decimal"
+                          onKeyDown={handleKeyDown}
+                        />
+                      </div>
+                    </div>
+
+                    {product?.sellingPrice && piecePrice > 0 && piecePrice >= product.sellingPrice && (
+                      <p className="text-[11px] font-bold text-red-500 text-right flex items-center justify-end gap-1">
+                        <span>تنبيه: سعر الشراء الجديد ({piecePrice.toFixed(3)}) يجب أن يكون أقل من سعر البيع ({product.sellingPrice.toFixed(3)})</span>
+                        <AlertCircle size={13} className="shrink-0" />
+                      </p>
                     )}
 
                     <div className="rounded-lg border-2 border-dashed border-zinc-100 p-4 dark:border-zinc-800 space-y-3">

@@ -19,67 +19,6 @@ export interface FirestoreErrorInfo {
   }
 }
 
-export type StaffRole = 'admin' | 'cashier' | 'storekeeper';
-
-export interface StaffPermissions {
-  canViewCostPrices: boolean;
-  canApplyDiscounts: boolean;
-  canCancelInvoices: boolean;
-  canViewFinancialReports: boolean;
-  canManageStock: boolean;
-  canManageStaff: boolean;
-  canManageDebts: boolean;
-  canManageSuppliers: boolean;
-  canPerformInventory: boolean;
-  canEditProductPrices: boolean;
-  maxDiscountPercentage?: number;
-}
-
-export interface StaffMember {
-  id: string;
-  name: string;
-  username?: string;
-  role: StaffRole;
-  pin: string; // 4-6 digit security PIN
-  phone?: string;
-  avatarColor?: string;
-  isActive: boolean;
-  customPermissions?: Partial<StaffPermissions>;
-  permissions?: StaffPermissions;
-  createdAt: any;
-  lastLoginAt?: any;
-}
-
-export interface StaffSession {
-  staff: StaffMember;
-  loginTime: number;
-  shiftId?: string;
-  isLocked: boolean;
-}
-
-export interface ShiftRecord {
-  id?: string;
-  staffId: string;
-  staffName: string;
-  role: StaffRole;
-  startTime: any;
-  endTime?: any;
-  openingCash: number;
-  closingCash?: number;
-  expectedCash?: number;
-  totalSales?: number;
-  invoicesCount?: number;
-  difference?: number;
-  status: 'open' | 'closed';
-  notes?: string;
-}
-
-export interface StaffActor {
-  staffId: string;
-  staffName: string;
-  role: StaffRole;
-}
-
 export interface UserSettings {
   currency: string;
   language: 'ar' | 'en';
@@ -111,12 +50,6 @@ export interface UserSettings {
   lastSuppliersClearDate?: any;
   cycleStartDay?: number;
   cycleEndDay?: number;
-  // RBAC & Staff Management Settings
-  enableStaffAccounts?: boolean;
-  autoLockMinutes?: number; // 0 = off, 1, 2, 5, 10 minutes
-  requireAdminPinForVoid?: boolean;
-  requireAdminPinForDiscount?: boolean;
-  adminMasterPin?: string;
 }
 
 export interface CashTransaction {
@@ -174,11 +107,6 @@ export interface SupplierTransaction {
   amount: number;
   date: any;
   note: string;
-  receiptId?: string;
-  sessionId?: string;
-  invoiceNumber?: string;
-  status?: 'pending' | 'approved' | 'rejected';
-  paymentMethod?: 'cash' | 'credit';
   updatedAt: any;
 }
 
@@ -255,8 +183,8 @@ export interface MonitoredProduct {
   history: MonitoredProductHistory[];
 }
 
-export type AuditAction = 'create' | 'update' | 'delete' | 'sale' | 'void' | 'stock_adjust' | 'shift_open' | 'shift_close' | 'login' | 'price_change';
-export type AuditEntityType = 'product' | 'supplier' | 'debt' | 'inventory' | 'expense' | 'purchase' | 'invoice' | 'shift' | 'staff' | 'settings';
+export type AuditAction = 'create' | 'update' | 'delete';
+export type AuditEntityType = 'product' | 'supplier' | 'debt' | 'inventory' | 'expense' | 'purchase';
 
 export interface AuditLog {
   id?: string;
@@ -264,10 +192,7 @@ export interface AuditLog {
   entityType: AuditEntityType;
   entityId: string;
   entityName: string;
-  performedBy?: StaffActor;
   details?: string;
-  previousValue?: any;
-  newValue?: any;
   timestamp: any;
 }
 
@@ -290,45 +215,3 @@ export interface Invoice {
   totalProfit: number;
   createdAt: any;
 }
-
-export interface GoodsReceiptItem {
-  id: string;
-  name: string;
-  barcode?: string;
-  quantity: number;
-  unitType: 'piece' | 'carton';
-  piecesPerBox: number;
-  costPrice?: number;
-  sellingPrice?: number;
-  total?: number;
-  matchedProductId?: string;
-  matchedProductName?: string;
-  copiedFromProductId?: string;
-  isNewProduct?: boolean;
-  originalInvoiceName?: string;
-}
-
-export interface GoodsReceipt {
-  id?: string;
-  receiptNumber?: string;
-  invoiceNumber?: string;
-  invoiceDate?: string;
-  supplierId?: string;
-  supplierName?: string;
-  sessionId?: string;
-  sessionClosed?: boolean;
-  paymentMethod?: 'cash' | 'credit';
-  status: 'pending' | 'approved' | 'rejected';
-  items: GoodsReceiptItem[];
-  totalAmount?: number;
-  totalItemsCount: number;
-  totalUnitsCount: number;
-  submittedBy?: StaffActor;
-  reviewedBy?: StaffActor;
-  rejectedReason?: string;
-  supplierTransactionId?: string;
-  debtId?: string;
-  createdAt: any;
-  approvedAt?: any;
-}
-

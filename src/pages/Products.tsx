@@ -1,13 +1,12 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../AppContext';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, writeBatch, increment, Timestamp, setDoc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, writeBatch, increment, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Product, OperationType, GoodsReceipt, GoodsReceiptItem } from '../types';
+import { Product, OperationType } from '../types';
 import { syncTracker } from '../lib/syncTracker';
 import { handleFirestoreError, cn, cleanQuantity, formatQuantity, sanitizeProduct } from '../lib/utils';
 import { logAudit } from '../lib/auditLogger';
-import { useStaffAuth } from '../contexts/StaffAuthContext';
 import { 
   Plus, 
   Search, 
@@ -30,7 +29,6 @@ import { PriceNegotiationModal } from '../components/products/PriceNegotiationMo
 import { SmartPurchasePopup } from '../components/products/SmartPurchasePopup';
 import { PurchaseInvoiceModal } from '../components/products/PurchaseInvoiceModal';
 import { PriceAuditModal } from '../components/products/PriceAuditModal';
-import { PendingReceiptsModal } from '../components/products/PendingReceiptsModal';
 import { auditAllProducts } from '../lib/priceAuditor';
 import { deleteLocalImage, saveLocalImage } from '../lib/localImages';
 import { uploadCloudImage, deleteCloudImage } from '../lib/cloudImages';
@@ -50,8 +48,6 @@ import * as xlsx from 'xlsx';
 export default function Products() {
   const { t } = useTranslation();
   const { user, settings, updateSettings, showToast, setIsDataLoaded, activeSupplier, setActiveSupplier } = useAppContext();
-  const { checkPermission, currentStaff } = useStaffAuth();
-  const canViewCostPrices = checkPermission('canViewCostPrices');
   const { categories } = useCategories();
   const [products, setProducts] = useState<Product[]>(() => {
     if (!user) return [];
@@ -89,9 +85,6 @@ export default function Products() {
   const [pendingQuantityProduct, setPendingQuantityProduct] = useState<Product | null>(null);
   const [isPurchaseInvoiceModalOpen, setIsPurchaseInvoiceModalOpen] = useState(false);
   const [isPriceAuditModalOpen, setIsPriceAuditModalOpen] = useState(false);
-  const [isPendingReceiptsModalOpen, setIsPendingReceiptsModalOpen] = useState(false);
-  const [goodsReceipts, setGoodsReceipts] = useState<GoodsReceipt[]>([]);
-  const [selectedReceiptForReview, setSelectedReceiptForReview] = useState<GoodsReceipt | null>(null);
   const [suppliers, setSuppliers] = useState<any[]>([]);
 
   useEffect(() => {
@@ -102,50 +95,6 @@ export default function Products() {
     });
     return () => unsub();
   }, [user]);
-
-  // Listen to Goods Receipts collection with robust fallback
-  useEffect(() => {
-    if (!user) return;
-    
-    // Load from cache first for zero-latency
-    try {
-      const cached = localStorage.getItem(`cached_goods_receipts_${user.uid}`);
-      if (cached) {
-        setGoodsReceipts(JSON.parse(cached));
-      }
-    } catch (e) {
-      // ignore
-    }
-
-    const receiptsCol = collection(db, `users/${user.uid}/goodsReceipts`);
-    const unsub = onSnapshot(receiptsCol, (snap) => {
-      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() } as GoodsReceipt));
-      docs.sort((a, b) => {
-        const getT = (item: GoodsReceipt) => {
-          if (!item) return 0;
-          if (item.createdAt?.toMillis) return item.createdAt.toMillis();
-          if (item.createdAt?.seconds) return item.createdAt.seconds * 1000;
-          if (typeof item.createdAt === 'string') return new Date(item.createdAt).getTime() || 0;
-          if ((item as any).createdAtTimestamp) return (item as any).createdAtTimestamp;
-          return 0;
-        };
-        return getT(b) - getT(a);
-      });
-      setGoodsReceipts(docs);
-      try {
-        localStorage.setItem(`cached_goods_receipts_${user.uid}`, JSON.stringify(docs));
-      } catch (e) {
-        // ignore
-      }
-    }, (err) => {
-      console.warn('Error fetching goodsReceipts:', err);
-    });
-    return () => unsub();
-  }, [user]);
-
-  const pendingReceiptsCount = useMemo(() => {
-    return goodsReceipts.filter(r => r.status === 'pending' || !r.status).length;
-  }, [goodsReceipts]);
 
   useEffect(() => {
     if (activeSupplier && pendingQuantityProduct) {
@@ -160,14 +109,9 @@ export default function Products() {
     const handleSupplierClosed = () => {
       setPendingQuantityProduct(null);
     };
-    const handleOpenPendingReceipts = () => {
-      setIsPendingReceiptsModalOpen(true);
-    };
     window.addEventListener('supplier-selector-closed', handleSupplierClosed);
-    window.addEventListener('open-pending-receipts-modal', handleOpenPendingReceipts);
     return () => {
       window.removeEventListener('supplier-selector-closed', handleSupplierClosed);
-      window.removeEventListener('open-pending-receipts-modal', handleOpenPendingReceipts);
     };
   }, []);
 
@@ -239,193 +183,7 @@ export default function Products() {
     const newQty = cleanQuantity((quantityProduct.quantity || 0) + addedQty);
 
     try {
-      // If staff does NOT have cost price permission (e.g. worker/cashier), group items into a consolidated Goods Receipt for the session / General Manager
-      if (!canViewCostPrices) {
-        const nowIso = new Date().toISOString();
-        const ppb = quantityProduct.piecesPerBox && quantityProduct.piecesPerBox > 0 ? quantityProduct.piecesPerBox : 1;
-        const pieceCost = Number(quantityProduct.purchasePrice) || Number(quantityProduct.costPrice) || 0;
-        const boxCost = Number(quantityProduct.boxPurchasePrice) || parseFloat((pieceCost * ppb).toFixed(3));
-        const pieceSelling = Number(quantityProduct.sellingPrice) || 0;
-        const boxSelling = Number(quantityProduct.boxSellingPrice) || parseFloat((pieceSelling * ppb).toFixed(3));
-
-        const effectiveBoxCost = boxPrice > 0 ? boxPrice : boxCost;
-        const effectivePieceCost = piecePrice > 0 ? piecePrice : pieceCost;
-
-        const newItemsToAdd: GoodsReceiptItem[] = [];
-
-        if (numBoxes > 0) {
-          newItemsToAdd.push({
-            id: `item-${Date.now()}-box`,
-            name: quantityProduct.name,
-            barcode: quantityProduct.barcode,
-            quantity: numBoxes,
-            unitType: 'carton',
-            piecesPerBox: ppb,
-            costPrice: effectiveBoxCost,
-            sellingPrice: boxSelling,
-            total: parseFloat((numBoxes * effectiveBoxCost).toFixed(3)),
-            matchedProductId: quantityProduct.id,
-            matchedProductName: quantityProduct.name
-          });
-        }
-
-        if (extraPieces > 0) {
-          newItemsToAdd.push({
-            id: `item-${Date.now()}-pcs`,
-            name: quantityProduct.name,
-            barcode: quantityProduct.barcode,
-            quantity: extraPieces,
-            unitType: 'piece',
-            piecesPerBox: ppb,
-            costPrice: effectivePieceCost,
-            sellingPrice: pieceSelling,
-            total: parseFloat((extraPieces * effectivePieceCost).toFixed(3)),
-            matchedProductId: quantityProduct.id,
-            matchedProductName: quantityProduct.name
-          });
-        }
-
-        if (newItemsToAdd.length === 0) {
-          setIsQuantityModalOpen(false);
-          setQuantityProduct(null);
-          return;
-        }
-
-        // Check if there is an existing pending GoodsReceipt for this active session / supplier
-        const activeReceipt = goodsReceipts.find(r => {
-          if (r.status !== 'pending' && r.status !== undefined) return false;
-          if (r.sessionClosed) return false;
-          if (activeSupplier) {
-            if (activeSupplier.sessionId && r.sessionId === activeSupplier.sessionId) return true;
-            if (activeSupplier.id && r.supplierId === activeSupplier.id && (!r.sessionId || r.sessionId === activeSupplier.sessionId)) return true;
-            return false;
-          } else {
-            return !r.supplierId && !r.sessionId;
-          }
-        });
-
-        if (activeReceipt && activeReceipt.id) {
-          // Append / merge items into existing receipt
-          const updatedItems = [...(activeReceipt.items || [])];
-          for (const addedItem of newItemsToAdd) {
-            const existingIdx = updatedItems.findIndex(it => 
-              (it.matchedProductId === addedItem.matchedProductId || it.name === addedItem.name) &&
-              it.unitType === addedItem.unitType
-            );
-            if (existingIdx >= 0) {
-              const cur = updatedItems[existingIdx];
-              const newQty = (Number(cur.quantity) || 0) + addedItem.quantity;
-              const unitCost = Number(cur.costPrice) || addedItem.costPrice || 0;
-              updatedItems[existingIdx] = {
-                ...cur,
-                quantity: newQty,
-                costPrice: unitCost,
-                total: parseFloat((newQty * unitCost).toFixed(3))
-              };
-            } else {
-              updatedItems.push(addedItem);
-            }
-          }
-
-          const totalAmount = parseFloat(updatedItems.reduce((sum, it) => sum + (Number(it.total) || 0), 0).toFixed(3));
-          const totalUnitsCount = updatedItems.reduce((sum, it) => {
-            const q = Number(it.quantity) || 0;
-            return sum + (it.unitType === 'carton' ? (q * (Number(it.piecesPerBox) || 1)) : q);
-          }, 0);
-          const totalItemsCount = updatedItems.length;
-
-          const receiptRef = doc(db, `users/${user.uid}/goodsReceipts`, activeReceipt.id);
-          await updateDoc(receiptRef, {
-            items: updatedItems,
-            totalAmount,
-            totalUnitsCount,
-            totalItemsCount,
-            supplierId: activeSupplier?.id || activeReceipt.supplierId || null,
-            supplierName: activeSupplier?.name || activeReceipt.supplierName || 'مورد غير محدد',
-            sessionId: activeSupplier?.sessionId || activeReceipt.sessionId || null,
-            updatedAt: serverTimestamp()
-          });
-
-          // Update activeSupplier session total
-          if (activeSupplier) {
-            const addedAmount = newItemsToAdd.reduce((sum, it) => sum + (Number(it.total) || 0), 0);
-            setActiveSupplier(prev => prev ? { ...prev, sessionTotal: parseFloat(((prev.sessionTotal || 0) + addedAmount).toFixed(3)) } : null);
-          }
-
-          // Update local cache
-          try {
-            const cacheKey = `cached_goods_receipts_${user.uid}`;
-            const prevCache: any[] = JSON.parse(localStorage.getItem(cacheKey) || '[]');
-            const idx = prevCache.findIndex(r => r.id === activeReceipt!.id);
-            if (idx >= 0) {
-              prevCache[idx] = { ...prevCache[idx], items: updatedItems, totalAmount, totalUnitsCount, totalItemsCount };
-              localStorage.setItem(cacheKey, JSON.stringify(prevCache));
-            }
-          } catch (e) {}
-
-          await logAudit('update', 'purchase', activeReceipt.id, activeReceipt.receiptNumber || 'Goods Receipt', `إضافة منتج (${quantityProduct.name}) لفاتورة استلام البضاعة للمدير العام`);
-
-          setIsQuantityModalOpen(false);
-          setQuantityProduct(null);
-          showToast(`تمت إضافة (${quantityProduct.name}) إلى فاتورة الاستلام المجمعة للمدير العام 📋 (${updatedItems.length} صنف)`, 'success');
-          return;
-        } else {
-          // Create a new pending receipt for this session / arrival
-          const receiptRef = doc(collection(db, `users/${user.uid}/goodsReceipts`));
-          const receiptNumber = `RC-${Date.now().toString().slice(-6)}`;
-          const totalAmount = parseFloat(newItemsToAdd.reduce((sum, it) => sum + (Number(it.total) || 0), 0).toFixed(3));
-          const totalUnitsCount = addedQty;
-
-          const newReceipt: GoodsReceipt = {
-            id: receiptRef.id,
-            receiptNumber,
-            invoiceDate: nowIso.split('T')[0],
-            supplierId: activeSupplier?.id || undefined,
-            supplierName: activeSupplier?.name || 'مورد غير محدد',
-            sessionId: activeSupplier?.sessionId || undefined,
-            sessionClosed: false,
-            paymentMethod: 'credit',
-            status: 'pending',
-            items: newItemsToAdd,
-            totalAmount,
-            totalItemsCount: newItemsToAdd.length,
-            totalUnitsCount,
-            submittedBy: currentStaff ? {
-              staffId: currentStaff.id,
-              staffName: currentStaff.name,
-              role: currentStaff.role
-            } : {
-              staffId: 'staff',
-              staffName: 'الموظف / أمين المخزن',
-              role: 'cashier'
-            },
-            createdAt: serverTimestamp(),
-            createdAtTimestamp: Date.now()
-          } as any;
-
-          await setDoc(receiptRef, newReceipt);
-
-          if (activeSupplier) {
-            setActiveSupplier(prev => prev ? { ...prev, sessionTotal: parseFloat(((prev.sessionTotal || 0) + totalAmount).toFixed(3)) } : null);
-          }
-
-          try {
-            const cacheKey = `cached_goods_receipts_${user.uid}`;
-            const prevCache: any[] = JSON.parse(localStorage.getItem(cacheKey) || '[]');
-            prevCache.unshift({ id: receiptRef.id, ...newReceipt });
-            localStorage.setItem(cacheKey, JSON.stringify(prevCache));
-          } catch (e) {}
-
-          await logAudit('create', 'purchase', receiptRef.id, receiptNumber, `إنشاء فاتورة استلام بضاعة للمدير العام: ${quantityProduct.name} (+${addedQty})`);
-          
-          setIsQuantityModalOpen(false);
-          setQuantityProduct(null);
-          showToast(`تم إنشاء فاتورة استلام للمدير العام وإضافة (${quantityProduct.name}) 📋`, 'success');
-          return;
-        }
-      }
-
-      // Find if this product is monitored (Manager direct approval flow)
+      // Find if this product is monitored
       const monitoredQ = query(
         collection(db, `users/${user.uid}/monitored_products`),
         where('productId', '==', quantityProduct.id)
@@ -744,47 +502,47 @@ export default function Products() {
 
   const enablePriceAudit = settings.enablePriceAudit ?? true;
 
-  // Only calculate full audit if price error filter is selected or if audit modal is open
+  const auditedProducts = useMemo(() => {
+    return auditAllProducts(products);
+  }, [products]);
+
+  const auditMap = useMemo(() => {
+    const map = new Map<string, boolean>();
+    if (!enablePriceAudit) return map;
+    auditedProducts.forEach(a => {
+      if (a.hasIssues && a.product.id) {
+        map.set(a.product.id, true);
+      }
+    });
+    return map;
+  }, [auditedProducts, enablePriceAudit]);
+
   const priceErrorsCount = useMemo(() => {
     if (!enablePriceAudit) return 0;
-    let count = 0;
-    for (let i = 0; i < products.length; i++) {
-      const p = products[i];
-      if ((Number(p.sellingPrice) || 0) <= (Number(p.purchasePrice) || 0) || (Number(p.purchasePrice) || 0) <= 0 || (Number(p.sellingPrice) || 0) <= 0) {
-        count++;
-      }
-    }
-    return count;
-  }, [products, enablePriceAudit]);
+    return auditedProducts.filter(a => a.hasIssues).length;
+  }, [auditedProducts, enablePriceAudit]);
 
   const filteredProducts = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    const hasTerm = term.length > 0;
-
     return products.filter(p => {
-      if (hasTerm) {
-        const matchesSearch = (p.name && p.name.toLowerCase().includes(term)) ||
-                             (p.barcode && p.barcode.includes(term)) ||
-                             (p.barcode2 && p.barcode2.includes(term)) ||
-                             (p.aliases && p.aliases.some(a => a.toLowerCase().includes(term)));
-        if (!matchesSearch) return false;
-      }
+      const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           p.barcode?.includes(searchTerm) ||
+                           p.barcode2?.includes(searchTerm) ||
+                           p.aliases?.some(a => a.toLowerCase().includes(searchTerm.toLowerCase()));
       
-      if (categoryFilter !== 'all' && p.category !== categoryFilter) {
-        return false;
-      }
-
+      let matchesStock = true;
       if (stockFilter === 'available') {
-        return (p.quantity || 0) > (p.minQuantity || 0);
+        matchesStock = (p.quantity || 0) > (p.minQuantity || 0);
       } else if (stockFilter === 'low') {
-        return (p.quantity || 0) <= (p.minQuantity || 0) && (p.quantity || 0) > 0;
+        matchesStock = (p.quantity || 0) <= (p.minQuantity || 0) && (p.quantity || 0) > 0;
       } else if (stockFilter === 'out') {
-        return (p.quantity || 0) <= 0;
+        matchesStock = (p.quantity || 0) <= 0;
       } else if (stockFilter === 'price_error') {
-        return (Number(p.sellingPrice) || 0) <= (Number(p.purchasePrice) || 0) || (Number(p.purchasePrice) || 0) <= 0 || (Number(p.sellingPrice) || 0) <= 0;
+        matchesStock = p.id ? !!auditMap.get(p.id) : (Number(p.sellingPrice) || 0) <= (Number(p.purchasePrice) || 0);
       }
 
-      return true;
+      const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
+
+      return matchesSearch && matchesStock && matchesCategory;
     }).sort((a, b) => {
       const catA = a.category || '';
       const catB = b.category || '';
@@ -795,7 +553,7 @@ export default function Products() {
       const nameB = b.name || '';
       return nameA.localeCompare(nameB, settings.language);
     });
-  }, [products, searchTerm, stockFilter, categoryFilter, settings.language]);
+  }, [products, searchTerm, stockFilter, categoryFilter, settings.language, auditMap]);
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
   const paginatedProducts = filteredProducts.slice(
@@ -841,41 +599,10 @@ export default function Products() {
           setScannedBarcode2('');
           setIsModalOpen(true);
         }} 
-        onOpenInvoiceModal={() => {
-          setSelectedReceiptForReview(null);
-          setIsPurchaseInvoiceModalOpen(true);
-        }}
+        onOpenInvoiceModal={() => setIsPurchaseInvoiceModalOpen(true)}
         onOpenPriceAudit={() => setIsPriceAuditModalOpen(true)}
-        onOpenPendingReceipts={() => setIsPendingReceiptsModalOpen(true)}
         priceIssuesCount={priceErrorsCount}
-        pendingReceiptsCount={pendingReceiptsCount}
       />
-
-      {/* Alert banner for pending goods receipts waiting for General Manager's review and approval */}
-      {pendingReceiptsCount > 0 && (
-        <div 
-          onClick={() => setIsPendingReceiptsModalOpen(true)}
-          className="p-3.5 bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-amber-500/15 hover:from-amber-500/25 hover:to-orange-500/25 border border-amber-300 dark:border-amber-700/80 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-900 dark:text-amber-200 text-xs font-bold cursor-pointer transition-all active:scale-[0.99] shadow-sm animate-pulse"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm">
-              <Package size={18} />
-            </div>
-            <div>
-              <p className="text-sm font-black text-zinc-900 dark:text-white">
-                تنبيه أذونات الاستلام: يوجد {pendingReceiptsCount} شحنة/إذن استلام بانتظار تدقيق الأسعار والاعتماد
-              </p>
-              <p className="text-zinc-600 dark:text-zinc-400 font-normal text-[11px] mt-0.5">
-                قام أمناء المخزن بتفريغ ومطابقة كميات البضائع. يرجى مراجعة وتدقيق أسعار الشراء وهوامش الربح لاعتماد ترحيلها للمخزون والحسابات.
-              </p>
-            </div>
-          </div>
-          <span className="shrink-0 self-end sm:self-auto text-xs bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5">
-            <span>مراجعة واعتماد الأذونات</span>
-            <span className="bg-amber-800/60 px-1.5 py-0.5 rounded font-mono text-[10px]">{pendingReceiptsCount}</span>
-          </span>
-        </div>
-      )}
 
       {/* Search & Filters */}
       <ProductsFilters
@@ -1070,25 +797,9 @@ export default function Products() {
 
       <PurchaseInvoiceModal
         isOpen={isPurchaseInvoiceModalOpen}
-        onClose={() => {
-          setIsPurchaseInvoiceModalOpen(false);
-          setSelectedReceiptForReview(null);
-        }}
-        initialReceipt={selectedReceiptForReview}
+        onClose={() => setIsPurchaseInvoiceModalOpen(false)}
         products={products}
         suppliers={suppliers}
-      />
-
-      <PendingReceiptsModal
-        isOpen={isPendingReceiptsModalOpen}
-        onClose={() => setIsPendingReceiptsModalOpen(false)}
-        receipts={goodsReceipts}
-        onReviewReceipt={(receipt) => {
-          setSelectedReceiptForReview(receipt);
-          setIsPendingReceiptsModalOpen(false);
-          setIsPurchaseInvoiceModalOpen(true);
-        }}
-        onOpenNewReceipt={() => setIsPurchaseInvoiceModalOpen(true)}
       />
 
       <PriceAuditModal

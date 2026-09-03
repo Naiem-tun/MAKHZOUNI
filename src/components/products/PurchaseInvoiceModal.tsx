@@ -26,19 +26,16 @@ import {
   TrendingDown,
   AlertTriangle,
   Copy,
-  Key,
-  Lock
+  Key
 } from 'lucide-react';
 import { useAppContext } from '../../AppContext';
-import { useStaffAuth } from '../../contexts/StaffAuthContext';
-import { Product, Supplier, GoodsReceipt } from '../../types';
-import { collection, addDoc, updateDoc, doc, setDoc, serverTimestamp, writeBatch, increment, arrayUnion } from 'firebase/firestore';
+import { Product, Supplier } from '../../types';
+import { collection, addDoc, updateDoc, doc, serverTimestamp, writeBatch, increment, arrayUnion } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { formatCurrency } from '../../lib/utils';
 import { logAudit } from '../../lib/auditLogger';
 import { getLocalImage, saveLocalImage } from '../../lib/localImages';
 import { scanInvoiceWithGemini } from '../../lib/geminiScan';
-import { syncSupplierFinancialsForReceipt } from '../../lib/supplierFinanceSync';
 
 interface ExtractedItem {
   id: string;
@@ -397,17 +394,15 @@ function PriceAlertBanner({
   matchedProduct,
   currency,
   onApplySuggestedPrice,
-  onDuplicateAsNew,
-  canViewCostPrices = true
+  onDuplicateAsNew
 }: {
   item: ExtractedItem;
   matchedProduct?: Product | null;
   currency: string;
   onApplySuggestedPrice?: (suggestedPrice: number) => void;
   onDuplicateAsNew?: () => void;
-  canViewCostPrices?: boolean;
 }) {
-  if (!matchedProduct || !canViewCostPrices) return null;
+  if (!matchedProduct) return null;
 
   const ppb = Number(item.piecesPerBox) > 0 ? Number(item.piecesPerBox) : 1;
   const cost = Number(item.costPrice) || 0;
@@ -551,16 +546,12 @@ interface PurchaseInvoiceModalProps {
   onClose: () => void;
   products: Product[];
   suppliers: Supplier[];
-  initialReceipt?: GoodsReceipt | null;
   onSuccess?: () => void;
 }
 
-export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, initialReceipt, onSuccess }: PurchaseInvoiceModalProps) {
+export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, onSuccess }: PurchaseInvoiceModalProps) {
   const { t } = useTranslation();
   const { user, showToast, settings } = useAppContext();
-  const { currentStaff, checkPermission } = useStaffAuth();
-  const canViewCostPrices = checkPermission('canViewCostPrices');
-  const canEditProductPrices = checkPermission('canEditProductPrices');
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageMime, setImageMime] = useState<string>('image/jpeg');
@@ -577,89 +568,6 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
   
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Initialize from initialReceipt if reviewing a pending invoice
-  useEffect(() => {
-    if (!isOpen) return;
-
-    if (initialReceipt) {
-      setSupplierName(initialReceipt.supplierName || '');
-      setSelectedSupplierId(initialReceipt.supplierId || '');
-      setInvoiceNumber(initialReceipt.invoiceNumber || '');
-      setInvoiceDate(initialReceipt.invoiceDate || new Date().toISOString().split('T')[0]);
-      setPaymentMethod(initialReceipt.paymentMethod || 'credit');
-      
-      const loadedItems: ExtractedItem[] = (initialReceipt.items || []).map((it, idx) => {
-        // Find matching product in stock
-        const matched = products.find(p => p.id === it.matchedProductId || (it.barcode && (p.barcode === it.barcode || p.barcode2 === it.barcode)));
-        const ppb = Number(it.piecesPerBox) > 0 ? Number(it.piecesPerBox) : (matched?.piecesPerBox || 1);
-        
-        let costPrice = Number(it.costPrice) || 0;
-        let sellingPrice = Number(it.sellingPrice) || 0;
-
-        // Auto-fix existing receipts: If unitType is carton, ppb > 1, but costPrice or sellingPrice was saved as single piece price
-        if (it.unitType === 'carton' && ppb > 1) {
-          const knownPieceCost = matched?.purchasePrice || matched?.costPrice || 0;
-          const knownPieceSelling = matched?.sellingPrice || 0;
-
-          // If costPrice is equal to or close to single piece cost, convert it to carton cost
-          if (knownPieceCost > 0 && Math.abs(costPrice - knownPieceCost) < 0.005) {
-            costPrice = matched?.boxPurchasePrice || parseFloat((costPrice * ppb).toFixed(3));
-          } else if (costPrice > 0 && knownPieceCost > 0 && costPrice <= (knownPieceCost * 1.5) && ppb >= 2) {
-            costPrice = matched?.boxPurchasePrice || parseFloat((costPrice * ppb).toFixed(3));
-          }
-
-          // If sellingPrice is equal to or close to single piece selling price, convert to carton selling price
-          if (knownPieceSelling > 0 && Math.abs(sellingPrice - knownPieceSelling) < 0.005) {
-            sellingPrice = matched?.boxSellingPrice || parseFloat((sellingPrice * ppb).toFixed(3));
-          } else if (sellingPrice > 0 && knownPieceSelling > 0 && sellingPrice <= (knownPieceSelling * 1.5) && ppb >= 2) {
-            sellingPrice = matched?.boxSellingPrice || parseFloat((sellingPrice * ppb).toFixed(3));
-          }
-        }
-        
-        // If cost is 0 and user is manager, pre-fill from previous known cost
-        if (costPrice <= 0 && matched && (matched.purchasePrice || matched.costPrice)) {
-          const knownCost = matched.purchasePrice || matched.costPrice || 0;
-          costPrice = it.unitType === 'carton' ? (matched.boxPurchasePrice || knownCost * ppb) : knownCost;
-        }
-        
-        // If selling price is 0, pre-fill from matched product
-        if (sellingPrice <= 0 && matched && matched.sellingPrice) {
-          sellingPrice = it.unitType === 'carton' ? (matched.boxSellingPrice || matched.sellingPrice * ppb) : matched.sellingPrice;
-        }
-        
-        const qty = Number(it.quantity) || 0;
-        const total = parseFloat((qty * costPrice).toFixed(3));
-
-        return {
-          id: it.id || `item-${Date.now()}-${idx}`,
-          name: it.name,
-          originalInvoiceName: it.originalInvoiceName || it.name,
-          barcode: it.barcode || matched?.barcode || '',
-          unitType: it.unitType || 'carton',
-          piecesPerBox: ppb,
-          quantity: qty,
-          costPrice: costPrice,
-          sellingPrice: sellingPrice,
-          total: total,
-          matchedProductId: matched?.id || it.matchedProductId,
-          matchedProductName: matched?.name || it.matchedProductName,
-          isNewProduct: !matched && it.isNewProduct !== false,
-          copiedFromProductId: it.copiedFromProductId
-        };
-      });
-
-      setItems(loadedItems);
-    } else {
-      setSupplierName('');
-      setSelectedSupplierId('');
-      setInvoiceNumber('');
-      setInvoiceDate(new Date().toISOString().split('T')[0]);
-      setPaymentMethod('credit');
-      setItems([]);
-      setImagePreview(null);
-    }
-  }, [initialReceipt, isOpen, products]);
 
   if (!isOpen) return null;
 
@@ -834,19 +742,6 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
         }
       }
 
-      let matchedCost = item.costPrice;
-      if (matchedCost <= 0) {
-        if (matchedProd.purchasePrice || matchedProd.costPrice) {
-          const knownCost = matchedProd.purchasePrice || matchedProd.costPrice || 0;
-          matchedCost = item.unitType === 'carton' ? (matchedProd.boxPurchasePrice || parseFloat((knownCost * ppb).toFixed(3))) : knownCost;
-        }
-      } else if (item.unitType === 'carton' && ppb > 1 && matchedProd.purchasePrice && Math.abs(matchedCost - matchedProd.purchasePrice) < 0.005) {
-        matchedCost = matchedProd.boxPurchasePrice || parseFloat((matchedProd.purchasePrice * ppb).toFixed(3));
-      }
-
-      const itemQty = Number(item.quantity) || 1;
-      const finalTotal = parseFloat((itemQty * (matchedCost || 0)).toFixed(3));
-
       return {
         ...item,
         matchedProductId: matchedProd.id,
@@ -855,9 +750,7 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
         name: item.originalInvoiceName || item.name || matchedProd.name,
         originalInvoiceName: item.originalInvoiceName || item.name,
         piecesPerBox: ppb,
-        costPrice: matchedCost,
         sellingPrice: matchedSelling,
-        total: finalTotal,
         isNewProduct: false,
       };
     }));
@@ -1012,134 +905,24 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
     return items.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
   };
 
-  // 1. Storekeeper / Draft submission: Save to goodsReceipts collection as 'pending' for GM review
-  const handleSaveAsPendingReceipt = async () => {
+  const handleSaveInvoice = async () => {
     if (!user) return;
     if (items.length === 0) {
       showToast('يرجى إضافة أو استخراج منتجات بالفاتورة أولاً', 'error');
       return;
     }
 
-    setIsSaving(true);
-    try {
-      const receiptRef = initialReceipt?.id 
-        ? doc(db, `users/${user.uid}/goodsReceipts`, initialReceipt.id)
-        : doc(collection(db, `users/${user.uid}/goodsReceipts`));
+    // Validate that selling price is strictly greater than purchase price for all items
+    for (const item of items) {
+      if (!item.name.trim()) continue;
+      const ppb = Number(item.piecesPerBox) > 0 ? Number(item.piecesPerBox) : 1;
+      const cost = Number(item.costPrice) || 0;
+      const pieceCostPrice = item.unitType === 'carton' ? (cost / ppb) : cost;
+      const pieceSellingPrice = item.unitType === 'carton' ? (Number(item.sellingPrice) / ppb) : Number(item.sellingPrice);
 
-      const nowIso = new Date().toISOString();
-      const receiptPayload: any = {
-        receiptNumber: initialReceipt?.receiptNumber || `RC-${Date.now().toString().slice(-6)}`,
-        invoiceNumber: invoiceNumber.trim() || '',
-        invoiceDate: invoiceDate || nowIso.split('T')[0],
-        supplierId: selectedSupplierId || null,
-        supplierName: supplierName.trim() || 'مورد غير محدد',
-        paymentMethod: paymentMethod,
-        status: 'pending',
-        items: items.map(item => ({
-          id: item.id,
-          name: item.name.trim(),
-          originalInvoiceName: item.originalInvoiceName || item.name,
-          barcode: item.barcode || '',
-          unitType: item.unitType,
-          piecesPerBox: Number(item.piecesPerBox) || 1,
-          quantity: Number(item.quantity) || 0,
-          costPrice: Number(item.costPrice) || 0,
-          sellingPrice: Number(item.sellingPrice) || 0,
-          total: Number(item.total) || 0,
-          matchedProductId: item.matchedProductId || null,
-          matchedProductName: item.matchedProductName || null,
-          copiedFromProductId: item.copiedFromProductId || null,
-          isNewProduct: !!item.isNewProduct,
-        })),
-        totalItemsCount: items.length,
-        totalUnitsCount: items.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0),
-        totalAmount: calculateGrandTotal(),
-        submittedBy: initialReceipt?.submittedBy || {
-          staffId: currentStaff?.id || 'storekeeper',
-          staffName: currentStaff?.name || user.displayName || 'أمين المخزن',
-          role: currentStaff?.role || 'storekeeper'
-        },
-        createdAt: initialReceipt?.createdAt || nowIso,
-        createdAtTimestamp: Date.now(),
-        updatedAt: nowIso
-      };
-
-      await setDoc(receiptRef, receiptPayload, { merge: true });
-
-      // مزامنة المعاملة المالية في حساب المورد مباشرة لتعكس أي تعديل يجريه المدير العام
-      try {
-        await syncSupplierFinancialsForReceipt(db, user.uid, {
-          id: receiptRef.id,
-          ...receiptPayload
-        }, {
-          status: 'pending',
-          finalTotal: calculateGrandTotal(),
-          paymentMethod,
-          supplierId: selectedSupplierId,
-          supplierName,
-          invoiceNumber: invoiceNumber.trim() || receiptPayload.receiptNumber,
-          action: 'update'
-        });
-      } catch (finErr) {
-        console.warn("Failed to sync pending receipt financials:", finErr);
-      }
-
-      // Immediate local cache update
-      try {
-        const cacheKey = `cached_goods_receipts_${user.uid}`;
-        const prevCache: any[] = JSON.parse(localStorage.getItem(cacheKey) || '[]');
-        const existingIdx = prevCache.findIndex(r => r.id === receiptRef.id);
-        const itemWithId = { id: receiptRef.id, ...receiptPayload };
-        if (existingIdx >= 0) {
-          prevCache[existingIdx] = itemWithId;
-        } else {
-          prevCache.unshift(itemWithId);
-        }
-        localStorage.setItem(cacheKey, JSON.stringify(prevCache));
-      } catch (e) {
-        // ignore
-      }
-
-      await logAudit(
-        'create',
-        'purchase',
-        receiptRef.id,
-        supplierName.trim() || 'مورد غير محدد',
-        `إرسال إذن استلام بضاعة (${items.length} صنف) بانتظار مراجعة واعتماد المدير العام`
-      );
-
-      showToast('تم حفظ إذن الاستلام وإرساله بنجاح! سيظهر للمدير العام في قائمة الشحنات بانتظار الاعتماد والمطابقة 📋', 'success');
-      if (onSuccess) onSuccess();
-      onClose();
-    } catch (err: any) {
-      console.error('Error saving pending receipt:', err);
-      showToast('حدث خطأ أثناء حفظ إذن الاستلام: ' + err.message, 'error');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // 2. General Manager / Full Admin: Approve and commit to stock, accounts, suppliers, and debts
-  const handleApproveAndCommitInvoice = async () => {
-    if (!user) return;
-    if (items.length === 0) {
-      showToast('يرجى إضافة أو استخراج منتجات بالفاتورة أولاً', 'error');
-      return;
-    }
-
-    // Validate that selling price is strictly greater than purchase price for all items if cost prices are visible
-    if (canViewCostPrices) {
-      for (const item of items) {
-        if (!item.name.trim()) continue;
-        const ppb = Number(item.piecesPerBox) > 0 ? Number(item.piecesPerBox) : 1;
-        const cost = Number(item.costPrice) || 0;
-        const pieceCostPrice = item.unitType === 'carton' ? (cost / ppb) : cost;
-        const pieceSellingPrice = item.unitType === 'carton' ? (Number(item.sellingPrice) / ppb) : Number(item.sellingPrice);
-
-        if (pieceSellingPrice > 0 && pieceSellingPrice <= pieceCostPrice) {
-          showToast(`خطأ في بند "${item.name}": يجب أن يكون سعر البيع (${pieceSellingPrice.toFixed(3)}) أكبر دائمًا من سعر الشراء (${pieceCostPrice.toFixed(3)})`, 'error');
-          return;
-        }
+      if (pieceSellingPrice > 0 && pieceSellingPrice <= pieceCostPrice) {
+        showToast(`خطأ في بند "${item.name}": يجب أن يكون سعر البيع (${pieceSellingPrice.toFixed(3)}) أكبر دائمًا من سعر الشراء (${pieceCostPrice.toFixed(3)})`, 'error');
+        return;
       }
     }
 
@@ -1198,19 +981,13 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
           const updateData: any = {
             quantity: increment(totalPieces),
             piecesPerBox: ppb,
+            purchasePrice: parseFloat(pieceCostPrice.toFixed(3)),
+            boxPurchasePrice: parseFloat(boxCostPrice.toFixed(3)),
+            costPrice: parseFloat(pieceCostPrice.toFixed(3)),
+            sellingPrice: parseFloat(pieceSellingPrice.toFixed(3)),
+            boxSellingPrice: parseFloat(boxSellingPrice.toFixed(3)),
             updatedAt: serverTimestamp()
           };
-
-          if (canViewCostPrices && pieceCostPrice > 0) {
-            updateData.purchasePrice = parseFloat(pieceCostPrice.toFixed(3));
-            updateData.boxPurchasePrice = parseFloat(boxCostPrice.toFixed(3));
-            updateData.costPrice = parseFloat(pieceCostPrice.toFixed(3));
-          }
-
-          if (canEditProductPrices && pieceSellingPrice > 0) {
-            updateData.sellingPrice = parseFloat(pieceSellingPrice.toFixed(3));
-            updateData.boxSellingPrice = parseFloat(boxSellingPrice.toFixed(3));
-          }
 
           // Save aliases to persist future pairing automatically
           const aliasesToAdd: string[] = [];
@@ -1314,101 +1091,55 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
         });
       }
 
-      // 3. Update or create GoodsReceipt document to record General Manager's Approval
+      // 3. Create Supplier Transaction / Debt if applicable
       const totalAmount = calculateGrandTotal();
-      const receiptDocRef = initialReceipt?.id
-        ? doc(db, `users/${user.uid}/goodsReceipts`, initialReceipt.id)
-        : doc(collection(db, `users/${user.uid}/goodsReceipts`));
 
-      const receiptRecord: any = {
-        receiptNumber: initialReceipt?.receiptNumber || `RC-${Date.now().toString().slice(-6)}`,
-        invoiceNumber: invoiceNumber.trim() || '',
-        invoiceDate: invoiceDate || now.toISOString().split('T')[0],
-        supplierId: finalSupplierId || null,
-        supplierName: finalSupplierName,
-        paymentMethod,
-        status: 'approved',
-        totalAmount,
-        totalItemsCount: items.length,
-        totalUnitsCount: items.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0),
-        items: items.map(item => ({
-          id: item.id,
-          name: item.name.trim(),
-          barcode: item.barcode || '',
-          unitType: item.unitType,
-          piecesPerBox: Number(item.piecesPerBox) || 1,
-          quantity: Number(item.quantity) || 0,
-          costPrice: Number(item.costPrice) || 0,
-          sellingPrice: Number(item.sellingPrice) || 0,
-          total: Number(item.total) || 0,
-          matchedProductId: item.matchedProductId || null,
-          matchedProductName: item.matchedProductName || null
-        })),
-        reviewedBy: {
-          staffId: currentStaff?.id || 'admin',
-          staffName: currentStaff?.name || user.displayName || 'المدير العام',
-          role: currentStaff?.role || 'admin'
-        },
-        approvedAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      };
-
-      if (!initialReceipt?.id) {
-        receiptRecord.submittedBy = {
-          staffId: currentStaff?.id || 'admin',
-          staffName: currentStaff?.name || user.displayName || 'المدير العام',
-          role: currentStaff?.role || 'admin'
-        };
-        receiptRecord.createdAt = serverTimestamp();
-      }
-
-      batch.set(receiptDocRef, receiptRecord, { merge: true });
-
-      await batch.commit();
-
-      // 4. مزامنة المعاملات المالية للمورد والدين بدقة تامة تعكس أي تعديل في الأسعار أو الكميات أجراه المدير العام
       if (finalSupplierId) {
-        try {
-          await syncSupplierFinancialsForReceipt(db, user.uid, {
-            id: receiptDocRef.id,
-            sessionId: initialReceipt?.sessionId,
-            supplierTransactionId: initialReceipt?.supplierTransactionId,
-            debtId: initialReceipt?.debtId,
-            receiptNumber: receiptRecord.receiptNumber,
-            invoiceNumber: receiptRecord.invoiceNumber,
-            invoiceDate: receiptRecord.invoiceDate,
-            supplierId: finalSupplierId,
-            supplierName: finalSupplierName,
-            paymentMethod,
-            totalAmount
-          }, {
-            status: 'approved',
-            finalTotal: totalAmount,
-            paymentMethod,
-            supplierId: finalSupplierId,
-            supplierName: finalSupplierName,
-            invoiceNumber: invoiceNumber.trim() || receiptRecord.receiptNumber,
-            action: 'approve'
+        const suppTxRef = doc(collection(db, `users/${user.uid}/supplierTransactions`));
+        batch.set(suppTxRef, {
+          supplierId: finalSupplierId,
+          amount: paymentMethod === 'cash' ? totalAmount : 0,
+          date: invoiceDate || now.toISOString(),
+          note: `فاتورة توريد رقم #${invoiceNumber || 'آلية'} بقيمة ${formatCurrency(totalAmount, settings.currency)} (${paymentMethod === 'cash' ? 'مدفوعة كاش' : 'آجل / دين'})`,
+          updatedAt: serverTimestamp()
+        });
+
+        // If debt / credit
+        if (paymentMethod === 'credit') {
+          const debtRef = doc(collection(db, `users/${user.uid}/debts`));
+          batch.set(debtRef, {
+            customerName: `المورد: ${finalSupplierName}`,
+            phone: '',
+            totalAmount: totalAmount,
+            status: 'unpaid',
+            type: 'payable', // الدين للمورد (علينا)
+            history: [{
+              type: 'debt',
+              amount: totalAmount,
+              date: now.toISOString(),
+              note: `فاتورة شراء رقم #${invoiceNumber || 'آلية'}`
+            }],
+            updatedAt: serverTimestamp()
           });
-        } catch (finErr) {
-          console.warn("Failed to sync supplier financials on invoice approval:", finErr);
         }
       }
 
+      await batch.commit();
+
       await logAudit(
-        initialReceipt?.id ? 'update' : 'create',
+        'create',
         'purchase',
         finalSupplierId || 'general',
         finalSupplierName,
-        `اعتماد وترحيل فاتورة توريد بقيمة ${formatCurrency(totalAmount, settings.currency)} للمخزون والحسابات بواسطة المدير العام`
+        `إدخال فاتورة شراء بقيمة ${formatCurrency(totalAmount, settings.currency)} وتحديث المخزون`
       );
 
-      showToast('تم اعتماد الفاتورة وترحيل الكميات والأسعار للحسابات والمخزون بنجاح! 🎉', 'success');
+      showToast('تمت إضافة الفاتورة وتحديث كميات وأسعار المخزون بنجاح! 🎉', 'success');
       if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {
-      console.error('Error approving invoice:', err);
-      showToast('حدث خطأ أثناء اعتماد الفاتورة: ' + err.message, 'error');
+      console.error('Error saving invoice:', err);
+      showToast('حدث خطأ أثناء حفظ الفاتورة: ' + err.message, 'error');
     } finally {
       setIsSaving(false);
     }
@@ -1423,31 +1154,14 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
         className="relative w-full h-full sm:h-auto sm:max-h-[92vh] sm:max-w-6xl bg-white dark:bg-slate-900 sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col"
       >
         {/* Header */}
-        <div className={`flex items-center justify-between p-3.5 sm:p-5 border-b border-slate-200 dark:border-slate-800 ${
-          initialReceipt ? 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700' : 'bg-gradient-to-r from-blue-600 to-indigo-700'
-        } text-white shrink-0`}>
+        <div className="flex items-center justify-between p-3.5 sm:p-5 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-blue-600 to-indigo-700 text-white shrink-0">
           <div className="flex items-center space-x-3 space-x-reverse min-w-0">
             <div className="p-2 sm:p-2.5 bg-white/20 rounded-xl backdrop-blur-md shrink-0">
               <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-300" />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base sm:text-xl font-black truncate">
-                  {initialReceipt 
-                    ? `مراجعة وتدقيق إذن استلام بضاعة (${initialReceipt.receiptNumber || `إذن #${initialReceipt.id?.slice(-5)}`})`
-                    : 'إدخال ومسح فواتير التوريد بالذكاء الاصطناعي'}
-                </h2>
-                {initialReceipt?.submittedBy?.staffName && (
-                  <span className="text-[11px] bg-white/20 text-white px-2 py-0.5 rounded-full font-bold">
-                    وارد من: {initialReceipt.submittedBy.staffName}
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] sm:text-xs text-blue-100 font-medium truncate">
-                {initialReceipt 
-                  ? 'يرجى تدقيق أسعار الشراء وهوامش الربح ثم الضغط على اعتماد لترحيل الأصناف رسمياً للمخزون'
-                  : 'التقاط صورة الفاتورة للتعرف التلقائي وربط المخزون وتحديث الأسعار'}
-              </p>
+              <h2 className="text-base sm:text-xl font-black truncate">إدخال ومسح فواتير التوريد بالذكاء الاصطناعي</h2>
+              <p className="text-[11px] sm:text-xs text-blue-100 font-medium truncate">التقاط صورة الفاتورة للتعرف التلقائي وربط المخزون وتحديث الأسعار</p>
             </div>
           </div>
           <button
@@ -1460,17 +1174,6 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
 
         {/* Modal Body */}
         <div className="p-3 sm:p-6 overflow-y-auto space-y-4 sm:space-y-6 flex-1">
-          {/* Review Notice if Reviewing Pending Receipt */}
-          {initialReceipt && (
-            <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 rounded-xl flex items-center justify-between gap-3 text-xs sm:text-sm text-amber-900 dark:text-amber-200">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
-                <span>
-                  <strong>وضع المراجعة والاعتماد المالي:</strong> تم استلام هذه البضائع وتفريغها بواسطة <strong>{initialReceipt.submittedBy?.staffName || 'أمين المخزن'}</strong>، يرجى التأكد من أسعار الشراء وتحديد سعر البيع ثم اعتماد الترحيل.
-                </span>
-              </div>
-            </div>
-          )}
           {/* Step 1: File Capture & Scan Section */}
           <div className="bg-slate-50 dark:bg-slate-800/60 p-3 sm:p-4 rounded-xl border border-slate-200 dark:border-slate-700">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
@@ -1828,38 +1531,31 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
                         </div>
 
                         {/* Pricing & Total Row */}
-                        <div className={canViewCostPrices ? "grid grid-cols-3 gap-2" : "grid grid-cols-2 gap-2"}>
-                          {canViewCostPrices ? (
-                            <div>
-                              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                                سعر الشراء ({item.unitType === 'carton' ? 'كرتونة' : 'قطعة'})
-                              </label>
-                              <input
-                                type="number"
-                                step="0.001"
-                                inputMode="decimal"
-                                autoComplete="off"
-                                autoCorrect="off"
-                                data-lpignore="true"
-                                data-1p-ignore="true"
-                                data-bwignore="true"
-                                data-form-type="other"
-                                value={item.costPrice}
-                                onChange={(e) => handleItemChange(item.id, 'costPrice', e.target.value)}
-                                className="w-full px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded font-bold"
-                              />
-                              {item.unitType === 'carton' && (
-                                <div className="text-[9px] text-slate-400 mt-0.5">
-                                  القطعة: {formatCurrency(piecePrice, settings.currency)}
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1.5 p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 dark:text-slate-400 text-[11px] font-medium">
-                              <Lock size={14} className="shrink-0 text-slate-400" />
-                              <span>سعر الشراء محمي</span>
-                            </div>
-                          )}
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                              سعر الشراء ({item.unitType === 'carton' ? 'كرتونة' : 'قطعة'})
+                            </label>
+                            <input
+                              type="number"
+                              step="0.001"
+                              inputMode="decimal"
+                              autoComplete="off"
+                              autoCorrect="off"
+                              data-lpignore="true"
+                              data-1p-ignore="true"
+                              data-bwignore="true"
+                              data-form-type="other"
+                              value={item.costPrice}
+                              onChange={(e) => handleItemChange(item.id, 'costPrice', e.target.value)}
+                              className="w-full px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded font-bold"
+                            />
+                            {item.unitType === 'carton' && (
+                              <div className="text-[9px] text-slate-400 mt-0.5">
+                                القطعة: {formatCurrency(piecePrice, settings.currency)}
+                              </div>
+                            )}
+                          </div>
 
                           <div>
                             <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
@@ -1877,10 +1573,7 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
                               data-form-type="other"
                               value={item.sellingPrice}
                               onChange={(e) => handleItemChange(item.id, 'sellingPrice', e.target.value)}
-                              disabled={!canEditProductPrices}
-                              className={`w-full px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded font-bold text-emerald-600 dark:text-emerald-400 ${
-                                !canEditProductPrices ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : ''
-                              }`}
+                              className="w-full px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded font-bold text-emerald-600 dark:text-emerald-400"
                             />
                             <div className="text-[9px] text-slate-400 mt-0.5 font-medium">
                               {item.unitType === 'carton' ? (
@@ -1891,16 +1584,14 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
                             </div>
                           </div>
 
-                          {canViewCostPrices && (
-                            <div>
-                              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                                إجمالي البند
-                              </label>
-                              <div className="px-2 py-1 text-xs font-black text-blue-600 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-900/30 rounded border border-blue-200 dark:border-blue-800 text-center">
-                                {formatCurrency(item.total, settings.currency)}
-                              </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                              إجمالي البند
+                            </label>
+                            <div className="px-2 py-1 text-xs font-black text-blue-600 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-900/30 rounded border border-blue-200 dark:border-blue-800 text-center">
+                              {formatCurrency(item.total, settings.currency)}
                             </div>
-                          )}
+                          </div>
                         </div>
                       </div>
                     );
@@ -1918,9 +1609,9 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
                         <th className="p-2.5 w-28 text-center">الوحدة المشتراة</th>
                         <th className="p-2.5 w-20 text-center">قطع/كرتونة</th>
                         <th className="p-2.5 w-20 text-center">الكمية</th>
-                        {canViewCostPrices && <th className="p-2.5 w-28">سعر الشراء</th>}
+                        <th className="p-2.5 w-28">سعر الشراء</th>
                         <th className="p-2.5 w-28">سعر البيع</th>
-                        {canViewCostPrices && <th className="p-2.5 w-24">الإجمالي</th>}
+                        <th className="p-2.5 w-24">الإجمالي</th>
                         <th className="p-2.5 w-24 text-center">الحالة</th>
                         <th className="p-2.5 w-10 text-center"></th>
                       </tr>
@@ -1967,7 +1658,6 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
                                 currency={settings.currency} 
                                 onApplySuggestedPrice={(p) => handleItemChange(item.id, 'sellingPrice', p)} 
                                 onDuplicateAsNew={() => handleDuplicateAsNewProduct(item.id)}
-                                canViewCostPrices={canViewCostPrices}
                               />
                             </td>
 
@@ -2045,31 +1735,29 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
                             </td>
 
                             {/* Cost Price */}
-                            {canViewCostPrices && (
-                              <td className="p-2">
-                                <input
-                                  type="number"
-                                  step="0.001"
-                                  inputMode="decimal"
-                                  autoComplete="off"
-                                  autoCorrect="off"
-                                  data-lpignore="true"
-                                  data-1p-ignore="true"
-                                  data-bwignore="true"
-                                  data-form-type="other"
-                                  value={item.costPrice}
-                                  onChange={(e) => handleItemChange(item.id, 'costPrice', e.target.value)}
-                                  className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded font-bold"
-                                />
-                                <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                                  {item.unitType === 'carton' ? (
-                                    <span>سعر القطعة: <strong className="text-emerald-600 dark:text-emerald-400">{formatCurrency(piecePrice, settings.currency)}</strong></span>
-                                  ) : (
-                                    <span>سعر الكرتونة: <strong>{formatCurrency(boxPrice, settings.currency)}</strong></span>
-                                  )}
-                                </div>
-                              </td>
-                            )}
+                            <td className="p-2">
+                              <input
+                                type="number"
+                                step="0.001"
+                                inputMode="decimal"
+                                autoComplete="off"
+                                autoCorrect="off"
+                                data-lpignore="true"
+                                data-1p-ignore="true"
+                                data-bwignore="true"
+                                data-form-type="other"
+                                value={item.costPrice}
+                                onChange={(e) => handleItemChange(item.id, 'costPrice', e.target.value)}
+                                className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded font-bold"
+                              />
+                              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                                {item.unitType === 'carton' ? (
+                                  <span>سعر القطعة: <strong className="text-emerald-600 dark:text-emerald-400">{formatCurrency(piecePrice, settings.currency)}</strong></span>
+                                ) : (
+                                  <span>سعر الكرتونة: <strong>{formatCurrency(boxPrice, settings.currency)}</strong></span>
+                                )}
+                              </div>
+                            </td>
 
                             {/* Selling Price */}
                             <td className="p-2">
@@ -2085,10 +1773,7 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
                                 data-form-type="other"
                                 value={item.sellingPrice}
                                 onChange={(e) => handleItemChange(item.id, 'sellingPrice', e.target.value)}
-                                disabled={!canEditProductPrices}
-                                className={`w-full px-2 py-1 border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded font-bold text-emerald-600 dark:text-emerald-400 ${
-                                  !canEditProductPrices ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : ''
-                                }`}
+                                className="w-full px-2 py-1 border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-white rounded font-bold text-emerald-600 dark:text-emerald-400"
                               />
                               <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
                                 {item.unitType === 'carton' ? (
@@ -2100,11 +1785,9 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
                             </td>
 
                             {/* Total */}
-                            {canViewCostPrices && (
-                              <td className="p-2 font-black text-slate-800 dark:text-white">
-                                {formatCurrency(item.total, settings.currency)}
-                              </td>
-                            )}
+                            <td className="p-2 font-black text-slate-800 dark:text-white">
+                              {formatCurrency(item.total, settings.currency)}
+                            </td>
 
                             {/* Stock Status Badge */}
                             <td className="p-2 text-center">
@@ -2161,90 +1844,39 @@ export function PurchaseInvoiceModal({ isOpen, onClose, products, suppliers, ini
         {/* Modal Footer (Sticky Bottom Action Bar) */}
         <div className="p-3.5 sm:p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/90 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 shrink-0 shadow-lg">
           <div className="flex items-center justify-between w-full sm:w-auto gap-4">
-            {canViewCostPrices ? (
-              <>
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">إجمالي مبلغ الفاتورة:</span>
-                <span className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-400">
-                  {formatCurrency(calculateGrandTotal(), settings.currency)}
-                </span>
-              </>
-            ) : (
-              <>
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">إجمالي الأصناف المدخلة:</span>
-                <span className="text-lg sm:text-xl font-black text-blue-600 dark:text-blue-400">
-                  {items.length} صنف ({items.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0)} وحدة)
-                </span>
-              </>
-            )}
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">إجمالي مبلغ الفاتورة:</span>
+            <span className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-400">
+              {formatCurrency(calculateGrandTotal(), settings.currency)}
+            </span>
           </div>
 
-          <div className="flex items-center flex-wrap gap-2 sm:gap-3 w-full sm:w-auto justify-end">
+          <div className="flex items-center space-x-2 sm:space-x-3 space-x-reverse w-full sm:w-auto">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 sm:px-5 py-2.5 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-xs sm:text-sm"
+              className="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-xs sm:text-sm"
             >
               إلغاء
             </button>
 
-            {/* If Manager and not reviewing an existing receipt, allow saving as draft/pending */}
-            {canViewCostPrices && !initialReceipt && (
-              <button
-                type="button"
-                onClick={handleSaveAsPendingReceipt}
-                disabled={isSaving || items.length === 0}
-                className="px-4 sm:px-5 py-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-400 dark:border-amber-600 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/40 rounded-xl font-bold transition-all disabled:opacity-50 text-xs sm:text-sm"
-              >
-                حفظ كإذن معلق للمراجعة
-              </button>
-            )}
-
-            {/* If storekeeper without cost access, primary action is Send for Approval */}
-            {!canViewCostPrices ? (
-              <button
-                type="button"
-                onClick={handleSaveAsPendingReceipt}
-                disabled={isSaving || items.length === 0}
-                className="flex items-center justify-center space-x-2 space-x-reverse px-5 sm:px-6 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white rounded-xl font-black shadow-lg shadow-amber-500/25 transition-all disabled:opacity-50 text-xs sm:text-sm"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin shrink-0" />
-                    <span>جاري الإرسال...</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-                    <span>حفظ وإرسال للاعتماد من المدير العام</span>
-                  </>
-                )}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleApproveAndCommitInvoice}
-                disabled={isSaving || items.length === 0}
-                className={`flex items-center justify-center space-x-2 space-x-reverse px-5 sm:px-6 py-2.5 ${
-                  initialReceipt 
-                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-emerald-500/25' 
-                    : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/25'
-                } text-white rounded-xl font-black shadow-lg transition-all disabled:opacity-50 text-xs sm:text-sm`}
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin shrink-0" />
-                    <span>جاري الترحيل...</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-                    <span>
-                      {initialReceipt ? 'اعتماد الفاتورة وترحيلها رسمياً للمخزون والحسابات' : 'اعتماد الفاتورة وتحديث المخزون'}
-                    </span>
-                  </>
-                )}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleSaveInvoice}
+              disabled={isSaving || items.length === 0}
+              className="flex-[2] sm:flex-initial flex items-center justify-center space-x-2 space-x-reverse px-5 sm:px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black shadow-lg shadow-blue-500/25 transition-all disabled:opacity-50 text-xs sm:text-sm"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin shrink-0" />
+                  <span>جاري الحفظ...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                  <span>اعتماد الفاتورة وتحديث المخزون</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </motion.div>
