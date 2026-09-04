@@ -8,10 +8,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { BookOpen, UserPlus, Trash2, Eye, Plus, Minus, X, CheckCircle2, History, Edit2, ArrowRightLeft, Truck } from 'lucide-react';
 import { formatCurrency, cn, handleFirestoreError, roundMoney } from '../lib/utils';
 import { logAudit } from '../lib/auditLogger';
+import { DEMO_DEBTS, DEMO_SUPPLIERS } from '../lib/mockData';
 
 export default function Debts() {
   const { t } = useTranslation();
-  const { user, settings, showToast } = useAppContext();
+  const { user, isGuest, settings, showToast } = useAppContext();
   const [debts, setDebts] = useState<Debt[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -34,6 +35,11 @@ export default function Debts() {
   const [actionNote, setActionNote] = useState('');
 
   useEffect(() => {
+    if (isGuest) {
+      setDebts(DEMO_DEBTS);
+      setSuppliers(DEMO_SUPPLIERS);
+      return;
+    }
     if (!user) return;
     const q = collection(db, `users/${user.uid}/debts`);
     const unsubDebts = onSnapshot(q, (snap) => {
@@ -49,10 +55,19 @@ export default function Debts() {
       unsubDebts();
       unsubSuppliers();
     };
-  }, [user]);
+  }, [user, isGuest]);
 
   const handleSaveDebt = async (e?: React.FormEvent | React.KeyboardEvent) => {
     if (e && 'preventDefault' in e) e.preventDefault();
+    if (isGuest) {
+      setIsModalOpen(false);
+      setDebtCustomerName('');
+      setDebtPhone('');
+      setEditingDebt(null);
+      setIsSaving(false);
+      showToast('أنت في وضع المعاينة (ضيف) — تم استعراض نموذج الدين بنجاح', 'info');
+      return;
+    }
     if (!user || isSaving) return;
     const customerName = debtCustomerName.trim();
     if (!customerName) return;
@@ -104,6 +119,10 @@ export default function Debts() {
   };
 
   const addPayment = (debt: Debt, amount: number, note: string = '') => {
+    if (isGuest) {
+      showToast('أنت في وضع المعاينة (ضيف) — تم استعراض تسجيل السداد بنجاح', 'info');
+      return;
+    }
     if (!user) return;
     const newTotal = roundMoney(debt.totalAmount - roundMoney(amount));
     const newStatus = newTotal <= 0 ? 'paid' : 'unpaid';
@@ -129,6 +148,10 @@ export default function Debts() {
   };
 
   const addDebtAmount = (debt: Debt, amount: number, note: string = '') => {
+    if (isGuest) {
+      showToast('أنت في وضع المعاينة (ضيف) — تم استعراض إضافة المبلغ بنجاح', 'info');
+      return;
+    }
     if (!user) return;
     const cleanAmount = roundMoney(amount);
     const newTotal = roundMoney(debt.totalAmount + cleanAmount);
@@ -150,6 +173,11 @@ export default function Debts() {
   };
 
   const handleDeleteDebt = async () => {
+    if (isGuest) {
+      setDeleteConfirmId(null);
+      showToast('أنت في وضع المعاينة (ضيف) — حذف السجلات غير متاح في وضع العرض', 'info');
+      return;
+    }
     if (!user || !deleteConfirmId) return;
     
     // Optimistic UI updates

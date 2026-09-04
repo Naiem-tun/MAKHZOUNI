@@ -20,10 +20,11 @@ import { SupplierToolbar } from '../components/suppliers/SupplierToolbar';
 import { SupplierSearchBar } from '../components/suppliers/SupplierSearchBar';
 import * as xlsx from 'xlsx';
 import { Download, FileText } from 'lucide-react';
+import { DEMO_SUPPLIERS } from '../lib/mockData';
 
 export default function Suppliers() {
   const { t } = useTranslation();
-  const { user, showToast, settings, updateSettings, activeSupplier, setActiveSupplier, setIsSessionSummaryOpen } = useAppContext();
+  const { user, isGuest, showToast, settings, updateSettings, activeSupplier, setActiveSupplier, setIsSessionSummaryOpen } = useAppContext();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [transactions, setTransactions] = useState<SupplierTransaction[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
@@ -58,6 +59,12 @@ export default function Suppliers() {
   const today = new Date().getDay();
 
   useEffect(() => {
+    if (isGuest) {
+      setSuppliers(DEMO_SUPPLIERS);
+      setTransactions([]);
+      setDebts([]);
+      return;
+    }
     if (!user) return;
     const q = collection(db, `users/${user.uid}/suppliers`);
     const unsubSuppliers = onSnapshot(q, (snap) => {
@@ -83,7 +90,7 @@ export default function Suppliers() {
       unsubTx();
       unsubDebts();
     };
-  }, [user]);
+  }, [user, isGuest]);
 
   const earliestTxDate = transactions.length > 0 
     ? new Date(Math.min(...transactions.map(t => safeParseDate(t.date).getTime())))
@@ -208,6 +215,13 @@ export default function Suppliers() {
 
     setIsModalOpen(false);
 
+    if (isGuest) {
+      setEditingSupplier(null);
+      setIsSaving(false);
+      showToast('أنت في وضع المعاينة (ضيف) — تم استعراض نموذج المورد بنجاح', 'info');
+      return;
+    }
+
     if (editingSupplier) {
       showToast(t('supplier_updated_success'));
       updateDoc(doc(db, `users/${user.uid}/suppliers`, editingSupplier.id!), data).then(() => {
@@ -240,6 +254,11 @@ export default function Suppliers() {
   };
 
   const handleDeleteSupplier = async () => {
+    if (isGuest) {
+      setDeleteConfirmId(null);
+      showToast('أنت في وضع المعاينة (ضيف) — حذف المورد غير متاح في وضع العرض', 'info');
+      return;
+    }
     if (!user || !deleteConfirmId) return;
     
     // Optimistic UI update
@@ -306,6 +325,11 @@ export default function Suppliers() {
 
   const handleAddTransaction = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isGuest) {
+      setIsAddTxModalOpen(false);
+      showToast('أنت في وضع المعاينة (ضيف) — تم استعراض تسجيل الفاتورة بنجاح', 'info');
+      return;
+    }
     if (!user || !selectedSupplier || isSaving) return;
     setIsSaving(true);
     const formData = new FormData(e.currentTarget);

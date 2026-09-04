@@ -39,8 +39,10 @@ import { PrintPurchasesModal } from '../components/dashboard/PrintPurchasesModal
 import { DashboardCarousel } from '../components/dashboard/DashboardCarousel';
 
 import { useTranslation } from 'react-i18next';
+import { DEMO_PRODUCTS, DEMO_PURCHASES, DEMO_SUPPLIERS, DEMO_EXPENSES, DEMO_DEBTS } from '../lib/mockData';
+
 const Dashboard = memo(() => {
-  const { user, settings, showToast } = useAppContext();
+  const { user, isGuest, settings, showToast } = useAppContext();
   const { t } = useTranslation();
   const [products, setProducts] = useState<Product[]>([]);
   const [allPurchases, setAllPurchases] = useState<Transaction[]>([]);
@@ -87,6 +89,17 @@ const Dashboard = memo(() => {
   }, [allPurchases, settings.language, t]);
 
   useEffect(() => {
+    if (isGuest) {
+      setProducts(DEMO_PRODUCTS);
+      setAllPurchases(DEMO_PURCHASES.map(p => ({
+        ...p,
+        date: safeParseDate(p.date)
+      })));
+      setExpenses(DEMO_EXPENSES);
+      setDebts(DEMO_DEBTS);
+      setSuppliers(DEMO_SUPPLIERS);
+      return;
+    }
     if (!user) return;
 
     const productsPath = `users/${user.uid}/products`;
@@ -170,7 +183,7 @@ const Dashboard = memo(() => {
       unsubSupplierTx();
       unsubSuppliers();
     };
-  }, [user]);
+  }, [user, isGuest]);
 
   const stats = useMemo(() => {
     const totalValue = products.reduce((acc, p) => acc + ((Number(p.quantity) || 0) * (Number(p.purchasePrice || p.costPrice) || 0)), 0);
@@ -302,6 +315,11 @@ const Dashboard = memo(() => {
   };
 
   const handleDeletePurchase = async (purchase: any) => {
+    if (isGuest) {
+      setDeletingPurchaseId(null);
+      showToast('أنت في وضع المعاينة (ضيف) — حذف المعاملات غير متاح في وضع العرض', 'info');
+      return;
+    }
     if (!user) return;
     setDeletingPurchaseId(null);
 

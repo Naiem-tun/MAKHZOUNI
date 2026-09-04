@@ -44,10 +44,11 @@ import { BarcodeScanner } from '../components/common/BarcodeScanner';
 import { Logo } from '../components/UI';
 import { query, orderBy, limit, getDocs, where } from 'firebase/firestore';
 import * as xlsx from 'xlsx';
+import { DEMO_PRODUCTS, DEMO_SUPPLIERS } from '../lib/mockData';
 
 export default function Products() {
   const { t } = useTranslation();
-  const { user, settings, updateSettings, showToast, setIsDataLoaded, activeSupplier, setActiveSupplier } = useAppContext();
+  const { user, isGuest, settings, updateSettings, showToast, setIsDataLoaded, activeSupplier, setActiveSupplier } = useAppContext();
   const { categories } = useCategories();
   const [products, setProducts] = useState<Product[]>(() => {
     if (!user) return [];
@@ -88,13 +89,17 @@ export default function Products() {
   const [suppliers, setSuppliers] = useState<any[]>([]);
 
   useEffect(() => {
+    if (isGuest) {
+      setSuppliers(DEMO_SUPPLIERS);
+      return;
+    }
     if (!user) return;
     const suppQ = collection(db, `users/${user.uid}/suppliers`);
     const unsub = onSnapshot(suppQ, (snap) => {
       setSuppliers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
     return () => unsub();
-  }, [user]);
+  }, [user, isGuest]);
 
   useEffect(() => {
     if (activeSupplier && pendingQuantityProduct) {
@@ -131,6 +136,13 @@ export default function Products() {
   };
 
   useEffect(() => {
+    if (isGuest) {
+      setProducts(DEMO_PRODUCTS);
+      setLoading(false);
+      setIsDataLoaded(true);
+      setError(null);
+      return;
+    }
     if (!user) return;
     const path = `users/${user.uid}/products`;
     const q = collection(db, path);
@@ -152,7 +164,7 @@ export default function Products() {
       }
       handleFirestoreError(err, OperationType.LIST, path);
     });
-  }, [user, setIsDataLoaded]);
+  }, [user, isGuest, setIsDataLoaded]);
 
   // Reset to first page on search or filter change
   useEffect(() => {
@@ -160,6 +172,12 @@ export default function Products() {
   }, [searchTerm, stockFilter, categoryFilter]);
 
   const handleDelete = () => {
+    if (isGuest) {
+      setIsDeleteModalOpen(false);
+      setProductToDelete(null);
+      showToast('أنت في وضع المعاينة (ضيف) — حذف المنتجات غير متاح في وضع العرض', 'info');
+      return;
+    }
     if (!user || !productToDelete) return;
     
     // UI feedback: close modal immediately
@@ -177,6 +195,12 @@ export default function Products() {
   };
 
   const performQuantitySave = async (numBoxes: number, extraPieces: number, boxPrice: number, piecePrice: number) => {
+    if (isGuest) {
+      setIsQuantityModalOpen(false);
+      setQuantityProduct(null);
+      showToast('أنت في وضع المعاينة (ضيف) — تم استعراض تحديث الكمية بنجاح', 'info');
+      return;
+    }
     if (!user || !quantityProduct) return;
 
     const addedQty = cleanQuantity((numBoxes * (quantityProduct.piecesPerBox || 1)) + extraPieces);
@@ -267,6 +291,14 @@ export default function Products() {
   };
 
   const handleSaveProduct = async (productData: any, imageFile?: File | Blob | null, imageRemoved?: boolean) => {
+    if (isGuest) {
+      setIsModalOpen(false);
+      setEditingProduct(null);
+      setScannedBarcode('');
+      setScannedBarcode2('');
+      showToast('أنت في وضع المعاينة (ضيف) — تم استعراض نموذج المنتج بنجاح دون تعديل أي بيانات', 'info');
+      return;
+    }
     if (!user) return;
 
     const purchase = Number(productData.purchasePrice) || 0;

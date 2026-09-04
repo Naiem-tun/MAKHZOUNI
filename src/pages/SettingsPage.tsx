@@ -72,7 +72,7 @@ import { DataManagement } from '../components/settings/DataManagement';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
-  const { settings, updateSettings, toggleDarkMode, setLanguage, user, setIsCatalogMode } = useAppContext();
+  const { settings, updateSettings, toggleDarkMode, setLanguage, user, isGuest, setIsGuest, setIsCatalogMode } = useAppContext();
   const [activeView, setActiveView] = useState<View>('main');
   const [isClearDataModalOpen, setIsClearDataModalOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
@@ -135,6 +135,14 @@ export default function SettingsPage() {
   };
 
   const handleClearAllData = async () => {
+    if (isGuest) {
+      setIsClearDataModalOpen(false);
+      setDeletePassword('');
+      setPasswordError('');
+      setStatus({ type: 'info', msg: 'أنت في وضع المعاينة (ضيف) — مسح البيانات غير متاح' });
+      setTimeout(() => setStatus(null), 3500);
+      return;
+    }
     if (!user) return;
     
     if (deletePassword !== (settings.deleteDataPassword || '1234')) {
@@ -203,6 +211,11 @@ export default function SettingsPage() {
   });
   const [isSaving, setIsSaving] = useState(false);
   const handleSaveStoreSettings = async () => {
+    if (isGuest) {
+      setStatus({ type: 'info', msg: 'أنت في وضع المعاينة (ضيف) — تم استعراض الإعدادات بنجاح' });
+      setTimeout(() => setStatus(null), 3000);
+      return;
+    }
     setIsSaving(true);
     try {
       await updateSettings(tempSettings);
@@ -258,12 +271,16 @@ export default function SettingsPage() {
           className="p-2 rounded-lg bg-white border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 shadow-sm flex items-center gap-3 cursor-pointer active:scale-95 transition-all"
         >
           <div className="text-left">
-            <p className="text-[9px] text-zinc-400 font-bold mb-0.5 leading-none uppercase">{t('linked_account')}</p>
+            <p className="text-[9px] text-zinc-400 font-bold mb-0.5 leading-none uppercase">{isGuest ? 'وضع المعاينة' : t('linked_account')}</p>
             <p className="text-[11px] font-black text-zinc-800 dark:text-zinc-200 truncate max-w-[100px]">
-              {user?.email || user?.phoneNumber}
+              {isGuest ? 'حساب زائر' : (user?.email || user?.phoneNumber)}
             </p>
           </div>
-          {user?.photoURL ? (
+          {isGuest ? (
+            <div className="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400 font-black text-xs border-2 border-amber-200 dark:border-amber-800">
+              <Eye size={18} />
+            </div>
+          ) : user?.photoURL ? (
             <img 
               src={user.photoURL} 
               alt="Profile" 
@@ -989,21 +1006,28 @@ export default function SettingsPage() {
               className="relative w-full max-w-[280px] rounded-lg bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
             >
               <div className="mb-4 pt-2">
-                <p className="text-[10px] font-black text-zinc-400 mb-0.5 uppercase tracking-wider">{t('current_account')}</p>
-                <p className="text-xs font-black text-zinc-900 dark:text-white truncate">{user?.email || user?.phoneNumber}</p>
+                <p className="text-[10px] font-black text-zinc-400 mb-0.5 uppercase tracking-wider">{isGuest ? 'الوضع الحالي' : t('current_account')}</p>
+                <p className="text-xs font-black text-zinc-900 dark:text-white truncate">{isGuest ? 'وضع الضيف (معاينة)' : (user?.email || user?.phoneNumber)}</p>
               </div>
 
               <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
-                {t('confirm_logout_desc')}
+                {isGuest ? 'هل تريد الخروج من وضع المعاينة والعودة إلى شاشة تسجيل الدخول؟' : t('confirm_logout_desc')}
               </p>
               
               <div className="flex gap-2">
                 <button 
-                  onClick={() => auth.signOut()}
+                  onClick={() => {
+                    if (isGuest) {
+                      setIsGuest(false);
+                      setIsLogoutModalOpen(false);
+                    } else {
+                      auth.signOut();
+                    }
+                  }}
                   className="flex-1 py-2.5 rounded-lg font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px]"
                   style={{ backgroundColor: '#B34C36' }}
                 >
-                  {t('confirm_logout')}
+                  {isGuest ? 'الخروج من المعاينة' : t('confirm_logout')}
                 </button>
                 <button 
                   onClick={() => setIsLogoutModalOpen(false)}

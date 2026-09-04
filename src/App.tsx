@@ -14,6 +14,7 @@ import { syncTracker } from "./lib/syncTracker";
 import { AppHeader } from "./components/layout/AppHeader";
 import { AppMobileMenu } from "./components/layout/AppMobileMenu";
 import { AppBottomNav } from "./components/layout/AppBottomNav";
+import { GuestModeBanner } from "./components/common/GuestModeBanner";
 
 import { Logo } from "./components/UI";
 import { useTranslation } from "react-i18next";
@@ -113,6 +114,8 @@ function AppContent() {
   const {
     user,
     loading,
+    isGuest,
+    setIsGuest,
     isOffline,
     isDataLoaded,
     settings,
@@ -429,12 +432,15 @@ function AppContent() {
         )}
       </AnimatePresence>
 
-      {!loading && !user && <Login />}
+      {!loading && !user && !isGuest && <Login />}
 
-      {!loading && user && (
+      {!loading && (user || isGuest) && (
         <div
           className={`flex flex-col bg-[#F4F7FB] dark:bg-[#0B1121] font-sans transition-colors duration-300 relative min-h-[100dvh]`}
         >
+          {isGuest && (
+            <GuestModeBanner onExitGuestMode={() => setIsGuest(false)} />
+          )}
           <AppHeader setMobileMenuOpen={setMobileMenuOpen} activeTab={activeTab} setActiveTab={setActiveTab} />
 
           {/* Mobile Menu */}
