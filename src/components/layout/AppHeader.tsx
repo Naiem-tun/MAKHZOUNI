@@ -1,4 +1,4 @@
-import { Menu, CloudOff, Cloud, Square, Play, ShoppingCart, Wallet, Eye } from "lucide-react";
+import { Menu, CloudOff, Cloud, Square, Play, ShoppingCart, Wallet } from "lucide-react";
 import { Logo } from "../UI";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../../AppContext";
@@ -17,7 +17,7 @@ export function AppHeader({
   activeTab,
   setActiveTab,
 }: AppHeaderProps) {
-  const { user, isGuest, isOffline, settings, activeSupplier, setIsSessionSummaryOpen } = useAppContext();
+  const { user, isOffline, settings, activeSupplier, setIsSessionSummaryOpen } = useAppContext();
   const { t } = useTranslation();
   const [showSyncMenu, setShowSyncMenu] = useState(false);
 
@@ -41,13 +41,8 @@ export function AppHeader({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              {isGuest ? (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-800/50 dark:text-amber-300">
-                  <Eye size={14} className="text-amber-600 dark:text-amber-400" />
-                  <span className="text-xs font-bold">وضع الضيف (معاينة)</span>
-                </div>
-              ) : isOffline ? (
+            <div className="flex items-center">
+              {isOffline ? (
                 <div
                   onClick={(e) => {
                     e.stopPropagation();

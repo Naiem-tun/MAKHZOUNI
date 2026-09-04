@@ -8,11 +8,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Wallet, Plus, Trash2, X, ReceiptText, Calendar, Tag, CheckCheck, Clock } from 'lucide-react';
 import { formatCurrency, cn, safeParseDate, formatAppDate, roundMoney } from '../lib/utils';
 import { logAudit } from '../lib/auditLogger';
-import { DEMO_EXPENSES } from '../lib/mockData';
 
 export default function Expenses() {
   const { t } = useTranslation();
-  const { user, isGuest, settings, showToast } = useAppContext();
+  const { user, settings, showToast } = useAppContext();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -22,11 +21,6 @@ export default function Expenses() {
   const [expenseCategory, setExpenseCategory] = useState('عام');
 
   useEffect(() => {
-    if (isGuest) {
-      setExpenses(DEMO_EXPENSES);
-      setLoading(false);
-      return;
-    }
     if (!user) return;
     const expensesPath = `users/${user.uid}/expenses`;
     const q = query(
@@ -38,17 +32,10 @@ export default function Expenses() {
       setExpenses(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Expense)));
       setLoading(false);
     });
-  }, [user, isGuest]);
+  }, [user]);
 
   const handleAddExpense = (e?: React.FormEvent | React.KeyboardEvent) => {
     if (e && 'preventDefault' in e) e.preventDefault();
-    if (isGuest) {
-      setIsModalOpen(false);
-      setExpenseAmount('');
-      setExpenseDescription('');
-      showToast('أنت في وضع المعاينة (ضيف) — تم استعراض نموذج المصروف بنجاح', 'info');
-      return;
-    }
     if (!user) return;
     const amount = roundMoney(parseFloat(expenseAmount.replace(',', '.')));
     const description = expenseDescription.trim() || t('expense');
@@ -81,10 +68,6 @@ export default function Expenses() {
   };
 
   const handleDeleteExpense = (expense: Expense) => {
-    if (isGuest) {
-      showToast('أنت في وضع المعاينة (ضيف) — حذف المصروف غير متاح في وضع العرض', 'info');
-      return;
-    }
     if (!user || !expense.id) return;
     deleteDoc(doc(db, `users/${user.uid}/expenses`, expense.id)).then(() => {
         logAudit('delete', 'expense', expense.id!, expense.description, `حذف مصروف بقيمة: ${roundMoney(expense.amount)}`);

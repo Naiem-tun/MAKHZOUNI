@@ -35,7 +35,6 @@ import { InventoryPrintModal } from '../components/inventory/InventoryPrintModal
 import { InventoryItem } from '../components/inventory/InventoryItem';
 import { useTranslation } from 'react-i18next';
 import { logAudit } from '../lib/auditLogger';
-import { DEMO_PRODUCTS } from '../lib/mockData';
 
 
 
@@ -79,7 +78,7 @@ function distributeQuantityToProducts(originalProducts: any[], newTotalQty: numb
 
 export default function Inventory() {
   const { t } = useTranslation();
-  const { user, isGuest, settings, showToast } = useAppContext();
+  const { user, settings, showToast } = useAppContext();
   const { categories } = useCategories();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -274,11 +273,6 @@ export default function Inventory() {
   };
 
   const fetchCurrentMonthExpenses = async () => {
-    if (isGuest) {
-      setExpensesAmount(120);
-      setLoadingExpenses(false);
-      return;
-    }
     if (!user) return;
     setLoadingExpenses(true);
     try {
@@ -299,17 +293,12 @@ export default function Inventory() {
   };
 
   useEffect(() => {
-    if (user || isGuest) {
+    if (user) {
       fetchCurrentMonthExpenses();
     }
-  }, [user, isGuest]);
+  }, [user]);
 
   const fetchHistory = async () => {
-    if (isGuest) {
-      setHistoryReports([]);
-      setLoadingHistory(false);
-      return;
-    }
     if (!user) return;
     setLoadingHistory(true);
     try {
@@ -339,11 +328,6 @@ export default function Inventory() {
 
   // Real-time fetch from Firebase
   useEffect(() => {
-    if (isGuest) {
-      setProducts(DEMO_PRODUCTS);
-      setLoading(false);
-      return;
-    }
     if (!user) return;
     
     const productsPath = `users/${user.uid}/products`;
@@ -360,7 +344,7 @@ export default function Inventory() {
     });
 
     return () => unsubscribe();
-  }, [user, isGuest]);
+  }, [user]);
 
   // Reset to first page on search
   useEffect(() => {
@@ -437,10 +421,6 @@ export default function Inventory() {
   }, []);
 
   const handleCompleteInventory = async () => {
-    if (isGuest) {
-      showToast('أنت في وضع المعاينة (ضيف) — اعتماد الجرد غير متاح في وضع العرض', 'info');
-      return;
-    }
     if (!user) return;
     if (Object.keys(inventoryData).length === 0) {
       showAlert(t('enter_inventory_data_first'));

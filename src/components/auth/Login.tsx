@@ -3,12 +3,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { auth, setupRecaptcha, signInWithGoogle } from '../../lib/firebase';
 import { signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
 import { useTranslation } from 'react-i18next';
-import { Phone, ArrowRight, Package, Globe, ShieldCheck, Eye } from 'lucide-react';
-import { useAppContext } from '../../AppContext';
+import { Phone, ArrowRight, Package, Globe, ShieldCheck } from 'lucide-react';
 
 export function Login() {
   const { t } = useTranslation();
-  const { setIsGuest } = useAppContext();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
@@ -213,21 +211,6 @@ export function Login() {
             {error}
           </motion.div>
         )}
-
-        {/* Guest Mode Entry for evaluation, bots, and demo visitors */}
-        <div className="mt-6 pt-6 border-t border-zinc-100 dark:border-zinc-800">
-          <button
-            type="button"
-            onClick={() => setIsGuest(true)}
-            className="group flex w-full items-center justify-center gap-2.5 rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/70 hover:bg-amber-100/90 dark:bg-amber-950/20 dark:hover:bg-amber-950/40 px-5 py-3.5 font-bold text-amber-900 dark:text-amber-300 transition-all active:scale-98 shadow-sm"
-          >
-            <Eye size={18} className="text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform" />
-            <span>تصفح كضيف (معاينة الواجهة)</span>
-          </button>
-          <p className="mt-2 text-center text-xs text-zinc-400 dark:text-zinc-500 font-medium">
-            استكشف لوحة التحكم والمميزات بدون تسجيل دخول ببيانات افتراضية آمنة
-          </p>
-        </div>
       </motion.div>
       
       <div ref={recaptchaRef}></div>

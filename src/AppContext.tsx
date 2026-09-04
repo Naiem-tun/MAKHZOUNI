@@ -6,7 +6,6 @@ import { OperationType, UserSettings, Category } from './types';
 import { handleFirestoreError, cn } from './lib/utils';
 import i18n from './lib/i18n';
 import { syncTracker } from './lib/syncTracker';
-import { DEMO_CATEGORIES, DEMO_SETTINGS } from './lib/mockData';
 
 interface Toast {
   id: string;
@@ -17,8 +16,6 @@ interface Toast {
 interface AppContextType {
   user: User | null;
   loading: boolean;
-  isGuest: boolean;
-  setIsGuest: (val: boolean) => void;
   isOffline: boolean;
   isDataLoaded: boolean;
   setIsDataLoaded: (val: boolean) => void;
@@ -53,10 +50,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem('user_session');
     return saved ? JSON.parse(saved) : null;
   });
-  const [isGuest, setIsGuestState] = useState<boolean>(() => {
-    return localStorage.getItem('is_guest_mode') === 'true';
-  });
-  const [loading, setLoading] = useState(() => !localStorage.getItem('has_session') && localStorage.getItem('is_guest_mode') !== 'true');
+  const [loading, setLoading] = useState(() => !localStorage.getItem('has_session'));
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [settings, setSettings] = useState<UserSettings>(() => {
     const saved = localStorage.getItem('user_settings');
@@ -81,18 +75,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return localStorage.getItem('isCatalogMode') === 'true';
   });
   const [activeTab, setActiveTab] = useState('products');
-
-  const setIsGuest = (val: boolean) => {
-    setIsGuestState(val);
-    if (val) {
-      localStorage.setItem('is_guest_mode', 'true');
-      setCategories(DEMO_CATEGORIES);
-      setIsDataLoaded(true);
-      setLoading(false);
-    } else {
-      localStorage.removeItem('is_guest_mode');
-    }
-  };
 
   const setIsCatalogMode = (val: boolean) => {
     setIsCatalogModeState(val);
@@ -136,8 +118,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (u) {
         const userData = { uid: u.uid, email: u.email, displayName: u.displayName };
         setUser(userData);
-        setIsGuestState(false);
-        localStorage.removeItem('is_guest_mode');
         localStorage.setItem('has_session', 'true');
         localStorage.setItem('user_session', JSON.stringify(userData));
         setLoading(false); // Make sure we set loading false here too
@@ -202,11 +182,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [user]);
 
   useEffect(() => {
-    if (isGuest) {
-      setCategories(DEMO_CATEGORIES);
-      return;
-    }
-
     if (!user) {
       setCategories([]);
       return;
@@ -221,14 +196,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     return unsubscribe;
-  }, [user, isGuest]);
+  }, [user]);
 
   const updateSettings = async (newSettings: Partial<UserSettings>) => {
-    // Optimistic local update
-    setSettings(prev => ({ ...prev, ...newSettings }));
     if (!user) return;
     const path = `users/${user.uid}/settings/config`;
     const settingsDoc = doc(db, path);
+    // Optimistic local update
+    setSettings(prev => ({ ...prev, ...newSettings }));
     try {
       setDoc(settingsDoc, { ...settings, ...newSettings }, { merge: true }).catch(err => {
         handleFirestoreError(err, OperationType.WRITE, path);
@@ -252,8 +227,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     <AppContext.Provider value={{ 
       user, 
       loading, 
-      isGuest,
-      setIsGuest,
       isOffline, 
       isDataLoaded, 
       setIsDataLoaded, 
