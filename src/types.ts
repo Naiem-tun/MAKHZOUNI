@@ -39,7 +39,6 @@ export interface UserSettings {
   deleteDataPassword?: string;
   syncImages?: boolean;
   enablePOS?: boolean;
-  enableAIInvoice?: boolean;
   enablePriceAudit?: boolean;
   posDeductInventory?: boolean;
   showCashierStockButton?: boolean;
@@ -202,8 +201,11 @@ export interface InvoiceItemData {
   quantity: number;
   price: number; // selling price
   cost: number; // cost price (purchase price)
-  total: number; // price * quantity
-  profit: number; // (price - cost) * quantity
+  total: number; // calculated total
+  profit: number; // calculated profit
+  saleMode?: 'piece' | 'box' | 'subpiece' | 'gram' | 'kg';
+  deductedQuantity?: number;
+  unit?: string;
 }
 
 export interface Invoice {
@@ -213,5 +215,6 @@ export interface Invoice {
   totalAmount: number;
   totalCost: number;
   totalProfit: number;
+  deductedFrom?: 'warehouse' | 'cashier' | 'both' | 'none';
   createdAt: any;
 }

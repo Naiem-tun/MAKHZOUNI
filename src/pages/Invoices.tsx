@@ -4,10 +4,10 @@ import { useTranslation } from 'react-i18next';
 import { 
   Coins, Search, X, Filter, Trash2, ChevronUp, ChevronDown, FileText
 } from 'lucide-react';
-import { collection, query, orderBy, limit, onSnapshot, doc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, doc, deleteDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
-import { formatCurrency, safeParseDate, formatAppDate } from '../lib/utils';
+import { formatCurrency, safeParseDate, formatAppDate, cleanQuantity } from '../lib/utils';
 import { CustomConfirmModal } from '../components/common/CustomConfirmModal';
 
 export default function Invoices() {
@@ -73,15 +73,61 @@ export default function Invoices() {
       // Delete invoice
       batch.delete(doc(db, `users/${user.uid}/invoices`, invoiceToDelete.id));
       
-      // Restore products quantity
-      if (settings.posDeductInventory !== false) {
+      // Restore products quantity if this invoice had deducted inventory
+      if (invoiceToDelete.deductedFrom !== 'none') {
+        const mode = invoiceToDelete.deductedFrom;
+        const isCashierOnly = mode === 'cashier' || (mode === undefined && settings.posDeductInventory === false);
+        
         (invoiceToDelete.items || []).forEach((item: any) => {
           const p = products.find(prod => prod.id === item.productId);
           if (p) {
             const productRef = doc(db, `users/${user.uid}/products`, item.productId);
-            batch.update(productRef, {
-              quantity: (p.quantity || 0) + item.quantity
-            });
+            
+            // Calculate accurate quantity to restore
+            let restoreQty = item.deductedQuantity;
+            if (restoreQty === undefined || restoreQty === null) {
+              // Backward compatibility for existing invoices
+              const isKgProduct = p.unit === 'kg';
+              const subItems = p.subItemsPerPiece || 1;
+              if (item.saleMode === 'box' && p.piecesPerBox) {
+                restoreQty = cleanQuantity((Number(item.quantity) || 0) * p.piecesPerBox);
+              } else if (item.saleMode === 'subpiece') {
+                restoreQty = cleanQuantity((Number(item.quantity) || 0) / subItems);
+              } else if (item.saleMode === 'gram') {
+                if (isKgProduct && subItems > 1) {
+                  restoreQty = cleanQuantity(((Number(item.quantity) || 0) / subItems) / 100);
+                } else {
+                  restoreQty = cleanQuantity((Number(item.quantity) || 0) / 1000);
+                }
+              } else if (item.saleMode === 'kg') {
+                if (isKgProduct && subItems > 1) {
+                  restoreQty = cleanQuantity(((Number(item.quantity) || 0) / subItems) * 10);
+                } else {
+                  restoreQty = cleanQuantity(Number(item.quantity) || 0);
+                }
+              } else {
+                restoreQty = cleanQuantity(Number(item.quantity) || 0);
+              }
+            } else {
+              restoreQty = cleanQuantity(restoreQty);
+            }
+
+            const currentPosQty = cleanQuantity(p.posQuantity !== undefined ? p.posQuantity : p.quantity);
+            const currentQty = cleanQuantity(p.quantity || 0);
+
+            if (isCashierOnly) {
+              batch.update(productRef, {
+                posQuantity: cleanQuantity(currentPosQty + restoreQty),
+                updatedAt: serverTimestamp()
+              });
+            } else {
+              // Restores to BOTH warehouse and cashier
+              batch.update(productRef, {
+                quantity: cleanQuantity(currentQty + restoreQty),
+                posQuantity: cleanQuantity(currentPosQty + restoreQty),
+                updatedAt: serverTimestamp()
+              });
+            }
           }
         });
       }
@@ -523,17 +569,25 @@ export default function Invoices() {
                   <div className="col-span-3 text-left">المجموع</div>
                 </div>
                 <div className="space-y-3 mb-6">
-                  {(selectedInvoice.items || []).map((item: any, i: number) => (
-                    <div key={i} className="grid grid-cols-12 gap-2 items-center text-center">
-                      <div className="col-span-6 text-right font-bold text-zinc-800 dark:text-zinc-200 line-clamp-2" title={item.name}>{item.name}</div>
-                      <div className="col-span-3 text-center font-bold text-zinc-600 dark:text-zinc-400">
-                        {item.quantity} {item.unit || ''}
+                  {(selectedInvoice.items || []).map((item: any, i: number) => {
+                    const modeLabel = 
+                      item.saleMode === 'box' ? 'كرتونة' :
+                      item.saleMode === 'gram' ? 'غرام' :
+                      item.saleMode === 'kg' ? 'كغ' :
+                      item.saleMode === 'subpiece' ? 'حبة' : 'قطعة';
+                    const itemTotal = item.total !== undefined ? item.total : (item.price * item.quantity);
+                    return (
+                      <div key={i} className="grid grid-cols-12 gap-2 items-center text-center">
+                        <div className="col-span-6 text-right font-bold text-zinc-800 dark:text-zinc-200 line-clamp-2" title={item.name}>{item.name}</div>
+                        <div className="col-span-3 text-center font-bold text-zinc-600 dark:text-zinc-400">
+                          {item.quantity} {item.saleMode ? modeLabel : (item.unit || '')}
+                        </div>
+                        <div className="col-span-3 text-left font-black text-zinc-900 dark:text-white" dir="ltr">
+                          {formatCurrency(itemTotal, settings.currency, language)}
+                        </div>
                       </div>
-                      <div className="col-span-3 text-left font-black text-zinc-900 dark:text-white" dir="ltr">
-                        {(item.price * item.quantity).toFixed(3)}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Footer */}

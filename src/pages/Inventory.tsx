@@ -20,7 +20,7 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
-import { cn, safeParseFloat, handleFirestoreError, formatCurrency, safeParseDate, formatAppDate, cleanQuantity, formatQuantity, roundMoney } from '../lib/utils';
+import { cn, safeParseFloat, handleFirestoreError, formatCurrency, safeParseDate, formatAppDate, cleanQuantity, formatQuantity, roundMoney, commitBatchesInChunks } from '../lib/utils';
 import { OperationType } from '../types';
 import { ProductPagination } from '../components/products/ProductPagination';
 import { useCategories, categoryIcons } from '../hooks/useCategories';
@@ -429,9 +429,13 @@ export default function Inventory() {
     
     showConfirm(t('confirm_save_inventory'), async () => {
       try {
-        const batch = writeBatch(db);
         const auditTime = serverTimestamp();
         const localNow = new Date();
+        const writeOperations: Array<{
+          type: 'set' | 'update' | 'delete';
+          ref: any;
+          data?: any;
+        }> = [];
         
         let totalRevenue = 0;
         let totalProfit = 0;
@@ -509,11 +513,15 @@ export default function Inventory() {
           if (actualQty !== undefined) {
             distributed.forEach(({ product, newQty }) => {
               const productRef = doc(db, `users/${user.uid}/products`, product.id!);
-              batch.update(productRef, {
-                quantity: cleanQuantity(newQty),
-                posQuantity: cleanQuantity(newQty),
-                updatedAt: auditTime,
-                lastInventoryDate: auditTime
+              writeOperations.push({
+                type: 'update',
+                ref: productRef,
+                data: {
+                  quantity: cleanQuantity(newQty),
+                  posQuantity: cleanQuantity(newQty),
+                  updatedAt: auditTime,
+                  lastInventoryDate: auditTime
+                }
               });
             });
           }
@@ -533,28 +541,36 @@ export default function Inventory() {
         // Prepare Report
         const reportsPath = `users/${user.uid}/reports`;
         const reportRef = doc(collection(db, reportsPath));
-        batch.set(reportRef, {
-          date: auditTime,
-          totalRevenue: roundMoney(totalRevenue),
-          totalProfit: roundMoney(totalProfit),
-          totalRemainingValue: roundMoney(totalRemainingValue),
-          surplusValueUnverified: roundMoney(surplusValueUnverified),
-          surplusItemsCount,
-          surplusTotalQuantity,
-          totalExpenses: roundMoney(finalExpensesAmount), 
-          netProfit: roundMoney(netProfit),
-          items,
-          type: 'inventory',
-          expensesDeducted: shouldDeductExpenses
+        writeOperations.push({
+          type: 'set',
+          ref: reportRef,
+          data: {
+            date: auditTime,
+            totalRevenue: roundMoney(totalRevenue),
+            totalProfit: roundMoney(totalProfit),
+            totalRemainingValue: roundMoney(totalRemainingValue),
+            surplusValueUnverified: roundMoney(surplusValueUnverified),
+            surplusItemsCount,
+            surplusTotalQuantity,
+            totalExpenses: roundMoney(finalExpensesAmount), 
+            netProfit: roundMoney(netProfit),
+            items,
+            type: 'inventory',
+            expensesDeducted: shouldDeductExpenses
+          }
         });
 
         // Mark expenses as audited
         if (shouldDeductExpenses) {
           expensesSnapshot.docs.forEach(expenseDoc => {
-            batch.update(doc(db, expensesPath, expenseDoc.id), {
-              audited: true,
-              reportId: reportRef.id,
-              auditedAt: auditTime
+            writeOperations.push({
+              type: 'update',
+              ref: doc(db, expensesPath, expenseDoc.id),
+              data: {
+                audited: true,
+                reportId: reportRef.id,
+                auditedAt: auditTime
+              }
             });
           });
         }
@@ -563,13 +579,21 @@ export default function Inventory() {
         const profilePath = `users/${user.uid}/profile`;
         const finalMetaDocs = await getDocs(query(collection(db, profilePath), where("type", "==", "inventory_metadata")));
         if (finalMetaDocs.empty) {
-          batch.set(doc(collection(db, profilePath)), { type: 'inventory_metadata', lastAuditDate: auditTime });
+          writeOperations.push({
+            type: 'set',
+            ref: doc(collection(db, profilePath)),
+            data: { type: 'inventory_metadata', lastAuditDate: auditTime }
+          });
         } else {
-          batch.update(doc(db, profilePath, finalMetaDocs.docs[0].id), { lastAuditDate: auditTime });
+          writeOperations.push({
+            type: 'update',
+            ref: doc(db, profilePath, finalMetaDocs.docs[0].id),
+            data: { lastAuditDate: auditTime }
+          });
         }
 
-        // Commit in the background
-        batch.commit().then(() => {
+        // Commit all operations safely in chunks of 400 (under Firestore's 500 limit)
+        commitBatchesInChunks(db, writeOperations, writeBatch).then(() => {
           logAudit(
             'create',
             'inventory',
@@ -588,7 +612,7 @@ export default function Inventory() {
             );
           }
         }).catch(err => {
-          console.error("Inventory background sync failed:", err);
+          console.error("Inventory background chunked sync failed:", err);
         });
 
         // UI SUCCESS: Show report immediately

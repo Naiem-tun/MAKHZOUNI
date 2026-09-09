@@ -57,7 +57,7 @@ service cloud.firestore {
               data.productId is string &&
               data.type in ['purchase', 'sale', 'jard', 'adjustment'] &&
               data.quantityChange is number &&
-              data.date is string;
+              (data.date is string || data.date is timestamp);
     }
 
     function isValidReport(data) {

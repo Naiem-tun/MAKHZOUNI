@@ -160,9 +160,101 @@ export default function POSInvoice() {
     }
   }, [inputText, products]);
 
+  // Helper to calculate how many base units (pieces/kg) a given item deducts from inventory
+  const calculateDeductedPieces = (p: any, quantity: number, saleMode?: string): number => {
+    if (!p || !quantity) return 0;
+    const isKgProduct = p.unit === 'kg';
+    const subItems = p.subItemsPerPiece || 1;
+    const q = cleanQuantity(quantity);
+
+    if (saleMode === 'box' && p.piecesPerBox) {
+      return cleanQuantity(q * p.piecesPerBox);
+    } else if (saleMode === 'subpiece') {
+      return cleanQuantity(q / subItems);
+    } else if (saleMode === 'gram') {
+      if (isKgProduct && subItems > 1) {
+        return cleanQuantity((q / subItems) / 100);
+      } else {
+        return cleanQuantity(q / 1000);
+      }
+    } else if (saleMode === 'kg') {
+      if (isKgProduct && subItems > 1) {
+        return cleanQuantity((q / subItems) * 10);
+      } else {
+        return cleanQuantity(q);
+      }
+    }
+    return cleanQuantity(q);
+  };
+
+  // Helper to calculate maximum allowed quantity in the specific saleMode based on remaining stock
+  const getMaxAvailableInMode = (p: any, saleMode?: string, excludeItemId?: string, currentCartItems: InvoiceItem[] = []): number => {
+    if (!p) return 0;
+    const totalStock = cleanQuantity(
+      settings.posDeductInventory === false
+        ? (p.posQuantity !== undefined ? p.posQuantity : p.quantity)
+        : (p.quantity !== undefined ? p.quantity : (p.posQuantity || 0))
+    );
+    if (totalStock <= 0) return 0;
+
+    // Deduct stock already occupied by other rows of the same product in cart
+    const otherItems = currentCartItems.filter(it => it.productId === p.id && it.id !== excludeItemId);
+    const alreadyUsed = otherItems.reduce((sum, it) => sum + calculateDeductedPieces(p, it.quantity, it.saleMode), 0);
+    
+    const remaining = Math.max(0, cleanQuantity(totalStock - alreadyUsed));
+    if (remaining <= 0) return 0;
+
+    const isKgProduct = p.unit === 'kg';
+    const subItems = p.subItemsPerPiece || 1;
+
+    if (saleMode === 'box') {
+      const piecesPerBox = p.piecesPerBox || 1;
+      return Math.floor(remaining / piecesPerBox);
+    }
+    if (saleMode === 'subpiece') {
+      return cleanQuantity(remaining * subItems);
+    }
+    if (saleMode === 'gram') {
+      if (isKgProduct && subItems > 1) {
+        return cleanQuantity(remaining * subItems * 100);
+      }
+      return cleanQuantity(remaining * 1000);
+    }
+    if (saleMode === 'kg') {
+      if (isKgProduct && subItems > 1) {
+        return cleanQuantity((remaining * subItems) / 10);
+      }
+      return cleanQuantity(remaining);
+    }
+    return cleanQuantity(remaining);
+  };
+
   const addItem = (product: any) => {
     let initialMode: 'box' | 'kg' | 'piece' | 'gram' | 'subpiece' = 'piece';
     if (product.unit === 'kg') initialMode = 'kg';
+
+    const maxAvailable = getMaxAvailableInMode(product, initialMode, undefined, items);
+    if (maxAvailable <= 0) {
+      showToast(`المنتج "${product.name}" غير متوفر في المخزون (الكمية المتبقية: 0)`, 'error');
+      return;
+    }
+
+    // Check if same product and same saleMode already exists in cart
+    const existingIndex = items.findIndex(it => it.productId === product.id && it.saleMode === initialMode);
+    if (existingIndex > -1) {
+      const existingItem = items[existingIndex];
+      const newQty = cleanQuantity(existingItem.quantity + 1);
+      if (newQty > maxAvailable) {
+        showToast(`لا يمكن زيادة الكمية: أقصى كمية متوفرة في المخزون هي ${maxAvailable}`, 'error');
+        return;
+      }
+      const updatedItems = [...items];
+      updatedItems[existingIndex] = { ...existingItem, quantity: newQty };
+      setItems(updatedItems);
+      setInputText('');
+      setSuggestions([]);
+      return;
+    }
 
     const newItem: InvoiceItem = {
       id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
@@ -189,6 +281,29 @@ export default function POSInvoice() {
   const updateItem = (id: string, field: 'price' | 'quantity' | 'saleMode', value: any) => {
     setItems(items.map(item => {
       if (item.id === id) {
+        const p = products.find(prod => prod.id === item.productId) || item.product;
+        if (field === 'quantity') {
+          let numVal = Math.max(0, cleanQuantity(value));
+          if (p) {
+            const maxVal = getMaxAvailableInMode(p, item.saleMode, item.id, items);
+            if (numVal > maxVal) {
+              showToast(`الكمية المطلوبة (${numVal}) أكبر من المتوفر في المخزون (${maxVal})`, 'error');
+              numVal = maxVal;
+            }
+          }
+          return { ...item, quantity: numVal };
+        } else if (field === 'saleMode') {
+          const newMode = value;
+          let currentQty = item.quantity;
+          if (p) {
+            const maxVal = getMaxAvailableInMode(p, newMode, item.id, items);
+            if (currentQty > maxVal) {
+              currentQty = maxVal > 0 ? (maxVal >= 1 ? 1 : maxVal) : 0;
+              showToast(`تم تعديل الكمية إلى (${currentQty}) لتناسب المخزون المتاح (${maxVal})`, 'info');
+            }
+          }
+          return { ...item, saleMode: newMode, quantity: currentQty };
+        }
         return { ...item, [field]: value };
       }
       return item;
@@ -554,6 +669,27 @@ export default function POSInvoice() {
     if (!user || items.length === 0) return;
     try {
       setIsCompleting(true);
+
+      // Verify all items have enough inventory before proceeding
+      if (deductInventory) {
+        for (const item of items) {
+          const p = products.find(prod => prod.id === item.productId);
+          if (p) {
+            const availableStock = cleanQuantity(
+              settings.posDeductInventory === false
+                ? (p.posQuantity !== undefined ? p.posQuantity : p.quantity)
+                : (p.quantity !== undefined ? p.quantity : (p.posQuantity || 0))
+            );
+            const reqDeduct = calculateDeductedPieces(p, item.quantity, item.saleMode);
+            if (reqDeduct > availableStock) {
+              showToast(`لا يمكن إتمام البيع: الكمية المطلوبة للمنتج "${item.name}" تتجاوز المتوفر في المخزون (${availableStock})`, 'error');
+              setIsCompleting(false);
+              return;
+            }
+          }
+        }
+      }
+
       const batch = writeBatch(db);
 
       // Create invoice record
@@ -593,25 +729,48 @@ export default function POSInvoice() {
           }
         }
         
+        let actualDeductQty = cleanQuantity(item.quantity);
+        if (p) {
+          const isKgProduct = p.unit === 'kg';
+          const subItems = p.subItemsPerPiece || 1;
+          if (item.saleMode === 'box' && p.piecesPerBox) {
+            actualDeductQty = cleanQuantity(item.quantity * p.piecesPerBox);
+          } else if (item.saleMode === 'subpiece') {
+            actualDeductQty = cleanQuantity(item.quantity / subItems);
+          } else if (item.saleMode === 'gram') {
+            if (isKgProduct && subItems > 1) {
+              actualDeductQty = cleanQuantity((item.quantity / subItems) / 100);
+            } else {
+              actualDeductQty = cleanQuantity(item.quantity / 1000);
+            }
+          } else if (item.saleMode === 'kg') {
+            if (isKgProduct && subItems > 1) {
+              actualDeductQty = cleanQuantity((item.quantity / subItems) * 10);
+            } else {
+              actualDeductQty = cleanQuantity(item.quantity);
+            }
+          }
+        }
+
         totalAmount = roundMoney(totalAmount + itemTotal);
         totalCost = roundMoney(totalCost + itemCost);
         
         if (deductInventory && p) {
           const productRef = doc(db, `users/${user.uid}/products`, item.productId);
-          const currentPosQty = cleanQuantity(p.posQuantity !== undefined ? p.posQuantity : p.quantity);
           const currentQty = cleanQuantity(p.quantity !== undefined ? p.quantity : 0);
-          const itemQuantityToDeduct = cleanQuantity(item.quantity);
+          const currentPosQty = cleanQuantity(p.posQuantity !== undefined ? p.posQuantity : p.quantity);
           
-          if (settings.posDeductInventory) {
-            // Deduct directly from main warehouse inventory (quantity)
+          if (settings.posDeductInventory !== false) {
+            // Deduct from BOTH warehouse inventory (quantity) AND cashier inventory (posQuantity)
             batch.update(productRef, {
-              quantity: Math.max(0, cleanQuantity(currentQty - itemQuantityToDeduct)),
+              quantity: Math.max(0, cleanQuantity(currentQty - actualDeductQty)),
+              posQuantity: Math.max(0, cleanQuantity(currentPosQty - actualDeductQty)),
               updatedAt: serverTimestamp()
             });
           } else {
-            // Deduct from cashier's inventory (posQuantity) only, and NOT from main warehouse inventory
+            // Deduct ONLY from cashier inventory (posQuantity)
             batch.update(productRef, {
-              posQuantity: Math.max(0, cleanQuantity(currentPosQty - itemQuantityToDeduct)),
+              posQuantity: Math.max(0, cleanQuantity(currentPosQty - actualDeductQty)),
               updatedAt: serverTimestamp()
             });
           }
@@ -621,6 +780,9 @@ export default function POSInvoice() {
           productId: item.productId,
           name: item.name,
           quantity: item.quantity,
+          saleMode: item.saleMode || 'piece',
+          deductedQuantity: actualDeductQty,
+          unit: item.product?.unit || p?.unit || '',
           price: roundMoney(item.price),
           cost: unitCost,
           total: itemTotal,
@@ -634,6 +796,7 @@ export default function POSInvoice() {
         totalAmount: roundMoney(totalAmount),
         totalCost: roundMoney(totalCost),
         totalProfit: roundMoney(totalAmount - totalCost),
+        deductedFrom: deductInventory ? (settings.posDeductInventory !== false ? 'both' : 'cashier') : 'none',
         createdAt: serverTimestamp()
       };
 
@@ -802,91 +965,122 @@ export default function POSInvoice() {
       {/* Items List */}
       <div className="space-y-4 mt-6">
         <AnimatePresence>
-          {items.map((item) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 10, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              layout
-              className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden"
-            >
-              <div className="p-4 bg-zinc-50 dark:bg-zinc-800/20 border-b border-zinc-100 dark:border-zinc-800">
-                <h3 className="font-bold text-lg text-zinc-900 dark:text-white">{item.name}</h3>
-              </div>
-              
-              <div className="p-3 sm:p-4 flex items-end justify-between gap-2 sm:gap-4">
-                <div className="flex items-end gap-2 sm:gap-4 flex-1">
-                  {/* Price */}
-                  <div className="flex-[1.2]">
-                    <label className="block text-[10px] sm:text-xs font-bold text-zinc-400 mb-1 truncate">{t('selling_price')} </label>
-                    <input
-                      type="number"
-                      step="any"
-                      inputMode="decimal"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      data-lpignore="true"
-                      data-form-type="other"
-                      value={item.price || ''}
-                      onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value.replace(',', '.')) || 0)}
-                      className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg py-2 px-1 sm:px-3 text-sm sm:text-base font-bold text-zinc-900 dark:text-white text-center focus:ring-2 focus:ring-brand-500 h-10"
-                    />
-                  </div>
-                  {/* Quantity */}
-                  <div className="flex-[1.5]">
-                    <div className="flex flex-col gap-1 mb-1 justify-end min-h-[24px]">
-                      <label className="text-[10px] sm:text-xs font-bold text-zinc-400 truncate">{t('quantity')}</label>
-                      <div className="flex gap-1 flex-wrap justify-start">
-                        {(item.product?.piecesPerBox || 0) > 1 && (
-                          <button onClick={() => updateItem(item.id, 'saleMode', 'box')} className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${item.saleMode === 'box' ? 'bg-brand-500 text-white font-bold shadow-sm' : 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'}`}>كرتونة</button>
-                        )}
-                        {item.product?.unit !== 'kg' && (
-                          <button onClick={() => updateItem(item.id, 'saleMode', 'piece')} className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${item.saleMode === 'piece' || (!['box', 'subpiece', 'gram', 'kg'].includes(item.saleMode || '')) ? 'bg-brand-500 text-white font-bold shadow-sm' : 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'}`}>قطعة</button>
-                        )}
-                        {item.product?.unit === 'kg' && (
-                          <>
-                            <button onClick={() => updateItem(item.id, 'saleMode', 'kg')} className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${item.saleMode === 'kg' || (!['box', 'subpiece', 'gram', 'piece'].includes(item.saleMode || '')) ? 'bg-brand-500 text-white font-bold shadow-sm' : 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'}`}>كغ</button>
-                            <button onClick={() => updateItem(item.id, 'saleMode', 'gram')} className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${item.saleMode === 'gram' ? 'bg-brand-500 text-white font-bold shadow-sm' : 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'}`}>غرام</button>
-                          </>
-                        )}
-                        {item.product?.unit !== 'kg' && (item.product?.subItemsPerPiece || 0) > 1 && (
-                          <button onClick={() => updateItem(item.id, 'saleMode', 'subpiece')} className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${item.saleMode === 'subpiece' ? 'bg-brand-500 text-white font-bold shadow-sm' : 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'}`}>حبة</button>
-                        )}
+          {items.map((item) => {
+            const liveProduct = products.find(p => p.id === item.productId) || item.product;
+            const maxAvailableStock = liveProduct ? getMaxAvailableInMode(liveProduct, item.saleMode, item.id, items) : 999999;
+            return (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                layout
+                className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden"
+              >
+                <div className="p-4 bg-zinc-50 dark:bg-zinc-800/20 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+                  <h3 className="font-bold text-lg text-zinc-900 dark:text-white">{item.name}</h3>
+                  {liveProduct && (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {settings.posDeductInventory !== false ? (
+                        <>
+                          <span className="text-[11px] font-bold text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md">
+                            المخزن: {cleanQuantity(liveProduct.quantity || 0)} {liveProduct.unit || 'قطعة'}
+                          </span>
+                          <span className="text-[11px] font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/30 px-2 py-0.5 rounded-md">
+                            الكاشير: {cleanQuantity(liveProduct.posQuantity !== undefined ? liveProduct.posQuantity : liveProduct.quantity)}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-[11px] font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/30 px-2 py-0.5 rounded-md">
+                          مخزون الكاشير: {cleanQuantity(liveProduct.posQuantity !== undefined ? liveProduct.posQuantity : liveProduct.quantity)} {liveProduct.unit || 'قطعة'}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+                
+                <div className="p-3 sm:p-4 flex items-end justify-between gap-2 sm:gap-4">
+                  <div className="flex items-end gap-2 sm:gap-4 flex-1">
+                    {/* Price */}
+                    <div className="flex-[1.2]">
+                      <label className="block text-[10px] sm:text-xs font-bold text-zinc-400 mb-1 truncate">{t('selling_price')} </label>
+                      <input
+                        type="number"
+                        step="any"
+                        inputMode="decimal"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        data-lpignore="true"
+                        data-form-type="other"
+                        value={item.price || ''}
+                        onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value.replace(',', '.')) || 0)}
+                        className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg py-2 px-1 sm:px-3 text-sm sm:text-base font-bold text-zinc-900 dark:text-white text-center focus:ring-2 focus:ring-brand-500 h-10"
+                      />
+                    </div>
+                    {/* Quantity */}
+                    <div className="flex-[1.5]">
+                      <div className="flex flex-col gap-1 mb-1 justify-end min-h-[24px]">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] sm:text-xs font-bold text-zinc-400 truncate">{t('quantity')}</label>
+                          {liveProduct && (
+                            <span className={`text-[9px] font-bold ${maxAvailableStock <= 0 ? 'text-red-500' : 'text-brand-600 dark:text-brand-400'}`}>
+                              (المتاح: {maxAvailableStock})
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex gap-1 flex-wrap justify-start">
+                          {(item.product?.piecesPerBox || 0) > 1 && (
+                            <button onClick={() => updateItem(item.id, 'saleMode', 'box')} className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${item.saleMode === 'box' ? 'bg-brand-500 text-white font-bold shadow-sm' : 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'}`}>كرتونة</button>
+                          )}
+                          {item.product?.unit !== 'kg' && (
+                            <button onClick={() => updateItem(item.id, 'saleMode', 'piece')} className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${item.saleMode === 'piece' || (!['box', 'subpiece', 'gram', 'kg'].includes(item.saleMode || '')) ? 'bg-brand-500 text-white font-bold shadow-sm' : 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'}`}>قطعة</button>
+                          )}
+                          {item.product?.unit === 'kg' && (
+                            <>
+                              <button onClick={() => updateItem(item.id, 'saleMode', 'kg')} className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${item.saleMode === 'kg' || (!['box', 'subpiece', 'gram', 'piece'].includes(item.saleMode || '')) ? 'bg-brand-500 text-white font-bold shadow-sm' : 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'}`}>كغ</button>
+                              <button onClick={() => updateItem(item.id, 'saleMode', 'gram')} className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${item.saleMode === 'gram' ? 'bg-brand-500 text-white font-bold shadow-sm' : 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'}`}>غرام</button>
+                            </>
+                          )}
+                          {item.product?.unit !== 'kg' && (item.product?.subItemsPerPiece || 0) > 1 && (
+                            <button onClick={() => updateItem(item.id, 'saleMode', 'subpiece')} className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${item.saleMode === 'subpiece' ? 'bg-brand-500 text-white font-bold shadow-sm' : 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'}`}>حبة</button>
+                          )}
+                        </div>
+                      </div>
+                      <input
+                        type="number"
+                        step="any"
+                        min={0}
+                        max={maxAvailableStock}
+                        inputMode="decimal"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        data-lpignore="true"
+                        data-form-type="other"
+                        value={item.quantity || ''}
+                        onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value.replace(',', '.')) || 0)}
+                        className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg py-2 px-1 sm:px-3 text-sm sm:text-base font-bold text-zinc-900 dark:text-white text-center focus:ring-2 focus:ring-brand-500 h-10"
+                      />
+                    </div>
+                    {/* Total */}
+                    <div className="flex-[1.2] text-left pl-1 sm:pl-2">
+                      <label className="block text-[10px] sm:text-xs font-bold text-zinc-400 mb-1 truncate min-h-[24px]">المجموع</label>
+                      <div className="text-sm sm:text-base font-black text-brand-600 dark:text-brand-400 truncate flex items-center justify-end h-10">
+                        {calculateItemTotal(item).toFixed(3)}
                       </div>
                     </div>
-                    <input
-                      type="number"
-                      step="any"
-                      inputMode="decimal"
-                      autoComplete="off"
-                      autoCorrect="off"
-                      data-lpignore="true"
-                      data-form-type="other"
-                      value={item.quantity || ''}
-                      onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value.replace(',', '.')) || 0)}
-                      className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg py-2 px-1 sm:px-3 text-sm sm:text-base font-bold text-zinc-900 dark:text-white text-center focus:ring-2 focus:ring-brand-500 h-10"
-                    />
                   </div>
-                  {/* Total */}
-                  <div className="flex-[1.2] text-left pl-1 sm:pl-2">
-                    <label className="block text-[10px] sm:text-xs font-bold text-zinc-400 mb-1 truncate min-h-[24px]">المجموع</label>
-                    <div className="text-sm sm:text-base font-black text-brand-600 dark:text-brand-400 truncate flex items-center justify-end h-10">
-                      {calculateItemTotal(item).toFixed(3)}
-                    </div>
-                  </div>
-                </div>
 
-                {/* Delete */}
-                <button
-                  onClick={() => removeItem(item.id)}
-                  className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors self-end mb-[2px]"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            </motion.div>
-          ))}
+                  {/* Delete */}
+                  <button
+                    onClick={() => removeItem(item.id)}
+                    className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors self-end mb-[2px]"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
 
         {items.length === 0 && (

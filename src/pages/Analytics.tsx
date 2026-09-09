@@ -65,9 +65,11 @@ export default function Analytics() {
 
       // Purchases Listener
       const purchasesPath = `users/${uid}/purchases`;
-      const purchasesQuery = query(collection(db, purchasesPath), orderBy('date', 'desc'), limit(100));
+      const purchasesQuery = collection(db, purchasesPath);
       unsubPurchases = onSnapshot(purchasesQuery, (snap) => {
-        setPurchases(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        docs.sort((a: any, b: any) => safeParseDate(b.date || b.createdAt).getTime() - safeParseDate(a.date || a.createdAt).getTime());
+        setPurchases(docs);
         setLoading(false);
       });
     } catch(err) {
@@ -87,13 +89,13 @@ export default function Analytics() {
     const groups: Record<string, { date: Date, total: number }> = {};
     
     purchases.forEach(p => {
-      const date = safeParseDate(p.date);
+      const date = safeParseDate(p.date || p.createdAt);
       const dateKey = date.toLocaleDateString('en-GB'); // Use DD/MM/YYYY for consistent keying
       
       if (!groups[dateKey]) {
         groups[dateKey] = { date, total: 0 };
       }
-      groups[dateKey].total += (p.amount || 0);
+      groups[dateKey].total += (Number(p.amount) || 0);
     });
 
     return Object.values(groups).sort((a, b) => b.date.getTime() - a.date.getTime());

@@ -27,7 +27,6 @@ import { AddQuantityModal } from '../components/products/AddQuantityModal';
 import { ProductEditModal } from '../components/products/ProductEditModal';
 import { PriceNegotiationModal } from '../components/products/PriceNegotiationModal';
 import { SmartPurchasePopup } from '../components/products/SmartPurchasePopup';
-import { PurchaseInvoiceModal } from '../components/products/PurchaseInvoiceModal';
 import { PriceAuditModal } from '../components/products/PriceAuditModal';
 import { auditAllProducts } from '../lib/priceAuditor';
 import { deleteLocalImage, saveLocalImage } from '../lib/localImages';
@@ -83,7 +82,6 @@ export default function Products() {
   const [createdNewProduct, setCreatedNewProduct] = useState<Product | null>(null);
   const [isSmartPopupOpen, setIsSmartPopupOpen] = useState(false);
   const [pendingQuantityProduct, setPendingQuantityProduct] = useState<Product | null>(null);
-  const [isPurchaseInvoiceModalOpen, setIsPurchaseInvoiceModalOpen] = useState(false);
   const [isPriceAuditModalOpen, setIsPriceAuditModalOpen] = useState(false);
   const [suppliers, setSuppliers] = useState<any[]>([]);
 
@@ -572,20 +570,15 @@ export default function Products() {
       setScannerTarget('search');
       setIsScannerOpen(true);
     };
-    const invoiceModalHandler = () => {
-      setIsPurchaseInvoiceModalOpen(true);
-    };
     const priceAuditHandler = () => {
       setIsPriceAuditModalOpen(true);
     };
     window.addEventListener('open-product-modal', productHandler);
     window.addEventListener('open-barcode-scanner-products', scannerHandler);
-    window.addEventListener('open-purchase-invoice-modal', invoiceModalHandler);
     window.addEventListener('open-price-audit-modal', priceAuditHandler);
     return () => {
       window.removeEventListener('open-product-modal', productHandler);
       window.removeEventListener('open-barcode-scanner-products', scannerHandler);
-      window.removeEventListener('open-purchase-invoice-modal', invoiceModalHandler);
       window.removeEventListener('open-price-audit-modal', priceAuditHandler);
     };
   }, []);
@@ -599,7 +592,6 @@ export default function Products() {
           setScannedBarcode2('');
           setIsModalOpen(true);
         }} 
-        onOpenInvoiceModal={() => setIsPurchaseInvoiceModalOpen(true)}
         onOpenPriceAudit={() => setIsPriceAuditModalOpen(true)}
         priceIssuesCount={priceErrorsCount}
       />
@@ -793,13 +785,6 @@ export default function Products() {
         type={modalConfig.type}
         onConfirm={modalConfig.onConfirm}
         onCancel={() => setModalConfig(prev => ({ ...prev, show: false }))}
-      />
-
-      <PurchaseInvoiceModal
-        isOpen={isPurchaseInvoiceModalOpen}
-        onClose={() => setIsPurchaseInvoiceModalOpen(false)}
-        products={products}
-        suppliers={suppliers}
       />
 
       <PriceAuditModal

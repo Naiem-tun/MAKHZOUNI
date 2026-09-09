@@ -819,38 +819,6 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Gemini AI Settings Group */}
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800 shadow-sm divide-y divide-zinc-100 dark:divide-zinc-800">
-          <div className="px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 text-right flex items-center justify-between">
-            <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400">الذكاء الاصطناعي (Gemini AI)</h3>
-            <span className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-md">
-              <Sparkles size={12} />
-              تحليل الفواتير
-            </span>
-          </div>
-
-          {/* AI Invoice Scan Toggle */}
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-xl bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-                <Sparkles size={20} />
-              </div>
-              <div className="text-right">
-                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">إدخال الفواتير بالذكاء الاصطناعي</h3>
-                <p className="text-[11px] text-zinc-400 mt-0.5">إظهار زر وميزة قراءة فواتير التوريد واستخراج الأصناف بالذكاء الاصطناعي</p>
-              </div>
-            </div>
-            <button 
-              onClick={() => updateSettings({ enableAIInvoice: !(settings.enableAIInvoice ?? true) })}
-              className={`relative h-7 w-12 rounded-full transition-colors ${(settings.enableAIInvoice ?? true) ? 'bg-amber-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
-            >
-              <motion.div 
-                animate={{ x: (settings.enableAIInvoice ?? true) ? 20 : 4 }}
-                className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
-              />
-            </button>
-          </div>
-        </div>
 
         {/* Actions / Menu Items Group */}
         <div className="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800 shadow-sm divide-y divide-zinc-100 dark:divide-zinc-800">

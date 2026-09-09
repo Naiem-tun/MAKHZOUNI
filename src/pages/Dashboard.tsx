@@ -63,11 +63,12 @@ const Dashboard = memo(() => {
     
     const groupsMap = new Map<string, any>();
 
-    allPurchases.slice(0, 100).forEach((p: any) => {
+    allPurchases.forEach((p: any) => {
       const parsedDate = safeParseDate(p.date);
       const dateStr = formatAppDate(parsedDate, settings.language, t);
       const supplierName = p.supplierName || t('unknown_supplier');
-      const groupKey = `${supplierName}-${dateStr}`;
+      const invoiceSuffix = p.invoiceNumber ? ` #${p.invoiceNumber}` : '';
+      const groupKey = `${supplierName}-${dateStr}${invoiceSuffix}`;
 
       if (groupsMap.has(groupKey)) {
         groupsMap.get(groupKey).items.push(p);
@@ -77,13 +78,15 @@ const Dashboard = memo(() => {
           key: groupKey,
           supplierName: p.supplierName,
           date: dateStr,
+          invoiceNumber: p.invoiceNumber,
           items: [p],
           totalAmount: p.amount || 0
         });
       }
     });
 
-    return Array.from(groupsMap.values());
+    // Return the latest 50 purchase groups (without truncating items inside each group)
+    return Array.from(groupsMap.values()).slice(0, 50);
   }, [allPurchases, settings.language, t]);
 
   useEffect(() => {
@@ -100,11 +103,7 @@ const Dashboard = memo(() => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const purchasesQuery = query(
-      collection(db, purchasesPath),
-      orderBy('date', 'desc'),
-      limit(300)
-    );
+    const purchasesQuery = collection(db, purchasesPath);
     const expensesQuery = collection(db, expensesPath);
     const debtsQuery = collection(db, debtsPath);
     const supplierTxQuery = collection(db, supplierTxPath);
@@ -119,7 +118,7 @@ const Dashboard = memo(() => {
     const unsubPurchases = onSnapshot(purchasesQuery, (snap) => {
       setAllPurchases(snap.docs.map(doc => {
         const data = doc.data();
-        const parsedDate = safeParseDate(data.date);
+        const parsedDate = safeParseDate(data.date || data.createdAt);
         const cleanQtyAdded = cleanQuantity(data.qtyAdded);
         
         return { 
@@ -131,7 +130,11 @@ const Dashboard = memo(() => {
           price: cleanQtyAdded > 0 ? (data.amount / cleanQtyAdded) : 0,
           supplierId: data.supplierId || null,
           supplierName: data.supplierName || null,
-          date: parsedDate
+          date: parsedDate,
+          unit: data.unit || 'piece',
+          piecesPerBox: data.piecesPerBox || 1,
+          invoiceNumber: data.invoiceNumber || null,
+          createdAt: data.createdAt ? safeParseDate(data.createdAt) : parsedDate,
         } as any;
       }).sort((a, b) => b.date.getTime() - a.date.getTime()));
     }, (error) => {
@@ -215,7 +218,11 @@ const Dashboard = memo(() => {
     const unregisteredPurchasesValue = Math.max(0, totalAllPurchasesValue - totalSupplierPurchasesValue);
 
     const todayStr = safeParseDate(new Date()).toDateString();
-    const todayPurchases = allPurchases.filter(p => safeParseDate(p.date).toDateString() === todayStr);
+    const todayPurchases = allPurchases.filter(p => {
+      const pDate = safeParseDate(p.date).toDateString();
+      const pCreated = (p as any).createdAt ? safeParseDate((p as any).createdAt).toDateString() : pDate;
+      return pDate === todayStr || pCreated === todayStr;
+    });
     const todayPurchasesTotal = todayPurchases.reduce((acc, p) => acc + (p.amount || 0), 0);
 
     // Group purchases by date for movement list
@@ -456,7 +463,7 @@ const Dashboard = memo(() => {
             </div>
           ) : (
             groupedPurchases.map((group: any, groupIndex: number) => {
-              const isExpanded = expandedPurchaseGroups[group.key];
+              const isExpanded = expandedPurchaseGroups[group.key] ?? (groupIndex === 0);
               
               return (
                 <div key={`group-${group.key}-${groupIndex}`} className="space-y-3">

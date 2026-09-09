@@ -103,20 +103,38 @@ export function safeParseDate(val: any): Date {
       return rawDate;
     }
   }
+  // Handle Firestore Timestamp plain objects ({ seconds: ..., nanoseconds: ... } or { _seconds: ... })
+  if (val && typeof val === 'object') {
+    if (typeof val.seconds === 'number') {
+      const d = new Date(val.seconds * 1000 + (val.nanoseconds ? Math.floor(val.nanoseconds / 1000000) : 0));
+      if (!isNaN(d.getTime())) return d;
+    }
+    if (typeof val._seconds === 'number') {
+      const d = new Date(val._seconds * 1000);
+      if (!isNaN(d.getTime())) return d;
+    }
+  }
   if (typeof val === 'number') {
     const parsed = new Date(val);
     if (!isNaN(parsed.getTime())) return parsed;
   }
   if (typeof val === 'string') {
+    const trimmed = val.trim();
+    // Try YYYY-MM-DD format (set to midday to prevent timezone shift across date boundary)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      const [y, m, d] = trimmed.split('-').map(Number);
+      const parsedStr = new Date(y, m - 1, d, 12, 0, 0);
+      if (!isNaN(parsedStr.getTime())) return parsedStr;
+    }
     // Try to parse DD/MM/YYYY or DD-MM-YYYY
-    const parts = val.split(/[/-]/);
+    const parts = trimmed.split(/[/-]/);
     if (parts.length === 3 && parts[0].length <= 2) {
       const day = parseInt(parts[0], 10);
       const month = parseInt(parts[1], 10) - 1;
       let year = parseInt(parts[2], 10);
       if (year < 100) year += 2000;
       if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-        const parsedStr = new Date(year, month, day);
+        const parsedStr = new Date(year, month, day, 12, 0, 0);
         if (!isNaN(parsedStr.getTime())) return parsedStr;
       }
     }
@@ -166,5 +184,36 @@ export function safeDispatchEvent(name: string, detail?: any) {
     } catch (err) {
       console.error('Failed to dispatch event:', name, err);
     }
+  }
+}
+
+/**
+ * Commits a large array of Firestore write operations by splitting them into batches
+ * conforming to Firestore's 500 operations per batch limit (using safe chunk size of 400).
+ */
+export async function commitBatchesInChunks(
+  db: any,
+  operations: Array<{
+    type: 'set' | 'update' | 'delete';
+    ref: any;
+    data?: any;
+  }>,
+  createBatchFn: (firestoreInstance: any) => any
+): Promise<void> {
+  if (!operations || operations.length === 0) return;
+  const CHUNK_SIZE = 400; // Well below 500 limit
+  for (let i = 0; i < operations.length; i += CHUNK_SIZE) {
+    const chunk = operations.slice(i, i + CHUNK_SIZE);
+    const batch = createBatchFn(db);
+    for (const op of chunk) {
+      if (op.type === 'update') {
+        batch.update(op.ref, op.data);
+      } else if (op.type === 'set') {
+        batch.set(op.ref, op.data);
+      } else if (op.type === 'delete') {
+        batch.delete(op.ref);
+      }
+    }
+    await batch.commit();
   }
 }

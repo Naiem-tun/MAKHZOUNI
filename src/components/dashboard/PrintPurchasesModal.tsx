@@ -5,7 +5,7 @@ import { Transaction } from '../../types';
 import * as html2pdf from 'html2pdf.js';
 import { X, ExternalLink, Loader2 } from 'lucide-react';
 import { useAppContext } from '../../AppContext';
-import { collection, query, getDocs, orderBy, where } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy, where, limit } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
 interface PrintPurchasesModalProps {
@@ -38,11 +38,12 @@ export function PrintPurchasesModal({
       showToast('جاري تحضير التقرير...', 'info');
 
       // Fetch all purchases directly from Firestore instead of relying on the limited prop
-      const purchasesQuery = query(collection(db, `users/${user.uid}/purchases`), orderBy('date', 'desc'));
+      const purchasesQuery = collection(db, `users/${user.uid}/purchases`);
       const snap = await getDocs(purchasesQuery);
       
       const allPurchases = snap.docs.map(doc => {
         const data = doc.data();
+        const parsedDate = safeParseDate(data.date || data.createdAt);
         return {
           id: doc.id,
           productId: data.productId,
@@ -51,9 +52,9 @@ export function PrintPurchasesModal({
           supplierName: data.supplierName,
           amount: data.amount || 0,
           price: data.qtyAdded > 0 ? (data.amount / data.qtyAdded) : 0,
-          date: data.date
+          date: parsedDate
         } as Transaction;
-      });
+      }).sort((a, b) => safeParseDate(b.date).getTime() - safeParseDate(a.date).getTime());
 
       // Filter purchases based on period
       const now = new Date();

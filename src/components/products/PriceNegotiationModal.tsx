@@ -2,9 +2,9 @@ import React from 'react';
 import { X, Shield, History, TrendingUp, TrendingDown, Minus, Truck, Calendar, Info, Package } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Product } from '../../types';
-import { formatCurrency, cn } from '../../lib/utils';
+import { formatCurrency, cn, safeParseDate } from '../../lib/utils';
 import { useAppContext } from '../../AppContext';
-import { query, collection, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { query, collection, where, limit, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
 interface PriceNegotiationModalProps {
@@ -29,13 +29,12 @@ export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegoti
             const q = query(
               collection(db, `users/${user.uid}/purchases`),
               where('productId', '==', p.id),
-              orderBy('date', 'desc'),
-              limit(10)
+              limit(20)
             );
             const snap = await getDocs(q);
             allHistory.push(...snap.docs.map(doc => doc.data()));
           }
-          allHistory.sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0));
+          allHistory.sort((a, b) => safeParseDate(b.date || b.createdAt).getTime() - safeParseDate(a.date || a.createdAt).getTime());
           setHistory(allHistory);
         } catch (err) {
           console.error("Error fetching price history:", err);
