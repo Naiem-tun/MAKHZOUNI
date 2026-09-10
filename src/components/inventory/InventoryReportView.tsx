@@ -4,7 +4,8 @@ import { ArrowRight, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { formatAppDate, safeParseDate, formatCurrency } from '../../lib/utils';
 import { useAppContext } from '../../AppContext';
-import * as html2pdf from 'html2pdf.js';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import * as xlsx from 'xlsx';
 
 interface InventoryReportViewProps {
@@ -126,42 +127,237 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
     try {
       showToast(t('preparing_pdf'));
       
-      const element = document.getElementById('pdf-report-content');
-      if (!element) throw new Error("Report element not found");
-      
-      // Temporarily hide buttons
-      const hiddenElements = element.querySelectorAll('.print-hidden');
-      hiddenElements.forEach((el: any) => {
-         el.setAttribute('data-original-display', el.style.display);
-         el.style.display = 'none';
-      });
-
-      const storeName = settings.storeName || 'Store';
+      const storeName = settings.storeName || t('makhzouni');
       const reportDate = safeParseDate(report.date).toLocaleDateString('en-GB');
       const filename = `inventory-${reportDate.replace(/\//g, '-')}.pdf`;
+      const formattedDate = formatAppDate(safeParseDate(report.date), settings.language, t);
+
+      const totalProfitStr = formatCurrency(report.totalProfit || 0, settings.currency, settings.language);
+      const totalRemainingVal = report.totalRemainingValue !== undefined 
+        ? report.totalRemainingValue 
+        : report.items?.reduce((sum: number, item: any) => {
+            const prod = products.find(p => p.name === item.productName);
+            const cost = prod?.purchasePrice || prod?.costPrice || 0;
+            return sum + (cost * (item.quantityAfter || 0));
+          }, 0) || 0;
+      const totalRemainingStr = formatCurrency(totalRemainingVal, settings.currency, settings.language);
+
+      const surplusItems = displayItems.filter((it: any) => it.isSurplus || (it.salesCalculated < 0));
+      const surplusCount = report.surplusCount !== undefined ? report.surplusCount : surplusItems.length;
+      const surplusTotalQty = report.surplusTotalQuantity !== undefined 
+        ? report.surplusTotalQuantity 
+        : surplusItems.reduce((acc: number, it: any) => acc + (it.surplusQuantity || Math.abs(it.salesCalculated || 0)), 0);
+      const surplusCostTotal = report.surplusValueUnverified !== undefined 
+        ? report.surplusValueUnverified 
+        : surplusItems.reduce((acc: number, it: any) => {
+            if (it.surplusCostValue !== undefined) return acc + it.surplusCostValue;
+            const prod = products.find(p => p.name === it.productName);
+            const cost = it.purchasePrice || prod?.purchasePrice || prod?.costPrice || 0;
+            const qty = it.surplusQuantity || Math.abs(it.salesCalculated || 0);
+            return acc + (qty * cost);
+          }, 0);
+
+      // Safe page chunking: 15 rows on page 1 (with header & cards), 22 rows on subsequent pages
+      const PAGE_1_MAX = 15;
+      const OTHER_PAGE_MAX = 22;
+      const pageChunks: any[][] = [];
       
-      const opt = {
-        margin:       10,
-        filename:     filename,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak:    { mode: 'avoid-all' }
-      };
+      if (displayItems.length === 0) {
+        pageChunks.push([]);
+      } else {
+        pageChunks.push(displayItems.slice(0, PAGE_1_MAX));
+        let offset = PAGE_1_MAX;
+        while (offset < displayItems.length) {
+          pageChunks.push(displayItems.slice(offset, offset + OTHER_PAGE_MAX));
+          offset += OTHER_PAGE_MAX;
+        }
+      }
 
-      // @ts-ignore
-      const html2pdfModule = html2pdf.default || html2pdf;
+      const totalPages = pageChunks.length;
 
-      // @ts-ignore
-      await html2pdfModule().set(opt).from(element).save();
-
-      // Restore
-      hiddenElements.forEach((el: any) => {
-         el.style.display = el.getAttribute('data-original-display') || '';
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true
       });
-      
+
+      // Temporary hidden host to render pages at exact A4 pixel width (794px)
+      const hiddenHost = document.createElement('div');
+      hiddenHost.style.position = 'fixed';
+      hiddenHost.style.top = '-99999px';
+      hiddenHost.style.left = '0';
+      hiddenHost.style.width = '794px';
+      hiddenHost.style.zIndex = '-9999';
+      hiddenHost.style.background = '#ffffff';
+      document.body.appendChild(hiddenHost);
+
+      for (let pageIdx = 0; pageIdx < totalPages; pageIdx++) {
+        const items = pageChunks[pageIdx];
+        const isFirstPage = pageIdx === 0;
+
+        let rowsHtml = '';
+        items.forEach((item: any, i: number) => {
+          const isItemSurplus = item.isSurplus || (item.salesCalculated < 0);
+          const surplusQty = item.surplusQuantity || (isItemSurplus ? Math.abs(item.salesCalculated) : 0);
+          const remainingVal = item.remainingValue !== undefined 
+            ? item.remainingValue 
+            : (((products.find(p => p.name === item.productName)?.purchasePrice || products.find(p => p.name === item.productName)?.costPrice) || 0) * (item.quantityAfter || 0));
+
+          const rowBg = isItemSurplus ? '#fffbeb' : (i % 2 === 1 ? '#f8fafc' : '#ffffff');
+          const profitCell = isItemSurplus 
+            ? `<span style="color: #94a3b8; font-family: monospace; font-size: 11px;">0.000</span>` 
+            : `<span style="font-weight: 700; color: #0f172a;" dir="ltr">${formatCurrency(item.profit || 0, settings.currency, settings.language)}</span>`;
+
+          const soldCell = isItemSurplus
+            ? `<span style="display: inline-block; padding: 2px 6px; border-radius: 4px; background-color: #fef3c7; color: #78350f; border: 1px solid #fcd34d; font-weight: bold; font-size: 10.5px;">+${surplusQty} غير مفسَّر</span>`
+            : `<span style="font-weight: 700; color: #0f172a;">${item.salesCalculated}</span>`;
+
+          const surplusNote = isItemSurplus 
+            ? `<div style="font-size: 10px; color: #b45309; font-weight: bold; margin-top: 2px;">زيادة غير مفسَّرة: المسجل (${item.quantityBefore ?? '—'}) ➔ الفعلي (${item.quantityAfter ?? '—'})</div>`
+            : '';
+
+          rowsHtml += `
+            <tr style="background-color: ${rowBg}; border-bottom: 1px solid #e2e8f0; height: 38px;">
+              <td style="padding: 6px 10px; text-align: right; vertical-align: middle; width: 38%;">
+                <div style="font-weight: 700; color: #0f172a; font-size: 12px;">${item.productName || '—'}</div>
+                ${surplusNote}
+              </td>
+              <td style="padding: 6px 6px; text-align: center; vertical-align: middle; width: 14%; font-size: 12px;">
+                ${soldCell}
+              </td>
+              <td style="padding: 6px 10px; text-align: left; vertical-align: middle; width: 16%; font-size: 12px;" dir="ltr">
+                ${profitCell}
+              </td>
+              <td style="padding: 6px 6px; text-align: center; vertical-align: middle; width: 14%; font-weight: 700; color: #0f172a; font-size: 12px;">
+                ${item.quantityAfter ?? '—'}
+              </td>
+              <td style="padding: 6px 10px; text-align: left; vertical-align: middle; width: 18%; font-weight: 700; color: #0f172a; font-size: 12px;" dir="ltr">
+                ${formatCurrency(remainingVal, settings.currency, settings.language)}
+              </td>
+            </tr>
+          `;
+        });
+
+        const headerHtml = isFirstPage ? `
+          <!-- Main First Page Header Table -->
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; border-bottom: 2px solid #021024; padding-bottom: 12px;">
+            <tr>
+              <td style="width: 32%; text-align: right; vertical-align: middle;">
+                <div style="font-size: 19px; font-weight: 900; color: #021024;">${storeName}</div>
+              </td>
+              <td style="width: 36%; text-align: center; vertical-align: middle;">
+                <div style="font-size: 21px; font-weight: 900; color: #0f172a;">${t('sales_report')}</div>
+              </td>
+              <td style="width: 32%; text-align: left; vertical-align: middle;" dir="ltr">
+                <div style="font-size: 13px; color: #64748b; font-weight: 600;">${formattedDate}</div>
+              </td>
+            </tr>
+          </table>
+
+          <!-- Summary Cards on First Page -->
+          <table style="width: 100%; border-collapse: separate; border-spacing: 12px 0; margin-bottom: 16px;">
+            <tr>
+              <td style="width: ${surplusCostTotal > 0 ? '33.33%' : '50%'}; vertical-align: top; background-color: #004eff; color: #ffffff; padding: 12px 14px; border-radius: 8px;">
+                <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">${t('total_profits')}</div>
+                <div style="font-size: 20px; font-weight: 900;" dir="ltr">${totalProfitStr}</div>
+              </td>
+              <td style="width: ${surplusCostTotal > 0 ? '33.33%' : '50%'}; vertical-align: top; background-color: #021024; color: #ffffff; padding: 12px 14px; border-radius: 8px;">
+                <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">${t('total_remaining_value')}</div>
+                <div style="font-size: 20px; font-weight: 900;" dir="ltr">${totalRemainingStr}</div>
+              </td>
+              ${surplusCostTotal > 0 ? `
+              <td style="width: 33.33%; vertical-align: top; background-color: #d97706; color: #ffffff; padding: 12px 14px; border-radius: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                  <span style="font-size: 12px; font-weight: bold;">فائض غير مبرَّر</span>
+                  <span style="font-size: 10px; background-color: rgba(0,0,0,0.25); padding: 1px 6px; border-radius: 4px; font-weight: bold;">
+                    ${surplusCount} صنف (+${surplusTotalQty})
+                  </span>
+                </div>
+                <div style="font-size: 18px; font-weight: 900;" dir="ltr">${formatCurrency(surplusCostTotal, settings.currency, settings.language)}</div>
+                <div style="font-size: 9.5px; opacity: 0.9; margin-top: 2px;">كميات فعلية زائدة عن المسجل</div>
+              </td>
+              ` : ''}
+            </tr>
+          </table>
+
+          <div style="font-size: 11px; color: #64748b; margin-bottom: 10px;">
+            * ${t('sorted_by_sales_desc')}
+          </div>
+        ` : `
+          <!-- Subsequent Pages Header Table -->
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; border-bottom: 1.5px solid #cbd5e1; padding-bottom: 8px;">
+            <tr>
+              <td style="width: 33%; text-align: right; font-size: 14px; font-weight: 800; color: #021024;">${storeName}</td>
+              <td style="width: 34%; text-align: center; font-size: 15px; font-weight: 800; color: #0f172a;">${t('sales_report')} (تابع)</td>
+              <td style="width: 33%; text-align: left; font-size: 12px; color: #64748b;" dir="ltr">${formattedDate}</td>
+            </tr>
+          </table>
+        `;
+
+        const pageHtml = `
+          <div style="width: 794px; min-height: 1120px; max-height: 1120px; box-sizing: border-box; padding: 25px 30px; background: #ffffff; color: #0f172a; direction: rtl; font-family: system-ui, -apple-system, 'Segoe UI', Tahoma, Roboto, sans-serif; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              ${headerHtml}
+
+              <!-- Table -->
+              <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                <thead>
+                  <tr style="background-color: #e6f0ff; color: #021024; border-bottom: 2px solid #94a3b8; height: 34px;">
+                    <th style="padding: 6px 10px; text-align: right; font-weight: 800; width: 38%;">${t('product')}</th>
+                    <th style="padding: 6px 6px; text-align: center; font-weight: 800; width: 14%;">${t('sold')}</th>
+                    <th style="padding: 6px 10px; text-align: left; font-weight: 800; width: 16%;">${t('profit')}</th>
+                    <th style="padding: 6px 6px; text-align: center; font-weight: 800; width: 14%;">${t('remaining_qty')}</th>
+                    <th style="padding: 6px 10px; text-align: left; font-weight: 800; width: 18%;">${t('remaining_value')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rowsHtml || '<tr><td colspan="5" style="text-align: center; padding: 25px; font-size: 13px;">لا توجد عناصر</td></tr>'}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Page Footer -->
+            <div style="margin-top: 15px; padding-top: 10px; border-top: 1.5px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 600; color: #64748b;">
+              <div>${storeName} — ${t('sales_report')}</div>
+              <div>صفحة <strong style="color: #021024;">${pageIdx + 1}</strong> من <strong style="color: #021024;">${totalPages}</strong></div>
+              <div dir="ltr">${formattedDate}</div>
+            </div>
+          </div>
+        `;
+
+        const pageContainer = document.createElement('div');
+        pageContainer.innerHTML = pageHtml;
+        hiddenHost.appendChild(pageContainer);
+
+        await new Promise((resolve) => setTimeout(resolve, 30));
+
+        const pageElem = pageContainer.firstElementChild as HTMLElement;
+        const canvas = await html2canvas(pageElem, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+          width: 794,
+          windowWidth: 794
+        });
+
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+
+        if (pageIdx < totalPages - 1) {
+          pdf.addPage('a4', 'p');
+        }
+
+        hiddenHost.removeChild(pageContainer);
+      }
+
+      if (document.body.contains(hiddenHost)) {
+        document.body.removeChild(hiddenHost);
+      }
+
+      pdf.save(filename);
       showToast(t('pdf_download_success'), 'success');
-      
     } catch (err) {
       console.error("PDF generation error:", err);
       showToast(t('pdf_download_error') + ': ' + String(err), 'error');
@@ -243,7 +439,7 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
           </div>
 
           {surplusCostTotal > 0 && (
-            <div className="p-5 rounded-lg bg-amber-500 text-white shadow-sm border border-amber-600 sm:col-span-2 lg:col-span-1">
+            <div className="p-5 rounded-lg bg-[#d97706] text-white shadow-sm border border-[#b45309] sm:col-span-2 lg:col-span-1">
               <div className="flex items-center justify-between mb-1.5">
                 <div className="text-[15px] font-black flex items-center gap-1.5">
                   <span>فائض مخزون غير مبرَّر</span>
@@ -285,20 +481,20 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
                 return (
                   <tr 
                     key={i} 
-                    className={isItemSurplus ? "bg-amber-50/50 hover:bg-amber-50" : "even:bg-[#fafbfc]"} 
+                    className={isItemSurplus ? "bg-[#fffbeb] hover:bg-[#fef3c7]" : "even:bg-[#fafbfc]"} 
                     style={{ pageBreakInside: 'avoid' }}
                   >
                     <td className="px-3 py-3 text-right border-b border-[#eeeeee]">
-                      <div className="font-semibold text-zinc-900">{item.productName}</div>
+                      <div className="font-semibold text-[#0f172a]">{item.productName}</div>
                       {isItemSurplus && (
-                        <div className="text-[11px] text-amber-700 font-bold mt-0.5">
+                        <div className="text-[11px] text-[#b45309] font-bold mt-0.5">
                           زيادة غير مفسَّرة: المسجل ({item.quantityBefore ?? '—'}) ➔ الفعلي ({item.quantityAfter ?? '—'})
                         </div>
                       )}
                     </td>
                     <td className="px-3 py-3 text-right border-b border-[#eeeeee]">
                       {isItemSurplus ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300 font-black text-[11px] whitespace-nowrap shadow-xs">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[#fef3c7] text-[#78350f] border border-[#fcd34d] font-black text-[11px] whitespace-nowrap shadow-xs">
                           +{surplusQty} غير مفسَّر
                         </span>
                       ) : (
@@ -308,7 +504,7 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
                     <td className="px-3 py-3 text-right border-b border-[#eeeeee]" dir="ltr">
                       <div className="inline-block">
                         {isItemSurplus ? (
-                          <span className="text-zinc-400 font-mono text-xs">0.000</span>
+                          <span className="text-[#94a3b8] font-mono text-xs">0.000</span>
                         ) : (
                           formatCurrency(item.profit || 0, settings.currency, settings.language)
                         )}
