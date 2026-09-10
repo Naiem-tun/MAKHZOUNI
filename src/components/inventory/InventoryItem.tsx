@@ -51,6 +51,24 @@ export const InventoryItem = React.memo(({
     return `${formatQuantity(cleanTotal)} ${unitText}`;
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const allInputs = Array.from(
+        document.querySelectorAll<HTMLInputElement>('input[data-inventory-input="true"]:not([disabled])')
+      ).filter(el => el.offsetParent !== null);
+
+      const currentIndex = allInputs.indexOf(e.currentTarget);
+      if (currentIndex > -1 && currentIndex < allInputs.length - 1) {
+        const nextInput = allInputs[currentIndex + 1];
+        nextInput.focus();
+        nextInput.select();
+      } else {
+        e.currentTarget.blur();
+      }
+    }
+  };
+
   return (
     <motion.div 
       className={cn(
@@ -94,6 +112,8 @@ export const InventoryItem = React.memo(({
       <div className="flex items-center gap-2 shrink-0 mr-auto">
         {showDetailedControls && (
           <button 
+            type="button"
+            tabIndex={-1}
             onClick={() => onAddPiece(product.id)} 
             className="w-9 h-9 flex items-center justify-center bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-lg text-zinc-600 dark:text-zinc-400 active:scale-95 transition-transform shadow-sm"
             title={t('add_piece')}
@@ -107,6 +127,8 @@ export const InventoryItem = React.memo(({
 
         {(product.piecesPerBox || 1) > 1 && (
           <button 
+            type="button"
+            tabIndex={-1}
             onClick={() => onAddCarton(product.id, product.piecesPerBox || 1)} 
             className="w-9 h-9 flex items-center justify-center bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-lg text-zinc-400 active:scale-95 transition-transform"
             title={`${t('add_carton')} (${product.piecesPerBox} ${t('piece')})`}
@@ -123,11 +145,15 @@ export const InventoryItem = React.memo(({
             type="number" 
             step="any"
             inputMode="decimal"
+            enterKeyHint="next"
+            data-inventory-input="true"
             autoComplete="off"
             autoCorrect="off"
             data-lpignore="true"
             data-form-type="other"
             value={inventoryQuantity ?? ''}
+            onFocus={(e) => e.target.select()}
+            onKeyDown={handleKeyDown}
             onChange={(e) => onChangeQuantity(product.id, e.target.value.replace(',', '.'))}
             className="w-16 h-9 text-center text-sm font-black bg-zinc-100/50 dark:bg-zinc-800 border border-zinc-100 dark:border-neutral-800 rounded-lg outline-none focus:ring-2 focus:ring-brand-500/20 dark:text-white placeholder:text-zinc-300 transition-all font-mono"
             placeholder={t('quantity')}
