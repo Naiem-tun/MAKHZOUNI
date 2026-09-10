@@ -8,6 +8,7 @@ import { useAppContext } from '../../AppContext';
 
 interface InventoryItemProps {
   product: any;
+  sequenceNumber?: number;
   inventoryQuantity: number | undefined;
   isChecked: boolean;
   showDetailedControls: boolean;
@@ -19,6 +20,7 @@ interface InventoryItemProps {
 
 export const InventoryItem = React.memo(({
   product,
+  sequenceNumber,
   inventoryQuantity,
   isChecked,
   showDetailedControls,
@@ -79,6 +81,11 @@ export const InventoryItem = React.memo(({
     >
       {/* Product Info (Right) */}
       <div className="flex items-center gap-3 flex-1 min-w-0" onClick={() => onToggleCheck(product.id)}>
+        {sequenceNumber !== undefined && (
+          <span className="w-5 flex-shrink-0 text-[10px] font-black text-zinc-400 dark:text-zinc-500 text-center">
+            {sequenceNumber}
+          </span>
+        )}
         <div className="relative">
           <ProductIcon category={product.category} />
           {isChecked && (
