@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, ScanBarcode, CheckCircle2, Check,
   Package, Wallet, FileText, ClipboardCheck, Trash2, History,
-  X, PlusCircle, MinusCircle, ArrowRight, Download, Receipt, FileBarChart, TrendingUp, Activity, Printer
+  X, PlusCircle, MinusCircle, ArrowRight, Download, Receipt, FileBarChart, TrendingUp, Activity, Printer, AlertTriangle
 } from 'lucide-react';
 import { 
   collection, 
@@ -33,6 +33,7 @@ import { HistoryModal } from '../components/inventory/HistoryModal';
 import { ExpensesModal } from '../components/inventory/ExpensesModal';
 import { InventoryCompareModal } from '../components/inventory/InventoryCompareModal';
 import { InventoryPrintModal } from '../components/inventory/InventoryPrintModal';
+import { DamageModal } from '../components/inventory/DamageModal';
 
 import { InventoryItem } from '../components/inventory/InventoryItem';
 import { useTranslation } from 'react-i18next';
@@ -171,6 +172,7 @@ export default function Inventory() {
   
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showDamageModal, setShowDamageModal] = useState(false);
   
   const [showReportView, setShowReportView] = useState(false);
   const [currentReport, setCurrentReport] = useState<any>(null);
@@ -540,6 +542,16 @@ export default function Inventory() {
         const finalExpensesAmount = shouldDeductExpenses ? actualExpensesAmount : 0;
         const netProfit = roundMoney(totalProfit - finalExpensesAmount);
 
+        // Fetch damage logs
+        const damageLogsPath = `users/${user.uid}/damage_logs`;
+        const damageLogsQuery = query(
+          collection(db, damageLogsPath),
+          where("audited", "==", false)
+        );
+        const damageLogsSnapshot = await getDocs(damageLogsQuery);
+        const damageItems = damageLogsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const totalDamageLoss = roundMoney(damageItems.reduce((acc, item: any) => acc + (item.totalLoss || 0), 0));
+
         // Prepare Report
         const reportsPath = `users/${user.uid}/reports`;
         const reportRef = doc(collection(db, reportsPath));
@@ -557,6 +569,8 @@ export default function Inventory() {
             totalExpenses: roundMoney(finalExpensesAmount), 
             netProfit: roundMoney(netProfit),
             items,
+            damageItems, // Save damage items
+            totalDamageLoss, // Save total damage loss
             type: 'inventory',
             expensesDeducted: shouldDeductExpenses
           }
@@ -576,6 +590,19 @@ export default function Inventory() {
             });
           });
         }
+
+        // Mark damage logs as audited
+        damageLogsSnapshot.docs.forEach(damageDoc => {
+          writeOperations.push({
+            type: 'update',
+            ref: doc(db, damageLogsPath, damageDoc.id),
+            data: {
+              audited: true,
+              reportId: reportRef.id,
+              auditedAt: auditTime
+            }
+          });
+        });
 
         // Update meta
         const profilePath = `users/${user.uid}/profile`;
@@ -913,6 +940,12 @@ export default function Inventory() {
         onToggleDeduct={() => setShouldDeductExpenses(!shouldDeductExpenses)}
       />
 
+      <DamageModal 
+        show={showDamageModal}
+        onClose={() => setShowDamageModal(false)}
+        products={products}
+      />
+
       <HistoryModal
         show={showHistoryModal}
         onClose={() => setShowHistoryModal(false)}
@@ -952,65 +985,80 @@ export default function Inventory() {
         </button>
       </div>
 
-      <div className="flex justify-start gap-2 px-4">
-        <button 
-          onClick={() => setShowHistoryModal(true)}
-          className="w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg shadow-sm text-zinc-600 dark:text-zinc-400 active:scale-95 transition-transform"
-          title={t('inventory_log')}
-        >
-          <FileText size={18} />
-        </button>
-        <button 
-          onClick={() => setShowExpensesModal(true)}
-          className={cn(
-            "h-10 px-3 flex items-center gap-2 bg-white dark:bg-zinc-900 border rounded-lg shadow-sm active:scale-95 transition-all text-xs font-bold",
-            expensesAmount > 0 ? "border-[#B34C36]/20 text-[#B34C36] bg-[#B34C36]/5" : "border-zinc-100 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 w-10 justify-center px-0"
-          )}
-          title={t('expenses')}
-        >
-          <Wallet size={18} />
-          {expensesAmount > 0 && <span>{formatCurrency(expensesAmount, settings.currency, settings.language)}</span>}
-        </button>
-        <button 
-          onClick={() => setShowCompareModal(true)}
-          className="h-10 px-3 flex items-center gap-2 bg-brand-50 border border-brand-200 dark:bg-brand-900/20 dark:border-brand-800 text-brand-600 dark:text-brand-400 rounded-lg shadow-sm active:scale-95 transition-all text-sm font-bold"
-          title="مقارنة الجرد الذكية"
-        >
-          <Activity size={18} />
-          <span className="hidden sm:inline">مقارنة بـ Excel</span>
-        </button>
-        <button 
-          onClick={() => setShowPrintModal(true)}
-          className="w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg shadow-sm text-zinc-600 dark:text-zinc-400 active:scale-95 transition-transform"
-          title="طباعة كشف الجرد الورقي"
-        >
-          <Printer size={18} />
-        </button>
-        <button 
-          onClick={() => setShowDetailedControls(!showDetailedControls)}
-          className={cn(
-            "w-10 h-10 flex items-center justify-center border rounded-lg shadow-sm active:scale-95 transition-all",
-            showDetailedControls 
-              ? "bg-brand-600 border-brand-600 text-white shadow-brand-500/20" 
-              : "bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800 text-zinc-400"
-          )}
-          title={t('detailed_inventory_mode')}
-        >
-          <PlusCircle size={18} />
-        </button>
-        <button 
-          onClick={handleClearInventory}
-          className={cn(
-            "w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border rounded-lg shadow-sm active:scale-95 transition-transform",
-            Object.keys(inventoryData).length > 0 
-              ? "text-white shadow-lg shadow-[#B34C36]/20" 
-              : "border-zinc-100 dark:border-zinc-800 text-zinc-300 dark:text-zinc-700"
-          )}
-          style={Object.keys(inventoryData).length > 0 ? { backgroundColor: '#B34C36', borderColor: '#B34C36' } : {}}
-          title={t('confirm_clear_quantities')}
-        >
-          <Trash2 size={18} />
-        </button>
+      <div className="px-4 pb-2 pt-1 -mt-1 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] w-full">
+        <div className="inline-flex min-w-max items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm overflow-hidden divide-x divide-x-reverse divide-zinc-200 dark:divide-zinc-800">
+          <button 
+            onClick={() => setShowHistoryModal(true)}
+            className="shrink-0 h-9 px-3 flex items-center justify-center text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+            title={t('inventory_log')}
+          >
+            <FileText size={16} />
+          </button>
+          
+          <button 
+            onClick={() => setShowExpensesModal(true)}
+            className={cn(
+              "shrink-0 h-9 px-3 flex items-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-xs font-bold whitespace-nowrap",
+              expensesAmount > 0 ? "text-[#B34C36] bg-[#B34C36]/5" : "text-zinc-600 dark:text-zinc-400 justify-center"
+            )}
+            title={t('expenses')}
+          >
+            <Wallet size={16} />
+            {expensesAmount > 0 && <span>{formatCurrency(expensesAmount, settings.currency, settings.language)}</span>}
+          </button>
+
+          <button 
+            onClick={() => setShowCompareModal(true)}
+            className="shrink-0 h-9 px-3 flex items-center gap-2 bg-brand-50 hover:bg-brand-100 dark:bg-brand-900/20 dark:hover:bg-brand-900/40 text-brand-600 dark:text-brand-400 transition-colors text-xs font-bold whitespace-nowrap"
+            title="مقارنة الجرد الذكية"
+          >
+            <Activity size={16} />
+            <span className="hidden sm:inline">مقارنة بـ Excel</span>
+          </button>
+
+          <button 
+            onClick={() => setShowPrintModal(true)}
+            className="shrink-0 h-9 px-3 flex items-center justify-center text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+            title="طباعة كشف الجرد الورقي"
+          >
+            <Printer size={16} />
+          </button>
+
+          <button 
+            onClick={() => setShowDetailedControls(!showDetailedControls)}
+            className={cn(
+              "shrink-0 h-9 px-3 flex items-center justify-center transition-colors",
+              showDetailedControls 
+                ? "bg-brand-600 text-white hover:bg-brand-700" 
+                : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+            )}
+            title={t('detailed_inventory_mode')}
+          >
+            <PlusCircle size={16} />
+          </button>
+
+          <button 
+            onClick={() => setShowDamageModal(true)}
+            className="shrink-0 h-9 px-3 flex items-center justify-center text-[#B34C36] hover:bg-[#B34C36]/10 transition-colors"
+            title="تسجيل منتج تالف"
+          >
+            <AlertTriangle size={16} />
+          </button>
+
+          <button 
+            onClick={handleClearInventory}
+            className={cn(
+              "shrink-0 h-9 px-3 flex items-center justify-center transition-colors",
+              Object.keys(inventoryData).length > 0 
+                ? "text-white hover:brightness-110" 
+                : "text-zinc-400 dark:text-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+            )}
+            style={Object.keys(inventoryData).length > 0 ? { backgroundColor: '#B34C36' } : {}}
+            title={t('confirm_clear_quantities')}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
       </div>
 
       {/* Progress Bar */}

@@ -145,7 +145,7 @@ export interface Transaction {
   id?: string;
   productId: string;
   productName: string;
-  type: 'purchase' | 'sale' | 'jard' | 'adjustment';
+  type: 'purchase' | 'sale' | 'jard' | 'adjustment' | 'damage';
   quantityChange: number;
   price: number;
   amount?: number;
