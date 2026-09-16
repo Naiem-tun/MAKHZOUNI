@@ -181,9 +181,9 @@ export default function Suppliers() {
   const grandTotal = transactions.reduce((acc, t) => acc + (t.amount || 0), 0);
 
   const filteredSuppliers = suppliersWithTotals.filter(s => 
-    s.name?.toLowerCase().includes((searchQuery || "").toLowerCase()) ||
+    (s.name || "").toLowerCase().includes((searchQuery || "").toLowerCase()) ||
     s.phone?.includes(searchQuery) ||
-    s.typeOfGoods?.toLowerCase().includes((searchQuery || "").toLowerCase())
+    (s.typeOfGoods || "").toLowerCase().includes((searchQuery || "").toLowerCase())
   );
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {

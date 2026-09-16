@@ -1,7 +1,7 @@
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-import { OperationType, type FirestoreErrorInfo } from "../types";
-import { auth } from "./firebase";
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+import { auth } from './firebase'; // Needed for handleFirestoreError
+import { OperationType, FirestoreErrorInfo } from '../types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -20,7 +20,7 @@ export function formatCurrency(amount: number, symbol: string = 'TND', language:
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
-    return language === 'ar' ? `${formattedNum} ${symbol}` : `${symbol} ${formattedNum}`;
+    return `${formattedNum} ${symbol}`;
   }
 }
 
@@ -89,9 +89,7 @@ export const getCountBreakdown = (total: number, piecesPerBox: number) => {
   if (piecesPerBox <= 1) return formatQuantity(cleanTotal);
   const boxes = Math.floor(cleanTotal / piecesPerBox);
   const pieces = cleanQuantity(cleanTotal % piecesPerBox);
-  if (boxes > 0 && pieces > 0) return `${boxes}c + ${formatQuantity(pieces)}p`;
-  if (boxes > 0) return `${boxes}c`;
-  return `${formatQuantity(pieces)}p`;
+  return { boxes, pieces };
 };
 
 export function safeParseDate(val: any): Date {
@@ -103,7 +101,6 @@ export function safeParseDate(val: any): Date {
       return rawDate;
     }
   }
-  // Handle Firestore Timestamp plain objects ({ seconds: ..., nanoseconds: ... } or { _seconds: ... })
   if (val && typeof val === 'object') {
     if (typeof val.seconds === 'number') {
       const d = new Date(val.seconds * 1000 + (val.nanoseconds ? Math.floor(val.nanoseconds / 1000000) : 0));
@@ -121,7 +118,7 @@ export function safeParseDate(val: any): Date {
   if (typeof val === 'string') {
     const trimmed = val.trim();
     // Try YYYY-MM-DD format (set to midday to prevent timezone shift across date boundary)
-    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    if (trimmed.includes('-') && trimmed.length === 10) {
       const [y, m, d] = trimmed.split('-').map(Number);
       const parsedStr = new Date(y, m - 1, d, 12, 0, 0);
       if (!isNaN(parsedStr.getTime())) return parsedStr;
@@ -178,7 +175,7 @@ export function safeDispatchEvent(name: string, detail?: any) {
   } catch (e) {
     // Fallback for environments where CustomEvent constructor is illegal or restricted
     try {
-      const event = document.createEvent('CustomEvent');
+      const event = document.createEvent('CustomEvent') as any;
       event.initCustomEvent(name, true, true, detail);
       window.dispatchEvent(event);
     } catch (err) {

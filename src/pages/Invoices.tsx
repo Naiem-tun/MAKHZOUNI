@@ -148,9 +148,9 @@ export default function Invoices() {
     if (searchTerm.trim()) {
       const term = (searchTerm || "").toLowerCase();
       result = result.filter(inv => {
-        const matchesNum = inv.invoiceNumber?.toString().toLowerCase().includes(term);
+        const matchesNum = (inv.invoiceNumber?.toString() || "").toLowerCase().includes(term);
         const matchesProduct = (inv.items || []).some((item: any) => 
-          item.name?.toLowerCase().includes(term)
+          (item.name || "").toLowerCase().includes(term)
         );
         return matchesNum || matchesProduct;
       });

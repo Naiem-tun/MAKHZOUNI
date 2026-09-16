@@ -360,7 +360,7 @@ export default function Inventory() {
     const productsToFilter = groupedProducts;
     const s = (searchTerm || "").toLowerCase();
     const filtered = productsToFilter.filter((p: any) => {
-      const matchSearch = p.name?.toLowerCase().includes(s) || p.barcode?.includes(s) || p.barcode2?.includes(s);
+      const matchSearch = (p.name || "").toLowerCase().includes(s) || p.barcode?.includes(s) || p.barcode2?.includes(s);
       const matchCat = categoryFilter === 'all' || p.category === categoryFilter;
       const matchUninventoried = !showUninventoriedOnly || !checkedProducts[p.id];
       return matchSearch && matchCat && matchUninventoried;
