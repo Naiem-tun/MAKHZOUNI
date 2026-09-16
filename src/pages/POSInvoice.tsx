@@ -149,10 +149,10 @@ export default function POSInvoice() {
   useEffect(() => {
     if (inputText.trim().length > 1) {
       const filtered = products.filter(p => 
-        p.name.toLowerCase().includes(inputText.toLowerCase()) ||
+        (p.name || "").toLowerCase().includes((inputText || "").toLowerCase()) ||
         p.barcode?.includes(inputText) ||
         p.barcode2?.includes(inputText) ||
-        p.aliases?.some(a => a.toLowerCase().includes(inputText.toLowerCase()))
+        (p.aliases || []).some(a => (a || "").toLowerCase().includes((inputText || "").toLowerCase()))
       ).slice(0, 5);
       setSuggestions(filtered);
     } else {

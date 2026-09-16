@@ -106,7 +106,7 @@ export const PriceAuditModal: React.FC<PriceAuditModalProps> = ({
     return auditedList.filter(item => {
       // Search
       const matchesSearch = !searchQuery.trim() || 
-        item.product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.product.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.product.barcode?.includes(searchQuery) ||
         item.product.barcode2?.includes(searchQuery) ||
         item.product.category?.toLowerCase().includes(searchQuery.toLowerCase());

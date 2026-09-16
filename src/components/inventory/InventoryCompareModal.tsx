@@ -557,8 +557,8 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
                             if (searchQuery.trim()) {
                               const q = searchQuery.toLowerCase();
                               filteredResult = filteredResult.filter(item => 
-                                item.name?.toLowerCase().includes(q) || 
-                                item.barcode?.toLowerCase().includes(q)
+                                (item.name || "").toLowerCase().includes(q) || 
+                                (item.barcode || "").toLowerCase().includes(q)
                               );
                             }
 

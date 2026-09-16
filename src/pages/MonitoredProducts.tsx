@@ -198,7 +198,7 @@ const AddMonitoredModal: React.FC<{ onClose: () => void, products: Product[], us
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredProducts = products.filter(p => (p.name || "").toLowerCase().includes((searchQuery || "").toLowerCase()));
   const selectedProduct = products.find(p => p.id === selectedId);
 
   const handleSave = async () => {

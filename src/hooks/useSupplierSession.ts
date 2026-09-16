@@ -18,8 +18,8 @@ export function useSupplierSession(user: any) {
 
   const filteredSuppliers = suppliers
     .filter(s => 
-      s.name?.toLowerCase().includes(supplierSearchQuery.toLowerCase()) || 
-      s.typeOfGoods?.toLowerCase().includes(supplierSearchQuery.toLowerCase()) || 
+      (s.name || "").toLowerCase().includes(supplierSearchQuery.toLowerCase()) || 
+      (s.typeOfGoods || "").toLowerCase().includes(supplierSearchQuery.toLowerCase()) || 
       s.phone?.includes(supplierSearchQuery)
     )
     .sort((a, b) => {

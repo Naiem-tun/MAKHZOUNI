@@ -522,10 +522,10 @@ export default function Products() {
 
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
-      const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      const matchesSearch = (p.name || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
                            p.barcode?.includes(searchTerm) ||
                            p.barcode2?.includes(searchTerm) ||
-                           p.aliases?.some(a => a.toLowerCase().includes(searchTerm.toLowerCase()));
+                           (p.aliases || []).some(a => (a || "").toLowerCase().includes((searchTerm || "").toLowerCase()));
       
       let matchesStock = true;
       if (stockFilter === 'available') {

@@ -39,7 +39,7 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
     if (!searchTerm) return [];
     const s = searchTerm.toLowerCase();
     return products.filter(p => 
-      p.name?.toLowerCase().includes(s) || 
+      (p.name || "").toLowerCase().includes(s) || 
       p.barcode?.includes(s) || 
       p.barcode2?.includes(s)
     ).slice(0, 5); // show top 5

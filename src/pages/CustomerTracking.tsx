@@ -464,7 +464,7 @@ export default function CustomerTracking() {
   const filteredCustomers = useMemo(() => {
     let result = customers;
     if (searchQuery.trim()) {
-      result = result.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()));
+      result = result.filter(c => (c.name || "").toLowerCase().includes((searchQuery || "").toLowerCase()));
     }
     if (filterStatus !== 'all') {
       result = result.filter(c => {

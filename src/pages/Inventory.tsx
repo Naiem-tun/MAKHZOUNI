@@ -109,7 +109,7 @@ export default function Inventory() {
     const groups: Record<string, any> = {};
 
     products.forEach(p => {
-      const key = (p.barcode || p.name).trim().toLowerCase();
+      const key = (p.barcode || p.name || "").trim().toLowerCase();
       
       if (!groups[key]) {
         groups[key] = {
@@ -211,7 +211,7 @@ export default function Inventory() {
   const handleScan = (decodedText: string) => {
     setIsScannerOpen(false);
     
-    const foundProduct = groupedProducts.find(p => p.barcode === decodedText || p.id === decodedText.toLowerCase());
+    const foundProduct = groupedProducts.find(p => p.barcode === decodedText || p.id === (decodedText || "").toLowerCase());
     
     if (foundProduct) {
       setSearchTerm(decodedText);
@@ -358,7 +358,7 @@ export default function Inventory() {
   const filteredProducts = useMemo(() => {
     if (!groupedProducts) return [];
     const productsToFilter = groupedProducts;
-    const s = searchTerm.toLowerCase();
+    const s = (searchTerm || "").toLowerCase();
     const filtered = productsToFilter.filter((p: any) => {
       const matchSearch = p.name?.toLowerCase().includes(s) || p.barcode?.includes(s) || p.barcode2?.includes(s);
       const matchCat = categoryFilter === 'all' || p.category === categoryFilter;

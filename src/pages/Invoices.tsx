@@ -146,7 +146,7 @@ export default function Invoices() {
 
     // Search Filter (by invoice number or items inside invoice)
     if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
+      const term = (searchTerm || "").toLowerCase();
       result = result.filter(inv => {
         const matchesNum = inv.invoiceNumber?.toString().toLowerCase().includes(term);
         const matchesProduct = (inv.items || []).some((item: any) => 

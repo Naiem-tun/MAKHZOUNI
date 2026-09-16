@@ -33,7 +33,7 @@ export default function DraftProducts() {
   }, [user]);
 
   const filteredProducts = draftProducts.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (p.name || "").toLowerCase().includes((searchTerm || "").toLowerCase()) || 
     (p.barcode && p.barcode.includes(searchTerm))
   );
 

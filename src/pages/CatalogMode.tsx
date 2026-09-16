@@ -40,11 +40,11 @@ export default function CatalogMode() {
 
   const filteredProducts = useMemo(() => {
     if (searchQuery) {
-      const lowerQuery = searchQuery.toLowerCase();
+      const lowerQuery = (searchQuery || "").toLowerCase();
       return products.filter(p => 
-        p.name.toLowerCase().includes(lowerQuery) || 
+        (p.name || "").toLowerCase().includes(lowerQuery) || 
         (p.barcode && p.barcode.includes(lowerQuery)) ||
-        p.aliases?.some(a => a.toLowerCase().includes(lowerQuery)) ||
+        (p.aliases || []).some(a => (a || "").toLowerCase().includes(lowerQuery)) ||
         (p.category && p.category.toLowerCase().includes(lowerQuery)) ||
         (t(`cat_${p.category || 'other'}`).toLowerCase().includes(lowerQuery))
       );

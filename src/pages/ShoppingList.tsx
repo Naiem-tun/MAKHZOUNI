@@ -75,7 +75,7 @@ export default function ShoppingList() {
   useEffect(() => {
     if (activeTab === 'products' && inputText.trim().length > 1) {
       const filtered = products.filter(p => 
-        p.name.toLowerCase().includes(inputText.toLowerCase()) || 
+        (p.name || "").toLowerCase().includes((inputText || "").toLowerCase()) || 
         p.barcode?.includes(inputText) ||
         p.barcode2?.includes(inputText)
       ).slice(0, 5);
