@@ -55,8 +55,11 @@ import {
   CloudUpload,
   Calculator,
   Sparkles,
-  Key
+  Key,
+  ShieldCheck,
+  KeyRound
 } from 'lucide-react';
+import { PinSetupModal } from '../components/settings/PinSetupModal';
 import { auth, db } from '../lib/firebase';
 import { collection, getDocs, doc, setDoc, writeBatch, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { handleFirestoreError } from '../lib/utils';
@@ -72,8 +75,20 @@ import { DataManagement } from '../components/settings/DataManagement';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
-  const { settings, updateSettings, toggleDarkMode, setLanguage, user, setIsCatalogMode } = useAppContext();
+  const { settings, updateSettings, toggleDarkMode, setLanguage, user, setIsCatalogMode, lockApp } = useAppContext();
   const [activeView, setActiveView] = useState<View>('main');
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [pinModalMode, setPinModalMode] = useState<'setup' | 'change' | 'disable'>('setup');
+
+  const handleTogglePin = () => {
+    if (settings.appPinEnabled && settings.appPin) {
+      setPinModalMode('disable');
+      setIsPinModalOpen(true);
+    } else {
+      setPinModalMode('setup');
+      setIsPinModalOpen(true);
+    }
+  };
   const [isClearDataModalOpen, setIsClearDataModalOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -531,6 +546,94 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* Security & App PIN Group */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800 shadow-sm divide-y divide-zinc-100 dark:divide-zinc-800">
+          <div className="px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 text-right flex items-center justify-between">
+            <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400">حماية التطبيق (رمز PIN)</h3>
+            {settings.appPinEnabled && settings.appPin && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                <ShieldCheck size={12} />
+                مفعل
+              </span>
+            )}
+          </div>
+
+          {/* Toggle PIN */}
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-4">
+              <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${settings.appPinEnabled && settings.appPin ? 'bg-brand-50 text-brand-600 dark:bg-brand-900/30 dark:text-brand-400' : 'bg-zinc-50 text-zinc-400 dark:bg-zinc-800'}`}>
+                <ShieldCheck size={20} />
+              </div>
+              <div className="text-right">
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">قفل التطبيق برمز سري (4 أرقام)</h3>
+                <p className="text-[11px] text-zinc-400 mt-0.5">طلب رمز PIN المكون من 4 أرقام عند فتح التطبيق لحماية الخصوصية</p>
+              </div>
+            </div>
+            <button 
+              onClick={handleTogglePin}
+              className={`relative h-7 w-12 rounded-full transition-colors ${(settings.appPinEnabled && settings.appPin) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+            >
+              <motion.div 
+                animate={{ x: (settings.appPinEnabled && settings.appPin) ? 20 : 4 }}
+                className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
+              />
+            </button>
+          </div>
+
+          {/* If enabled: Options */}
+          {settings.appPinEnabled && settings.appPin && (
+            <div className="p-4 bg-zinc-50/50 dark:bg-zinc-800/30 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setPinModalMode('change'); setIsPinModalOpen(true); }}
+                  className="flex-1 min-w-[140px] h-10 px-3 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center justify-center gap-2 shadow-sm transition-all"
+                >
+                  <KeyRound size={15} />
+                  <span>تغيير الرمز السري</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={lockApp}
+                  className="flex-1 min-w-[140px] h-10 px-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm shadow-brand-500/20 transition-all"
+                >
+                  <Lock size={15} />
+                  <span>قفل التطبيق الآن</span>
+                </button>
+              </div>
+
+              {/* Auto-Lock Inactivity Setting */}
+              <div className="pt-2 border-t border-zinc-200/60 dark:border-zinc-700/60 text-right space-y-1.5">
+                <label className="text-[11px] font-bold text-zinc-600 dark:text-zinc-300">
+                  القفل التلقائي عند الخمول:
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5" dir="rtl">
+                  {[
+                    { value: 0, label: 'عند الفتح فقط' },
+                    { value: 1, label: 'بعد دقيقة' },
+                    { value: 5, label: 'بعد 5 دقائق' },
+                    { value: 15, label: 'بعد 15 دقيقة' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => updateSettings({ autoLockTimeout: opt.value })}
+                      className={`h-9 px-2 text-[11px] font-bold rounded-lg transition-all ${
+                        (settings.autoLockTimeout ?? 0) === opt.value
+                          ? 'bg-brand-600 text-white shadow-sm'
+                          : 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Application Config Group */}
         <div className="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800 shadow-sm divide-y divide-zinc-100 dark:divide-zinc-800">
           <div className="px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 text-right">
@@ -984,6 +1087,13 @@ export default function SettingsPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* PIN Setup & Change Modal */}
+      <PinSetupModal
+        isOpen={isPinModalOpen}
+        onClose={() => setIsPinModalOpen(false)}
+        mode={pinModalMode}
+      />
     </div>
   );
 }

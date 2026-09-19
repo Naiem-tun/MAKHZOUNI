@@ -14,6 +14,7 @@ import { syncTracker } from "./lib/syncTracker";
 import { AppHeader } from "./components/layout/AppHeader";
 import { AppMobileMenu } from "./components/layout/AppMobileMenu";
 import { AppBottomNav } from "./components/layout/AppBottomNav";
+import { AppLockScreen } from "./components/auth/AppLockScreen";
 
 import { Logo } from "./components/UI";
 import { useTranslation } from "react-i18next";
@@ -128,6 +129,7 @@ function AppContent() {
     setIsCatalogMode,
     activeTab,
     setActiveTab,
+    isAppLocked,
   } = useAppContext();
   const { t } = useTranslation();
   const [mountedTabs, setMountedTabs] = useState<Set<string>>(
@@ -430,6 +432,21 @@ function AppContent() {
       </AnimatePresence>
 
       {!loading && !user && <Login />}
+
+      {/* App PIN Lock Screen */}
+      <AnimatePresence>
+        {!loading && user && settings.appPinEnabled && settings.appPin && isAppLocked && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="relative z-[120]"
+          >
+            <AppLockScreen />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {!loading && user && (
         <div

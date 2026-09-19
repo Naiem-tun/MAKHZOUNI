@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { X, Eye, EyeOff } from "lucide-react";
+import { X, Eye, EyeOff, Lock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../../AppContext";
 
@@ -22,7 +22,7 @@ export function AppMobileMenu({
   reportsSubpages,
   otherTabs,
 }: AppMobileMenuProps) {
-  const { settings, updateSettings, setIsCatalogMode } = useAppContext();
+  const { settings, updateSettings, setIsCatalogMode, lockApp } = useAppContext();
   const { t } = useTranslation();
 
   if (!mobileMenuOpen) return null;
@@ -204,6 +204,19 @@ export function AppMobileMenu({
                   <span className="font-medium">{tab.label}</span>
                 </button>
               ))}
+
+            {settings.appPinEnabled && settings.appPin && (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  lockApp();
+                }}
+                className="flex w-full items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/20 font-bold"
+              >
+                <Lock size={20} />
+                <span>قفل التطبيق الآن</span>
+              </button>
+            )}
           </div>
         </nav>
       </motion.div>

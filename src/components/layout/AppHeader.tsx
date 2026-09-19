@@ -1,4 +1,4 @@
-import { Menu, CloudOff, Cloud, Square, Play, ShoppingCart, Wallet } from "lucide-react";
+import { Menu, CloudOff, Cloud, Square, Play, ShoppingCart, Wallet, Lock } from "lucide-react";
 import { Logo } from "../UI";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../../AppContext";
@@ -17,7 +17,7 @@ export function AppHeader({
   activeTab,
   setActiveTab,
 }: AppHeaderProps) {
-  const { user, isOffline, settings, activeSupplier, setIsSessionSummaryOpen } = useAppContext();
+  const { user, isOffline, settings, activeSupplier, setIsSessionSummaryOpen, lockApp } = useAppContext();
   const { t } = useTranslation();
   const [showSyncMenu, setShowSyncMenu] = useState(false);
 
@@ -129,6 +129,16 @@ export function AppHeader({
             >
               <Wallet size={22} />
             </button>
+
+            {settings.appPinEnabled && settings.appPin && (
+              <button
+                onClick={lockApp}
+                className="transition-colors text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center justify-center"
+                title="قفل التطبيق الآن"
+              >
+                <Lock size={20} />
+              </button>
+            )}
           </div>
         </div>
       </div>

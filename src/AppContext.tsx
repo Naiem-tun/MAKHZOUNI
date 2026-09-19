@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { auth, db } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, onSnapshot, setDoc, collection, query, orderBy } from 'firebase/firestore';
@@ -33,6 +33,9 @@ interface AppContextType {
   setIsCatalogMode: (val: boolean) => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  isAppLocked: boolean;
+  lockApp: () => void;
+  unlockApp: (pin: string) => boolean;
 }
 
 const defaultSettings: UserSettings = {
@@ -75,6 +78,60 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return localStorage.getItem('isCatalogMode') === 'true';
   });
   const [activeTab, setActiveTab] = useState('products');
+  const hasUnlockedInSessionRef = useRef(false);
+  const [isAppLocked, setIsAppLocked] = useState<boolean>(() => {
+    const saved = localStorage.getItem('user_settings');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.appPinEnabled && parsed.appPin && parsed.appPin.length === 4) {
+          return true;
+        }
+      } catch (_) {}
+    }
+    return false;
+  });
+
+  const unlockApp = (enteredPin: string): boolean => {
+    if (settings.appPin && enteredPin === settings.appPin) {
+      hasUnlockedInSessionRef.current = true;
+      setIsAppLocked(false);
+      return true;
+    }
+    return false;
+  };
+
+  const lockApp = () => {
+    if (settings.appPinEnabled && settings.appPin) {
+      hasUnlockedInSessionRef.current = false;
+      setIsAppLocked(true);
+    }
+  };
+
+  // Auto-lock on inactivity
+  useEffect(() => {
+    if (!settings.appPinEnabled || !settings.appPin || isAppLocked) return;
+    const timeoutMin = settings.autoLockTimeout ?? 0;
+    if (timeoutMin <= 0) return;
+
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const resetTimer = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        hasUnlockedInSessionRef.current = false;
+        setIsAppLocked(true);
+      }, timeoutMin * 60 * 1000);
+    };
+
+    const events = ['pointerdown', 'keydown', 'touchstart', 'scroll'];
+    events.forEach(event => window.addEventListener(event, resetTimer, { passive: true }));
+    resetTimer();
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      events.forEach(event => window.removeEventListener(event, resetTimer));
+    };
+  }, [settings.appPinEnabled, settings.appPin, settings.autoLockTimeout, isAppLocked]);
 
   const setIsCatalogMode = (val: boolean) => {
     setIsCatalogModeState(val);
@@ -152,6 +209,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           document.documentElement.classList.add('dark');
         } else {
           document.documentElement.classList.remove('dark');
+        }
+        if (data.appPinEnabled && data.appPin && data.appPin.length === 4) {
+          if (!hasUnlockedInSessionRef.current) {
+            setIsAppLocked(true);
+          }
+        } else {
+          setIsAppLocked(false);
         }
         setLoading(false);
       } else {
@@ -243,7 +307,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isCatalogMode,
       setIsCatalogMode,
       activeTab,
-      setActiveTab
+      setActiveTab,
+      isAppLocked,
+      lockApp,
+      unlockApp
     }}>
       <div className={settings.language === 'ar' ? 'rtl' : 'ltr'} dir={settings.language === 'ar' ? 'rtl' : 'ltr'}>
         {children}

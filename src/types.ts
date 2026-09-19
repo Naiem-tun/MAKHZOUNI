@@ -33,6 +33,9 @@ export interface UserSettings {
   displayName?: string;
   deletedCategories?: string[];
   catalogPin?: string;
+  appPinEnabled?: boolean;
+  appPin?: string;
+  autoLockTimeout?: number;
   enablePurchasesReports?: boolean;
   requireSupplierSession?: boolean;
   defaultStockView?: 'pieces' | 'boxes';
