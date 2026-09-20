@@ -1,4 +1,4 @@
-import { Menu, CloudOff, Cloud, Square, Play, ShoppingCart, Wallet, Lock } from "lucide-react";
+import { Menu, CloudOff, Cloud, Square, Play, ShoppingCart, Lock } from "lucide-react";
 import { Logo } from "../UI";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../../AppContext";
@@ -123,12 +123,6 @@ export function AppHeader({
                 <ShoppingCart size={22} />
               </button>
             )}
-            <button
-              onClick={() => setActiveTab("expenses")}
-              className={`transition-colors ${activeTab === "expenses" ? "text-warn-text" : "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"}`}
-            >
-              <Wallet size={22} />
-            </button>
 
             {settings.appPinEnabled && settings.appPin && (
               <button

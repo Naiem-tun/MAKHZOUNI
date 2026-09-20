@@ -199,10 +199,10 @@ function AppContent() {
     { id: "customer-tracking", label: "حساب الحرفاء", icon: UserCheck },
     { id: "suppliers", label: t("suppliers"), icon: Truck },
     { id: "debts", label: t("debts"), icon: BookOpen },
+    { id: "expenses", label: t("expenses"), icon: Wallet },
     { id: "inventory", label: t("inventory"), icon: ClipboardCheck },
     { id: "invoices", label: t("sales_reports") || "تقارير المبيعات", icon: Coins },
     { id: "reports", label: t("reports"), icon: BarChart3 },
-    { id: "expenses", label: t("expenses"), icon: Wallet },
 
     // Top standalone tabs
     ...(settings.showShoppingList !== false
@@ -236,13 +236,13 @@ function AppContent() {
       "customer-tracking",
       "suppliers",
       "debts",
+      "expenses",
       "inventory",
       "invoices",
-      "expenses",
     ].includes(tab.id),
   );
   const toolbarTabs = allTabs.filter((tab) =>
-    ["dashboard", "products", "suppliers", "debts", "inventory"].includes(
+    ["dashboard", "products", "suppliers", "debts", "expenses", "inventory"].includes(
       tab.id,
     ),
   );
