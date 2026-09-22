@@ -173,6 +173,8 @@ export default function Inventory() {
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [showDamageModal, setShowDamageModal] = useState(false);
+  const [damageAmount, setDamageAmount] = useState(0);
+  const [damageCount, setDamageCount] = useState(0);
   
   const [showReportView, setShowReportView] = useState(false);
   const [currentReport, setCurrentReport] = useState<any>(null);
@@ -300,6 +302,25 @@ export default function Inventory() {
     if (user) {
       fetchCurrentMonthExpenses();
     }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const damageLogsPath = `users/${user.uid}/damage_logs`;
+    const q = query(
+      collection(db, damageLogsPath),
+      where("audited", "==", false)
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(doc => doc.data());
+      const total = items.reduce((acc: number, item: any) => acc + (item.totalLoss || 0), 0);
+      setDamageAmount(roundMoney(total));
+      setDamageCount(snapshot.docs.length);
+    }, (err) => {
+      console.error("Damage logs listener error:", err);
+    });
+
+    return () => unsubscribe();
   }, [user]);
 
   const fetchHistory = async () => {
@@ -1039,10 +1060,21 @@ export default function Inventory() {
 
           <button 
             onClick={() => setShowDamageModal(true)}
-            className="shrink-0 h-9 px-3 flex items-center justify-center text-[#B34C36] hover:bg-[#B34C36]/10 transition-colors"
-            title="تسجيل منتج تالف"
+            className={cn(
+              "shrink-0 h-9 px-3 flex items-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-xs font-bold whitespace-nowrap",
+              damageCount > 0 ? "text-[#B34C36] bg-[#B34C36]/5" : "text-zinc-600 dark:text-zinc-400 justify-center"
+            )}
+            title="تسجيل وإدارة التالف"
           >
-            <AlertTriangle size={16} />
+            <AlertTriangle size={16} className={damageCount > 0 ? "text-[#B34C36]" : ""} />
+            {damageCount > 0 && (
+              <span className="flex items-center gap-1">
+                <span className="bg-[#B34C36] text-white text-[10px] px-1.5 py-0.5 rounded-full font-black">
+                  {damageCount}
+                </span>
+                <span className="hidden sm:inline">{formatCurrency(damageAmount, settings.currency, settings.language)}</span>
+              </span>
+            )}
           </button>
 
           <button 
