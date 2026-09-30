@@ -1,0 +1,1101 @@
+import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { useTranslation } from 'react-i18next';
+import { 
+  BarChart3, TrendingUp, TrendingDown, AlertTriangle, 
+  Hourglass, ShieldAlert, Sparkles, ArrowRight,
+  Package, Calendar, CheckCircle2, ChevronDown, 
+  Zap, DollarSign, Layers, Clock, RefreshCw, AlertCircle
+} from 'lucide-react';
+import { 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, 
+  Tooltip, ResponsiveContainer, BarChart as RechartsBar, 
+  Bar, Cell, PieChart, Pie 
+} from 'recharts';
+import { formatCurrency, safeParseDate, formatAppDate } from '../../lib/utils';
+import { UserSettings } from '../../types';
+
+interface InventoryAnalyticsProps {
+  inventoryReports: any[];
+  products: any[];
+  purchases: any[];
+  settings: UserSettings;
+}
+
+export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
+  inventoryReports,
+  products,
+  purchases,
+  settings
+}) => {
+  const { t } = useTranslation();
+  const language = settings.language || 'ar';
+  const showFinancials = settings.showFinancials ?? true;
+
+  // Selected report index (0 = latest report)
+  const [selectedReportIndex, setSelectedReportIndex] = useState<number>(0);
+  const [subTab, setSubTab] = useState<'overview' | 'velocity' | 'shrinkage' | 'trends'>('overview');
+  const [filterQuery, setFilterQuery] = useState('');
+  const [itemsPerPage, setItemsPerPage] = useState<number>(20);
+  const [urgentFilter, setUrgentFilter] = useState<'all' | 'critical' | 'warning'>('all');
+
+  // Sort reports chronologically descending (0 is latest)
+  const sortedReports = useMemo(() => {
+    return [...inventoryReports].sort((a, b) => {
+      const timeA = safeParseDate(a.date).getTime();
+      const timeB = safeParseDate(b.date).getTime();
+      return timeB - timeA;
+    });
+  }, [inventoryReports]);
+
+  // Current selected report and previous report (for delta comparison)
+  const isLatestReportSelected = selectedReportIndex === 0;
+  const currentReport = sortedReports[selectedReportIndex] || null;
+  const previousReport = sortedReports[selectedReportIndex + 1] || null;
+
+  // Calculate elapsed days between current report and previous report (or fallback to 30 days)
+  const elapsedDays = useMemo(() => {
+    if (!currentReport) return 1;
+    const curDate = safeParseDate(currentReport.date).getTime();
+    if (previousReport) {
+      const prevDate = safeParseDate(previousReport.date).getTime();
+      const diffMs = Math.abs(curDate - prevDate);
+      const days = Math.round(diffMs / (1000 * 60 * 60 * 24));
+      return Math.max(days, 1);
+    }
+    return 14; // Default estimated cycle if only 1 report
+  }, [currentReport, previousReport]);
+
+  // Days elapsed since the latest inventory until today
+  const daysSinceLatestInventory = useMemo(() => {
+    if (!sortedReports[0]) return 0;
+    const repDate = safeParseDate(sortedReports[0].date).getTime();
+    const now = Date.now();
+    const diff = Math.floor((now - repDate) / (1000 * 60 * 60 * 24));
+    return Math.max(diff, 0);
+  }, [sortedReports]);
+
+  // Group products by (barcode || name) to aggregate total live quantities across all purchase price batches!
+  const groupedLiveProducts = useMemo(() => {
+    const map = new Map<string, {
+      totalQuantity: number;
+      category: string;
+      latestCostPrice: number;
+      sellingPrice: number;
+      barcode: string;
+      name: string;
+      batchCount: number;
+    }>();
+
+    products.forEach(p => {
+      const key = (p.barcode || p.name || '').trim().toLowerCase();
+      if (!key) return;
+
+      const q = Number(p.quantity ?? 0);
+      const cost = Number(p.purchasePrice || p.costPrice || 0);
+      const sell = Number(p.sellingPrice || 0);
+
+      const existing = map.get(key);
+      if (existing) {
+        existing.totalQuantity += q;
+        existing.batchCount += 1;
+        // Keep highest or latest cost
+        if (cost > 0) existing.latestCostPrice = cost;
+        if (sell > 0) existing.sellingPrice = sell;
+      } else {
+        map.set(key, {
+          totalQuantity: q,
+          category: p.category || 'عام',
+          latestCostPrice: cost,
+          sellingPrice: sell,
+          barcode: p.barcode || p.barcode2 || '',
+          name: p.name || '',
+          batchCount: 1,
+        });
+      }
+    });
+
+    return map;
+  }, [products]);
+
+  // Deep analysis of items in the current report with aggregated groupings
+  const analyzedItems = useMemo(() => {
+    if (!currentReport || !currentReport.items) return [];
+
+    const prevItemsMap = new Map<string, any>();
+    if (previousReport && previousReport.items) {
+      previousReport.items.forEach((it: any) => {
+        const key = (it.barcode || it.productName || '').trim().toLowerCase();
+        prevItemsMap.set(key, it);
+      });
+    }
+
+    // Group report items first if report has duplicate entries by name/barcode
+    const groupedReportItems = new Map<string, any>();
+    currentReport.items.forEach((item: any) => {
+      const key = (item.barcode || item.productName || '').trim().toLowerCase();
+      const existing = groupedReportItems.get(key);
+      if (existing) {
+        existing.quantityAfter = (existing.quantityAfter || 0) + Number(item.quantityAfter || 0);
+        existing.salesCalculated = (existing.salesCalculated || 0) + Number(item.salesCalculated || 0);
+        existing.profit = (existing.profit || 0) + Number(item.profit || 0);
+        existing.remainingValue = (existing.remainingValue || 0) + Number(item.remainingValue || 0);
+        if (item.isSurplus) {
+          existing.isSurplus = true;
+          existing.surplusQuantity = (existing.surplusQuantity || 0) + (item.surplusQuantity || 0);
+          existing.surplusCostValue = (existing.surplusCostValue || 0) + (item.surplusCostValue || 0);
+        }
+      } else {
+        groupedReportItems.set(key, { ...item });
+      }
+    });
+
+    return Array.from(groupedReportItems.values()).map((item: any) => {
+      const key = (item.barcode || item.productName || '').trim().toLowerCase();
+      const prevItem = prevItemsMap.get(key);
+      const liveGroup = groupedLiveProducts.get(key);
+
+      const costPrice = Number(item.purchasePrice || liveGroup?.latestCostPrice || 0);
+      const sellPrice = Number(item.sellingPrice || liveGroup?.sellingPrice || 0);
+      
+      // Stock quantity:
+      // If we are looking at the latest inventory, use the aggregated total quantity of all batches!
+      const recordedReportStock = Number(item.quantityAfter || 0);
+      const liveCurrentStock = liveGroup ? liveGroup.totalQuantity : recordedReportStock;
+      const currentStock = isLatestReportSelected ? liveCurrentStock : recordedReportStock;
+
+      const soldQty = Number(item.salesCalculated || 0);
+      const profit = Number(item.profit || 0);
+      const revenue = soldQty > 0 ? (soldQty * sellPrice) : 0;
+
+      // Daily consumption velocity based on elapsed days between inventories
+      const dailyVelocity = soldQty > 0 ? (soldQty / elapsedDays) : 0;
+      
+      // Stock Runway (Days until stock out from today)
+      const daysUntilStockout = dailyVelocity > 0 
+        ? Math.max(0, Math.round(currentStock / dailyVelocity)) 
+        : (currentStock > 0 ? 999 : 0);
+
+      // Previous inventory stock
+      const prevStock = prevItem ? Number(prevItem.quantityAfter || 0) : null;
+      
+      // Dead stock flag: item had positive stock before and sold 0
+      const isDeadStock = soldQty <= 0 && currentStock > 0;
+      const deadCapital = isDeadStock ? (currentStock * costPrice) : 0;
+
+      // Status
+      let stockStatus: 'depleted' | 'critical' | 'healthy' | 'excess' | 'stagnant' = 'healthy';
+      if (currentStock <= 0) stockStatus = 'depleted';
+      else if (daysUntilStockout <= 5 && dailyVelocity > 0) stockStatus = 'critical';
+      else if (isDeadStock) stockStatus = 'stagnant';
+      else if (daysUntilStockout > 60 && dailyVelocity > 0) stockStatus = 'excess';
+
+      return {
+        name: item.productName,
+        barcode: item.barcode || liveGroup?.barcode || '',
+        category: item.category || liveGroup?.category || 'عام',
+        costPrice,
+        sellPrice,
+        currentStock,
+        recordedReportStock,
+        soldQty,
+        dailyVelocity,
+        daysUntilStockout,
+        revenue,
+        profit,
+        isDeadStock,
+        deadCapital,
+        stockStatus,
+        batchCount: liveGroup?.batchCount || 1,
+        isSurplus: !!item.isSurplus,
+        surplusQuantity: item.surplusQuantity || 0,
+        surplusCostValue: item.surplusCostValue || 0,
+        prevStock,
+      };
+    });
+  }, [currentReport, previousReport, elapsedDays, groupedLiveProducts, isLatestReportSelected]);
+
+  // Overall Metrics for selected report
+  const summaryMetrics = useMemo(() => {
+    if (!currentReport) {
+      return {
+        totalRevenue: 0,
+        totalProfit: 0,
+        totalRemainingValue: 0,
+        totalExpenses: 0,
+        netProfit: 0,
+        totalSoldPieces: 0,
+        deadStockCount: 0,
+        deadStockCapital: 0,
+        criticalStockCount: 0,
+        growthRevenuePct: null as number | null,
+        growthProfitPct: null as number | null,
+        surplusValue: 0,
+        surplusCount: 0,
+        damageLoss: 0,
+      };
+    }
+
+    const totalRevenue = Number(currentReport.totalRevenue || 0);
+    const totalProfit = Number(currentReport.totalProfit || 0);
+    const totalRemainingValue = Number(currentReport.totalRemainingValue || 0);
+    const totalExpenses = Number(currentReport.totalExpenses || 0);
+    const netProfit = Number(currentReport.netProfit ?? (totalProfit - totalExpenses));
+    const surplusValue = Number(currentReport.surplusValueUnverified || 0);
+    const surplusCount = Number(currentReport.surplusItemsCount || 0);
+    const damageLoss = Number(currentReport.totalDamageLoss || 0);
+
+    const totalSoldPieces = analyzedItems.reduce((acc, it) => acc + (it.soldQty > 0 ? it.soldQty : 0), 0);
+    const deadStockItems = analyzedItems.filter(it => it.isDeadStock);
+    const deadStockCount = deadStockItems.length;
+    const deadStockCapital = deadStockItems.reduce((acc, it) => acc + it.deadCapital, 0);
+    const criticalStockCount = analyzedItems.filter(it => it.stockStatus === 'critical').length;
+
+    let growthRevenuePct: number | null = null;
+    let growthProfitPct: number | null = null;
+
+    if (previousReport && Number(previousReport.totalRevenue || 0) > 0) {
+      const prevRev = Number(previousReport.totalRevenue);
+      growthRevenuePct = ((totalRevenue - prevRev) / prevRev) * 100;
+    }
+    if (previousReport && Number(previousReport.totalProfit || 0) > 0) {
+      const prevProf = Number(previousReport.totalProfit);
+      growthProfitPct = ((totalProfit - prevProf) / prevProf) * 100;
+    }
+
+    return {
+      totalRevenue,
+      totalProfit,
+      totalRemainingValue,
+      totalExpenses,
+      netProfit,
+      totalSoldPieces,
+      deadStockCount,
+      deadStockCapital,
+      criticalStockCount,
+      growthRevenuePct,
+      growthProfitPct,
+      surplusValue,
+      surplusCount,
+      damageLoss,
+    };
+  }, [currentReport, previousReport, analyzedItems]);
+
+  // Fast-Moving Products (Top 8 highest velocity / sales)
+  const topMovingItems = useMemo(() => {
+    return [...analyzedItems]
+      .filter(it => it.soldQty > 0)
+      .sort((a, b) => b.soldQty - a.soldQty)
+      .slice(0, 10);
+  }, [analyzedItems]);
+
+  // Dead / Stagnant Stock Items (Highest frozen capital)
+  const stagnantItems = useMemo(() => {
+    return [...analyzedItems]
+      .filter(it => it.isDeadStock && it.currentStock > 0)
+      .sort((a, b) => b.deadCapital - a.deadCapital);
+  }, [analyzedItems]);
+
+  // Products with runway / replenishment analysis sorted by urgency (soonest to run out first)
+  const replenishmentItems = useMemo(() => {
+    return [...analyzedItems]
+      .filter(it => it.dailyVelocity > 0 || it.currentStock === 0)
+      .sort((a, b) => a.daysUntilStockout - b.daysUntilStockout);
+  }, [analyzedItems]);
+
+  // Urgent subset (<= 7 days or depleted)
+  const urgentReplenishItems = useMemo(() => {
+    return replenishmentItems.filter(it => it.daysUntilStockout <= 7 || it.currentStock === 0);
+  }, [replenishmentItems]);
+
+  // Items to display in the stock runway table according to urgentFilter and itemsPerPage
+  const displayReplenishmentItems = useMemo(() => {
+    let list = replenishmentItems;
+    if (urgentFilter === 'critical') {
+      list = list.filter(it => it.daysUntilStockout <= 5 || it.currentStock === 0);
+    } else if (urgentFilter === 'warning') {
+      list = list.filter(it => it.daysUntilStockout > 5 && it.daysUntilStockout <= 15);
+    }
+    if (itemsPerPage === -1) return list; // all
+    return list.slice(0, itemsPerPage);
+  }, [replenishmentItems, urgentFilter, itemsPerPage]);
+
+  // Multi-Inventory Trend Chart Data (Chronological left-to-right)
+  const multiInventoryTrends = useMemo(() => {
+    return [...sortedReports].reverse().map((rep, idx) => {
+      const repDate = safeParseDate(rep.date);
+      const label = formatAppDate(repDate, 'ar', t, { day: 'numeric', month: 'short' });
+      return {
+        name: `جرد ${idx + 1} (${label})`,
+        shortName: `جرد ${idx + 1}`,
+        revenue: Number((rep.totalRevenue || 0).toFixed(3)),
+        profit: Number((rep.totalProfit || 0).toFixed(3)),
+        netProfit: Number((rep.netProfit || 0).toFixed(3)),
+        stockValue: Number((rep.totalRemainingValue || 0).toFixed(3)),
+        expenses: Number((rep.totalExpenses || 0).toFixed(3)),
+      };
+    });
+  }, [sortedReports, t]);
+
+  // Filtered items for list view
+  const displayItems = useMemo(() => {
+    if (!filterQuery) return analyzedItems;
+    const q = filterQuery.toLowerCase().trim();
+    return analyzedItems.filter(it => 
+      it.name.toLowerCase().includes(q) || 
+      it.barcode.toLowerCase().includes(q) ||
+      it.category.toLowerCase().includes(q)
+    );
+  }, [analyzedItems, filterQuery]);
+
+  if (inventoryReports.length === 0) {
+    return (
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl p-12 text-center shadow-sm">
+        <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-brand-50 dark:bg-brand-950/40 flex items-center justify-center text-brand-500">
+          <Layers size={32} />
+        </div>
+        <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">لا توجد عمليات جرد مسجلة بعد</h3>
+        <p className="text-sm text-zinc-500 max-w-md mx-auto">
+          عند إتمام عمليات الجرد في قسم "الجرد"، ستظهر هنا تحليلات استهلاك المخزون، سرعة الدوران، والسلع الراكدة تلقائياً.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Top Controller: Inventory Selector & General Delta Bar */}
+      <div className="bg-gradient-to-br from-zinc-900 via-zinc-850 to-zinc-900 text-white rounded-2xl p-6 shadow-md border border-zinc-800">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-zinc-800/80">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-brand-500/20 text-brand-400 text-xs font-bold border border-brand-500/30 flex items-center gap-1">
+                <Sparkles size={12} />
+                نظام تحليلات الجرد الدوري
+              </span>
+              <span className="text-xs text-zinc-400">
+                إجمالي الجرود المتاحة: {sortedReports.length}
+              </span>
+            </div>
+            <h2 className="text-2xl font-black">ذكاء الجرد ومؤشرات الأداء</h2>
+            <p className="text-xs text-zinc-400">
+              تحليل الاستهلاك الحقيقي، سرعة نفاد الرفوف، ورأس المال المعطل بين الجرود.
+            </p>
+          </div>
+
+          {/* Selector Dropdown */}
+          <div className="flex items-center gap-2 self-start md:self-auto bg-zinc-800/90 border border-zinc-700/80 rounded-xl p-1.5 shadow-inner">
+            <Calendar size={18} className="text-zinc-400 mr-2" />
+            <select
+              value={selectedReportIndex}
+              onChange={(e) => setSelectedReportIndex(Number(e.target.value))}
+              aria-label="اختر عملية الجرد للتحليل"
+              className="bg-transparent text-white text-sm font-bold focus:outline-none cursor-pointer pr-3 py-1"
+            >
+              {sortedReports.map((rep, idx) => {
+                const dateStr = formatAppDate(safeParseDate(rep.date), 'ar', t, { 
+                  day: 'numeric', 
+                  month: 'short', 
+                  year: 'numeric' 
+                });
+                return (
+                  <option key={rep.id || idx} value={idx} className="bg-zinc-800 text-white">
+                    {idx === 0 ? '⭐ الجرد الأخير: ' : `الجرد رقم ${sortedReports.length - idx}: `} {dateStr}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        </div>
+
+        {/* Selected Inventory Key Info Ribbon */}
+        {currentReport && (
+          <div className="pt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <span className="block text-[11px] text-zinc-400">تاريخ إجراء الجرد</span>
+              <span className="font-bold text-zinc-200">
+                {formatAppDate(safeParseDate(currentReport.date), 'ar', t, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}
+              </span>
+            </div>
+
+            <div>
+              <span className="block text-[11px] text-zinc-400">المدة المحسوبة للاستهلاك</span>
+              <span className="font-bold text-zinc-200 flex items-center gap-1.5">
+                <Clock size={14} className="text-brand-400" />
+                {previousReport ? `${elapsedDays} يوماً منذ الجرد السابق` : 'دورة جرد أولى'}
+              </span>
+            </div>
+
+            <div>
+              <span className="block text-[11px] text-zinc-400">أصناف الجرد المسجلة</span>
+              <span className="font-bold text-zinc-200">
+                {analyzedItems.length} صنف مسجل
+              </span>
+            </div>
+
+            <div>
+              <span className="block text-[11px] text-zinc-400">نسبة النمو مقارنة بالسابق</span>
+              <div className="flex items-center gap-2">
+                {summaryMetrics.growthRevenuePct !== null ? (
+                  <span className={`font-bold flex items-center gap-1 text-xs px-2 py-0.5 rounded-md ${
+                    summaryMetrics.growthRevenuePct >= 0 
+                      ? 'bg-emerald-500/20 text-emerald-300' 
+                      : 'bg-rose-500/20 text-rose-300'
+                  }`}>
+                    {summaryMetrics.growthRevenuePct >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                    {summaryMetrics.growthRevenuePct >= 0 ? '+' : ''}{summaryMetrics.growthRevenuePct.toFixed(1)}% مبيعات
+                  </span>
+                ) : (
+                  <span className="text-xs text-zinc-500">الجرد المرجعي الأول</span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Sub-Tabs Navigation */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-zinc-200 dark:border-zinc-800 scrollbar-none">
+        {[
+          { id: 'overview', label: 'الخلاصة المالية للجرد', icon: DollarSign },
+          { id: 'velocity', label: 'سرعة الدوران والأصناف الراكدة', icon: Zap },
+          { id: 'shrinkage', label: 'سلامة الجرد والهدر والتوالف', icon: ShieldAlert },
+          { id: 'trends', label: 'مسار وتطور الجرود الأربعة', icon: TrendingUp },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = subTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setSubTab(tab.id as any)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs md:text-sm whitespace-nowrap transition-all ${
+                isActive
+                  ? 'bg-brand-500 text-white shadow-sm'
+                  : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800'
+              }`}
+            >
+              <Icon size={16} />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* TAB 1: FINANCIAL OVERVIEW */}
+      {subTab === 'overview' && (
+        <div className="space-y-6">
+          {/* Main 4 Metric Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Stock Valuation Remaining */}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm">
+              <div className="flex items-center justify-between text-zinc-500 mb-2">
+                <span className="text-xs font-bold">قيمة المخزون المتبقي (التكلفة)</span>
+                <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-600">
+                  <Package size={18} />
+                </div>
+              </div>
+              <div className="text-2xl font-black text-zinc-900 dark:text-white">
+                {!showFinancials ? '••••••' : formatCurrency(summaryMetrics.totalRemainingValue, settings.currency, language)}
+              </div>
+              <p className="text-[11px] text-zinc-400 mt-1">
+                رأس المال الحقيقي المتبقي على الرفوف بعد الجرد
+              </p>
+            </div>
+
+            {/* Total Consumed / Revenue */}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm">
+              <div className="flex items-center justify-between text-zinc-500 mb-2">
+                <span className="text-xs font-bold">المبيعات / الاستهلاك المحقق</span>
+                <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600">
+                  <TrendingUp size={18} />
+                </div>
+              </div>
+              <div className="text-2xl font-black text-zinc-900 dark:text-white">
+                {!showFinancials ? '••••••' : formatCurrency(summaryMetrics.totalRevenue, settings.currency, language)}
+              </div>
+              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 font-medium">
+                تم استهلاك {summaryMetrics.totalSoldPieces.toLocaleString('en-US')} قطعة خلال الدورة
+              </p>
+            </div>
+
+            {/* Total Profit */}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm">
+              <div className="flex items-center justify-between text-zinc-500 mb-2">
+                <span className="text-xs font-bold">الربح الإجمالي المحقق</span>
+                <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600">
+                  <DollarSign size={18} />
+                </div>
+              </div>
+              <div className="text-2xl font-black text-zinc-900 dark:text-white">
+                {!showFinancials ? '••••••' : formatCurrency(summaryMetrics.totalProfit, settings.currency, language)}
+              </div>
+              <div className="text-[11px] text-zinc-400 mt-1 flex items-center justify-between">
+                <span>هامش الربح الإجمالي:</span>
+                <span className="font-bold text-zinc-700 dark:text-zinc-300">
+                  {summaryMetrics.totalRevenue > 0 
+                    ? ((summaryMetrics.totalProfit / summaryMetrics.totalRevenue) * 100).toFixed(1) + '%' 
+                    : '0%'}
+                </span>
+              </div>
+            </div>
+
+            {/* Net Profit after expenses */}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm">
+              <div className="flex items-center justify-between text-zinc-500 mb-2">
+                <span className="text-xs font-bold">صافي الربح الفعلي</span>
+                <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-600">
+                  <Sparkles size={18} />
+                </div>
+              </div>
+              <div className={`text-2xl font-black ${
+                summaryMetrics.netProfit >= 0 ? 'text-zinc-900 dark:text-white' : 'text-rose-600'
+              }`}>
+                {!showFinancials ? '••••••' : formatCurrency(summaryMetrics.netProfit, settings.currency, language)}
+              </div>
+              <p className="text-[11px] text-zinc-400 mt-1">
+                بعد خصم المصاريف المسجلة ({formatCurrency(summaryMetrics.totalExpenses, settings.currency, language)})
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Action Alerts Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Dead stock alert card */}
+            <div className="p-5 rounded-xl border border-rose-100 dark:border-rose-950/50 bg-rose-50/50 dark:bg-rose-950/20 flex items-start gap-4">
+              <div className="p-3 rounded-lg bg-rose-500/10 text-rose-600 shrink-0">
+                <AlertCircle size={24} />
+              </div>
+              <div>
+                <h4 className="font-bold text-rose-950 dark:text-rose-200 text-sm">بضاعة راكدة (صفر استهلاك)</h4>
+                <div className="text-lg font-black text-rose-700 dark:text-rose-400 mt-1">
+                  {summaryMetrics.deadStockCount} صنف معطل
+                </div>
+                <p className="text-xs text-rose-600/80 dark:text-rose-400/80 mt-1">
+                  تجمد رأس مال قدره {!showFinancials ? '••••••' : formatCurrency(summaryMetrics.deadStockCapital, settings.currency, language)} على الرفوف دون أي حركة بيع في هذه الدورة.
+                </p>
+              </div>
+            </div>
+
+            {/* Critical stock alert */}
+            <div className="p-5 rounded-xl border border-amber-100 dark:border-amber-950/50 bg-amber-50/50 dark:bg-amber-950/20 flex items-start gap-4">
+              <div className="p-3 rounded-lg bg-amber-500/10 text-amber-600 shrink-0">
+                <Hourglass size={24} />
+              </div>
+              <div>
+                <h4 className="font-bold text-amber-950 dark:text-amber-200 text-sm">أصناف شارفت على النفاد</h4>
+                <div className="text-lg font-black text-amber-700 dark:text-amber-400 mt-1">
+                  {summaryMetrics.criticalStockCount} أصناف حرجة
+                </div>
+                <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-1">
+                  مخزونها الحالي يكفي لأقل من 5 أيام فقط استناداً لمعدل الاستهلاك المحسوب بالجرد.
+                </p>
+              </div>
+            </div>
+
+            {/* Health & Discrepancy indicator */}
+            <div className="p-5 rounded-xl border border-blue-100 dark:border-blue-950/50 bg-blue-50/50 dark:bg-blue-950/20 flex items-start gap-4">
+              <div className="p-3 rounded-lg bg-blue-500/10 text-blue-600 shrink-0">
+                <ShieldAlert size={24} />
+              </div>
+              <div>
+                <h4 className="font-bold text-blue-950 dark:text-blue-200 text-sm">التوالف والزيادات غير المفسرة</h4>
+                <div className="text-lg font-black text-blue-700 dark:text-blue-400 mt-1">
+                  {formatCurrency(summaryMetrics.damageLoss, settings.currency, language)} توالف
+                </div>
+                <p className="text-xs text-blue-700/80 dark:text-blue-400/80 mt-1">
+                  {summaryMetrics.surplusCount > 0 
+                    ? `وهناك ${summaryMetrics.surplusCount} صنف بزيادة فعلية عن المسجل بقيمة ${formatCurrency(summaryMetrics.surplusValue, settings.currency, language)}.` 
+                    : 'لا توجد فروقات فائض غير مبررة مسجلة.'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: VELOCITY & STAGNANT STOCK */}
+      {subTab === 'velocity' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Fast moving */}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-100 dark:border-zinc-800">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600">
+                    <Zap size={18} />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-zinc-900 dark:text-white">الأصناف الأعلى استهلاكاً (قاطرة المبيعات)</h3>
+                    <p className="text-[11px] text-zinc-500">أكثر المنتجات خروجاً ومبيعاً خلال فترة الجرد</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {topMovingItems.length > 0 ? (
+                  topMovingItems.map((item, i) => (
+                    <div key={i} className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="w-6 h-6 rounded-md bg-emerald-500/10 text-emerald-600 font-black text-xs flex items-center justify-center">
+                          {i + 1}
+                        </span>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-sm text-zinc-900 dark:text-white">{item.name}</span>
+                            {item.batchCount > 1 && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
+                                {item.batchCount} دفعات
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-zinc-400">
+                            معدل: {item.dailyVelocity.toFixed(1)} قطعة/يوم • الرصيد المجمع: {item.currentStock}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-left">
+                        <div className="font-black text-sm text-emerald-600 dark:text-emerald-400">
+                          {item.soldQty} مباع
+                        </div>
+                        <div className="text-[10px] text-zinc-400">
+                          ربح: {formatCurrency(item.profit, settings.currency, language)}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-sm text-zinc-400 py-8">لم يتم تسجيل كميات مستهلكة في هذا الجرد</p>
+                )}
+              </div>
+            </div>
+
+            {/* Dead stock */}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-100 dark:border-zinc-800">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/30 text-rose-600">
+                    <Hourglass size={18} />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-zinc-900 dark:text-white">الأصناف الراكدة (رأس المال المجمد)</h3>
+                    <p className="text-[11px] text-zinc-500">أصناف لم تنقص حبة واحدة بين الجردين</p>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-rose-500 px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/40">
+                  {stagnantItems.length} صنف
+                </span>
+              </div>
+
+              <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+                {stagnantItems.length > 0 ? (
+                  stagnantItems.map((item, i) => (
+                    <div key={i} className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-sm text-zinc-900 dark:text-white">{item.name}</span>
+                          {item.batchCount > 1 && (
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
+                              {item.batchCount} دفعات
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-zinc-400">
+                          الكمية الراكدة المجمعة: {item.currentStock} قطعة • القسم: {item.category}
+                        </div>
+                      </div>
+
+                      <div className="text-left">
+                        <div className="font-black text-sm text-rose-600 dark:text-rose-400">
+                          {formatCurrency(item.deadCapital, settings.currency, language)}
+                        </div>
+                        <div className="text-[10px] text-zinc-400">تكلفة مجمدة</div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-sm text-zinc-400 py-8">ممتاز! لا توجد أصناف راكدة معطلة في هذا الجرد</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Urgent replenishment table */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-zinc-100 dark:border-zinc-800">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={20} className="text-amber-500 shrink-0" />
+                <div>
+                  <h3 className="font-black text-zinc-900 dark:text-white text-base">
+                    جدول أيام بقاء المخزون ومقترحات الشراء
+                  </h3>
+                  <p className="text-[11px] text-zinc-500">
+                    مرتبة تصاعدياً من الأقرب للنفاد • تم دمج النسخ المتعددة لنفس الصنف تلقائياً
+                  </p>
+                </div>
+              </div>
+
+              {/* Controls: Per Page Selector & Quick Filter */}
+              <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+                {/* Status Filter */}
+                <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg text-xs font-bold">
+                  <button
+                    onClick={() => setUrgentFilter('all')}
+                    className={`px-2.5 py-1 rounded-md transition-all ${
+                      urgentFilter === 'all'
+                        ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm'
+                        : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+                    }`}
+                  >
+                    الكل ({replenishmentItems.length})
+                  </button>
+                  <button
+                    onClick={() => setUrgentFilter('critical')}
+                    className={`px-2.5 py-1 rounded-md transition-all ${
+                      urgentFilter === 'critical'
+                        ? 'bg-rose-500 text-white shadow-sm'
+                        : 'text-rose-600 dark:text-rose-400 hover:opacity-80'
+                    }`}
+                  >
+                    حرج (≤ 5 أيام)
+                  </button>
+                  <button
+                    onClick={() => setUrgentFilter('warning')}
+                    className={`px-2.5 py-1 rounded-md transition-all ${
+                      urgentFilter === 'warning'
+                        ? 'bg-amber-500 text-white shadow-sm'
+                        : 'text-amber-600 dark:text-amber-400 hover:opacity-80'
+                    }`}
+                  >
+                    متوسط (6-15 يوم)
+                  </button>
+                </div>
+
+                {/* Per Page Buttons: 20, 30, 50, all */}
+                <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg text-xs font-bold">
+                  <span className="text-[10px] text-zinc-400 px-1.5">عرض:</span>
+                  {[20, 30, 50, -1].map((count) => (
+                    <button
+                      key={count}
+                      onClick={() => setItemsPerPage(count)}
+                      className={`px-2 py-0.5 rounded-md transition-all ${
+                        itemsPerPage === count
+                          ? 'bg-brand-500 text-white shadow-sm'
+                          : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                      }`}
+                    >
+                      {count === -1 ? 'الكل' : count}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-zinc-500 px-1">
+              <span>
+                عرض {displayReplenishmentItems.length} من أصل {replenishmentItems.length} صنف مستهلك
+              </span>
+              <span className="text-[11px] text-zinc-400">
+                {isLatestReportSelected 
+                  ? '⚡ محسوبة بناءً على رصيدك المجمع اليوم وتاريخ اللحظة' 
+                  : 'أرشيف: محسوبة بناءً على كميات تاريخ الجرد'}
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-right text-xs">
+                <thead>
+                  <tr className="border-b border-zinc-200 dark:border-zinc-800 text-zinc-400">
+                    <th className="pb-2.5 font-bold">#</th>
+                    <th className="pb-2.5 font-bold">المنتج (مجمع النسخ)</th>
+                    <th className="pb-2.5 font-bold">القسم</th>
+                    <th className="pb-2.5 font-bold">
+                      {isLatestReportSelected ? 'إجمالي الرصيد اليوم' : 'رصيد الجرد'}
+                    </th>
+                    <th className="pb-2.5 font-bold">معدل السحب اليومي</th>
+                    <th className="pb-2.5 font-bold">أيام البقاء حتى النفاد</th>
+                    <th className="pb-2.5 font-bold">القرار المقترح</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
+                  {displayReplenishmentItems.map((item, i) => (
+                    <tr key={i} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30">
+                      <td className="py-2.5 font-bold text-zinc-400 text-[11px]">{i + 1}</td>
+                      <td className="py-2.5 font-bold text-zinc-900 dark:text-white">
+                        <div className="flex items-center gap-2">
+                          <span>{item.name}</span>
+                          {item.batchCount > 1 && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-900/40" title="تم دمج كميات عدة نسخ شراء مختلفة لهذا الصنف">
+                              {item.batchCount} أسعار شراء
+                            </span>
+                          )}
+                        </div>
+                        {isLatestReportSelected && item.currentStock !== item.recordedReportStock && (
+                          <span className="block text-[10px] text-zinc-400">
+                            (كان بالجرد: {item.recordedReportStock})
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2.5 text-zinc-500">{item.category}</td>
+                      <td className="py-2.5 font-black text-sm text-zinc-900 dark:text-zinc-100">
+                        {item.currentStock}
+                      </td>
+                      <td className="py-2.5 text-zinc-600 dark:text-zinc-300 font-medium">
+                        {item.dailyVelocity.toFixed(1)} / يوم
+                      </td>
+                      <td className="py-2.5">
+                        <span className={`px-2.5 py-0.5 rounded-full font-black text-xs inline-flex items-center gap-1 ${
+                          item.currentStock === 0
+                            ? 'bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 font-black'
+                            : item.daysUntilStockout <= 5
+                            ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 border border-rose-200 dark:border-rose-900'
+                            : item.daysUntilStockout <= 15
+                            ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 border border-amber-200 dark:border-amber-900'
+                            : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600'
+                        }`}>
+                          {item.currentStock === 0 ? 'نفد تماماً 🔴' : `${item.daysUntilStockout} يوم`}
+                        </span>
+                      </td>
+                      <td className="py-2.5">
+                        {item.currentStock === 0 ? (
+                          <span className="text-rose-600 dark:text-rose-400 font-bold">
+                            طلب فوري عاجل (الرف فارغ)
+                          </span>
+                        ) : item.daysUntilStockout <= 5 ? (
+                          <span className="text-rose-600 dark:text-rose-400 font-bold">
+                            إدراج في أول طلبية مورد
+                          </span>
+                        ) : item.daysUntilStockout <= 15 ? (
+                          <span className="text-amber-600 dark:text-amber-400 font-medium">
+                            طلب في الزيارة القادمة
+                          </span>
+                        ) : (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                            المخزون متزن وآمن
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {displayReplenishmentItems.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-zinc-400">
+                        لا توجد أصناف تطابق الفلتر المحدد حالياً
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: SHRINKAGE & DAMAGE */}
+      {subTab === 'shrinkage' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Surplus & Discrepancies */}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm">
+              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-zinc-100 dark:border-zinc-800">
+                <ShieldAlert className="text-amber-500" size={20} />
+                <div>
+                  <h3 className="font-black text-zinc-900 dark:text-white">الفوارق والزيادات غير المفسرة</h3>
+                  <p className="text-[11px] text-zinc-500">حالات وجد فيها بالعد الفعلي كمية أكبر من المسجل بالنظام</p>
+                </div>
+              </div>
+
+              {currentReport.surplusItemsCount > 0 ? (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 text-amber-800 dark:text-amber-300 text-xs leading-relaxed">
+                    <strong>تنبيه فني:</strong> وجود زيادة فعلية عن المسجل يعني عادة: فاتورة شراء بضاعة لم يتم إدخالها للنظام، أو خطأ في العد أثناء الجرد السابق.
+                  </div>
+
+                  <div className="space-y-2">
+                    {analyzedItems.filter(it => it.isSurplus).map((item, i) => (
+                      <div key={i} className="p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+                        <div>
+                          <div className="font-bold text-sm text-zinc-900 dark:text-white">{item.name}</div>
+                          <div className="text-[11px] text-zinc-400">
+                            الزيادة: +{item.surplusQuantity} قطعة
+                          </div>
+                        </div>
+                        <div className="text-left font-black text-amber-600 dark:text-amber-400">
+                          {formatCurrency(item.surplusCostValue, settings.currency, language)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="py-12 text-center text-zinc-400 space-y-2">
+                  <CheckCircle2 size={36} className="text-emerald-500 mx-auto" />
+                  <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300">أرقام الجرد متطابقة بالكامل</p>
+                  <p className="text-xs">لم تسجل أي زيادات عشوائية غير مفسرة في هذا الجرد.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Damages and Losses */}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm">
+              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-zinc-100 dark:border-zinc-800">
+                <AlertTriangle className="text-rose-500" size={20} />
+                <div>
+                  <h3 className="font-black text-zinc-900 dark:text-white">سجل التوالف والأضرار المعتمدة</h3>
+                  <p className="text-[11px] text-zinc-500">البضائع التي أتلفت أو انتهت صلاحيتها خلال دورة الجرد</p>
+                </div>
+              </div>
+
+              {currentReport.damageItems && currentReport.damageItems.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30">
+                    <span className="text-xs font-bold text-rose-700 dark:text-rose-300">إجمالي خسائر التوالف</span>
+                    <span className="text-base font-black text-rose-600">
+                      {formatCurrency(summaryMetrics.damageLoss, settings.currency, language)}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {currentReport.damageItems.map((dmg: any, i: number) => (
+                      <div key={i} className="p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-xs">
+                        <div>
+                          <div className="font-bold text-zinc-900 dark:text-white">{dmg.productName}</div>
+                          <div className="text-zinc-400 mt-0.5">
+                            الكمية التالفة: {dmg.quantity} • السبب: {dmg.reason || 'تلف / كسر'}
+                          </div>
+                        </div>
+                        <div className="font-black text-rose-600">
+                          {formatCurrency(dmg.totalLoss, settings.currency, language)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="py-12 text-center text-zinc-400 space-y-2">
+                  <CheckCircle2 size={36} className="text-emerald-500 mx-auto" />
+                  <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300">لا توجد توالف مسجلة في هذه الدورة</p>
+                  <p className="text-xs">سجل الهدر والتوالف نظيف بنسبة 100%.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: MULTI-INVENTORY TRENDS */}
+      {subTab === 'trends' && (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+              <div>
+                <h3 className="font-black text-lg text-zinc-900 dark:text-white">
+                  مسار تطور المحل عبر الجرود المتعاقبة
+                </h3>
+                <p className="text-xs text-zinc-500">
+                  مقارنة المبيعات والأرباح وقيمة رأس المال المخزون عبر الزمن
+                </p>
+              </div>
+
+              <div className="flex items-center gap-4 text-xs font-bold">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-brand-500" />
+                  <span className="text-zinc-600 dark:text-zinc-400">المبيعات / الاستهلاك</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                  <span className="text-zinc-600 dark:text-zinc-400">صافي الربح</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-blue-400" />
+                  <span className="text-zinc-600 dark:text-zinc-400">قيمة المخزون المتبقي</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="h-[320px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={multiInventoryTrends}>
+                  <defs>
+                    <linearGradient id="trendRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#004eff" stopOpacity={0.15}/>
+                      <stop offset="95%" stopColor="#004eff" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="trendProfit" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                  <XAxis dataKey="shortName" fontSize={11} axisLine={false} tickLine={false} />
+                  <YAxis fontSize={10} axisLine={false} tickLine={false} hide />
+                  <Tooltip 
+                    contentStyle={{ 
+                      borderRadius: '12px', 
+                      border: 'none', 
+                      boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1)',
+                      textAlign: 'right' 
+                    }}
+                    formatter={(value: number, name: string) => {
+                      const labels: Record<string, string> = {
+                        revenue: 'المبيعات المستهلكة',
+                        profit: 'الربح الإجمالي',
+                        netProfit: 'صافي الربح',
+                        stockValue: 'قيمة المخزون المتبقي',
+                        expenses: 'المصاريف',
+                      };
+                      return [formatCurrency(value, settings.currency, language), labels[name] || name];
+                    }}
+                  />
+                  <Area type="monotone" dataKey="revenue" stroke="#004eff" strokeWidth={3} fillOpacity={1} fill="url(#trendRevenue)" />
+                  <Area type="monotone" dataKey="netProfit" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#trendProfit)" />
+                  <Area type="monotone" dataKey="stockValue" stroke="#60a5fa" strokeWidth={2} strokeDasharray="4 4" fill="none" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Table of all inventories side-by-side */}
+            <div className="mt-8 overflow-x-auto">
+              <table className="w-full text-right text-xs">
+                <thead>
+                  <tr className="border-b border-zinc-200 dark:border-zinc-800 text-zinc-400">
+                    <th className="pb-3 font-bold">الجرد</th>
+                    <th className="pb-3 font-bold">التاريخ</th>
+                    <th className="pb-3 font-bold">المبيعات المستهلكة</th>
+                    <th className="pb-3 font-bold">الربح الإجمالي</th>
+                    <th className="pb-3 font-bold">المصاريف المقيدة</th>
+                    <th className="pb-3 font-bold">صافي الربح</th>
+                    <th className="pb-3 font-bold">قيمة المخزون المتبقي</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                  {multiInventoryTrends.map((tItem, i) => (
+                    <tr key={i} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
+                      <td className="py-3 font-black text-brand-600 dark:text-brand-400">{tItem.name}</td>
+                      <td className="py-3 text-zinc-500">دورة جرد</td>
+                      <td className="py-3 font-bold text-zinc-900 dark:text-white">
+                        {!showFinancials ? '••••••' : formatCurrency(tItem.revenue, settings.currency, language)}
+                      </td>
+                      <td className="py-3 font-bold text-emerald-600">
+                        {!showFinancials ? '••••••' : formatCurrency(tItem.profit, settings.currency, language)}
+                      </td>
+                      <td className="py-3 text-rose-500">
+                        {!showFinancials ? '••••••' : formatCurrency(tItem.expenses, settings.currency, language)}
+                      </td>
+                      <td className="py-3 font-black text-emerald-700 dark:text-emerald-400">
+                        {!showFinancials ? '••••••' : formatCurrency(tItem.netProfit, settings.currency, language)}
+                      </td>
+                      <td className="py-3 text-zinc-600 dark:text-zinc-300">
+                        {!showFinancials ? '••••••' : formatCurrency(tItem.stockValue, settings.currency, language)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

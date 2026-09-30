@@ -17,6 +17,7 @@ import { collection, query, getDocs, orderBy, limit, where, onSnapshot, doc, wri
 import { db } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
 import { formatCurrency, safeParseDate, formatAppDate } from '../lib/utils';
+import { InventoryAnalytics } from '../components/inventory/InventoryAnalytics';
 
 export default function Analytics() {
   const { t } = useTranslation();
@@ -25,7 +26,7 @@ export default function Analytics() {
   const [inventoryReports, setInventoryReports] = useState<any[]>([]);
   const [purchases, setPurchases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'menu' | 'financial' | 'rankings' | 'purchases' | 'categories'>('menu');
+  const [activeTab, setActiveTab] = useState<'menu' | 'inventory_intel' | 'financial' | 'rankings' | 'purchases' | 'categories'>('menu');
 
   const language = settings.language || 'ar';
   const showFinancials = settings.showFinancials ?? true;
@@ -173,6 +174,15 @@ export default function Analytics() {
   }
 
   const menuItems = [
+    { 
+      id: 'inventory_intel', 
+      label: t('inventory_analytics'), 
+      icon: Activity, 
+      color: 'text-brand-600 dark:text-brand-400', 
+      bg: 'bg-brand-50 dark:bg-brand-950/40 border border-brand-200/50 dark:border-brand-800/40', 
+      badge: 'جديد ومُخصص',
+      desc: t('inventory_analytics_desc') 
+    },
     { id: 'financial', label: t('financial_stats'), icon: BarChart3, color: 'text-zinc-500', bg: 'bg-zinc-50 dark:bg-zinc-800/50', desc: t('revenue_profit_cost') },
     { id: 'rankings', label: t('best_products'), icon: TrendingUp, color: 'text-zinc-500', bg: 'bg-zinc-50 dark:bg-zinc-800/50', desc: t('most_profitable_sold') },
     { id: 'categories', label: t('category_analysis'), icon: PieChartIcon, color: 'text-zinc-500', bg: 'bg-zinc-50 dark:bg-zinc-800/50', desc: t('stock_value_by_category') },
@@ -210,25 +220,45 @@ export default function Analytics() {
       >
         {activeTab === 'menu' && (
           <div className="grid grid-cols-1 gap-4">
-            {menuItems.map((item) => (
+            {menuItems.map((item: any) => (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id as any)}
-                className="group flex items-center gap-4 p-5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg text-right transition-all hover:scale-[1.02] active:scale-95 shadow-sm"
+                className={`group flex items-center gap-4 p-5 bg-white dark:bg-zinc-900 border rounded-xl text-right transition-all hover:scale-[1.01] active:scale-98 shadow-sm ${
+                  item.id === 'inventory_intel'
+                    ? 'border-brand-300 dark:border-brand-700/60 ring-2 ring-brand-500/10'
+                    : 'border-zinc-100 dark:border-zinc-800'
+                }`}
               >
-                <div className={`h-14 w-14 rounded-lg ${item.bg} flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform`}>
+                <div className={`h-14 w-14 rounded-xl ${item.bg} flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform shrink-0`}>
                   <item.icon size={28} />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-black text-lg text-zinc-900 dark:text-white">{item.label}</h3>
-                  <p className="text-xs text-zinc-500">{item.desc}</p>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <h3 className="font-black text-lg text-zinc-900 dark:text-white">{item.label}</h3>
+                    {item.badge && (
+                      <span className="px-2 py-0.5 text-[10px] font-black rounded-full bg-brand-500 text-white">
+                        {item.badge}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-zinc-500 leading-relaxed">{item.desc}</p>
                 </div>
-                <div className="h-10 w-10 rounded-full bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-300 group-hover:text-brand-500 transform group-hover:translate-x-[-4px] transition-all">
+                <div className="h-10 w-10 rounded-full bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-300 group-hover:text-brand-500 transform group-hover:translate-x-[-4px] transition-all shrink-0">
                   {language === 'ar' ? <ArrowDownRight className="rotate-180" size={20} /> : <ArrowUpRight size={20} />}
                 </div>
               </button>
             ))}
           </div>
+        )}
+
+        {activeTab === 'inventory_intel' && (
+          <InventoryAnalytics
+            inventoryReports={inventoryReports}
+            products={products}
+            purchases={purchases}
+            settings={settings}
+          />
         )}
 
         {activeTab === 'financial' && (

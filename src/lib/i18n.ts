@@ -453,7 +453,9 @@ const resources = {
       "taxes_and_fees": "ضرائب ورسوم",
       "tax_expense_linked_hint": "(تُسجل تلقائياً كـ مصروف)",
       "record_tax_as_expense": "تسجيل المبلغ تلقائياً كـ مصروف في قسم المصاريف",
-      "session_saved_with_expense_success": "تم حفظ الجلسة وتسجيل TVA كمصروف بنجاح ✅"
+      "session_saved_with_expense_success": "تم حفظ الجلسة وتسجيل TVA كمصروف بنجاح ✅",
+      "inventory_analytics": "تحليلات واستخبارات الجرد",
+      "inventory_analytics_desc": "تحليل الاستهلاك الحقيقي، سرعة نفاد الرفوف، ورأس المال المعطل بين الجرود"
     }
   },
 };

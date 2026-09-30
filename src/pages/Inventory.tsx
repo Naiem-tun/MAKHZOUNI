@@ -81,7 +81,7 @@ function distributeQuantityToProducts(originalProducts: any[], newTotalQty: numb
 
 export default function Inventory() {
   const { t } = useTranslation();
-  const { user, settings, showToast } = useAppContext();
+  const { user, settings, showToast, setActiveTab } = useAppContext();
   const { categories } = useCategories();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -1014,6 +1014,18 @@ export default function Inventory() {
             title={t('inventory_log')}
           >
             <FileText size={16} />
+          </button>
+
+          <button 
+            onClick={() => {
+              setActiveTab('reports');
+              window.dispatchEvent(new CustomEvent('open-analytics-tab', { detail: 'inventory_intel' }));
+            }}
+            className="shrink-0 h-9 px-3 flex items-center gap-1.5 bg-brand-50 hover:bg-brand-100 dark:bg-brand-900/30 dark:hover:bg-brand-900/50 text-brand-600 dark:text-brand-400 transition-colors text-xs font-black whitespace-nowrap"
+            title="تحليلات واستخبارات الجرد"
+          >
+            <TrendingUp size={16} />
+            <span>تحليلات الجرد</span>
           </button>
           
           <button 
