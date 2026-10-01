@@ -5,7 +5,8 @@ import {
   BarChart3, TrendingUp, TrendingDown, AlertTriangle, 
   Hourglass, ShieldAlert, Sparkles, ArrowRight,
   Package, Calendar, CheckCircle2, ChevronDown, 
-  Zap, DollarSign, Layers, Clock, RefreshCw, AlertCircle
+  Zap, DollarSign, Layers, Clock, RefreshCw, AlertCircle,
+  Search, X, PieChart as PieChartIcon, Award, ArrowUpRight
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, 
@@ -34,8 +35,9 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
 
   // Selected report index (0 = latest report)
   const [selectedReportIndex, setSelectedReportIndex] = useState<number>(0);
-  const [subTab, setSubTab] = useState<'overview' | 'velocity' | 'shrinkage' | 'trends'>('overview');
+  const [subTab, setSubTab] = useState<'overview' | 'categories' | 'velocity' | 'shrinkage' | 'trends'>('overview');
   const [filterQuery, setFilterQuery] = useState('');
+  const [replenishmentSearch, setReplenishmentSearch] = useState('');
   const [itemsPerPage, setItemsPerPage] = useState<number>(20);
   const [urgentFilter, setUrgentFilter] = useState<'all' | 'critical' | 'warning'>('all');
 
@@ -75,9 +77,10 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
     return Math.max(diff, 0);
   }, [sortedReports]);
 
-  // Group products by (barcode || name) to aggregate total live quantities across all purchase price batches!
+  // Group products by barcode and/or name to aggregate total live quantities across all purchase price batches!
   const groupedLiveProducts = useMemo(() => {
-    const map = new Map<string, {
+    // We map by both barcode (if exists) and name so lookups succeed regardless of whether barcode exists
+    const nameMap = new Map<string, {
       totalQuantity: number;
       category: string;
       latestCostPrice: number;
@@ -87,23 +90,29 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
       batchCount: number;
     }>();
 
+    const barcodeMap = new Map<string, any>();
+
     products.forEach(p => {
-      const key = (p.barcode || p.name || '').trim().toLowerCase();
-      if (!key) return;
+      const nameKey = (p.name || '').trim().toLowerCase();
+      const barcodeKey = (p.barcode || p.barcode2 || '').trim().toLowerCase();
+      
+      const primaryKey = nameKey || barcodeKey;
+      if (!primaryKey) return;
 
       const q = Number(p.quantity ?? 0);
       const cost = Number(p.purchasePrice || p.costPrice || 0);
       const sell = Number(p.sellingPrice || 0);
 
-      const existing = map.get(key);
-      if (existing) {
-        existing.totalQuantity += q;
-        existing.batchCount += 1;
-        // Keep highest or latest cost
-        if (cost > 0) existing.latestCostPrice = cost;
-        if (sell > 0) existing.sellingPrice = sell;
+      let record = nameKey ? nameMap.get(nameKey) : (barcodeKey ? barcodeMap.get(barcodeKey) : undefined);
+
+      if (record) {
+        record.totalQuantity += q;
+        record.batchCount += 1;
+        if (cost > 0) record.latestCostPrice = cost;
+        if (sell > 0) record.sellingPrice = sell;
+        if (!record.barcode && barcodeKey) record.barcode = p.barcode || p.barcode2;
       } else {
-        map.set(key, {
+        record = {
           totalQuantity: q,
           category: p.category || 'عام',
           latestCostPrice: cost,
@@ -111,11 +120,14 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
           barcode: p.barcode || p.barcode2 || '',
           name: p.name || '',
           batchCount: 1,
-        });
+        };
+        if (nameKey) nameMap.set(nameKey, record);
       }
+
+      if (barcodeKey) barcodeMap.set(barcodeKey, record);
     });
 
-    return map;
+    return { nameMap, barcodeMap };
   }, [products]);
 
   // Deep analysis of items in the current report with aggregated groupings
@@ -125,16 +137,22 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
     const prevItemsMap = new Map<string, any>();
     if (previousReport && previousReport.items) {
       previousReport.items.forEach((it: any) => {
-        const key = (it.barcode || it.productName || '').trim().toLowerCase();
-        prevItemsMap.set(key, it);
+        const nKey = (it.productName || '').trim().toLowerCase();
+        const bKey = (it.barcode || '').trim().toLowerCase();
+        if (nKey) prevItemsMap.set(nKey, it);
+        if (bKey) prevItemsMap.set(bKey, it);
       });
     }
 
-    // Group report items first if report has duplicate entries by name/barcode
+    // Group report items by Name first (or barcode if name empty)
     const groupedReportItems = new Map<string, any>();
     currentReport.items.forEach((item: any) => {
-      const key = (item.barcode || item.productName || '').trim().toLowerCase();
-      const existing = groupedReportItems.get(key);
+      const nKey = (item.productName || '').trim().toLowerCase();
+      const bKey = (item.barcode || '').trim().toLowerCase();
+      const groupKey = nKey || bKey;
+      if (!groupKey) return;
+
+      const existing = groupedReportItems.get(groupKey);
       if (existing) {
         existing.quantityAfter = (existing.quantityAfter || 0) + Number(item.quantityAfter || 0);
         existing.salesCalculated = (existing.salesCalculated || 0) + Number(item.salesCalculated || 0);
@@ -146,35 +164,62 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
           existing.surplusCostValue = (existing.surplusCostValue || 0) + (item.surplusCostValue || 0);
         }
       } else {
-        groupedReportItems.set(key, { ...item });
+        groupedReportItems.set(groupKey, { ...item });
       }
     });
 
     return Array.from(groupedReportItems.values()).map((item: any) => {
-      const key = (item.barcode || item.productName || '').trim().toLowerCase();
-      const prevItem = prevItemsMap.get(key);
-      const liveGroup = groupedLiveProducts.get(key);
+      const nKey = (item.productName || '').trim().toLowerCase();
+      const bKey = (item.barcode || '').trim().toLowerCase();
+      
+      const prevItem = (nKey && prevItemsMap.get(nKey)) || (bKey && prevItemsMap.get(bKey));
+      const liveGroup = (nKey && groupedLiveProducts.nameMap.get(nKey)) || 
+                        (bKey && groupedLiveProducts.barcodeMap.get(bKey));
 
       const costPrice = Number(item.purchasePrice || liveGroup?.latestCostPrice || 0);
       const sellPrice = Number(item.sellingPrice || liveGroup?.sellingPrice || 0);
       
-      // Stock quantity:
-      // If we are looking at the latest inventory, use the aggregated total quantity of all batches!
+      // Stock quantity & Simulation:
+      // In a periodic inventory system without POS daily sales deduction,
+      // the live quantity in the app only increases when purchases are entered, but doesn't decrease daily.
+      // Therefore, for the latest inventory, we compute:
+      // 1. recordedReportStock: stock at the moment of the last inventory
+      // 2. liveCurrentStock: current recorded stock in the app (inventory + purchases made after inventory)
+      // 3. estimatedConsumedSinceInventory: (dailyVelocity * daysSinceLatestInventory)
+      // 4. estimatedCurrentStockToday: liveCurrentStock - estimatedConsumedSinceInventory
       const recordedReportStock = Number(item.quantityAfter || 0);
       const liveCurrentStock = liveGroup ? liveGroup.totalQuantity : recordedReportStock;
-      const currentStock = isLatestReportSelected ? liveCurrentStock : recordedReportStock;
-
+      
       const soldQty = Number(item.salesCalculated || 0);
       const profit = Number(item.profit || 0);
       const revenue = soldQty > 0 ? (soldQty * sellPrice) : 0;
+      const cogs = soldQty > 0 ? (soldQty * costPrice) : 0;
+
+      // Return per 1 Dinar invested in sold inventory:
+      // If 10 Dinars cost generated 14 Dinars revenue -> 1.40 Dinars return per 1 Dinar invested
+      const returnPerDinar = cogs > 0 ? (revenue / cogs) : (costPrice > 0 && sellPrice > 0 ? (sellPrice / costPrice) : 0);
 
       // Daily consumption velocity based on elapsed days between inventories
       const dailyVelocity = soldQty > 0 ? (soldQty / elapsedDays) : 0;
+
+      // Simulated estimated depletion since the last inventory until today
+      const estimatedConsumedSinceInventory = isLatestReportSelected && dailyVelocity > 0
+        ? Math.round(dailyVelocity * daysSinceLatestInventory)
+        : 0;
+
+      // Real estimated shelf stock today:
+      // Taking what's currently in the system (base inventory + new purchases) minus estimated consumption
+      const estimatedCurrentStockToday = isLatestReportSelected
+        ? Math.max(0, liveCurrentStock - estimatedConsumedSinceInventory)
+        : recordedReportStock;
+
+      const currentStock = isLatestReportSelected ? estimatedCurrentStockToday : recordedReportStock;
       
       // Stock Runway (Days until stock out from today)
+      // Remaining shelf days starting from TODAY:
       const daysUntilStockout = dailyVelocity > 0 
-        ? Math.max(0, Math.round(currentStock / dailyVelocity)) 
-        : (currentStock > 0 ? 999 : 0);
+        ? Math.max(0, Math.floor(estimatedCurrentStockToday / dailyVelocity)) 
+        : (estimatedCurrentStockToday > 0 ? 999 : 0);
 
       // Previous inventory stock
       const prevStock = prevItem ? Number(prevItem.quantityAfter || 0) : null;
@@ -196,13 +241,16 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
         category: item.category || liveGroup?.category || 'عام',
         costPrice,
         sellPrice,
-        currentStock,
-        recordedReportStock,
+        currentStock, // estimated current shelf stock today
+        liveCurrentStock, // app recorded stock (inventory + new purchases)
+        recordedReportStock, // stock at inventory time
+        estimatedConsumedSinceInventory,
         soldQty,
         dailyVelocity,
         daysUntilStockout,
         revenue,
         profit,
+        returnPerDinar,
         isDeadStock,
         deadCapital,
         stockStatus,
@@ -213,7 +261,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
         prevStock,
       };
     });
-  }, [currentReport, previousReport, elapsedDays, groupedLiveProducts, isLatestReportSelected]);
+  }, [currentReport, previousReport, elapsedDays, daysSinceLatestInventory, groupedLiveProducts, isLatestReportSelected]);
 
   // Overall Metrics for selected report
   const summaryMetrics = useMemo(() => {
@@ -308,9 +356,20 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
     return replenishmentItems.filter(it => it.daysUntilStockout <= 7 || it.currentStock === 0);
   }, [replenishmentItems]);
 
-  // Items to display in the stock runway table according to urgentFilter and itemsPerPage
+  // Items to display in the stock runway table according to search query, urgentFilter and itemsPerPage
   const displayReplenishmentItems = useMemo(() => {
     let list = replenishmentItems;
+    
+    // Search query filter
+    if (replenishmentSearch.trim()) {
+      const q = replenishmentSearch.trim().toLowerCase();
+      list = list.filter(it => 
+        (it.name && it.name.toLowerCase().includes(q)) ||
+        (it.barcode && it.barcode.toLowerCase().includes(q)) ||
+        (it.category && it.category.toLowerCase().includes(q))
+      );
+    }
+
     if (urgentFilter === 'critical') {
       list = list.filter(it => it.daysUntilStockout <= 5 || it.currentStock === 0);
     } else if (urgentFilter === 'warning') {
@@ -318,7 +377,66 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
     }
     if (itemsPerPage === -1) return list; // all
     return list.slice(0, itemsPerPage);
-  }, [replenishmentItems, urgentFilter, itemsPerPage]);
+  }, [replenishmentItems, replenishmentSearch, urgentFilter, itemsPerPage]);
+
+  // Category Breakdown Metrics
+  const categoryBreakdown = useMemo(() => {
+    const map = new Map<string, {
+      category: string;
+      itemCount: number;
+      revenue: number;
+      profit: number;
+      remainingValue: number;
+      cogs: number;
+    }>();
+
+    analyzedItems.forEach(item => {
+      const cat = (item.category || 'عام').trim();
+      const existing = map.get(cat) || {
+        category: cat,
+        itemCount: 0,
+        revenue: 0,
+        profit: 0,
+        remainingValue: 0,
+        cogs: 0,
+      };
+
+      existing.itemCount += 1;
+      existing.revenue += Number(item.revenue || 0);
+      existing.profit += Number(item.profit || 0);
+      existing.remainingValue += Number(item.currentStock || 0) * Number(item.costPrice || 0);
+      const itemCogs = Number(item.soldQty || 0) * Number(item.costPrice || 0);
+      existing.cogs += itemCogs;
+
+      map.set(cat, existing);
+    });
+
+    const totalRev = summaryMetrics.totalRevenue || 1;
+    const totalProf = summaryMetrics.totalProfit || 1;
+
+    return Array.from(map.values()).map(c => {
+      const revPct = summaryMetrics.totalRevenue > 0 ? (c.revenue / totalRev) * 100 : 0;
+      const profPct = summaryMetrics.totalProfit > 0 ? (c.profit / totalProf) * 100 : 0;
+      const profitMargin = c.revenue > 0 ? (c.profit / c.revenue) * 100 : 0;
+      const returnOnDinar = c.cogs > 0 ? (c.revenue / c.cogs) : (c.profit > 0 ? 1 + (c.profit / (c.revenue - c.profit)) : 1);
+
+      return {
+        ...c,
+        revPct,
+        profPct,
+        profitMargin,
+        returnOnDinar,
+      };
+    }).sort((a, b) => b.profit - a.profit);
+  }, [analyzedItems, summaryMetrics]);
+
+  // Top Return-on-Dinar products (highest multiplier with meaningful sales)
+  const topRoiProducts = useMemo(() => {
+    return [...analyzedItems]
+      .filter(it => it.soldQty > 0 && it.costPrice > 0)
+      .sort((a, b) => b.returnPerDinar - a.returnPerDinar)
+      .slice(0, 5);
+  }, [analyzedItems]);
 
   // Multi-Inventory Trend Chart Data (Chronological left-to-right)
   const multiInventoryTrends = useMemo(() => {
@@ -458,9 +576,10 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
       <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-zinc-200 dark:border-zinc-800 scrollbar-none">
         {[
           { id: 'overview', label: 'الخلاصة المالية للجرد', icon: DollarSign },
+          { id: 'categories', label: 'مردودية الأقسام ورأس المال', icon: PieChartIcon },
           { id: 'velocity', label: 'سرعة الدوران والأصناف الراكدة', icon: Zap },
           { id: 'shrinkage', label: 'سلامة الجرد والهدر والتوالف', icon: ShieldAlert },
-          { id: 'trends', label: 'مسار وتطور الجرود الأربعة', icon: TrendingUp },
+          { id: 'trends', label: 'مسار وتطور الجرود السابقة', icon: TrendingUp },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = subTab === tab.id;
@@ -613,6 +732,148 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
         </div>
       )}
 
+      {/* TAB: CATEGORY & CAPITAL PROFITABILITY (مردودية الأقسام ورأس المال) */}
+      {subTab === 'categories' && (
+        <div className="space-y-6">
+          {/* Top Multipliers Highlight Card */}
+          <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-200 dark:border-emerald-900/50 rounded-2xl p-5">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-emerald-500 text-white shadow-sm">
+                  <Award size={24} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-zinc-900 dark:text-white">
+                    كاشف عائد الدينار المستثمر في السلع
+                  </h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    كم ديناراً يرجع لمحلك مقابل كل 1 دينار تدفعه في شراء هذا المنتج؟
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick badges of top return products */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mt-4">
+              {topRoiProducts.map((p, idx) => (
+                <div key={idx} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 shadow-xs flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-zinc-400 font-bold truncate max-w-[100px]">{p.category}</span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200/50">
+                      #{idx + 1}
+                    </span>
+                  </div>
+                  <div className="font-bold text-xs text-zinc-900 dark:text-white truncate mt-1" title={p.name}>
+                    {p.name}
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
+                    <span className="text-[10px] text-zinc-400">يرجع لك:</span>
+                    <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
+                      {p.returnPerDinar.toFixed(2)} د
+                      <ArrowUpRight size={12} />
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Category Performance Cards Grid */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-black text-base text-zinc-900 dark:text-white">
+                  مقارنة أداء ومساهمة أقسام المحل
+                </h3>
+                <p className="text-xs text-zinc-500">
+                  مرتبة حسب المساهمة الأكبر في صافي الأرباح المحققة خلال هذه الدورة
+                </p>
+              </div>
+              <span className="text-xs text-zinc-400 font-bold">
+                إجمالي الأقسام: {categoryBreakdown.length}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {categoryBreakdown.map((cat, i) => (
+                <div 
+                  key={i}
+                  className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-sm space-y-4 hover:border-brand-500/50 transition-all"
+                >
+                  <div className="flex items-start justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-brand-50 dark:bg-brand-950/40 text-brand-600 font-black text-xs flex items-center justify-center">
+                          {i + 1}
+                        </span>
+                        <h4 className="font-black text-base text-zinc-900 dark:text-white">
+                          {cat.category}
+                        </h4>
+                      </div>
+                      <span className="text-[11px] text-zinc-400 block mt-1">
+                        يحتوي على {cat.itemCount} صنف مسجل
+                      </span>
+                    </div>
+
+                    <div className="text-left">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-black bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200/50 dark:border-emerald-900/40 block">
+                        {cat.profPct.toFixed(1)}% من ربح المحل
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Profit vs Revenue Progress Bar */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-zinc-500 font-medium">مساهمة المبيعات:</span>
+                      <span className="font-bold text-zinc-700 dark:text-zinc-300">{cat.revPct.toFixed(1)}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, Math.max(5, cat.revPct))}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 3 Core Metrics for this category */}
+                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/80 text-center">
+                    <div className="p-2 rounded-xl bg-zinc-50 dark:bg-zinc-800/40">
+                      <span className="block text-[10px] text-zinc-400">مبيعات القسم</span>
+                      <span className="font-black text-xs text-zinc-900 dark:text-white mt-0.5 block">
+                        {!showFinancials ? '•••' : formatCurrency(cat.revenue, settings.currency, language)}
+                      </span>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30">
+                      <span className="block text-[10px] text-emerald-600 dark:text-emerald-400">أرباحه الصافية</span>
+                      <span className="font-black text-xs text-emerald-700 dark:text-emerald-300 mt-0.5 block">
+                        {!showFinancials ? '•••' : formatCurrency(cat.profit, settings.currency, language)}
+                      </span>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-zinc-50 dark:bg-zinc-800/40">
+                      <span className="block text-[10px] text-zinc-400">المجمد على الرف</span>
+                      <span className="font-black text-xs text-zinc-900 dark:text-white mt-0.5 block">
+                        {!showFinancials ? '•••' : formatCurrency(cat.remainingValue, settings.currency, language)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Key takeaway note */}
+                  <div className="text-[11px] bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-2.5 flex items-center justify-between text-zinc-600 dark:text-zinc-300">
+                    <span>معدل هامش الربح بالقسم:</span>
+                    <span className="font-black text-brand-600 dark:text-brand-400">
+                      {cat.profitMargin.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* TAB 2: VELOCITY & STAGNANT STOCK */}
       {subTab === 'velocity' && (
         <div className="space-y-6">
@@ -736,7 +997,27 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
               </div>
 
               {/* Controls: Per Page Selector & Quick Filter */}
-              <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+              <div className="flex flex-wrap items-center gap-2 self-start md:self-auto w-full md:w-auto">
+                {/* Search Bar */}
+                <div className="relative flex-1 md:w-56 min-w-[180px]">
+                  <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={replenishmentSearch}
+                    onChange={(e) => setReplenishmentSearch(e.target.value)}
+                    placeholder="ابحث باسم المنتج..."
+                    className="w-full pr-8 pl-7 py-1.5 text-xs bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/80 rounded-lg text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  />
+                  {replenishmentSearch && (
+                    <button
+                      onClick={() => setReplenishmentSearch('')}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-0.5"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+
                 {/* Status Filter */}
                 <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg text-xs font-bold">
                   <button
@@ -797,7 +1078,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
               </span>
               <span className="text-[11px] text-zinc-400">
                 {isLatestReportSelected 
-                  ? '⚡ محسوبة بناءً على رصيدك المجمع اليوم وتاريخ اللحظة' 
+                  ? `⚡ مرت ${daysSinceLatestInventory} أيام منذ الجرد: محسوبة بمحاكاة السحب اليومي التقديري حتى تاريخ اليوم` 
                   : 'أرشيف: محسوبة بناءً على كميات تاريخ الجرد'}
               </span>
             </div>
@@ -810,10 +1091,10 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                     <th className="pb-2.5 font-bold">المنتج (مجمع النسخ)</th>
                     <th className="pb-2.5 font-bold">القسم</th>
                     <th className="pb-2.5 font-bold">
-                      {isLatestReportSelected ? 'إجمالي الرصيد اليوم' : 'رصيد الجرد'}
+                      {isLatestReportSelected ? 'المتبقي التقديري على الرف اليوم' : 'رصيد الجرد'}
                     </th>
                     <th className="pb-2.5 font-bold">معدل السحب اليومي</th>
-                    <th className="pb-2.5 font-bold">أيام البقاء حتى النفاد</th>
+                    <th className="pb-2.5 font-bold">أيام البقاء ابتداءً من اليوم</th>
                     <th className="pb-2.5 font-bold">القرار المقترح</th>
                   </tr>
                 </thead>
@@ -829,16 +1110,24 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                               {item.batchCount} أسعار شراء
                             </span>
                           )}
+                          {item.returnPerDinar > 1 && (
+                            <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400" title={`كل 1 د تكلفة يعود بـ ${item.returnPerDinar.toFixed(2)} د مبيعات`}>
+                              عائد {item.returnPerDinar.toFixed(2)} د
+                            </span>
+                          )}
                         </div>
-                        {isLatestReportSelected && item.currentStock !== item.recordedReportStock && (
-                          <span className="block text-[10px] text-zinc-400">
-                            (كان بالجرد: {item.recordedReportStock})
-                          </span>
+                        {isLatestReportSelected && (
+                          <div className="text-[10px] text-zinc-400 font-normal mt-0.5">
+                            رصيد النظام: {item.liveCurrentStock}
+                            {item.estimatedConsumedSinceInventory > 0 && (
+                              <span className="text-zinc-500"> (قُدّر استهلاك ~{item.estimatedConsumedSinceInventory} في {daysSinceLatestInventory} أيام)</span>
+                            )}
+                          </div>
                         )}
                       </td>
                       <td className="py-2.5 text-zinc-500">{item.category}</td>
                       <td className="py-2.5 font-black text-sm text-zinc-900 dark:text-zinc-100">
-                        {item.currentStock}
+                        {item.currentStock} قطعة
                       </td>
                       <td className="py-2.5 text-zinc-600 dark:text-zinc-300 font-medium">
                         {item.dailyVelocity.toFixed(1)} / يوم
