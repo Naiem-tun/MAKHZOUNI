@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { X, Eye, EyeOff, Lock } from "lucide-react";
+import { X, Eye, EyeOff, Lock, BarChart3 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../../AppContext";
 
@@ -9,7 +9,6 @@ interface AppMobileMenuProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   mainPagesTabs: any[];
-  reportsSubpages: any[];
   otherTabs: any[];
 }
 
@@ -19,7 +18,6 @@ export function AppMobileMenu({
   activeTab,
   setActiveTab,
   mainPagesTabs,
-  reportsSubpages,
   otherTabs,
 }: AppMobileMenuProps) {
   const { settings, updateSettings, setIsCatalogMode, lockApp } = useAppContext();
@@ -79,7 +77,7 @@ export function AppMobileMenu({
 
           <div className="h-px bg-zinc-100 dark:bg-zinc-800 mx-3" />
 
-          {/* 2. التقارير والمالية */}
+          {/* 2. التقارير والتحليلات */}
           <div className="space-y-1">
             <div className="px-3 pb-2 text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest flex items-center justify-between">
               <span>
@@ -105,35 +103,28 @@ export function AppMobileMenu({
                 )}
               </button>
             </div>
-            {reportsSubpages.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab("reports");
-                  setTimeout(
-                    () =>
-                      window.dispatchEvent(
-                        new CustomEvent("open-analytics-tab", {
-                          detail: tab.id,
-                        }),
-                      ),
-                    100,
-                  );
-                  setMobileMenuOpen(false);
-                }}
-                className="flex w-full items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
-              >
-                <tab.icon
-                  size={20}
-                  className={
-                    activeTab === "reports"
-                      ? "text-brand-500"
-                      : "text-zinc-400"
-                  }
-                />
-                <span className="font-medium">{tab.label}</span>
-              </button>
-            ))}
+            
+            <button
+              onClick={() => {
+                setActiveTab("reports");
+                setMobileMenuOpen(false);
+              }}
+              className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                activeTab === "reports"
+                  ? "bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 font-bold"
+                  : "text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
+              }`}
+            >
+              <BarChart3
+                size={20}
+                className={
+                  activeTab === "reports"
+                    ? "text-brand-500"
+                    : "text-zinc-400"
+                }
+              />
+              <span className="font-medium">{t("reports") || "التقارير والتحليلات"}</span>
+            </button>
           </div>
 
           <div className="h-px bg-zinc-100 dark:bg-zinc-800 mx-3" />

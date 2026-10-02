@@ -6,7 +6,7 @@ import {
   Hourglass, ShieldAlert, Sparkles, ArrowRight,
   Package, Calendar, CheckCircle2, ChevronDown, 
   Zap, DollarSign, Layers, Clock, RefreshCw, AlertCircle,
-  Search, X, PieChart as PieChartIcon, Award, ArrowUpRight
+  Search, X, PieChart as PieChartIcon, Award, ArrowUpRight, History, Truck, ChevronUp
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, 
@@ -20,6 +20,7 @@ interface InventoryAnalyticsProps {
   inventoryReports: any[];
   products: any[];
   purchases: any[];
+  suppliers?: any[];
   settings: UserSettings;
 }
 
@@ -27,6 +28,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
   inventoryReports,
   products,
   purchases,
+  suppliers = [],
   settings
 }) => {
   const { t } = useTranslation();
@@ -35,11 +37,12 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
 
   // Selected report index (0 = latest report)
   const [selectedReportIndex, setSelectedReportIndex] = useState<number>(0);
-  const [subTab, setSubTab] = useState<'overview' | 'categories' | 'velocity' | 'shrinkage' | 'trends'>('overview');
+  const [subTab, setSubTab] = useState<'overview' | 'categories' | 'velocity' | 'purchases' | 'shrinkage' | 'trends'>('overview');
   const [filterQuery, setFilterQuery] = useState('');
   const [replenishmentSearch, setReplenishmentSearch] = useState('');
   const [itemsPerPage, setItemsPerPage] = useState<number>(20);
   const [urgentFilter, setUrgentFilter] = useState<'all' | 'critical' | 'warning'>('all');
+  const [expandedDayKey, setExpandedDayKey] = useState<string | null>(null);
 
   // Sort reports chronologically descending (0 is latest)
   const sortedReports = useMemo(() => {
@@ -438,6 +441,82 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
       .slice(0, 5);
   }, [analyzedItems]);
 
+  // Map suppliers by ID for instant lookup
+  const suppliersMap = useMemo(() => {
+    const map = new Map<string, any>();
+    (suppliers || []).forEach(s => {
+      if (s.id) map.set(s.id, s);
+    });
+    return map;
+  }, [suppliers]);
+
+  // Group purchases by Day (Daily total purchases with breakdown by categories and suppliers)
+  const dailyPurchases = useMemo(() => {
+    const groups: Record<string, { 
+      key: string;
+      date: Date;
+      total: number;
+      count: number;
+      txs: Array<{
+        id?: string;
+        amount: number;
+        note?: string;
+        supplierName: string;
+        category: string;
+      }>;
+      categoriesBreakdown: Record<string, { total: number; count: number }>;
+      suppliersBreakdown: Record<string, { total: number; count: number }>;
+    }> = {};
+    
+    (purchases || []).forEach(p => {
+      const date = safeParseDate(p.date || p.createdAt);
+      const dateKey = date.toLocaleDateString('en-GB');
+      
+      const supplierObj = p.supplierId ? suppliersMap.get(p.supplierId) : null;
+      const supplierName = supplierObj?.name || 'مورد غير مسجل';
+      const category = (supplierObj?.typeOfGoods || 'عام / غير محدد').trim();
+      const amount = Number(p.amount) || 0;
+
+      if (!groups[dateKey]) {
+        groups[dateKey] = { 
+          key: dateKey,
+          date, 
+          total: 0, 
+          count: 0,
+          txs: [],
+          categoriesBreakdown: {},
+          suppliersBreakdown: {}
+        };
+      }
+      
+      groups[dateKey].total += amount;
+      groups[dateKey].count += 1;
+      groups[dateKey].txs.push({
+        id: p.id,
+        amount,
+        note: p.note || '',
+        supplierName,
+        category
+      });
+
+      // Categories accumulation
+      if (!groups[dateKey].categoriesBreakdown[category]) {
+        groups[dateKey].categoriesBreakdown[category] = { total: 0, count: 0 };
+      }
+      groups[dateKey].categoriesBreakdown[category].total += amount;
+      groups[dateKey].categoriesBreakdown[category].count += 1;
+
+      // Suppliers accumulation
+      if (!groups[dateKey].suppliersBreakdown[supplierName]) {
+        groups[dateKey].suppliersBreakdown[supplierName] = { total: 0, count: 0 };
+      }
+      groups[dateKey].suppliersBreakdown[supplierName].total += amount;
+      groups[dateKey].suppliersBreakdown[supplierName].count += 1;
+    });
+
+    return Object.values(groups).sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [purchases, suppliersMap]);
+
   // Multi-Inventory Trend Chart Data (Chronological left-to-right)
   const multiInventoryTrends = useMemo(() => {
     return [...sortedReports].reverse().map((rep, idx) => {
@@ -578,6 +657,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
           { id: 'overview', label: 'الخلاصة المالية للجرد', icon: DollarSign },
           { id: 'categories', label: 'مردودية الأقسام ورأس المال', icon: PieChartIcon },
           { id: 'velocity', label: 'سرعة الدوران والأصناف الراكدة', icon: Zap },
+          { id: 'purchases', label: 'حركة المشتريات اليومية', icon: History },
           { id: 'shrinkage', label: 'سلامة الجرد والهدر والتوالف', icon: ShieldAlert },
           { id: 'trends', label: 'مسار وتطور الجرود السابقة', icon: TrendingUp },
         ].map((tab) => {
@@ -1176,6 +1256,184 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: DAILY PURCHASES MOVEMENT (حركة المشتريات اليومية) */}
+      {subTab === 'purchases' && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
+                <Truck size={24} />
+              </div>
+              <div>
+                <h3 className="font-black text-base text-zinc-900 dark:text-white">
+                  سجل حركة المشتريات اليومية
+                </h3>
+                <p className="text-xs text-zinc-500">
+                  إجمالي المبالغ المدفوعة لشراء البضائع موزعة حسب كل يوم
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-[11px] text-zinc-400 block">إجمالي مشتريات السجل</span>
+              <span className="text-lg font-black text-blue-600 dark:text-blue-400">
+                {!showFinancials ? '••••••' : formatCurrency(dailyPurchases.reduce((acc, d) => acc + d.total, 0), settings.currency, language)}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {dailyPurchases.length > 0 ? (
+              dailyPurchases.map((day, i) => {
+                const isExpanded = expandedDayKey === day.key;
+                const categoriesList = Object.entries(day.categoriesBreakdown);
+                const suppliersList = Object.entries(day.suppliersBreakdown);
+
+                return (
+                  <div
+                    key={day.key}
+                    className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xs overflow-hidden transition-all hover:border-brand-500/40"
+                  >
+                    {/* Day Summary Card (Clickable to expand details) */}
+                    <div 
+                      onClick={() => setExpandedDayKey(isExpanded ? null : day.key)}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-4 cursor-pointer hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 transition-colors gap-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300 shrink-0 font-black text-xs">
+                          {i + 1}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-black text-zinc-900 dark:text-white">
+                              {day.date.toLocaleDateString(language === 'ar' ? 'ar-TN' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                            </span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400">
+                              {day.count} {day.count === 1 ? 'فاتورة' : 'فواتير'}
+                            </span>
+                          </div>
+                          
+                          {/* Quick categories chips summary */}
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                            {categoriesList.slice(0, 3).map(([catName, catData], cIdx) => (
+                              <span 
+                                key={cIdx} 
+                                className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300"
+                              >
+                                {catName}: <strong className="font-bold text-zinc-900 dark:text-white">{formatCurrency(catData.total, settings.currency, language)}</strong>
+                              </span>
+                            ))}
+                            {categoriesList.length > 3 && (
+                              <span className="text-[10px] text-zinc-400 font-bold">
+                                +{categoriesList.length - 3} فئات أخرى
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between sm:justify-end gap-4 pt-2 sm:pt-0 border-t sm:border-t-0 border-zinc-100 dark:border-zinc-800">
+                        <div className="text-left">
+                          <span className="text-[10px] text-zinc-400 block font-medium">إجمالي المشتريات اليومي</span>
+                          <span className="text-base font-black text-zinc-900 dark:text-white">
+                            {!showFinancials ? '••••••' : formatCurrency(day.total, settings.currency, language)}
+                          </span>
+                        </div>
+                        <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400">
+                          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Expanded Detail Panel: Categories & Suppliers breakdown */}
+                    {isExpanded && (
+                      <div className="p-4 bg-zinc-50/70 dark:bg-zinc-950/40 border-t border-zinc-100 dark:border-zinc-800 space-y-4">
+                        {/* 1. Category Breakdown */}
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-2.5">
+                            <Layers size={14} className="text-brand-500" />
+                            <span className="text-xs font-black text-zinc-700 dark:text-zinc-300">
+                              توزيع المشتريات حسب الفئات والسلع
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                            {categoriesList.map(([catName, catData], idx) => {
+                              const share = day.total > 0 ? (catData.total / day.total) * 100 : 0;
+                              return (
+                                <div 
+                                  key={idx} 
+                                  className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 p-3 rounded-xl"
+                                >
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="text-xs font-bold text-zinc-900 dark:text-white">
+                                      {catName}
+                                    </span>
+                                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded-sm bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400">
+                                      {share.toFixed(0)}%
+                                    </span>
+                                  </div>
+                                  <div className="flex items-baseline justify-between">
+                                    <span className="text-[11px] text-zinc-400">{catData.count} عملية</span>
+                                    <span className="text-xs font-black text-zinc-900 dark:text-white">
+                                      {formatCurrency(catData.total, settings.currency, language)}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* 2. Suppliers & Invoices breakdown */}
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-2.5">
+                            <Truck size={14} className="text-blue-500" />
+                            <span className="text-xs font-black text-zinc-700 dark:text-zinc-300">
+                              الموردون والفواتير في هذا اليوم
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            {day.txs.map((tx, txIdx) => (
+                              <div 
+                                key={tx.id || txIdx}
+                                className="flex items-center justify-between p-2.5 bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/80 rounded-xl text-xs"
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  <div className="w-2 h-2 rounded-full bg-brand-500 shrink-0" />
+                                  <div>
+                                    <span className="font-bold text-zinc-900 dark:text-white block">
+                                      {tx.supplierName}
+                                    </span>
+                                    <div className="flex items-center gap-2 text-[11px] text-zinc-400">
+                                      <span>فئة: {tx.category}</span>
+                                      {tx.note && <span>• {tx.note}</span>}
+                                    </div>
+                                  </div>
+                                </div>
+                                <span className="font-black text-zinc-900 dark:text-white text-xs">
+                                  {formatCurrency(tx.amount, settings.currency, language)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-12 text-center">
+                <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 flex items-center justify-center mx-auto mb-3">
+                  <History size={24} />
+                </div>
+                <h4 className="font-bold text-zinc-700 dark:text-zinc-300 text-sm">لا توجد عمليات مشتريات مسجلة بعد</h4>
+                <p className="text-xs text-zinc-400 mt-1">عند تسجيل فواتير شراء من الموردين، ستظهر مجاميعها اليومية هنا تلقائياً.</p>
+              </div>
+            )}
           </div>
         </div>
       )}

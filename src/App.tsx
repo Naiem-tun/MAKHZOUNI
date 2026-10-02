@@ -239,6 +239,7 @@ function AppContent() {
       "expenses",
       "inventory",
       "invoices",
+      "reports",
     ].includes(tab.id),
   );
   const toolbarTabs = allTabs.filter((tab) =>
@@ -260,29 +261,6 @@ function AppContent() {
         "reports",
       ].includes(tab.id),
   );
-
-  const reportsSubpages = [
-    {
-      id: "financial",
-      label: t("analytics_financial") || "إحصائيات المال",
-      icon: LineChart,
-    },
-    {
-      id: "rankings",
-      label: t("analytics_rankings") || "المنتجات الأفضل",
-      icon: TrendingUp,
-    },
-    {
-      id: "categories",
-      label: t("category_analysis") || "تحليل الفئات الاستراتيجي",
-      icon: PieChartIcon,
-    },
-    {
-      id: "purchases",
-      label: t("analytics_purchases") || "حركة المشتريات",
-      icon: History,
-    },
-  ];
 
   const handlePlusClick = () => {
     const eventMap: Record<string, string> = {
@@ -461,7 +439,6 @@ function AppContent() {
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             mainPagesTabs={mainPagesTabs}
-            reportsSubpages={reportsSubpages}
             otherTabs={otherTabs}
           />
 
