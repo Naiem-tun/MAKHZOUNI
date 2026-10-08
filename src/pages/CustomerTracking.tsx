@@ -448,7 +448,8 @@ export default function CustomerTracking() {
       const payment = rec.payment || 0;
       const diff = account - payment;
 
-      if (account > 0 && payment === 0) unpaid++;
+      // Customers with no payment recorded yet in this cycle (either account not yet entered or account > 0 with 0 payment)
+      if (payment === 0) unpaid++;
       if (diff > 0) remaining++;
       if (account > 0 && payment >= account) fullyPaid++;
     });
@@ -474,7 +475,7 @@ export default function CustomerTracking() {
         const diff = account - payment;
 
         if (filterStatus === 'unpaid') {
-          return account > 0 && payment === 0;
+          return payment === 0;
         }
         if (filterStatus === 'remaining') {
           return diff > 0;
