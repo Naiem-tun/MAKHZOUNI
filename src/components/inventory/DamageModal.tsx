@@ -244,7 +244,7 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
         'delete',
         'product',
         itemToDelete.productId,
-        `إلغاء تالف: ${itemToDelete.productName}`,
+        `إلغاء تالف: ${itemToDelete.productName || itemToDelete.name || 'منتج'}`,
         `تم إلغاء تسجيل التالف واسترجاع كمية (${itemToDelete.quantity}) إلى رصيد المنتج.`
       );
 

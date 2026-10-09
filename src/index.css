@@ -1,10 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @variant dark (.dark &);
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Cairo", "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   
   --color-brand-950: var(--brand-950, #011C40);
   --color-brand-900: var(--brand-900, #023859);
@@ -86,17 +86,17 @@
   --brand-100: #f4f4f5;
 }
 
-[data-theme="amber"] {
-  --brand-950: #451a03;
-  --brand-900: #78350f;
-  --brand-800: #92400e;
-  --brand-700: #b45309;
-  --brand-600: #d97706;
-  --brand-500: #f59e0b;
-  --brand-400: #fbbf24;
-  --brand-300: #fcd34d;
-  --brand-200: #fde68a;
-  --brand-100: #fef3c7;
+[data-theme="copper"], [data-theme="amber"] {
+  --brand-950: #270902; /* ROOT BREW */
+  --brand-900: #4A0D02; /* LONELY CHOCOLATE */
+  --brand-800: #621402;
+  --brand-700: #7E1902; /* NEW KENYAN COPPER */
+  --brand-600: #B52D02; /* CRIMSON VELVET SUNSET */
+  --brand-500: #D65505; /* EXUBERANCE */
+  --brand-400: #EA771E;
+  --brand-300: #F79E3A; /* CHAT ORANGE */
+  --brand-200: #FBC974;
+  --brand-100: #FDDF84; /* SWEDISH YELLOW */
 }
 
 @layer utilities {
@@ -111,6 +111,7 @@
 
 html, body {
   background-color: #F4F7FB;
+  font-family: var(--font-sans);
 }
 
 html.dark, html.dark body {

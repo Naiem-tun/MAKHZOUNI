@@ -22,7 +22,7 @@ export function AppHeader({
   const [showSyncMenu, setShowSyncMenu] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 bg-white shadow-sm dark:bg-[#121A2F]">
+    <header className="sticky top-0 z-40 bg-white shadow-sm dark:bg-zinc-900 border-b border-zinc-200/60 dark:border-zinc-800/60">
       <div className="mx-auto max-w-7xl px-4">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-4">

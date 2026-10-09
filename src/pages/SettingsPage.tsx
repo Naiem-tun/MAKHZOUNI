@@ -449,9 +449,10 @@ export default function SettingsPage() {
                 { id: 'navy', name: 'الأزرق البترولي', desc: 'الرسمي الكلاسيكي', color: '#023859' },
                 { id: 'sage', name: 'أخضر المريمية (Sage)', desc: 'طبيعي مهدئ للعين', color: '#4E635E' },
                 { id: 'slate', name: 'الأسود الفاخر', desc: 'طابع مينيمال', color: '#18181B' },
-                { id: 'amber', name: 'العنبري الذهبي', desc: 'طابع دافئ', color: '#92400E' },
+                { id: 'copper', name: 'النحاسي الفاخر (Copper)', desc: 'نحاسي عتيق دافئ', color: '#B52D02' },
               ].map((theme) => {
-                const isSelected = (settings.colorTheme || 'navy') === theme.id;
+                const currentTheme = settings.colorTheme || 'navy';
+                const isSelected = currentTheme === theme.id || (theme.id === 'copper' && currentTheme === 'amber');
                 return (
                   <button
                     key={theme.id}
