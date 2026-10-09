@@ -42,6 +42,7 @@ const defaultSettings: UserSettings = {
   currency: 'د.ت',
   language: 'ar',
   darkMode: false,
+  colorTheme: 'navy',
   storeName: 'مخزوني',
   showFinancials: true,
 };
@@ -62,10 +63,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Apply dark mode and language immediately
       if (parsed.darkMode) document.documentElement.classList.add('dark');
       if (parsed.language) i18n.changeLanguage(parsed.language);
+      document.documentElement.setAttribute('data-theme', parsed.colorTheme || 'navy');
       return parsed;
     }
+    document.documentElement.setAttribute('data-theme', 'navy');
     return defaultSettings;
   });
+
+  // Keep theme attribute in sync
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', settings.colorTheme || 'navy');
+  }, [settings.colorTheme]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);

@@ -4,6 +4,7 @@ dotenv.config({ override: true });
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
+import scanInvoiceHandler from "./api/scan-invoice.ts";
 
 async function startServer() {
   const app = express();
@@ -16,6 +17,10 @@ async function startServer() {
   // API routes
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", message: "makhzouni API is running" });
+  });
+
+  app.all("/api/scan-invoice", (req, res) => {
+    scanInvoiceHandler(req, res);
   });
 
   // Vite middleware for development

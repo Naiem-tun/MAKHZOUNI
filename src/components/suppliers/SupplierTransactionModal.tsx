@@ -30,7 +30,7 @@ export function SupplierTransactionModal({
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAddTxModalOpen(false)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-lg bg-white p-8 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
             <div className="flex items-center gap-3 mb-6">
-              <div className="h-12 w-12 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 flex items-center justify-center text-emerald-600">
+              <div className="h-12 w-12 rounded-lg bg-brand-50 dark:bg-brand-950/20 flex items-center justify-center text-brand-600">
                 <CirclePlus size={24} />
               </div>
               <div>

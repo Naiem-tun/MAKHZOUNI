@@ -174,7 +174,7 @@ export function SupplierCard({
           )}
           <button 
             onClick={(e) => { e.stopPropagation(); setSelectedSupplier(s); setIsAddTxModalOpen(true); }} 
-            className="flex items-center justify-center gap-1.5 px-3 h-[34px] bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-500/30 transition-all active:scale-95 shrink-0"
+            className="flex items-center justify-center gap-1.5 px-3 h-[34px] bg-brand-50 border border-brand-200 text-brand-700 dark:bg-brand-500/10 dark:border-brand-500/20 dark:text-brand-300 rounded-lg hover:bg-brand-100 dark:hover:bg-brand-500/30 transition-all active:scale-95 shrink-0"
           >
             <span className="font-bold text-sm tracking-wide">{t('record_payment', 'تسديد')}</span>
             <Plus size={16} strokeWidth={2.5} />

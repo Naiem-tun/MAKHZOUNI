@@ -57,7 +57,7 @@ export default async function handler(req: any, res: any) {
    - suggestedCategory: التصنيف المقترح للمنتج.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.7-flash",
+      model: "gemini-2.5-flash",
       contents: {
         parts: [imagePart, { text: promptText }],
       },

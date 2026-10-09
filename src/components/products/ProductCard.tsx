@@ -225,7 +225,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, index, showBo
               "flex items-center justify-center gap-1.5 px-3 h-[34px] rounded-lg transition-all shrink-0",
               isPurchaseDisabled 
                 ? "bg-zinc-100 border border-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-500 cursor-not-allowed" 
-                : "bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/30 active:scale-95"
+                : "bg-brand-50 border border-brand-200 text-brand-700 dark:bg-brand-500/10 dark:border-brand-500/20 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-500/30 active:scale-95"
             )}
             title={isPurchaseDisabled ? 'يجب فتح حصة مورد أولاً' : t('add_quantity')}
           >

@@ -55,6 +55,7 @@ import {
   CloudUpload,
   Calculator,
   Sparkles,
+  Palette,
   Key,
   ShieldCheck,
   KeyRound
@@ -75,7 +76,7 @@ import { DataManagement } from '../components/settings/DataManagement';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
-  const { settings, updateSettings, toggleDarkMode, setLanguage, user, setIsCatalogMode, lockApp } = useAppContext();
+  const { settings, updateSettings, toggleDarkMode, setLanguage, user, setIsCatalogMode, lockApp, showToast } = useAppContext();
   const [activeView, setActiveView] = useState<View>('main');
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [pinModalMode, setPinModalMode] = useState<'setup' | 'change' | 'disable'>('setup');
@@ -428,6 +429,61 @@ export default function SettingsPage() {
                 className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
               />
             </button>
+          </div>
+
+          {/* Color Theme Selector */}
+          <div className="flex flex-col p-4 bg-zinc-50/50 dark:bg-zinc-800/20">
+            <div className="flex items-center gap-4 mb-3">
+              <div className="h-10 w-10 rounded-xl bg-zinc-100 flex items-center justify-center text-zinc-500 dark:bg-zinc-800 dark:text-zinc-300">
+                <Palette size={20} />
+              </div>
+              <div className="text-right">
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">سمة ألوان التطبيق</h3>
+                <p className="text-[11px] text-zinc-400 mt-0.5">اختر لوحة الألوان الأساسية التي تناسب هوية متجرك</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 mt-1">
+              {[
+                { id: 'harbor', name: 'أزرق الميناء (Harbor)', desc: 'بحري فخم مميز', color: '#134C65' },
+                { id: 'navy', name: 'الأزرق البترولي', desc: 'الرسمي الكلاسيكي', color: '#023859' },
+                { id: 'sage', name: 'أخضر المريمية (Sage)', desc: 'طبيعي مهدئ للعين', color: '#4E635E' },
+                { id: 'slate', name: 'الأسود الفاخر', desc: 'طابع مينيمال', color: '#18181B' },
+                { id: 'amber', name: 'العنبري الذهبي', desc: 'طابع دافئ', color: '#92400E' },
+              ].map((theme) => {
+                const isSelected = (settings.colorTheme || 'navy') === theme.id;
+                return (
+                  <button
+                    key={theme.id}
+                    type="button"
+                    onClick={() => {
+                      updateSettings({ colorTheme: theme.id as any });
+                      showToast(`تم تفعيل: ${theme.name}`, 'info');
+                    }}
+                    className={`relative flex items-center gap-2 p-2.5 rounded-xl border text-right transition-all cursor-pointer active:scale-95 ${
+                      isSelected
+                        ? 'border-brand-600 bg-white dark:bg-zinc-800 shadow-sm ring-2 ring-brand-500/20'
+                        : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
+                    }`}
+                  >
+                    <div 
+                      className="w-5 h-5 rounded-full shrink-0 shadow-xs border border-white/30 flex items-center justify-center transition-transform"
+                      style={{ backgroundColor: theme.color }}
+                    >
+                      {isSelected && <Check size={12} strokeWidth={3} className="text-white" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">
+                        {theme.name}
+                      </div>
+                      <div className="text-[10px] text-zinc-400 truncate">
+                        {theme.desc}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Sync Images Toggle */}

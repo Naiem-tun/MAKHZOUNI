@@ -6,16 +6,16 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   
-  --color-brand-950: #011C40;
-  --color-brand-900: #023859;
-  --color-brand-800: #052659;
-  --color-brand-700: #26658C;
-  --color-brand-600: #5483B3;
-  --color-brand-500: #54ACBF;
-  --color-brand-400: #7DA0CA;
-  --color-brand-300: #A7EBF1;
-  --color-brand-200: #C1E8FF;
-  --color-brand-100: #E6F7FF;
+  --color-brand-950: var(--brand-950, #011C40);
+  --color-brand-900: var(--brand-900, #023859);
+  --color-brand-800: var(--brand-800, #052659);
+  --color-brand-700: var(--brand-700, #26658C);
+  --color-brand-600: var(--brand-600, #5483B3);
+  --color-brand-500: var(--brand-500, #54ACBF);
+  --color-brand-400: var(--brand-400, #7DA0CA);
+  --color-brand-300: var(--brand-300, #A7EBF1);
+  --color-brand-200: var(--brand-200, #C1E8FF);
+  --color-brand-100: var(--brand-100, #E6F7FF);
 
   --color-delete-bg: #FCF5F4;
   --color-delete-text: #B34C36;
@@ -32,6 +32,71 @@
   --color-add-bg: #ECFDF5;
   --color-add-text: #059669;
   --color-add-border: #D1FAE5;
+}
+
+:root, [data-theme="navy"] {
+  --brand-950: #011C40;
+  --brand-900: #023859;
+  --brand-800: #052659;
+  --brand-700: #26658C;
+  --brand-600: #5483B3;
+  --brand-500: #54ACBF;
+  --brand-400: #7DA0CA;
+  --brand-300: #A7EBF1;
+  --brand-200: #C1E8FF;
+  --brand-100: #E6F7FF;
+}
+
+[data-theme="harbor"] {
+  --brand-950: #0b1726;
+  --brand-900: #152740; /* MIDNIGHT TIDE */
+  --brand-800: #0f374a;
+  --brand-700: #134C65; /* HARBOR BLUE */
+  --brand-600: #2c6e86;
+  --brand-500: #487F86; /* SEAFOAM STEEL */
+  --brand-400: #679fa6;
+  --brand-300: #98c2c8;
+  --brand-200: #cce3e6;
+  --brand-100: #F0ECDA; /* DRIFTWOOD BEIGE */
+}
+
+[data-theme="sage"] {
+  --brand-950: #202b28;
+  --brand-900: #33433e;
+  --brand-800: #4E635E; /* OCEAN DEEP */
+  --brand-700: #62766f;
+  --brand-600: #818C78; /* BIG RIVER */
+  --brand-500: #93a08b;
+  --brand-400: #A6B49E; /* SIREN SONG */
+  --brand-300: #c2cdbc;
+  --brand-200: #dde3d8;
+  --brand-100: #E2E0C8; /* VILLA NOVA */
+}
+
+[data-theme="slate"] {
+  --brand-950: #09090b;
+  --brand-900: #18181b;
+  --brand-800: #27272a;
+  --brand-700: #3f3f46;
+  --brand-600: #52525b;
+  --brand-500: #71717a;
+  --brand-400: #a1a1aa;
+  --brand-300: #d4d4d8;
+  --brand-200: #e4e4e7;
+  --brand-100: #f4f4f5;
+}
+
+[data-theme="amber"] {
+  --brand-950: #451a03;
+  --brand-900: #78350f;
+  --brand-800: #92400e;
+  --brand-700: #b45309;
+  --brand-600: #d97706;
+  --brand-500: #f59e0b;
+  --brand-400: #fbbf24;
+  --brand-300: #fcd34d;
+  --brand-200: #fde68a;
+  --brand-100: #fef3c7;
 }
 
 @layer utilities {

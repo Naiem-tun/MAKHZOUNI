@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>مخزوني</title>
+    <meta name="description" content="نظام احترافي لإدارة المخازن وتجارة التجزئة مع دعم كامل للجرد والديون والتقارير المالية." />
+    <meta property="og:title" content="مخزوني" />
+    <meta property="og:description" content="نظام احترافي لإدارة المخازن وتجارة التجزئة مع دعم كامل للجرد والديون والتقارير المالية." />
     <meta name="theme-color" content="#023859">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -11,12 +14,17 @@
     <link rel="apple-touch-icon" href="/icon.svg">
     <script>
       try {
-        const settings = JSON.parse(localStorage.getItem('app_settings'));
+        const settings = JSON.parse(localStorage.getItem('user_settings') || localStorage.getItem('app_settings'));
         if (settings && settings.darkMode) {
           document.documentElement.classList.add('dark');
           document.documentElement.style.backgroundColor = '#0B1121';
         } else {
           document.documentElement.style.backgroundColor = '#F4F7FB';
+        }
+        if (settings && settings.colorTheme) {
+          document.documentElement.setAttribute('data-theme', settings.colorTheme);
+        } else {
+          document.documentElement.setAttribute('data-theme', 'navy');
         }
       } catch (e) {}
     </script>

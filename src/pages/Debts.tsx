@@ -303,7 +303,7 @@ export default function Debts() {
                     <button 
                       type="button" 
                       onClick={() => setDebtType('receivable')} 
-                      className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${debtType === 'receivable' ? 'bg-emerald-500 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
+                      className={`flex-1 py-3 text-sm font-bold rounded-lg transition-all ${debtType === 'receivable' ? 'bg-brand-600 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
                     >
                       {t('receivable_debt')}
                     </button>
@@ -397,7 +397,7 @@ export default function Debts() {
                 <div className="space-y-3">
                   <button 
                     onClick={() => setActionType('payment')}
-                    className="w-full flex items-center justify-between p-4 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/30 transition-colors"
+                    className="w-full flex items-center justify-between p-4 rounded-lg bg-brand-50 text-brand-700 border border-brand-200 dark:bg-brand-950/20 dark:border-brand-900/30 transition-colors"
                   >
                     <Plus size={24} />
                     <span className="font-bold text-lg">{t('record_payment')}</span>
@@ -501,7 +501,7 @@ export default function Debts() {
                         }
                       }}
                       disabled={!actionAmount || isSaving} 
-                      className={`flex-1 rounded-lg py-3 font-semibold text-white transition-opacity ${actionType === 'payment' ? 'bg-emerald-500' : 'bg-[#B34C36]'} disabled:opacity-50`}
+                      className={`flex-1 rounded-lg py-3 font-semibold text-white transition-all ${actionType === 'payment' ? 'bg-brand-600 hover:bg-brand-700 shadow-md shadow-brand-500/20' : 'bg-[#B34C36]'} disabled:opacity-50`}
                     >
                       {t('confirm')}
                     </button>
@@ -537,11 +537,11 @@ export default function Debts() {
                     <div key={i} className="flex flex-col gap-2 p-4 rounded-lg bg-zinc-50 dark:bg-zinc-800">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className={`h-10 w-10 rounded-full flex items-center justify-center ${item.type === 'payment' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30' : 'bg-[#B34C36]/10 text-[#B34C36] dark:bg-[#B34C36]/20'}`}>
+                          <div className={`h-10 w-10 rounded-full flex items-center justify-center ${item.type === 'payment' ? 'bg-brand-50 text-brand-600 dark:bg-brand-950/30' : 'bg-[#B34C36]/10 text-[#B34C36] dark:bg-[#B34C36]/20'}`}>
                             {item.type === 'payment' ? <Plus size={20} /> : <Minus size={20} />}
                           </div>
                           <div>
-                            <p className={`font-bold ${item.type === 'payment' ? 'text-emerald-600' : 'text-[#B34C36]'}`}>
+                            <p className={`font-bold ${item.type === 'payment' ? 'text-brand-600' : 'text-[#B34C36]'}`}>
                               {item.type === 'payment' ? '+' : '-'}{formatCurrency(item.amount, settings.currency, settings.language)}
                             </p>
                             <p className="text-xs text-zinc-500">{new Date(item.date).toLocaleString()}</p>

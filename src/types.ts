@@ -23,6 +23,7 @@ export interface UserSettings {
   currency: string;
   language: 'ar' | 'en';
   darkMode: boolean;
+  colorTheme?: 'navy' | 'harbor' | 'sage' | 'slate' | 'amber';
   storeName: string;
   showFinancials?: boolean;
   showFloatingTotals?: boolean;
