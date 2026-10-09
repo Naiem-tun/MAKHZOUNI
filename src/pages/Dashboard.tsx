@@ -42,12 +42,48 @@ import { useTranslation } from 'react-i18next';
 const Dashboard = memo(() => {
   const { user, settings, showToast } = useAppContext();
   const { t } = useTranslation();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [allPurchases, setAllPurchases] = useState<Transaction[]>([]);
-  const [expenses, setExpenses] = useState<any[]>([]);
-  const [debts, setDebts] = useState<any[]>([]);
-  const [supplierTransactions, setSupplierTransactions] = useState<any[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [products, setProducts] = useState<Product[]>(() => {
+    if (!user) return [];
+    try {
+      const cached = localStorage.getItem(`products_cache_${user.uid}`);
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
+  const [allPurchases, setAllPurchases] = useState<Transaction[]>(() => {
+    if (!user) return [];
+    try {
+      const cached = localStorage.getItem(`dashboard_purchases_${user.uid}`);
+      return cached ? JSON.parse(cached).map((p: any) => ({ ...p, date: safeParseDate(p.date) })) : [];
+    } catch { return []; }
+  });
+  const [expenses, setExpenses] = useState<any[]>(() => {
+    if (!user) return [];
+    try {
+      const cached = localStorage.getItem(`dashboard_expenses_${user.uid}`);
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
+  const [debts, setDebts] = useState<any[]>(() => {
+    if (!user) return [];
+    try {
+      const cached = localStorage.getItem(`dashboard_debts_${user.uid}`);
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
+  const [supplierTransactions, setSupplierTransactions] = useState<any[]>(() => {
+    if (!user) return [];
+    try {
+      const cached = localStorage.getItem(`dashboard_suptx_${user.uid}`);
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
+  const [suppliers, setSuppliers] = useState<Supplier[]>(() => {
+    if (!user) return [];
+    try {
+      const cached = localStorage.getItem(`dashboard_suppliers_${user.uid}`);
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
   const [isMovementExpanded, setIsMovementExpanded] = useState(false);
   const [showDeletePurchases, setShowDeletePurchases] = useState(false);
   const [deletingPurchaseId, setDeletingPurchaseId] = useState<string | null>(null);
@@ -110,13 +146,15 @@ const Dashboard = memo(() => {
     const suppliersQuery = collection(db, suppliersPath);
 
     const unsubProducts = onSnapshot(productsQuery, (snap) => {
-      setProducts(snap.docs.map(doc => sanitizeProduct({ id: doc.id, ...doc.data() } as Product)));
+      const fetched = snap.docs.map(doc => sanitizeProduct({ id: doc.id, ...doc.data() } as Product));
+      setProducts(fetched);
+      try { localStorage.setItem(`products_cache_${user.uid}`, JSON.stringify(fetched)); } catch {}
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, productsPath);
     });
 
     const unsubPurchases = onSnapshot(purchasesQuery, (snap) => {
-      setAllPurchases(snap.docs.map(doc => {
+      const fetched = snap.docs.map(doc => {
         const data = doc.data();
         const parsedDate = safeParseDate(data.date || data.createdAt);
         const cleanQtyAdded = cleanQuantity(data.qtyAdded);
@@ -136,31 +174,41 @@ const Dashboard = memo(() => {
           invoiceNumber: data.invoiceNumber || null,
           createdAt: data.createdAt ? safeParseDate(data.createdAt) : parsedDate,
         } as any;
-      }).sort((a, b) => b.date.getTime() - a.date.getTime()));
+      }).sort((a, b) => b.date.getTime() - a.date.getTime());
+      setAllPurchases(fetched);
+      try { localStorage.setItem(`dashboard_purchases_${user.uid}`, JSON.stringify(fetched)); } catch {}
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, purchasesPath);
     });
 
     const unsubExpenses = onSnapshot(expensesQuery, (snap) => {
-      setExpenses(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setExpenses(fetched);
+      try { localStorage.setItem(`dashboard_expenses_${user.uid}`, JSON.stringify(fetched)); } catch {}
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, expensesPath);
     });
 
     const unsubDebts = onSnapshot(debtsQuery, (snap) => {
-      setDebts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setDebts(fetched);
+      try { localStorage.setItem(`dashboard_debts_${user.uid}`, JSON.stringify(fetched)); } catch {}
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, debtsPath);
     });
 
     const unsubSupplierTx = onSnapshot(supplierTxQuery, (snap) => {
-      setSupplierTransactions(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setSupplierTransactions(fetched);
+      try { localStorage.setItem(`dashboard_suptx_${user.uid}`, JSON.stringify(fetched)); } catch {}
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, supplierTxPath);
     });
 
     const unsubSuppliers = onSnapshot(suppliersQuery, (snap) => {
-      setSuppliers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Supplier)));
+      const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Supplier));
+      setSuppliers(fetched);
+      try { localStorage.setItem(`dashboard_suppliers_${user.uid}`, JSON.stringify(fetched)); } catch {}
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, suppliersPath);
     });
