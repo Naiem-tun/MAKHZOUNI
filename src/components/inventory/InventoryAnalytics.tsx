@@ -39,6 +39,9 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
   const language = settings.language || 'ar';
   const showFinancials = settings.showFinancials ?? true;
 
+  // Time horizon: specific cycle, last 3 months, last 6 months, or all time
+  const [timeHorizon, setTimeHorizon] = useState<'cycle' | '3months' | '6months' | 'all'>('cycle');
+
   // Selected report index (0 = latest report)
   const [selectedReportIndex, setSelectedReportIndex] = useState<number>(0);
   const [subTab, setSubTab] = useState<'diagnostic' | 'overview' | 'categories' | 'velocity' | 'purchases' | 'shrinkage' | 'trends'>('diagnostic');
@@ -56,6 +59,27 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
       return timeB - timeA;
     });
   }, [inventoryReports]);
+
+  // Filtered reports according to time horizon
+  const periodReports = useMemo(() => {
+    if (sortedReports.length === 0) return [];
+    if (timeHorizon === 'cycle' || timeHorizon === 'all') {
+      return sortedReports;
+    }
+    const now = Date.now();
+    const daysLimit = timeHorizon === '3months' ? 90 : 180;
+    const msLimit = daysLimit * 24 * 60 * 60 * 1000;
+    
+    const filtered = sortedReports.filter(rep => {
+      const repTime = safeParseDate(rep.date).getTime();
+      return (now - repTime) <= msLimit;
+    });
+
+    if (filtered.length === 0) {
+      return sortedReports.slice(0, timeHorizon === '3months' ? 3 : 6);
+    }
+    return filtered;
+  }, [sortedReports, timeHorizon]);
 
   // Current selected report and previous report (for delta comparison)
   const isLatestReportSelected = selectedReportIndex === 0;
@@ -586,6 +610,234 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
     };
   }, [debts]);
 
+  // Macro Strategic Diagnostic across the selected timeframe (3 months, 6 months, or all time)
+  const macroStrategicDiagnostic = useMemo(() => {
+    if (periodReports.length === 0) return null;
+
+    const count = periodReports.length;
+    const latestRep = periodReports[0];
+    const earliestRep = periodReports[periodReports.length - 1];
+
+    let totalRevenue = 0;
+    let totalProfit = 0;
+    let totalExpenses = 0;
+    let totalNetProfit = 0;
+    let totalShrinkage = 0;
+    let peakCycle: any = null;
+    let lowestCycle: any = null;
+
+    periodReports.forEach(rep => {
+      const rev = Number(rep.totalRevenue || 0);
+      const profit = Number(rep.totalProfit || 0);
+      const exp = Number(rep.totalExpenses || 0);
+      const net = Number(rep.netProfit ?? (profit - exp));
+      const shrinkage = Number(rep.totalDamageLoss || 0) + Number(rep.surplusValueUnverified || 0);
+
+      totalRevenue += rev;
+      totalProfit += profit;
+      totalExpenses += exp;
+      totalNetProfit += net;
+      totalShrinkage += shrinkage;
+
+      const currentNet = net;
+      if (!peakCycle) {
+        peakCycle = rep;
+      } else {
+        const peakNet = Number(peakCycle.netProfit ?? (Number(peakCycle.totalProfit || 0) - Number(peakCycle.totalExpenses || 0)));
+        if (currentNet > peakNet) peakCycle = rep;
+      }
+
+      if (!lowestCycle) {
+        lowestCycle = rep;
+      } else {
+        const lowNet = Number(lowestCycle.netProfit ?? (Number(lowestCycle.totalProfit || 0) - Number(lowestCycle.totalExpenses || 0)));
+        if (currentNet < lowNet) lowestCycle = rep;
+      }
+    });
+
+    const avgRevenuePerCycle = count > 0 ? totalRevenue / count : 0;
+    const avgProfitPerCycle = count > 0 ? totalProfit / count : 0;
+    const avgNetPerCycle = count > 0 ? totalNetProfit / count : 0;
+    const avgExpensesPerCycle = count > 0 ? totalExpenses / count : 0;
+
+    const startRev = Number(earliestRep.totalRevenue || 0);
+    const endRev = Number(latestRep.totalRevenue || 0);
+    const revGrowthPct = count > 1 && startRev > 0 ? ((endRev - startRev) / startRev) * 100 : null;
+
+    const startNet = Number(earliestRep.netProfit ?? (Number(earliestRep.totalProfit || 0) - Number(earliestRep.totalExpenses || 0)));
+    const endNet = Number(latestRep.netProfit ?? (Number(latestRep.totalProfit || 0) - Number(latestRep.totalExpenses || 0)));
+    const netGrowthPct = count > 1 && startNet > 0 ? ((endNet - startNet) / startNet) * 100 : null;
+
+    const startStock = Number(earliestRep.totalRemainingValue || 0);
+    const endStock = Number(latestRep.totalRemainingValue || 0);
+    const stockGrowthPct = count > 1 && startStock > 0 ? ((endStock - startStock) / startStock) * 100 : null;
+
+    const expenseRatio = totalProfit > 0 ? (totalExpenses / totalProfit) * 100 : 0;
+
+    let avgDaysBetweenAudits = 0;
+    if (count > 1) {
+      const earliestTime = safeParseDate(earliestRep.date).getTime();
+      const latestTime = safeParseDate(latestRep.date).getTime();
+      const totalSpanDays = Math.max(1, Math.round(Math.abs(latestTime - earliestTime) / (1000 * 60 * 60 * 24)));
+      avgDaysBetweenAudits = Math.round(totalSpanDays / (count - 1));
+    }
+
+    let macroScore = 75;
+    if (revGrowthPct !== null) {
+      if (revGrowthPct >= 20) macroScore += 12;
+      else if (revGrowthPct > 0) macroScore += 7;
+      else if (revGrowthPct < -15) macroScore -= 12;
+      else macroScore -= 5;
+    }
+    if (netGrowthPct !== null) {
+      if (netGrowthPct >= 20) macroScore += 13;
+      else if (netGrowthPct > 0) macroScore += 8;
+      else if (netGrowthPct < -15) macroScore -= 13;
+      else macroScore -= 6;
+    }
+    if (expenseRatio <= 20) macroScore += 8;
+    else if (expenseRatio > 35) macroScore -= 10;
+    if (count >= 3 && avgDaysBetweenAudits <= 25) macroScore += 5;
+
+    macroScore = Math.min(100, Math.max(35, Math.round(macroScore)));
+
+    let macroTitle = 'مسار توسعي متصاعد ونمو مستدام 🚀';
+    let macroBadge = 'أداء استراتيجي ممتاز';
+    let macroColor = 'text-emerald-500';
+    let macroBg = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300';
+    let macroRing = 'border-emerald-500';
+
+    if (macroScore < 55) {
+      macroTitle = 'مسار مالي غير مستقر يحتاج إعادة ضبط 🔴';
+      macroBadge = 'تراجع يتطلب تدخلاً';
+      macroColor = 'text-rose-500';
+      macroBg = 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300';
+      macroRing = 'border-rose-500';
+    } else if (macroScore < 75) {
+      macroTitle = 'أداء تجاري متزن ومستقر مع إمكانات نمو 🟡';
+      macroBadge = 'مسار مستقر وجيد';
+      macroColor = 'text-amber-500';
+      macroBg = 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300';
+      macroRing = 'border-amber-500';
+    }
+
+    const periodName = timeHorizon === '3months' ? 'آخر 3 أشهر' : (timeHorizon === '6months' ? 'آخر 6 أشهر' : 'كامل مسار المتجر');
+    let story = '';
+    if (count > 1 && revGrowthPct !== null && netGrowthPct !== null) {
+      if (revGrowthPct >= 0 && netGrowthPct >= 0) {
+        story = `خلال نطاق (${periodName})، أجرى متجرك (${count}) عمليات جرد دورية، وحقق إجمالي مبيعات تراكمية قدرها ${formatCurrency(totalRevenue, settings.currency, language)} بصافي أرباح حقيقية بلغت ${formatCurrency(totalNetProfit, settings.currency, language)}. استطاع متجرك رفع مبيعاته الدورية بنسبة (+${revGrowthPct.toFixed(1)}%) ونمت أرباحك الصافية بنسبة (+${netGrowthPct.toFixed(1)}%). هذا يبرهن على أن متجرك يسير في منحنى صاعد مستدام، وتتوسع قاعدته الربحية بثبات.`;
+      } else if (revGrowthPct >= 0 && netGrowthPct < 0) {
+        story = `خلال نطاق (${periodName})، ارتفع إجمالي نشاط المبيعات بنسبة (+${revGrowthPct.toFixed(1)}%)، ولكن صافي الربح التراكمي تراجع بنسبة (${netGrowthPct.toFixed(1)}%). هذا التباين التاريخي يشير إلى أن التوسع في المبيعات صاحبه ارتفاع في تكلفة التشغيل أو انخفاض في هامش ربح البضائع الموردة. يُنصح بإعادة التفاوض مع الموردين ومراجعة فواتير المصاريف الدورية.`;
+      } else if (revGrowthPct < 0 && netGrowthPct >= 0) {
+        story = `خلال نطاق (${periodName})، انخفضت المبيعات الإجمالية بنسبة (${Math.abs(revGrowthPct).toFixed(1)}%)، ومع ذلك نما صافي الربح بنسبة (+${netGrowthPct.toFixed(1)}%). يعكس هذا تحولاً استراتيجياً نوعياً نحو سلع أعلى جودة ومردودية ربحية مع ترشيد فعال للمصاريف.`;
+      } else {
+        story = `خلال نطاق (${periodName}) عبر (${count}) عمليات جرد، شهدت وتيرة المبيعات والأرباح انكماشاً بنسبة (${Math.abs(revGrowthPct).toFixed(1)}% مبيعات، و${Math.abs(netGrowthPct).toFixed(1)}% أرباح). إجمالي ما حققه متجرك في هذه الفترة بلغ ${formatCurrency(totalRevenue, settings.currency, language)}. يتطلب هذا المسار ضخ أصناف جديدة سريعة الحركة ومراجعة تسعير المنافسين.`;
+      }
+    } else {
+      story = `تم تسجيل عملية جرد واحدة فقط في هذا النطاق الزمني (${formatCurrency(totalRevenue, settings.currency, language)} مبيعات و${formatCurrency(totalNetProfit, settings.currency, language)} صافي ربح). بمجرد إضافة عمليات جرد لاحقة، سيقوم النظام تلقائياً برسم منحنى النمو ومقارنة الفصول والشهور.`;
+    }
+
+    const indicators = [
+      {
+        id: 'macroRevenue',
+        title: 'مسار نمو المبيعات التاريخي',
+        value: revGrowthPct !== null ? `${revGrowthPct >= 0 ? '+' : ''}${revGrowthPct.toFixed(1)}%` : `${count} جرد مسجل`,
+        status: revGrowthPct === null ? 'neutral' : (revGrowthPct >= 15 ? 'excellent' : (revGrowthPct >= 0 ? 'good' : 'bad')),
+        statusLabel: revGrowthPct === null ? 'أساس مرجعي' : (revGrowthPct >= 15 ? 'توسع استثنائي 🟢' : (revGrowthPct >= 0 ? 'نمو إيجابي 🟢' : 'تراجع تراكمي 🔴')),
+        details: count > 1
+          ? `تطورت المبيعات من ${formatCurrency(startRev, settings.currency, language)} في أول دورة إلى ${formatCurrency(endRev, settings.currency, language)} في آخر دورة (إجمالي مبيعات الفترة: ${formatCurrency(totalRevenue, settings.currency, language)}).`
+          : `إجمالي مبيعات الدورة: ${formatCurrency(totalRevenue, settings.currency, language)}.`,
+        advice: revGrowthPct !== null && revGrowthPct < 0 
+          ? 'جدد تشكيلة السلع وركز على الأصناف الاستهلاكية اليومية لزيادة الإقبال.'
+          : 'مسار مبيعات متنامٍ؛ حافظ على استقرار مصادر التوريد لمنع أي انقطاع.',
+      },
+      {
+        id: 'macroNetProfit',
+        title: 'تراكم الأرباح الصافية (عائد جيبك الكلي)',
+        value: formatCurrency(totalNetProfit, settings.currency, language),
+        status: totalNetProfit > 0 ? (netGrowthPct !== null && netGrowthPct >= 0 ? 'excellent' : 'good') : 'bad',
+        statusLabel: totalNetProfit > 0 ? (netGrowthPct !== null && netGrowthPct >= 10 ? 'أرباح متنامية بقوة 🟢' : 'أرباح موجبة مستقرة 🟢') : 'صافي ربح منخفض 🔴',
+        details: count > 1
+          ? `حقق متجرك صافي أرباح تراكمية ${formatCurrency(totalNetProfit, settings.currency, language)} بمعدل ${formatCurrency(avgNetPerCycle, settings.currency, language)} لكل دورة جرد (تطور بنسبة ${netGrowthPct !== null ? `${netGrowthPct >= 0 ? '+' : ''}${netGrowthPct.toFixed(1)}%` : '—'}).`
+          : `صافي ربح الدورة المسجلة: ${formatCurrency(totalNetProfit, settings.currency, language)}.`,
+        advice: 'احرص على إعادة استثمار جزء من هذا الصافي في توسيع تنوع المخزون لتوليد عوائد إضافية.',
+      },
+      {
+        id: 'macroStockCapital',
+        title: 'تطور رأس مال المخزون (توسع البضائع)',
+        value: stockGrowthPct !== null ? `${stockGrowthPct >= 0 ? '+' : ''}${stockGrowthPct.toFixed(1)}%` : formatCurrency(endStock, settings.currency, language),
+        status: stockGrowthPct === null ? 'good' : (stockGrowthPct >= 0 && stockGrowthPct <= 50 ? 'good' : (stockGrowthPct > 50 ? 'neutral' : 'bad')),
+        statusLabel: stockGrowthPct === null ? 'رأس مال حالي' : (stockGrowthPct > 50 ? 'توسع كبير في المخزون 🟡' : (stockGrowthPct >= 0 ? 'نمو استثماري صحي 🟢' : 'انكماش حجم البضاعة 🔴')),
+        details: count > 1
+          ? `بدأ رأس مال بضائعك على الرفوف بـ ${formatCurrency(startStock, settings.currency, language)} ووصل حالياً إلى ${formatCurrency(endStock, settings.currency, language)}.`
+          : `قيمة بضائع الرفوف الحالية: ${formatCurrency(endStock, settings.currency, language)}.`,
+        advice: stockGrowthPct !== null && stockGrowthPct < -15
+          ? 'المخزون ينكمش؛ احرص على إعادة شراء البضائع الأساسية حتى لا تفقد مبيعات محتملة.'
+          : 'حجم المخزون متوازن، تجنب تراكم سلع بطيئة الدوران.',
+      },
+      {
+        id: 'macroExpenses',
+        title: 'انضباط المصاريف التشغيلية عبر الفترة',
+        value: `${expenseRatio.toFixed(1)}% من الأرباح`,
+        status: expenseRatio <= 20 ? 'excellent' : (expenseRatio <= 32 ? 'good' : 'bad'),
+        statusLabel: expenseRatio <= 20 ? 'ضبط ممتاز للمصاريف 🟢' : (expenseRatio <= 32 ? 'مقبول وضمن النطاق 🟡' : 'مصاريف مرتفعة تستنزف الربح 🔴'),
+        details: `إجمالي ما أُنفق على التشغيل في هذه الفترة: ${formatCurrency(totalExpenses, settings.currency, language)} بمعدل ${formatCurrency(avgExpensesPerCycle, settings.currency, language)} لكل جرد.`,
+        advice: expenseRatio > 32 
+          ? 'المصاريف التشغيلية تقتطع أكثر من ثلث أرباحك التراكمية، يُنصح بوضع سقف محدد للفواتير والمصروفات اليومية.'
+          : 'تحكم سليم في المصاريف يضمن بقاء الجزء الأكبر من المكاسب كأرباح صافية.',
+      },
+      {
+        id: 'macroDiscipline',
+        title: 'انتظام وتيرة الجرد الدوري (دقة المتابعة)',
+        value: count > 1 ? `كل ${avgDaysBetweenAudits} يوماً` : `${count} جرد`,
+        status: count > 1 && avgDaysBetweenAudits <= 25 ? 'excellent' : (count > 1 && avgDaysBetweenAudits <= 45 ? 'good' : 'neutral'),
+        statusLabel: count > 1 && avgDaysBetweenAudits <= 25 ? 'انضباط جرد عالي ومثالي 🟢' : (count > 1 && avgDaysBetweenAudits <= 45 ? 'انتظام معتدل 🟡' : 'تباعد في فترات الجرد 🔴'),
+        details: count > 1
+          ? `معدل الفاصل الزمني بين كل جرد وآخر هو ${avgDaysBetweenAudits} يوماً عبر ${count} دورات جردية مسجلة.`
+          : 'سجل جروداً دورية منتظمة (كل أسبوعين أو شهر) للحفاظ على دقة الأرقام.',
+        advice: count > 1 && avgDaysBetweenAudits > 35
+          ? 'التباعد الطويل بين الجرود يزيد من صعوبة تتبع الفواقد والتوالف، احرص على تقريب فترات الجرد.'
+          : 'انتظام ممتاز في الجرد يحمي متجرك من أي تسرب في السيولة أو البضائع.',
+      }
+    ];
+
+    return {
+      count,
+      periodName,
+      macroScore,
+      macroTitle,
+      macroBadge,
+      macroColor,
+      macroBg,
+      macroRing,
+      story,
+      totalRevenue,
+      totalProfit,
+      totalExpenses,
+      totalNetProfit,
+      totalShrinkage,
+      avgRevenuePerCycle,
+      avgProfitPerCycle,
+      avgNetPerCycle,
+      avgExpensesPerCycle,
+      startRev,
+      endRev,
+      revGrowthPct,
+      startNet,
+      endNet,
+      netGrowthPct,
+      startStock,
+      endStock,
+      stockGrowthPct,
+      expenseRatio,
+      avgDaysBetweenAudits,
+      peakCycle,
+      lowestCycle,
+      indicators,
+      reports: periodReports
+    };
+  }, [periodReports, timeHorizon, settings.currency, language]);
+
   // Fast-Moving Products (Top 8 highest velocity / sales)
   const topMovingItems = useMemo(() => {
     return [...analyzedItems]
@@ -773,20 +1025,26 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
 
   // Multi-Inventory Trend Chart Data (Chronological left-to-right)
   const multiInventoryTrends = useMemo(() => {
-    return [...sortedReports].reverse().map((rep, idx) => {
+    const list = timeHorizon === 'cycle' ? sortedReports : periodReports;
+    return [...list].reverse().map((rep, idx) => {
       const repDate = safeParseDate(rep.date);
       const label = formatAppDate(repDate, 'ar', t, { day: 'numeric', month: 'short' });
+      const fullDate = formatAppDate(repDate, 'ar', t, { day: 'numeric', month: 'short', year: 'numeric' });
+      const net = Number(rep.netProfit ?? (Number(rep.totalProfit || 0) - Number(rep.totalExpenses || 0)));
       return {
+        id: rep.id || idx,
         name: `جرد ${idx + 1} (${label})`,
         shortName: `جرد ${idx + 1}`,
+        fullDate,
         revenue: Number((rep.totalRevenue || 0).toFixed(3)),
         profit: Number((rep.totalProfit || 0).toFixed(3)),
-        netProfit: Number((rep.netProfit || 0).toFixed(3)),
+        netProfit: Number(net.toFixed(3)),
         stockValue: Number((rep.totalRemainingValue || 0).toFixed(3)),
         expenses: Number((rep.totalExpenses || 0).toFixed(3)),
+        isPeak: macroStrategicDiagnostic?.peakCycle?.id === rep.id
       };
     });
-  }, [sortedReports, t]);
+  }, [sortedReports, periodReports, timeHorizon, macroStrategicDiagnostic, t]);
 
   // Filtered items for list view
   const displayItems = useMemo(() => {
@@ -817,12 +1075,12 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
     <div className="space-y-6">
       {/* Top Controller: Inventory Selector & General Delta Bar */}
       <div className="bg-gradient-to-br from-zinc-900 via-zinc-850 to-zinc-900 text-white rounded-2xl p-6 shadow-md border border-zinc-800">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-zinc-800/80">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-zinc-800/80">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 rounded-full bg-brand-500/20 text-brand-400 text-xs font-bold border border-brand-500/30 flex items-center gap-1">
                 <Sparkles size={12} />
-                نظام تحليلات الجرد الدوري
+                نظام تحليلات الجرد ومسار النمو
               </span>
               <span className="text-xs text-zinc-400">
                 إجمالي الجرود المتاحة: {sortedReports.length}
@@ -830,37 +1088,97 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
             </div>
             <h2 className="text-2xl font-black">ذكاء الجرد ومؤشرات الأداء</h2>
             <p className="text-xs text-zinc-400">
-              تحليل الاستهلاك الحقيقي، سرعة نفاد الرفوف، ورأس المال المعطل بين الجرود.
+              تحليل الاستهلاك الحقيقي، سرعة نفاد الرفوف، مسار نمو المتجر، وتراكم الأرباح عبر الزمن.
             </p>
           </div>
 
-          {/* Selector Dropdown */}
-          <div className="flex items-center gap-2 self-start md:self-auto bg-zinc-800/90 border border-zinc-700/80 rounded-xl p-1.5 shadow-inner">
-            <Calendar size={18} className="text-zinc-400 mr-2" />
-            <select
-              value={selectedReportIndex}
-              onChange={(e) => setSelectedReportIndex(Number(e.target.value))}
-              aria-label="اختر عملية الجرد للتحليل"
-              className="bg-transparent text-white text-sm font-bold focus:outline-none cursor-pointer pr-3 py-1"
-            >
-              {sortedReports.map((rep, idx) => {
-                const dateStr = formatAppDate(safeParseDate(rep.date), 'ar', t, { 
-                  day: 'numeric', 
-                  month: 'short', 
-                  year: 'numeric' 
-                });
-                return (
-                  <option key={rep.id || idx} value={idx} className="bg-zinc-800 text-white">
-                    {idx === 0 ? '⭐ الجرد الأخير: ' : `الجرد رقم ${sortedReports.length - idx}: `} {dateStr}
-                  </option>
-                );
-              })}
-            </select>
+          {/* Time Horizon Selector & Optional Report Dropdown */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 self-start lg:self-auto">
+            {/* Horizon Selector */}
+            <div className="flex items-center gap-1 p-1 bg-zinc-800/90 border border-zinc-700/80 rounded-xl shadow-inner">
+              <button
+                type="button"
+                onClick={() => setTimeHorizon('cycle')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  timeHorizon === 'cycle'
+                    ? 'bg-brand-500 text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <Clock size={13} />
+                <span>دورة محددة</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTimeHorizon('3months')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  timeHorizon === '3months'
+                    ? 'bg-brand-500 text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <Calendar size={13} />
+                <span>آخر 3 أشهر</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTimeHorizon('6months')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  timeHorizon === '6months'
+                    ? 'bg-brand-500 text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <Calendar size={13} />
+                <span>آخر 6 أشهر</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTimeHorizon('all')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  timeHorizon === 'all'
+                    ? 'bg-brand-500 text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                <Activity size={13} />
+                <span>كامل المسار</span>
+              </button>
+            </div>
+
+            {/* If Single Cycle is chosen, show inventory picker dropdown */}
+            {timeHorizon === 'cycle' && (
+              <div className="flex items-center gap-2 bg-zinc-800/90 border border-zinc-700/80 rounded-xl p-1.5 shadow-inner">
+                <Calendar size={16} className="text-zinc-400 mr-1" />
+                <select
+                  value={selectedReportIndex}
+                  onChange={(e) => setSelectedReportIndex(Number(e.target.value))}
+                  aria-label="اختر عملية الجرد للتحليل"
+                  className="bg-transparent text-white text-xs font-bold focus:outline-none cursor-pointer pr-2 py-1"
+                >
+                  {sortedReports.map((rep, idx) => {
+                    const dateStr = formatAppDate(safeParseDate(rep.date), 'ar', t, { 
+                      day: 'numeric', 
+                      month: 'short', 
+                      year: 'numeric' 
+                    });
+                    return (
+                      <option key={rep.id || idx} value={idx} className="bg-zinc-800 text-white">
+                        {idx === 0 ? '⭐ الجرد الأخير: ' : `الجرد رقم ${sortedReports.length - idx}: `} {dateStr}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Selected Inventory Key Info Ribbon */}
-        {currentReport && (
+        {/* Selected Inventory Key Info Ribbon: Cycle Mode */}
+        {timeHorizon === 'cycle' && currentReport && (
           <div className="pt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <span className="block text-[11px] text-zinc-400">تاريخ إجراء الجرد</span>
@@ -903,6 +1221,51 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
             </div>
           </div>
         )}
+
+        {/* Selected Inventory Key Info Ribbon: Macro Timeframe Mode */}
+        {timeHorizon !== 'cycle' && macroStrategicDiagnostic && (
+          <div className="pt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <span className="block text-[11px] text-zinc-400">النطاق الزمني الاستراتيجي</span>
+              <span className="font-bold text-zinc-200 flex items-center gap-1.5">
+                <Calendar size={14} className="text-brand-400" />
+                {macroStrategicDiagnostic.periodName} ({macroStrategicDiagnostic.count} دورات جرد)
+              </span>
+            </div>
+
+            <div>
+              <span className="block text-[11px] text-zinc-400">إجمالي المبيعات التراكمية</span>
+              <span className="font-bold text-zinc-200" dir="ltr">
+                {!showFinancials ? '••••••' : formatCurrency(macroStrategicDiagnostic.totalRevenue, settings.currency, language)}
+              </span>
+            </div>
+
+            <div>
+              <span className="block text-[11px] text-zinc-400">صافي أرباحك الكلية المحققة</span>
+              <span className="font-bold text-emerald-400" dir="ltr">
+                {!showFinancials ? '••••••' : formatCurrency(macroStrategicDiagnostic.totalNetProfit, settings.currency, language)}
+              </span>
+            </div>
+
+            <div>
+              <span className="block text-[11px] text-zinc-400">نمو المبيعات خلال الفترة</span>
+              <div className="flex items-center gap-2">
+                {macroStrategicDiagnostic.revGrowthPct !== null ? (
+                  <span className={`font-bold flex items-center gap-1 text-xs px-2 py-0.5 rounded-md ${
+                    macroStrategicDiagnostic.revGrowthPct >= 0 
+                      ? 'bg-emerald-500/20 text-emerald-300' 
+                      : 'bg-rose-500/20 text-rose-300'
+                  }`}>
+                    {macroStrategicDiagnostic.revGrowthPct >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                    {macroStrategicDiagnostic.revGrowthPct >= 0 ? '+' : ''}{macroStrategicDiagnostic.revGrowthPct.toFixed(1)}% مبيعات
+                  </span>
+                ) : (
+                  <span className="text-xs text-zinc-500">دورة واحدة في هذا النطاق</span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Sub-Tabs Navigation */}
@@ -936,8 +1299,383 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
       </div>
 
       {/* TAB 0: STORE HEALTH & GROWTH DIAGNOSTIC */}
-      {subTab === 'diagnostic' && storeHealthDiagnostic && (
-        <div className="space-y-6">
+      {subTab === 'diagnostic' && (
+        timeHorizon !== 'cycle' && macroStrategicDiagnostic ? (
+          <div className="space-y-6">
+            {/* Executive Macro Diagnostic Master Card */}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm overflow-hidden relative">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-zinc-100 dark:border-zinc-800">
+                {/* Macro Score Widget */}
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-4 ${macroStrategicDiagnostic.macroRing} bg-zinc-50 dark:bg-zinc-800/80 flex flex-col items-center justify-center shadow-inner`}>
+                    <span className={`text-3xl sm:text-4xl font-black ${macroStrategicDiagnostic.macroColor} font-mono tracking-tight`}>
+                      {macroStrategicDiagnostic.macroScore}
+                    </span>
+                    <span className="text-[10px] text-zinc-400 font-bold mt-0.5">من 100</span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-black px-2.5 py-0.5 rounded-full border ${macroStrategicDiagnostic.macroBg}`}>
+                        {macroStrategicDiagnostic.macroBadge}
+                      </span>
+                      <span className="text-xs text-zinc-400 font-bold">
+                        نطاق: {macroStrategicDiagnostic.periodName} ({macroStrategicDiagnostic.count} دورات جرد)
+                      </span>
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-black text-zinc-900 dark:text-white">
+                      {macroStrategicDiagnostic.macroTitle}
+                    </h3>
+                    <p className="text-xs text-zinc-500 max-w-md">
+                      تحليل استراتيجي تراكمي يقيس مسار نمو المبيعات، تراكم الأرباح الصافية، وتوسع رأس مال البضائع.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Quick Key Macro Strip */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full lg:w-auto shrink-0 text-center">
+                  <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                    <span className="block text-[10px] font-bold text-zinc-400">إجمالي المبيعات</span>
+                    <span className="text-sm sm:text-base font-black text-zinc-900 dark:text-white font-mono" dir="ltr">
+                      {!showFinancials ? '••••••' : formatCurrency(macroStrategicDiagnostic.totalRevenue, settings.currency, language)}
+                    </span>
+                  </div>
+
+                  <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                    <span className="block text-[10px] font-bold text-zinc-400">صافي أرباحك الكلية</span>
+                    <span className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400 font-mono" dir="ltr">
+                      {!showFinancials ? '••••••' : formatCurrency(macroStrategicDiagnostic.totalNetProfit, settings.currency, language)}
+                    </span>
+                  </div>
+
+                  <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                    <span className="block text-[10px] font-bold text-zinc-400">نسبة نمو المبيعات</span>
+                    <span className={`text-sm sm:text-base font-black font-mono ${
+                      macroStrategicDiagnostic.revGrowthPct !== null && macroStrategicDiagnostic.revGrowthPct >= 0
+                        ? 'text-emerald-600 dark:text-emerald-400' 
+                        : 'text-rose-600 dark:text-rose-400'
+                    }`}>
+                      {macroStrategicDiagnostic.revGrowthPct !== null 
+                        ? `${macroStrategicDiagnostic.revGrowthPct >= 0 ? '+' : ''}${macroStrategicDiagnostic.revGrowthPct.toFixed(1)}%` 
+                        : '—'}
+                    </span>
+                  </div>
+
+                  <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                    <span className="block text-[10px] font-bold text-zinc-400">توسع رأس المال</span>
+                    <span className="text-sm sm:text-base font-black text-blue-600 dark:text-blue-400 font-mono">
+                      {macroStrategicDiagnostic.stockGrowthPct !== null 
+                        ? `${macroStrategicDiagnostic.stockGrowthPct >= 0 ? '+' : ''}${macroStrategicDiagnostic.stockGrowthPct.toFixed(1)}%` 
+                        : '—'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Narrative Macro Story */}
+              <div className="pt-6">
+                <div className="flex items-center gap-2 mb-2.5 text-xs font-bold text-brand-600 dark:text-brand-400">
+                  <Compass size={16} />
+                  <span>التقرير الاستراتيجي الشامل لمسيرة متجرك ({macroStrategicDiagnostic.periodName}):</span>
+                </div>
+                <div className="p-4 rounded-xl bg-brand-500/5 dark:bg-brand-500/10 border border-brand-500/20 text-zinc-800 dark:text-zinc-200 text-sm leading-relaxed font-medium">
+                  {macroStrategicDiagnostic.story}
+                </div>
+              </div>
+            </div>
+
+            {/* 5 Macro Vital Indicators */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                  <Target size={18} className="text-brand-500" />
+                  المؤشرات الاستراتيجية الكبرى ({macroStrategicDiagnostic.periodName}):
+                </h3>
+                <span className="text-xs text-zinc-400">تقييم تراكمي شامل ومقارنة الفترات</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                {macroStrategicDiagnostic.indicators.map((ind) => (
+                  <div 
+                    key={ind.id}
+                    className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4.5 shadow-xs space-y-2.5 transition-all hover:border-zinc-300 dark:hover:border-zinc-700"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h4 className="text-sm font-black text-zinc-900 dark:text-white">
+                          {ind.title}
+                        </h4>
+                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                          {ind.details}
+                        </p>
+                      </div>
+                      <div className="text-left shrink-0">
+                        <span className="text-base font-black text-zinc-900 dark:text-white block font-mono">
+                          {ind.value}
+                        </span>
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-md inline-block mt-1 ${
+                          ind.status === 'excellent' 
+                            ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                            : ind.status === 'good'
+                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20'
+                            : ind.status === 'neutral'
+                            ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20'
+                            : 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30'
+                        }`}>
+                          {ind.statusLabel}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
+                      <span className="font-bold text-zinc-700 dark:text-zinc-300 shrink-0">💡 التوجيه:</span>
+                      <span className="text-[11px] leading-relaxed">{ind.advice}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Milestones in Period (Peak Cycle & Averages) */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                  <Award size={18} className="text-amber-500" />
+                  أبرز المحطات والنتائج القياسية للفترة:
+                </h3>
+                <span className="text-xs text-zinc-400">المحطات المفصلية في هذا النطاق</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                {/* 1. Peak Cycle */}
+                <div className="bg-white dark:bg-zinc-900 border border-amber-500/20 bg-gradient-to-b from-amber-500/[0.03] to-transparent rounded-xl p-4 shadow-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                      <Award size={15} />
+                      الجرد الذهبي القياسي (Peak Cycle)
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 font-bold border border-amber-500/20">
+                      الرقم القياسي 🏆
+                    </span>
+                  </div>
+                  {macroStrategicDiagnostic.peakCycle ? (
+                    <div>
+                      <h4 className="text-sm font-black text-zinc-900 dark:text-white">
+                        {formatAppDate(safeParseDate(macroStrategicDiagnostic.peakCycle.date), 'ar', t, { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </h4>
+                      <div className="flex items-baseline justify-between mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                        <span className="text-xs text-zinc-400">صافي ربح الدورة:</span>
+                        <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                          {formatCurrency(Number(macroStrategicDiagnostic.peakCycle.netProfit ?? (Number(macroStrategicDiagnostic.peakCycle.totalProfit || 0) - Number(macroStrategicDiagnostic.peakCycle.totalExpenses || 0))), settings.currency, language)}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
+                        أعلى مبيعات بلغت {formatCurrency(macroStrategicDiagnostic.peakCycle.totalRevenue, settings.currency, language)}. الدورة الأكثر ربحية في هذه الفترة.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-zinc-400">لا توجد بيانات كافية.</p>
+                  )}
+                </div>
+
+                {/* 2. Average Cycle Return */}
+                <div className="bg-white dark:bg-zinc-900 border border-blue-500/20 bg-gradient-to-b from-blue-500/[0.03] to-transparent rounded-xl p-4 shadow-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                      <TrendingUp size={15} />
+                      متوسط العائد لكل دورة جرد
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 font-bold border border-blue-500/20">
+                      معدل الجرد 📊
+                    </span>
+                  </div>
+                  <div>
+                    <div className="flex items-baseline justify-between mt-1">
+                      <span className="text-xs text-zinc-400">متوسط المبيعات:</span>
+                      <span className="text-sm font-black text-zinc-900 dark:text-white font-mono">
+                        {formatCurrency(macroStrategicDiagnostic.avgRevenuePerCycle, settings.currency, language)}
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between mt-1 pt-1 border-t border-zinc-100 dark:border-zinc-800">
+                      <span className="text-xs text-zinc-400">متوسط صافي الربح:</span>
+                      <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                        {formatCurrency(macroStrategicDiagnostic.avgNetPerCycle, settings.currency, language)}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
+                      ما يعود به متجرك في المتوسط عند إتمام كل دورة جرد.
+                    </p>
+                  </div>
+                </div>
+
+                {/* 3. Lowest Cycle */}
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                      <Clock size={15} />
+                      الدورة الأقل أداءً في الفترة
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-bold">
+                      أدنى نقطة 📉
+                    </span>
+                  </div>
+                  {macroStrategicDiagnostic.lowestCycle ? (
+                    <div>
+                      <h4 className="text-sm font-bold text-zinc-700 dark:text-zinc-300">
+                        {formatAppDate(safeParseDate(macroStrategicDiagnostic.lowestCycle.date), 'ar', t, { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </h4>
+                      <div className="flex items-baseline justify-between mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                        <span className="text-xs text-zinc-400">صافي ربح الدورة:</span>
+                        <span className="text-sm font-black text-zinc-700 dark:text-zinc-300 font-mono">
+                          {formatCurrency(Number(macroStrategicDiagnostic.lowestCycle.netProfit ?? (Number(macroStrategicDiagnostic.lowestCycle.totalProfit || 0) - Number(macroStrategicDiagnostic.lowestCycle.totalExpenses || 0))), settings.currency, language)}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
+                        مبيعات بلغت {formatCurrency(macroStrategicDiagnostic.lowestCycle.totalRevenue, settings.currency, language)}. استعن بأسباب هذه الدورة لتفادي تكرارها.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-zinc-400">لا توجد بيانات كافية.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Timeline Evolution Chart for this period */}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h4 className="text-base font-black text-zinc-900 dark:text-white flex items-center gap-2">
+                    <Activity size={18} className="text-brand-500" />
+                    منحنى مسار النمو وتوازي المبيعات والأرباح ({macroStrategicDiagnostic.periodName})
+                  </h4>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    مقارنة مسار المبيعات المحققة مع صافي الأرباح وقيمة رأس مال المخزون عبر الجرود
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-4 text-xs font-bold shrink-0">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-brand-500" />
+                    <span className="text-zinc-600 dark:text-zinc-400">المبيعات</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                    <span className="text-zinc-600 dark:text-zinc-400">صافي الربح</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-blue-400" />
+                    <span className="text-zinc-600 dark:text-zinc-400">المخزون المتبقي</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="h-[280px] w-full pt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={multiInventoryTrends}>
+                    <defs>
+                      <linearGradient id="macroTrendRev" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#004eff" stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor="#004eff" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="macroTrendNet" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                    <XAxis dataKey="shortName" fontSize={11} axisLine={false} tickLine={false} />
+                    <YAxis fontSize={10} axisLine={false} tickLine={false} hide />
+                    <Tooltip 
+                      contentStyle={{ 
+                        borderRadius: '12px', 
+                        border: 'none', 
+                        boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1)',
+                        textAlign: 'right' 
+                      }}
+                      formatter={(value: number, name: string) => {
+                        const labels: Record<string, string> = {
+                          revenue: 'المبيعات المستهلكة',
+                          profit: 'الربح الإجمالي',
+                          netProfit: 'صافي الربح',
+                          stockValue: 'قيمة المخزون المتبقي',
+                          expenses: 'المصاريف',
+                        };
+                        return [formatCurrency(value, settings.currency, language), labels[name] || name];
+                      }}
+                    />
+                    <Area type="monotone" dataKey="revenue" stroke="#004eff" strokeWidth={3} fillOpacity={1} fill="url(#macroTrendRev)" />
+                    <Area type="monotone" dataKey="netProfit" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#macroTrendNet)" />
+                    <Area type="monotone" dataKey="stockValue" stroke="#60a5fa" strokeWidth={2} strokeDasharray="4 4" fill="none" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Historical Cycle Performance Table */}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
+                <h4 className="text-sm font-black text-zinc-900 dark:text-white flex items-center gap-2">
+                  <Activity size={16} className="text-brand-500" />
+                  سجل ومقارنة جرود الفترة ({macroStrategicDiagnostic.periodName})
+                </h4>
+                <span className="text-xs text-zinc-400">
+                  {macroStrategicDiagnostic.count} دورات جردية
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-right text-xs">
+                  <thead>
+                    <tr className="border-b border-zinc-200 dark:border-zinc-800 text-zinc-400">
+                      <th className="pb-3 font-bold">الدورة</th>
+                      <th className="pb-3 font-bold">تاريخ الجرد</th>
+                      <th className="pb-3 font-bold">المبيعات المحققة</th>
+                      <th className="pb-3 font-bold">الربح الإجمالي</th>
+                      <th className="pb-3 font-bold">المصاريف المقيدة</th>
+                      <th className="pb-3 font-bold">صافي الربح (عائدك)</th>
+                      <th className="pb-3 font-bold">قيمة المخزون المتبقي</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                    {multiInventoryTrends.slice().reverse().map((tItem, i) => (
+                      <tr key={tItem.id || i} className={`hover:bg-zinc-50 dark:hover:bg-zinc-800/40 ${tItem.isPeak ? 'bg-amber-500/[0.04]' : ''}`}>
+                        <td className="py-3 font-black text-brand-600 dark:text-brand-400 flex items-center gap-2">
+                          {tItem.name}
+                          {tItem.isPeak && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-600 font-bold border border-amber-500/20">
+                              الأفضل 🏆
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 text-zinc-500">{tItem.fullDate}</td>
+                        <td className="py-3 font-bold text-zinc-900 dark:text-white" dir="ltr">
+                          {!showFinancials ? '••••••' : formatCurrency(tItem.revenue, settings.currency, language)}
+                        </td>
+                        <td className="py-3 font-bold text-emerald-600" dir="ltr">
+                          {!showFinancials ? '••••••' : formatCurrency(tItem.profit, settings.currency, language)}
+                        </td>
+                        <td className="py-3 text-rose-500" dir="ltr">
+                          {!showFinancials ? '••••••' : formatCurrency(tItem.expenses, settings.currency, language)}
+                        </td>
+                        <td className="py-3 font-black text-emerald-700 dark:text-emerald-400" dir="ltr">
+                          {!showFinancials ? '••••••' : formatCurrency(tItem.netProfit, settings.currency, language)}
+                        </td>
+                        <td className="py-3 font-bold text-blue-600 dark:text-blue-400" dir="ltr">
+                          {!showFinancials ? '••••••' : formatCurrency(tItem.stockValue, settings.currency, language)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        ) : (
+          /* Single-Cycle Diagnostic */
+          storeHealthDiagnostic && (
+            <div className="space-y-6">
           {/* Executive Diagnostic Master Card */}
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm overflow-hidden relative">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-zinc-100 dark:border-zinc-800">
@@ -1325,7 +2063,9 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
             </div>
           </div>
         </div>
-      )}
+      )
+    )
+  )}
 
       {/* TAB 1: FINANCIAL OVERVIEW */}
       {subTab === 'overview' && (
