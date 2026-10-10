@@ -3,10 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../AppContext';
 import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, serverTimestamp, query, orderBy, where, Timestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Supplier, SupplierTransaction, Debt, OperationType } from '../types';
+import { Supplier, SupplierTransaction, Debt, OperationType, SupplierCycle } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { syncTracker } from '../lib/syncTracker';
-import { Truck, Plus, Phone, Trash2, Edit2, X, RotateCcw, UserPlus, Eye, Receipt, History, CirclePlus, Calendar, Search, Play, Square, Printer, FileSpreadsheet, Activity } from 'lucide-react';
+import { Truck, Plus, Phone, Trash2, Edit2, X, RotateCcw, UserPlus, Eye, Receipt, History, CirclePlus, Calendar, Search, Play, Square, Printer, FileSpreadsheet, Activity, BrainCircuit, Archive } from 'lucide-react';
 import { formatCurrency, handleFirestoreError, safeParseDate, formatAppDate, roundMoney } from '../lib/utils';
 import { logAudit } from '../lib/auditLogger';
 import { PrintSupplierTxModal } from '../components/suppliers/PrintSupplierTxModal';
@@ -18,6 +18,8 @@ import { SupplierCard } from '../components/suppliers/SupplierCard';
 import { SupplierHeader } from '../components/suppliers/SupplierHeader';
 import { SupplierToolbar } from '../components/suppliers/SupplierToolbar';
 import { SupplierSearchBar } from '../components/suppliers/SupplierSearchBar';
+import { SmartDealAdvisorModal } from '../components/suppliers/SmartDealAdvisorModal';
+import { SupplierCyclesModal } from '../components/suppliers/SupplierCyclesModal';
 import * as xlsx from 'xlsx';
 import { Download, FileText } from 'lucide-react';
 
@@ -26,10 +28,13 @@ export default function Suppliers() {
   const { user, showToast, settings, updateSettings, activeSupplier, setActiveSupplier, setIsSessionSummaryOpen } = useAppContext();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [transactions, setTransactions] = useState<SupplierTransaction[]>([]);
+  const [cycles, setCycles] = useState<SupplierCycle[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAddTxModalOpen, setIsAddTxModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isAdvisorOpen, setIsAdvisorOpen] = useState(false);
+  const [isCyclesModalOpen, setIsCyclesModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [selectedVisitDays, setSelectedVisitDays] = useState<number[]>([]);
@@ -78,23 +83,41 @@ export default function Suppliers() {
       setDebts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Debt)));
     });
 
+    const cyclesQ = collection(db, `users/${user.uid}/supplierCycles`);
+    const unsubCycles = onSnapshot(cyclesQ, (snap) => {
+      const items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as SupplierCycle));
+      items.sort((a, b) => {
+        const timeA = safeParseDate(a.createdAt).getTime();
+        const timeB = safeParseDate(b.createdAt).getTime();
+        return timeB - timeA;
+      });
+      setCycles(items);
+    }, (error) => {
+      console.warn("Could not load cycles:", error);
+    });
+
     return () => {
       unsubSuppliers();
       unsubTx();
       unsubDebts();
+      unsubCycles();
     };
   }, [user]);
 
-  const earliestTxDate = transactions.length > 0 
-    ? new Date(Math.min(...transactions.map(t => safeParseDate(t.date).getTime())))
-    : new Date();
   const trackingStartDate = settings.lastSuppliersClearDate 
     ? new Date(settings.lastSuppliersClearDate)
-    : earliestTxDate;
+    : (transactions.length > 0 
+        ? new Date(Math.min(...transactions.map(t => safeParseDate(t.date).getTime()))) 
+        : new Date());
   const trackingEndDate = new Date();
 
+  // Active transactions for current open cycle (non-archived and on or after trackingStartDate)
+  const activeTransactions = React.useMemo(() => {
+    return transactions.filter(t => !t.archived && safeParseDate(t.date).getTime() >= trackingStartDate.getTime());
+  }, [transactions, trackingStartDate]);
+
   const suppliersWithTotals = suppliers.map(s => {
-    const supplierTx = transactions.filter(t => t.supplierId === s.id);
+    const supplierTx = activeTransactions.filter(t => t.supplierId === s.id);
     const totalPaid = supplierTx.reduce((acc, t) => acc + (t.amount || 0), 0);
     const txCount = supplierTx.length;
     
@@ -152,7 +175,7 @@ export default function Suppliers() {
         return false;
       }
 
-      const hasTxForDay = transactions.some(t => {
+      const hasTxForDay = activeTransactions.some(t => {
         if (t.supplierId !== s.id) return false;
         const txDate = safeParseDate(t.date);
         return txDate.toDateString() === targetDate.toDateString();
@@ -178,7 +201,7 @@ export default function Suppliers() {
     return nameA.localeCompare(nameB, 'ar');
   });
 
-  const grandTotal = transactions.reduce((acc, t) => acc + (t.amount || 0), 0);
+  const grandTotal = activeTransactions.reduce((acc, t) => acc + (t.amount || 0), 0);
 
   const filteredSuppliers = suppliersWithTotals.filter(s => 
     (s.name || "").toLowerCase().includes((searchQuery || "").toLowerCase()) ||
@@ -261,22 +284,155 @@ export default function Suppliers() {
     }
   };
 
-  const handleClearAllTransactions = async () => {
-    if (!user || transactions.length === 0) return;
+  const handleArchiveCycle = async () => {
+    if (!user || activeTransactions.length === 0) return;
     setIsSaving(true);
     try {
-      const deletePromises = transactions.map(t => 
+      const now = new Date();
+      const cycleName = `دورة ${formatAppDate(now)}`;
+      
+      const supplierBreakdown = suppliers.map(s => {
+        const sTxs = activeTransactions.filter(t => t.supplierId === s.id);
+        const amount = sTxs.reduce((sum, t) => sum + (t.amount || 0), 0);
+        return {
+          supplierId: s.id || '',
+          supplierName: s.name,
+          typeOfGoods: s.typeOfGoods || '',
+          amount: roundMoney(amount),
+          count: sTxs.length
+        };
+      }).filter(item => item.amount > 0 || item.count > 0);
+
+      const totalAmount = roundMoney(activeTransactions.reduce((sum, t) => sum + (t.amount || 0), 0));
+
+      const cycleData = {
+        name: cycleName,
+        startDate: trackingStartDate.toISOString(),
+        endDate: now.toISOString(),
+        totalAmount,
+        transactionCount: activeTransactions.length,
+        supplierCount: supplierBreakdown.length,
+        supplierBreakdown,
+        createdAt: serverTimestamp()
+      };
+
+      const cycleRef = await addDoc(collection(db, `users/${user.uid}/supplierCycles`), cycleData);
+
+      // Mark active transactions as archived
+      const updatePromises = activeTransactions.map(t => {
+        if (!t.id) return Promise.resolve();
+        return updateDoc(doc(db, `users/${user.uid}/supplierTransactions`, t.id), {
+          archived: true,
+          cycleId: cycleRef.id,
+          cycleName,
+          archivedAt: serverTimestamp()
+        });
+      });
+      await Promise.all(updatePromises);
+
+      // Automatically trigger excel export so user has the phone download
+      exportToExcel();
+
+      // Reset tracking start date
+      await updateSettings({ lastSuppliersClearDate: now.toISOString() });
+
+      logAudit('create', 'purchase', cycleRef.id, cycleName, `أرشفة دورة الموردين بإجمالي: ${totalAmount} (${activeTransactions.length} معاملة)`);
+      showToast('تمت أرشفة الدورة وتنزيل التقرير، وبدأت دورة جديدة بصفحة بيضاء!', 'success');
+      setIsClearAllConfirmOpen(false);
+    } catch (err) {
+      console.error("Archive cycle error:", err);
+      handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}/supplierCycles`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleClearAllTransactions = async () => {
+    if (!user || activeTransactions.length === 0) return;
+    setIsSaving(true);
+    try {
+      const deletePromises = activeTransactions.map(t => 
         deleteDoc(doc(db, `users/${user.uid}/supplierTransactions`, t.id!))
       );
       await Promise.all(deletePromises);
       await updateSettings({ lastSuppliersClearDate: new Date().toISOString() });
-      logAudit('delete', 'purchase', 'all', 'جميع الموردين', `حذف جميع المعاملات (${transactions.length} معاملة)`);
+      logAudit('delete', 'purchase', 'all', 'جميع الموردين', `حذف جميع معاملات الدورة (${activeTransactions.length} معاملة)`);
       showToast(t('all_supplier_transactions_cleared_success'));
       setIsClearAllConfirmOpen(false);
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/supplierTransactions`);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleImportCycleFromExcel = async (file: File) => {
+    if (!user) return;
+    try {
+      const bstr = await file.arrayBuffer();
+      const wb = xlsx.read(bstr, { type: 'array' });
+      const wsname = wb.SheetNames[0];
+      const ws = wb.Sheets[wsname];
+      const data = xlsx.utils.sheet_to_json<any[]>(ws, { header: 1 });
+
+      if (!data || data.length < 2) {
+        showToast('الملف لا يحتوي على بيانات صالحة', 'error');
+        return;
+      }
+
+      const breakdown: { supplierId: string; supplierName: string; amount: number; count: number; typeOfGoods?: string }[] = [];
+      let totalAmount = 0;
+
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        if (!row || row.length === 0) continue;
+        const name = String(row[0] || '').trim();
+        const rawAmount = String(row[1] || row[3] || '0').replace(/[^\d.-]/g, '');
+        const amount = parseFloat(rawAmount) || 0;
+        if (name && amount > 0) {
+          totalAmount += amount;
+          breakdown.push({
+            supplierId: '',
+            supplierName: name,
+            amount: roundMoney(amount),
+            count: 1,
+            typeOfGoods: row[1] && isNaN(Number(row[1])) ? String(row[1]) : 'بضاعة عامة'
+          });
+        }
+      }
+
+      if (breakdown.length === 0) {
+        showToast('لم يتم العثور على موردين بمبالغ صالحة في الملف', 'error');
+        return;
+      }
+
+      const cycleData = {
+        name: file.name.replace(/\.(xlsx|xls|csv)$/i, ''),
+        startDate: new Date().toISOString(),
+        endDate: new Date().toISOString(),
+        totalAmount: roundMoney(totalAmount),
+        transactionCount: breakdown.length,
+        supplierCount: breakdown.length,
+        supplierBreakdown: breakdown,
+        createdAt: serverTimestamp()
+      };
+
+      await addDoc(collection(db, `users/${user.uid}/supplierCycles`), cycleData);
+      showToast('تم استيراد الدورة وتغذية ذاكرة الوكيل التجاري بنجاح!', 'success');
+    } catch (err) {
+      console.error("Import cycle error:", err);
+      showToast('حدث خطأ أثناء قراءة ملف Excel', 'error');
+    }
+  };
+
+  const handleDeleteCycle = async (cycleId: string) => {
+    if (!user) return;
+    try {
+      await deleteDoc(doc(db, `users/${user.uid}/supplierCycles`, cycleId));
+      showToast('تم حذف الدورة من الأرشيف', 'success');
+    } catch (err) {
+      console.error("Delete cycle error:", err);
+      handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/supplierCycles`);
     }
   };
 
@@ -512,6 +668,9 @@ export default function Suppliers() {
         setIsClearAllConfirmOpen={setIsClearAllConfirmOpen}
         isTrackingMode={isTrackingMode}
         setIsTrackingMode={setIsTrackingMode}
+        setIsAdvisorOpen={setIsAdvisorOpen}
+        setIsCyclesModalOpen={setIsCyclesModalOpen}
+        archivedCyclesCount={cycles.length}
       />
 
       <SupplierSearchBar
@@ -610,11 +769,35 @@ export default function Suppliers() {
         isClearAllConfirmOpen={isClearAllConfirmOpen}
         setIsClearAllConfirmOpen={setIsClearAllConfirmOpen}
         handleClearAllTransactions={handleClearAllTransactions}
+        handleArchiveCycle={handleArchiveCycle}
+        txCount={activeTransactions.length}
         isTotalModalOpen={isTotalModalOpen}
         setIsTotalModalOpen={setIsTotalModalOpen}
         grandTotal={grandTotal}
         isSaving={isSaving}
         settings={settings}
+      />
+
+      <SmartDealAdvisorModal
+        isOpen={isAdvisorOpen}
+        onClose={() => setIsAdvisorOpen(false)}
+        suppliers={suppliers}
+        activeTransactions={activeTransactions}
+        archivedCycles={cycles}
+        allTransactions={transactions}
+        settings={settings}
+      />
+
+      <SupplierCyclesModal
+        isOpen={isCyclesModalOpen}
+        onClose={() => setIsCyclesModalOpen(false)}
+        cycles={cycles}
+        suppliers={suppliers}
+        settings={settings}
+        onDeleteCycle={handleDeleteCycle}
+        onImportCycleFromExcel={handleImportCycleFromExcel}
+        onArchiveCurrentCycle={() => setIsClearAllConfirmOpen(true)}
+        currentCycleCount={activeTransactions.length}
       />
 
       <PrintSupplierTxModal 

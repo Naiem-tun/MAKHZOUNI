@@ -110,7 +110,29 @@ export interface SupplierTransaction {
   amount: number;
   date: any;
   note: string;
+  cycleId?: string;
+  cycleName?: string;
+  archived?: boolean;
+  archivedAt?: any;
   updatedAt: any;
+}
+
+export interface SupplierCycle {
+  id?: string;
+  name: string;
+  startDate: any;
+  endDate: any;
+  totalAmount: number;
+  transactionCount: number;
+  supplierCount?: number;
+  supplierBreakdown?: {
+    supplierId: string;
+    supplierName: string;
+    amount: number;
+    count: number;
+    typeOfGoods?: string;
+  }[];
+  createdAt: any;
 }
 
 export interface Payment {

@@ -141,12 +141,13 @@ export function safeParseDate(val: any): Date {
   return new Date(0);
 }
 
-export function formatAppDate(date: Date, language: string, t: any, options?: Intl.DateTimeFormatOptions): string {
+export function formatAppDate(date: any, language: string = 'ar', t: any = (k: string) => k, options?: Intl.DateTimeFormatOptions): string {
+  const parsed = safeParseDate(date);
   // Check if it's the 1970 timestamp which implies an unknown/missing date
-  if (date.getTime() === 0) {
-    return t('unknown_date');
+  if (parsed.getTime() === 0) {
+    return typeof t === 'function' ? t('unknown_date') : 'تاريخ غير معروف';
   }
-  const formatted = date.toLocaleDateString(language === 'ar' ? 'ar-TN' : 'en-GB', options);
+  const formatted = parsed.toLocaleDateString(language === 'ar' ? 'ar-TN' : 'en-GB', options);
   // Remove invisible LTR/RTL marks that break numeric date rendering
   return formatted.replace(/[\u200E\u200F\u061C\u202A-\u202C\u2066-\u2069]/g, '');
 }
