@@ -29,6 +29,7 @@ export default function Invoices() {
   const [showFiltersPanel, setShowFiltersPanel] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [showDeleteInvoices, setShowDeleteInvoices] = useState(false);
+  const [invoicesLimit, setInvoicesLimit] = useState(100);
 
   const language = settings.language || 'ar';
   const showFinancials = settings.showFinancials ?? true;
@@ -49,7 +50,7 @@ export default function Invoices() {
 
       // Invoices Listener
       const invoicesPath = `users/${uid}/invoices`;
-      const invoicesQuery = query(collection(db, invoicesPath), orderBy('createdAt', 'desc'), limit(100));
+      const invoicesQuery = query(collection(db, invoicesPath), orderBy('createdAt', 'desc'), limit(invoicesLimit));
       unsubInvoices = onSnapshot(invoicesQuery, (snap) => {
         setInvoices(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         setLoading(false);
@@ -63,7 +64,7 @@ export default function Invoices() {
       if (unsubInvoices) unsubInvoices();
       if (unsubProducts) unsubProducts();
     };
-  }, [user]);
+  }, [user, invoicesLimit]);
 
   const handleDeleteInvoice = async () => {
     if (!invoiceToDelete || !user) return;
@@ -509,6 +510,18 @@ export default function Invoices() {
                 </div>
               </div>
             )})}
+          </div>
+        )}
+
+        {invoices.length >= invoicesLimit && (
+          <div className="flex justify-center pt-4">
+            <button
+              onClick={() => setInvoicesLimit(prev => prev + 100)}
+              className="px-6 py-2.5 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-brand-600 dark:text-brand-400 font-bold text-xs rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-700/50 shadow-sm transition-all active:scale-95 flex items-center gap-2"
+            >
+              <span>{t('load_more', 'تحميل المزيد من الفواتير')}</span>
+              <span className="text-[10px] text-zinc-400 font-mono">(+100)</span>
+            </button>
           </div>
         )}
       </section>

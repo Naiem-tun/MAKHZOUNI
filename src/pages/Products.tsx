@@ -8,19 +8,9 @@ import { syncTracker } from '../lib/syncTracker';
 import { handleFirestoreError, cn, cleanQuantity, formatQuantity, sanitizeProduct } from '../lib/utils';
 import { logAudit } from '../lib/auditLogger';
 import { 
-  Plus, 
-  Search, 
-  Filter, 
-  ScanBarcode,
-  Layers,
-  Package,
-  History,
   AlertCircle,
-  Shield,
-  X,
   WifiOff
 } from 'lucide-react';
-import { Html5Qrcode } from 'html5-qrcode';
 import { ProductPagination } from '../components/products/ProductPagination';
 import { DeleteConfirmationModal } from '../components/products/DeleteConfirmationModal';
 import { AddQuantityModal } from '../components/products/AddQuantityModal';
@@ -37,12 +27,8 @@ import { ProductsFilters } from '../components/products/ProductsFilters';
 import { ProductsList } from '../components/products/ProductsList';
 import { CustomConfirmModal } from '../components/common/CustomConfirmModal';
 import { useCategories } from '../hooks/useCategories';
-
 import { BarcodeScanner } from '../components/common/BarcodeScanner';
-
-import { Logo } from '../components/UI';
 import { query, orderBy, limit, getDocs, where } from 'firebase/firestore';
-import * as xlsx from 'xlsx';
 
 export default function Products() {
   const { t } = useTranslation();
@@ -83,16 +69,6 @@ export default function Products() {
   const [isSmartPopupOpen, setIsSmartPopupOpen] = useState(false);
   const [pendingQuantityProduct, setPendingQuantityProduct] = useState<Product | null>(null);
   const [isPriceAuditModalOpen, setIsPriceAuditModalOpen] = useState(false);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (!user) return;
-    const suppQ = collection(db, `users/${user.uid}/suppliers`);
-    const unsub = onSnapshot(suppQ, (snap) => {
-      setSuppliers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-    return () => unsub();
-  }, [user]);
 
   useEffect(() => {
     if (activeSupplier && pendingQuantityProduct) {
@@ -415,23 +391,6 @@ export default function Products() {
       console.warn("Failed to fetch last purchase:", err);
     }
     return null;
-  };
-
-  const fetchPurchaseHistory = async (productId: string) => {
-    if (!user) return [];
-    try {
-      const q = query(
-        collection(db, `users/${user.uid}/purchases`),
-        where('productId', '==', productId),
-        orderBy('date', 'desc'),
-        limit(20)
-      );
-      const snap = await getDocs(q);
-      return snap.docs.map(doc => doc.data());
-    } catch (err) {
-      console.warn("Failed to fetch purchase history:", err);
-      return [];
-    }
   };
 
   const handleProductChoice = async (product: Product) => {

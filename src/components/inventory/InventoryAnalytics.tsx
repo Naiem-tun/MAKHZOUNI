@@ -6,7 +6,9 @@ import {
   Hourglass, ShieldAlert, Sparkles, ArrowRight,
   Package, Calendar, CheckCircle2, ChevronDown, 
   Zap, DollarSign, Layers, Clock, RefreshCw, AlertCircle,
-  Search, X, PieChart as PieChartIcon, Award, ArrowUpRight, History, Truck, ChevronUp
+  Search, X, PieChart as PieChartIcon, Award, ArrowUpRight, History, Truck, ChevronUp,
+  Target, Compass, Activity, ThumbsUp, ThumbsDown,
+  Wallet, Users, Flame
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, 
@@ -21,6 +23,7 @@ interface InventoryAnalyticsProps {
   products: any[];
   purchases: any[];
   suppliers?: any[];
+  debts?: any[];
   settings: UserSettings;
 }
 
@@ -29,6 +32,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
   products,
   purchases,
   suppliers = [],
+  debts = [],
   settings
 }) => {
   const { t } = useTranslation();
@@ -37,7 +41,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
 
   // Selected report index (0 = latest report)
   const [selectedReportIndex, setSelectedReportIndex] = useState<number>(0);
-  const [subTab, setSubTab] = useState<'overview' | 'categories' | 'velocity' | 'purchases' | 'shrinkage' | 'trends'>('overview');
+  const [subTab, setSubTab] = useState<'diagnostic' | 'overview' | 'categories' | 'velocity' | 'purchases' | 'shrinkage' | 'trends'>('diagnostic');
   const [filterQuery, setFilterQuery] = useState('');
   const [replenishmentSearch, setReplenishmentSearch] = useState('');
   const [itemsPerPage, setItemsPerPage] = useState<number>(20);
@@ -331,6 +335,256 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
       damageLoss,
     };
   }, [currentReport, previousReport, analyzedItems]);
+
+  // Comprehensive Store Health & Growth Diagnostic Engine
+  const storeHealthDiagnostic = useMemo(() => {
+    if (!currentReport) return null;
+
+    const curRev = Number(currentReport.totalRevenue || 0);
+    const curProfit = Number(currentReport.totalProfit || 0);
+    const curNet = Number(currentReport.netProfit ?? (curProfit - Number(currentReport.totalExpenses || 0)));
+    const curExpenses = Number(currentReport.totalExpenses || 0);
+    const curStock = Number(currentReport.totalRemainingValue || 0);
+    const curSurplus = Number(currentReport.surplusValueUnverified || 0);
+    const curDamage = Number(currentReport.totalDamageLoss || 0);
+    const curShrinkageTotal = curDamage + curSurplus;
+
+    const prevRev = previousReport ? Number(previousReport.totalRevenue || 0) : null;
+    const prevProfit = previousReport ? Number(previousReport.totalProfit || 0) : null;
+    const prevNet = previousReport ? Number(previousReport.netProfit ?? (prevProfit - Number(previousReport.totalExpenses || 0))) : null;
+    const prevExpenses = previousReport ? Number(previousReport.totalExpenses || 0) : null;
+    const prevStock = previousReport ? Number(previousReport.totalRemainingValue || 0) : null;
+
+    // Percent changes
+    const revPctChange = prevRev !== null && prevRev > 0 ? ((curRev - prevRev) / prevRev) * 100 : null;
+    const profitPctChange = prevProfit !== null && prevProfit > 0 ? ((curProfit - prevProfit) / prevProfit) * 100 : null;
+    const netPctChange = prevNet !== null && prevNet > 0 ? ((curNet - prevNet) / prevNet) * 100 : null;
+    const stockPctChange = prevStock !== null && prevStock > 0 ? ((curStock - prevStock) / prevStock) * 100 : null;
+
+    // Expense burdens
+    const curExpenseRatio = curProfit > 0 ? (curExpenses / curProfit) * 100 : 0;
+    const prevExpenseRatio = prevProfit !== null && prevProfit > 0 ? (prevExpenses! / prevProfit) * 100 : null;
+    const expenseRatioDiff = prevExpenseRatio !== null ? curExpenseRatio - prevExpenseRatio : null;
+
+    // Shrinkage ratio
+    const curShrinkageRatio = curProfit > 0 ? (curShrinkageTotal / curProfit) * 100 : 0;
+
+    // Calculate Store Score (out of 100)
+    let score = 70;
+    if (revPctChange !== null) {
+      if (revPctChange >= 15) score += 12;
+      else if (revPctChange > 0) score += 7;
+      else if (revPctChange < -10) score -= 12;
+      else score -= 5;
+    }
+    if (profitPctChange !== null) {
+      if (profitPctChange >= 15) score += 12;
+      else if (profitPctChange > 0) score += 8;
+      else if (profitPctChange < -10) score -= 12;
+      else score -= 5;
+    }
+    if (curExpenseRatio <= 18) score += 8;
+    else if (curExpenseRatio > 35) score -= 10;
+
+    if (curShrinkageRatio <= 1.5) score += 5;
+    else if (curShrinkageRatio > 5) score -= 10;
+
+    score = Math.min(100, Math.max(35, Math.round(score)));
+
+    // Score classification
+    let scoreTitle = 'أداء تجاري استثنائي ومسار صاعد 🚀';
+    let scoreBadge = 'ممتاز جداً';
+    let scoreColor = 'text-emerald-500';
+    let scoreBg = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300';
+    let scoreRing = 'border-emerald-500';
+
+    if (score < 55) {
+      scoreTitle = 'أداء تشغيلي يحتاج تدخل ومراجعة سريعة 🔴';
+      scoreBadge = 'يحتاج انتباه';
+      scoreColor = 'text-rose-500';
+      scoreBg = 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300';
+      scoreRing = 'border-rose-500';
+    } else if (score < 75) {
+      scoreTitle = 'أداء مستقر ومتوازن مع فرص تحسين واضحة 🟡';
+      scoreBadge = 'مستقر وجيد';
+      scoreColor = 'text-amber-500';
+      scoreBg = 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300';
+      scoreRing = 'border-amber-500';
+    }
+
+    // 5 Key Evaluated Indicators
+    const indicators = [
+      {
+        id: 'revenue',
+        title: 'مؤشر نمو المبيعات (حركة الإقبال)',
+        value: revPctChange !== null ? `${revPctChange >= 0 ? '+' : ''}${revPctChange.toFixed(1)}%` : 'الجرد المرجعي',
+        status: revPctChange === null ? 'neutral' : (revPctChange >= 10 ? 'excellent' : (revPctChange >= 0 ? 'good' : 'bad')),
+        statusLabel: revPctChange === null ? 'أساس أول' : (revPctChange >= 10 ? 'نمو ممتاز 🟢' : (revPctChange >= 0 ? 'نمو إيجابي 🟢' : 'تراجع مبيعات 🔴')),
+        details: prevRev !== null
+          ? `تطورت مبيعاتك من ${formatCurrency(prevRev, settings.currency, language)} إلى ${formatCurrency(curRev, settings.currency, language)} (${revPctChange! >= 0 ? 'زيادة إيجابية' : 'نقصان'} بمقدار ${formatCurrency(Math.abs(curRev - prevRev), settings.currency, language)})`
+          : `إجمالي مبيعات دورة الجرد الحالية بلغت ${formatCurrency(curRev, settings.currency, language)}.`,
+        advice: revPctChange !== null && revPctChange < 0 
+          ? 'ركز على توفير الأصناف الأساسية الأكثر طلباً لإنعاش وتيرة البيع اليومية.'
+          : 'نشاط بيعي قوي ومستقر، حافظ على تدفق السلع دون انقطاع.',
+      },
+      {
+        id: 'netProfit',
+        title: 'مؤشر صافي الربح الفعلي (عائد جيبك)',
+        value: netPctChange !== null ? `${netPctChange >= 0 ? '+' : ''}${netPctChange.toFixed(1)}%` : 'الجرد المرجعي',
+        status: netPctChange === null ? 'neutral' : (netPctChange >= 10 ? 'excellent' : (netPctChange >= 0 ? 'good' : 'bad')),
+        statusLabel: netPctChange === null ? 'أساس أول' : (netPctChange >= 10 ? 'ربحية صاعدة بقوة 🟢' : (netPctChange >= 0 ? 'ربحية متنامية 🟢' : 'انكماش أرباح 🔴')),
+        details: prevNet !== null
+          ? `انتقل صافي ربحك من ${formatCurrency(prevNet, settings.currency, language)} إلى ${formatCurrency(curNet, settings.currency, language)} (فارق ${netPctChange! >= 0 ? '+' : ''}${formatCurrency(curNet - prevNet, settings.currency, language)})`
+          : `صافي ربح مستخلص بعد خصم المصاريف: ${formatCurrency(curNet, settings.currency, language)}.`,
+        advice: netPctChange !== null && netPctChange < 0 
+          ? 'راجع هوامش ربح الأصناف الأكثر مبيعاً وتحكم في المصاريف اليومية لتجنب تآكل الأرباح.'
+          : 'عائد ربحي سليم يدعم نمو رأس مال متجرك.',
+      },
+      {
+        id: 'expenses',
+        title: 'مؤشر كفاءة وضبط المصاريف التشغيلية',
+        value: `${curExpenseRatio.toFixed(1)}% من الأرباح`,
+        status: curExpenseRatio <= 20 ? 'excellent' : (curExpenseRatio <= 30 ? 'good' : 'bad'),
+        statusLabel: curExpenseRatio <= 20 ? 'كفاءة ممتازة وضبط محكم 🟢' : (curExpenseRatio <= 30 ? 'مقبول وضمن الحدود 🟡' : 'مصاريف مرتفعة تلتهم الربح 🔴'),
+        details: expenseRatioDiff !== null
+          ? (expenseRatioDiff < 0
+              ? `تحسن مشجع: انخفض عبء المصاريف بمقدار ${Math.abs(expenseRatioDiff).toFixed(1)}% مقارنة بالجرد السابق.`
+              : `تنبيه: ارتفعت نسبة التهام المصاريف من أرباحك بمقدار +${expenseRatioDiff.toFixed(1)}%.`)
+          : `المصاريف التشغيلية بلغت ${formatCurrency(curExpenses, settings.currency, language)} وتستهلك ${curExpenseRatio.toFixed(1)}% من إجمالي أرباحك.`,
+        advice: curExpenseRatio > 30 
+          ? 'ضع حداً يومياً للمصاريف النثرية وفواتير التشغيل لتفادي التهام السيولة.'
+          : 'إدارة ممتازة للمصاريف تضمن بقاء الجزء الأكبر من الأرباح في رصيدك.',
+      },
+      {
+        id: 'stockCapital',
+        title: 'مؤشر توازن رأس مال المخزون',
+        value: stockPctChange !== null ? `${stockPctChange >= 0 ? '+' : ''}${stockPctChange.toFixed(1)}%` : 'قيمة متزنة',
+        status: stockPctChange === null ? 'good' : (Math.abs(stockPctChange) <= 25 ? 'good' : 'neutral'),
+        statusLabel: stockPctChange === null ? 'مخزون أساسي' : (stockPctChange > 30 ? 'تضخم مخزون 🟡' : (stockPctChange < -30 ? 'تراجع مخزون 🟡' : 'توازن صحي 🟢')),
+        details: prevStock !== null
+          ? `رأس المال المستثمر على الرفوف انتقل من ${formatCurrency(prevStock, settings.currency, language)} إلى ${formatCurrency(curStock, settings.currency, language)}`
+          : `رأس المال الحالي المتبقي على الرفوف: ${formatCurrency(curStock, settings.currency, language)}.`,
+        advice: stockPctChange !== null && stockPctChange > 30 
+          ? 'احذر من تجميد سيولة زائدة في المخزن، ووازن بين المشتريات ومعدل البيع الفعلي.'
+          : 'المخزون يدعم وتيرة البيع دون تجميد مفرط للسيولة.',
+      },
+      {
+        id: 'shrinkage',
+        title: 'مؤشر سلامة البضائع وانضباط المخزن',
+        value: `${curShrinkageRatio.toFixed(1)}% فواقد`,
+        status: curShrinkageRatio <= 1.5 ? 'excellent' : (curShrinkageRatio <= 4 ? 'neutral' : 'bad'),
+        statusLabel: curShrinkageRatio <= 1.5 ? 'انضباط ممتاز وأمان عالٍ 🟢' : (curShrinkageRatio <= 4 ? 'فواقد متوسطة 🟡' : 'تنبيه هدر وتوالف 🔴'),
+        details: `إجمالي التوالف والفوائض غير المفسرة: ${formatCurrency(curShrinkageTotal, settings.currency, language)} (${curDamage > 0 ? `توالف: ${formatCurrency(curDamage, settings.currency, language)}` : ''}${curSurplus > 0 ? ` | زيادات غير مفسرة: ${formatCurrency(curSurplus, settings.currency, language)}` : ''}).`,
+        advice: curShrinkageRatio > 4 
+          ? 'راجع طريقة تخزين الأصناف المعرضة للتلف وتأكد من تسجيل فواتير كل بضاعة تدخل المتجر.'
+          : 'انضباط مخزني ممتاز يحمي أرباحك من التسرب.',
+      }
+    ];
+
+    // Executive Narrative Story Paragraph
+    let story = '';
+    if (prevRev !== null && revPctChange !== null && netPctChange !== null) {
+      if (revPctChange >= 0 && netPctChange >= 0) {
+        story = `لقد تطور أداء متجرك بشكل إيجابي ملحوظ؛ حيث زادت مبيعاتك الإجمالية بنسبة (+${revPctChange.toFixed(1)}%)، وتوازت مع نمو في صافي أرباحك بنسبة (+${netPctChange.toFixed(1)}%). هذا مؤشر صحي يبرهن على توسع ثقة الزبائن في متجرك وحسن تسعير السلع. كما أن نسبة المصاريف تشكل (${curExpenseRatio.toFixed(1)}%) من أرباحك. استمر في تعزيز الأصناف سريعة الحركة للحفاظ على هذا المنحنى التصاعدي.`;
+      } else if (revPctChange >= 0 && netPctChange < 0) {
+        story = `على الرغم من أن مبيعاتك الإجمالية ارتفعت بنسبة (+${revPctChange.toFixed(1)}%)، إلا أن صافي ربحك تراجع بنسبة (${netPctChange.toFixed(1)}%). هذا المؤشر ينبهك إلى أن زيادة المبيعات لم تتحول إلى أرباح كافية، ويرجع ذلك إما لارتفاع المصاريف التشغيلية أو زيادة مبيعات أصناف ذات هوامش ربح منخفضة جداً. يُنصح بمراجعة فواتير التكاليف وهوامش ربح الأصناف الأكثر بيعاً.`;
+      } else if (revPctChange < 0 && netPctChange >= 0) {
+        story = `حجم مبيعاتك تراجع بنسبة (${revPctChange.toFixed(1)}%)، ولكن صافي أرباحك نما بنسبة (+${netPctChange.toFixed(1)}%). هذا مؤشر ممتاز على الكفاءة التشغيلية وترشيد المصاريف وتفادي الخسائر؛ حيث حققت عائداً أعلى بمبيعات أكثر تركيزاً وربحية.`;
+      } else {
+        story = `تراجع حجم المبيعات بنسبة (${revPctChange.toFixed(1)}%) وتراجع صافي الأرباح بنسبة (${netPctChange.toFixed(1)}%). هذا المؤشر يتطلب وقفة لمراجعة الأسباب: قد يكون السبب موسمياً، أو تراجعاً في توفير السلع الأساسية للزبائن، أو ارتفاعاً غير مبرر في المصاريف. ننصح بالتركيز على إعادة توفير الأصناف الأساسية وإجراء عروض على البضائع الراكدة.`;
+      }
+    } else {
+      story = `هذه هي عملية الجرد المرجعية الأولى المسجلة في النظام. بناءً على هذا الجرد، يمتلك متجرك قاعدة صلبة بمبيعات بلغت ${formatCurrency(curRev, settings.currency, language)} وصافي أرباح قدره ${formatCurrency(curNet, settings.currency, language)}. سيبدأ النظام فور تسجيل الجرد القادم بمقارنة نسب النمو والتطور التلقائي لكل ركيزة من ركائز متجرك.`;
+    }
+
+    return {
+      score,
+      scoreTitle,
+      scoreBadge,
+      scoreColor,
+      scoreBg,
+      scoreRing,
+      indicators,
+      story,
+      curRev,
+      prevRev,
+      revPctChange,
+      curNet,
+      prevNet,
+      netPctChange,
+      curExpenses,
+      curStock,
+      prevStock,
+      stockPctChange
+    };
+  }, [currentReport, previousReport, settings.currency, language]);
+
+  // Cycle Highlights: Stars and Dead stock for this inventory cycle
+  const cycleHighlights = useMemo(() => {
+    if (!analyzedItems || analyzedItems.length === 0) return null;
+
+    const sortedByProfit = [...analyzedItems]
+      .filter(it => it.profit > 0)
+      .sort((a, b) => b.profit - a.profit);
+    const starProfitItem = sortedByProfit[0] || null;
+
+    const sortedBySold = [...analyzedItems]
+      .filter(it => it.soldQty > 0)
+      .sort((a, b) => b.soldQty - a.soldQty);
+    const starVelocityItem = sortedBySold[0] || null;
+
+    const sortedByDeadCapital = [...analyzedItems]
+      .filter(it => it.isDeadStock && it.currentStock > 0)
+      .sort((a, b) => b.deadCapital - a.deadCapital);
+    const heaviestDeadStock = sortedByDeadCapital[0] || null;
+
+    return {
+      starProfitItem,
+      starVelocityItem,
+      heaviestDeadStock,
+    };
+  }, [analyzedItems]);
+
+  // Market Debts & Liquidity stats
+  const marketDebtsStats = useMemo(() => {
+    if (!debts || debts.length === 0) {
+      return {
+        unpaidCustomerDebts: 0,
+        customerDebtCount: 0,
+        unpaidSupplierDebts: 0,
+        supplierDebtCount: 0,
+      };
+    }
+
+    let unpaidCustomerDebts = 0;
+    let customerDebtCount = 0;
+    let unpaidSupplierDebts = 0;
+    let supplierDebtCount = 0;
+
+    debts.forEach((d: any) => {
+      const isCustomer = (d.type || 'receivable') === 'receivable';
+      const total = Number(d.totalAmount || 0);
+      const paid = (d.payments || []).reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+      const remaining = Math.max(0, total - paid);
+
+      if (remaining > 0) {
+        if (isCustomer) {
+          unpaidCustomerDebts += remaining;
+          customerDebtCount += 1;
+        } else {
+          unpaidSupplierDebts += remaining;
+          supplierDebtCount += 1;
+        }
+      }
+    });
+
+    return {
+      unpaidCustomerDebts,
+      customerDebtCount,
+      unpaidSupplierDebts,
+      supplierDebtCount,
+    };
+  }, [debts]);
 
   // Fast-Moving Products (Top 8 highest velocity / sales)
   const topMovingItems = useMemo(() => {
@@ -654,6 +908,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
       {/* Sub-Tabs Navigation */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-zinc-200 dark:border-zinc-800 scrollbar-none">
         {[
+          { id: 'diagnostic', label: 'مسار النمو وتشخيص المتجر 🧭', icon: Award },
           { id: 'overview', label: 'الخلاصة المالية للجرد', icon: DollarSign },
           { id: 'categories', label: 'مردودية الأقسام ورأس المال', icon: PieChartIcon },
           { id: 'velocity', label: 'سرعة الدوران والأصناف الراكدة', icon: Zap },
@@ -679,6 +934,398 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
           );
         })}
       </div>
+
+      {/* TAB 0: STORE HEALTH & GROWTH DIAGNOSTIC */}
+      {subTab === 'diagnostic' && storeHealthDiagnostic && (
+        <div className="space-y-6">
+          {/* Executive Diagnostic Master Card */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm overflow-hidden relative">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-zinc-100 dark:border-zinc-800">
+              
+              {/* Score Widget */}
+              <div className="flex items-center gap-4 shrink-0">
+                <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-4 ${storeHealthDiagnostic.scoreRing} bg-zinc-50 dark:bg-zinc-800/80 flex flex-col items-center justify-center shadow-inner`}>
+                  <span className={`text-3xl sm:text-4xl font-black ${storeHealthDiagnostic.scoreColor} font-mono tracking-tight`}>
+                    {storeHealthDiagnostic.score}
+                  </span>
+                  <span className="text-[10px] text-zinc-400 font-bold mt-0.5">من 100</span>
+                </div>
+                
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-black px-2.5 py-0.5 rounded-full border ${storeHealthDiagnostic.scoreBg}`}>
+                      {storeHealthDiagnostic.scoreBadge}
+                    </span>
+                    <span className="text-xs text-zinc-400">تقييم الجرد الدوري</span>
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-black text-zinc-900 dark:text-white">
+                    {storeHealthDiagnostic.scoreTitle}
+                  </h3>
+                  <p className="text-xs text-zinc-500 max-w-md">
+                    مقياس مركب يقيس كفاءة المبيعات، ضبط المصاريف، وتوازن نمو الأرباح الحقيقية.
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick Key Comparison Strip */}
+              <div className="grid grid-cols-3 gap-3 w-full lg:w-auto shrink-0 text-center">
+                <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                  <span className="block text-[10px] font-bold text-zinc-400">نمو المبيعات</span>
+                  <span className={`text-sm sm:text-base font-black ${
+                    storeHealthDiagnostic.revPctChange !== null && storeHealthDiagnostic.revPctChange >= 0
+                      ? 'text-emerald-600 dark:text-emerald-400' 
+                      : 'text-rose-600 dark:text-rose-400'
+                  }`}>
+                    {storeHealthDiagnostic.revPctChange !== null 
+                      ? `${storeHealthDiagnostic.revPctChange >= 0 ? '+' : ''}${storeHealthDiagnostic.revPctChange.toFixed(1)}%` 
+                      : '—'}
+                  </span>
+                </div>
+
+                <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                  <span className="block text-[10px] font-bold text-zinc-400">نمو صافي الربح</span>
+                  <span className={`text-sm sm:text-base font-black ${
+                    storeHealthDiagnostic.netPctChange !== null && storeHealthDiagnostic.netPctChange >= 0
+                      ? 'text-emerald-600 dark:text-emerald-400' 
+                      : 'text-rose-600 dark:text-rose-400'
+                  }`}>
+                    {storeHealthDiagnostic.netPctChange !== null 
+                      ? `${storeHealthDiagnostic.netPctChange >= 0 ? '+' : ''}${storeHealthDiagnostic.netPctChange.toFixed(1)}%` 
+                      : '—'}
+                  </span>
+                </div>
+
+                <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                  <span className="block text-[10px] font-bold text-zinc-400">نسبة المصاريف</span>
+                  <span className="text-sm sm:text-base font-black text-zinc-900 dark:text-white">
+                    {((storeHealthDiagnostic.curExpenses / (Number(currentReport.totalProfit || 1))) * 100).toFixed(0)}%
+                  </span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Narrative Story Section */}
+            <div className="pt-6">
+              <div className="flex items-center gap-2 mb-2.5 text-xs font-bold text-brand-600 dark:text-brand-400">
+                <Compass size={16} />
+                <span>التقرير التشخيصي التنفيذي لمتجرك:</span>
+              </div>
+              <div className="p-4 rounded-xl bg-brand-500/5 dark:bg-brand-500/10 border border-brand-500/20 text-zinc-800 dark:text-zinc-200 text-sm leading-relaxed font-medium">
+                {storeHealthDiagnostic.story}
+              </div>
+            </div>
+          </div>
+
+          {/* 5 Evaluated Vital Indicators */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                <Target size={18} className="text-brand-500" />
+                المؤشرات الحيوية لتقييم المتجر (مؤشر جيد / سيء):
+              </h3>
+              <span className="text-xs text-zinc-400">مقارنة تحليلية مباشرة بين الجردين</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              {storeHealthDiagnostic.indicators.map((ind) => (
+                <div 
+                  key={ind.id}
+                  className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4.5 shadow-xs space-y-2.5 transition-all hover:border-zinc-300 dark:hover:border-zinc-700"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h4 className="text-sm font-black text-zinc-900 dark:text-white">
+                        {ind.title}
+                      </h4>
+                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                        {ind.details}
+                      </p>
+                    </div>
+                    <div className="text-left shrink-0">
+                      <span className="text-base font-black text-zinc-900 dark:text-white block font-mono">
+                        {ind.value}
+                      </span>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-md inline-block mt-1 ${
+                        ind.status === 'excellent' 
+                          ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                          : ind.status === 'good'
+                          ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20'
+                          : ind.status === 'neutral'
+                          ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20'
+                          : 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30'
+                      }`}>
+                        {ind.statusLabel}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Operational Advice */}
+                  <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
+                    <span className="font-bold text-zinc-700 dark:text-zinc-300 shrink-0">💡 التوجيه:</span>
+                    <span className="text-[11px] leading-relaxed">{ind.advice}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Cycle Stars vs Frozen Capital */}
+          {cycleHighlights && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                  <Flame size={18} className="text-amber-500" />
+                  أبطال الدورة مقابل رأس المال المجمد:
+                </h3>
+                <span className="text-xs text-zinc-400">تحليل مساهمة الأصناف الفردية في هذا الجرد</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                {/* 1. Star Profit */}
+                <div className="bg-white dark:bg-zinc-900 border border-emerald-500/20 bg-gradient-to-b from-emerald-500/[0.03] to-transparent rounded-xl p-4 shadow-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                      <Award size={15} />
+                      بطل الأرباح (الأعلى عائداً)
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 font-bold border border-emerald-500/20">
+                      نجم الجرد 🌟
+                    </span>
+                  </div>
+                  {cycleHighlights.starProfitItem ? (
+                    <div>
+                      <h4 className="text-sm font-black text-zinc-900 dark:text-white truncate">
+                        {cycleHighlights.starProfitItem.name}
+                      </h4>
+                      <div className="flex items-baseline justify-between mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                        <span className="text-xs text-zinc-400">صافي ربحه:</span>
+                        <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                          {formatCurrency(cycleHighlights.starProfitItem.profit, settings.currency, language)}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
+                        ساهم ببيع {cycleHighlights.starProfitItem.soldQty} قطعة. احرص على عدم نفاد مخزونه نهائياً.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-zinc-400">لا توجد بيانات ربحية كافية بعد.</p>
+                  )}
+                </div>
+
+                {/* 2. Star Velocity */}
+                <div className="bg-white dark:bg-zinc-900 border border-blue-500/20 bg-gradient-to-b from-blue-500/[0.03] to-transparent rounded-xl p-4 shadow-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                      <Zap size={15} />
+                      الأسرع حركة (الأكثر طلباً)
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 font-bold border border-blue-500/20">
+                      دوران سريع ⚡
+                    </span>
+                  </div>
+                  {cycleHighlights.starVelocityItem ? (
+                    <div>
+                      <h4 className="text-sm font-black text-zinc-900 dark:text-white truncate">
+                        {cycleHighlights.starVelocityItem.name}
+                      </h4>
+                      <div className="flex items-baseline justify-between mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                        <span className="text-xs text-zinc-400">إجمالي المبيعات:</span>
+                        <span className="text-sm font-black text-blue-600 dark:text-blue-400 font-mono">
+                          {cycleHighlights.starVelocityItem.soldQty} قطعة
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
+                        بمعدل سحب {cycleHighlights.starVelocityItem.dailyVelocity.toFixed(1)} قطعة/يوم. السلعة الأكبر جذباً للمستهلك.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-zinc-400">لا توجد مبيعات مسجلة في هذا الجرد.</p>
+                  )}
+                </div>
+
+                {/* 3. Heaviest Dead Stock */}
+                <div className="bg-white dark:bg-zinc-900 border border-amber-500/20 bg-gradient-to-b from-amber-500/[0.03] to-transparent rounded-xl p-4 shadow-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                      <AlertTriangle size={15} />
+                      أكبر سيولة معطلة (راكد)
+                    </span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 font-bold border border-amber-500/20">
+                      رأس مال نائم 🧊
+                    </span>
+                  </div>
+                  {cycleHighlights.heaviestDeadStock ? (
+                    <div>
+                      <h4 className="text-sm font-black text-zinc-900 dark:text-white truncate">
+                        {cycleHighlights.heaviestDeadStock.name}
+                      </h4>
+                      <div className="flex items-baseline justify-between mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                        <span className="text-xs text-zinc-400">قيمة المحبوس:</span>
+                        <span className="text-sm font-black text-rose-600 dark:text-rose-400 font-mono">
+                          {formatCurrency(cycleHighlights.heaviestDeadStock.deadCapital, settings.currency, language)}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
+                        لديك {cycleHighlights.heaviestDeadStock.currentStock} قطعة لم تبع قط. يُنصح بعمل تخفيض لتسييل هذا الصنف.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="pt-2 text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5">
+                      <CheckCircle2 size={16} />
+                      ممتاز! لا يوجد صنف راكد يجمد سيولة ملحوظة.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Market Debts & Liquidity Risk Card */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-zinc-100 dark:border-zinc-800">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600">
+                  <Wallet size={18} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-zinc-900 dark:text-white">
+                    ميزان السيولة النقدية وديون السوق (Customer Debts Risk)
+                  </h4>
+                  <p className="text-[11px] text-zinc-400">
+                    قياس أثر أموالك المعلقة عند الزبائن على أرباح ورأس مال المتجر
+                  </p>
+                </div>
+              </div>
+
+              {/* Status Badge */}
+              <div className="self-start sm:self-auto">
+                {marketDebtsStats.unpaidCustomerDebts === 0 ? (
+                  <span className="text-xs font-black px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                    أمان مالي تام: لا ديون خارجية 🟢
+                  </span>
+                ) : storeHealthDiagnostic.curNet > 0 && (marketDebtsStats.unpaidCustomerDebts / storeHealthDiagnostic.curNet) <= 0.4 ? (
+                  <span className="text-xs font-black px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                    ديون منضبطة وضمن الحدود الآمنة 🟢
+                  </span>
+                ) : (
+                  <span className="text-xs font-black px-2.5 py-1 rounded-md bg-rose-500/10 text-rose-600 border border-rose-500/20">
+                    تنبيه: حجم الديون يحبس السيولة 🔴
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center sm:text-right">
+              <div className="p-3 bg-zinc-50 dark:bg-zinc-800/40 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                <span className="block text-[11px] text-zinc-400 font-bold mb-1">ديون الزبائن في السوق</span>
+                <span className="text-base font-black text-zinc-900 dark:text-white font-mono">
+                  {formatCurrency(marketDebtsStats.unpaidCustomerDebts, settings.currency, language)}
+                </span>
+                <span className="block text-[10px] text-zinc-400 mt-0.5">
+                  لدى {marketDebtsStats.customerDebtCount} زبون مدين
+                </span>
+              </div>
+
+              <div className="p-3 bg-zinc-50 dark:bg-zinc-800/40 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                <span className="block text-[11px] text-zinc-400 font-bold mb-1">نسبة الديون من صافي ربح الجرد</span>
+                <span className={`text-base font-black font-mono ${
+                  storeHealthDiagnostic.curNet > 0 && (marketDebtsStats.unpaidCustomerDebts / storeHealthDiagnostic.curNet) > 0.5
+                    ? 'text-rose-600 dark:text-rose-400'
+                    : 'text-zinc-900 dark:text-white'
+                }`}>
+                  {storeHealthDiagnostic.curNet > 0 
+                    ? `${((marketDebtsStats.unpaidCustomerDebts / storeHealthDiagnostic.curNet) * 100).toFixed(0)}%`
+                    : '—'}
+                </span>
+                <span className="block text-[10px] text-zinc-400 mt-0.5">
+                  من عائد جيبك الصافي
+                </span>
+              </div>
+
+              <div className="p-3 bg-zinc-50 dark:bg-zinc-800/40 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                <span className="block text-[11px] text-zinc-400 font-bold mb-1">ديون الموردين الواجب دفعها</span>
+                <span className="text-base font-black text-amber-600 dark:text-amber-400 font-mono">
+                  {formatCurrency(marketDebtsStats.unpaidSupplierDebts, settings.currency, language)}
+                </span>
+                <span className="block text-[10px] text-zinc-400 mt-0.5">
+                  مستحقات للموردين
+                </span>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/40 text-xs text-zinc-600 dark:text-zinc-400 flex items-start gap-2">
+              <span className="font-bold text-zinc-800 dark:text-zinc-200 shrink-0">💡 التحليل المالي:</span>
+              <span>
+                {marketDebtsStats.unpaidCustomerDebts === 0
+                  ? 'نموذج نقدي مثالي (Cash Business) دون مخاطر تعثر سداد الزبائن، مما يمنحك سيولة فورية لإعادة تدويرها في المخزون.'
+                  : storeHealthDiagnostic.curNet > 0 && (marketDebtsStats.unpaidCustomerDebts / storeHealthDiagnostic.curNet) > 0.6
+                  ? `ديون الزبائن تعادل ${(marketDebtsStats.unpaidCustomerDebts / storeHealthDiagnostic.curNet * 100).toFixed(0)}% من صافي ربح دورتك؛ هذا يعني أن جزءاً كبيراً من مكاسبك لم يدخل جيبك بعد بل ما زال في السوق. ننصح بالتركيز على تحصيل الديون قبل منح تسهيلات جديدة.`
+                  : 'نسبة ديون السوق متوازنة ومقبولة ولا تعطل حركة المشتريات اليومية.'}
+              </span>
+            </div>
+          </div>
+
+          {/* Quick Evolution Comparison (Before ➔ After) */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
+              <h4 className="text-sm font-black text-zinc-900 dark:text-white flex items-center gap-2">
+                <Activity size={16} className="text-brand-500" />
+                تطور الأرقام المالية: الجرد السابق ➔ الجرد الحالي
+              </h4>
+              <span className="text-xs text-zinc-400">
+                {previousReport ? 'مقارنة دورتين متتاليتين' : 'الدورة الأولى المرجعية'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+              {/* Sales */}
+              <div className="p-3.5 bg-zinc-50 dark:bg-zinc-800/40 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                <span className="block text-[11px] text-zinc-400 font-bold mb-1">المبيعات المحققة</span>
+                <div className="text-xs text-zinc-500 line-through mb-0.5" dir="ltr">
+                  {previousReport ? formatCurrency(previousReport.totalRevenue, settings.currency, language) : '—'}
+                </div>
+                <div className="text-base font-black text-zinc-900 dark:text-white" dir="ltr">
+                  {formatCurrency(currentReport.totalRevenue, settings.currency, language)}
+                </div>
+              </div>
+
+              {/* Profit */}
+              <div className="p-3.5 bg-zinc-50 dark:bg-zinc-800/40 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                <span className="block text-[11px] text-zinc-400 font-bold mb-1">إجمالي الأرباح</span>
+                <div className="text-xs text-zinc-500 line-through mb-0.5" dir="ltr">
+                  {previousReport ? formatCurrency(previousReport.totalProfit, settings.currency, language) : '—'}
+                </div>
+                <div className="text-base font-black text-emerald-600 dark:text-emerald-400" dir="ltr">
+                  {formatCurrency(currentReport.totalProfit, settings.currency, language)}
+                </div>
+              </div>
+
+              {/* Expenses */}
+              <div className="p-3.5 bg-zinc-50 dark:bg-zinc-800/40 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                <span className="block text-[11px] text-zinc-400 font-bold mb-1">المصاريف التشغيلية</span>
+                <div className="text-xs text-zinc-500 line-through mb-0.5" dir="ltr">
+                  {previousReport ? formatCurrency(previousReport.totalExpenses, settings.currency, language) : '—'}
+                </div>
+                <div className="text-base font-black text-rose-600 dark:text-rose-400" dir="ltr">
+                  {formatCurrency(currentReport.totalExpenses, settings.currency, language)}
+                </div>
+              </div>
+
+              {/* Stock Value */}
+              <div className="p-3.5 bg-zinc-50 dark:bg-zinc-800/40 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                <span className="block text-[11px] text-zinc-400 font-bold mb-1">قيمة المخزون المتبقي</span>
+                <div className="text-xs text-zinc-500 line-through mb-0.5" dir="ltr">
+                  {previousReport ? formatCurrency(previousReport.totalRemainingValue, settings.currency, language) : '—'}
+                </div>
+                <div className="text-base font-black text-zinc-900 dark:text-white" dir="ltr">
+                  {formatCurrency(currentReport.totalRemainingValue, settings.currency, language)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TAB 1: FINANCIAL OVERVIEW */}
       {subTab === 'overview' && (

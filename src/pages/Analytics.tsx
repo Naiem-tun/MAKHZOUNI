@@ -6,7 +6,7 @@ import { db } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
 import { safeParseDate } from '../lib/utils';
 import { InventoryAnalytics } from '../components/inventory/InventoryAnalytics';
-import { Supplier, SupplierTransaction } from '../types';
+import { Supplier, SupplierTransaction, Debt } from '../types';
 
 export default function Analytics() {
   const { t } = useTranslation();
@@ -15,6 +15,7 @@ export default function Analytics() {
   const [inventoryReports, setInventoryReports] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [supplierTransactions, setSupplierTransactions] = useState<SupplierTransaction[]>([]);
+  const [debts, setDebts] = useState<Debt[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,6 +26,7 @@ export default function Analytics() {
     let unsubReports: any;
     let unsubSuppliers: any;
     let unsubSupplierTx: any;
+    let unsubDebts: any;
 
     try {
       // Products Listener
@@ -46,6 +48,12 @@ export default function Analytics() {
         setSuppliers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Supplier)));
       });
 
+      // Debts Listener: for customer credit analysis & market exposure
+      const debtsPath = `users/${uid}/debts`;
+      unsubDebts = onSnapshot(collection(db, debtsPath), (snap) => {
+        setDebts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Debt)));
+      });
+
       // Supplier Transactions Listener: identical source as Suppliers page
       const txPath = `users/${uid}/supplierTransactions`;
       unsubSupplierTx = onSnapshot(collection(db, txPath), (snap) => {
@@ -64,6 +72,7 @@ export default function Analytics() {
       if (unsubReports) unsubReports();
       if (unsubSuppliers) unsubSuppliers();
       if (unsubSupplierTx) unsubSupplierTx();
+      if (unsubDebts) unsubDebts();
     };
   }, [user]);
 
@@ -98,6 +107,7 @@ export default function Analytics() {
           products={products}
           purchases={supplierTransactions}
           suppliers={suppliers}
+          debts={debts}
           settings={settings}
         />
       </motion.div>
