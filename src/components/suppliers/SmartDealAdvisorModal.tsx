@@ -165,9 +165,8 @@ export function SmartDealAdvisorModal({
     // Safe remaining days
     const safetyDaysCovered = remainingCash > 0 ? (remainingCash / dailyNeed) : 0;
 
-    // Recommended maximum safe spending limit:
-    // Keep at least 4 to 5 days of essential cash cushion
-    const requiredCushion = roundMoney(dailyNeed * 4);
+    // Recommended maximum safe spending limit based on 3-day immediate safety cushion:
+    const requiredCushion = roundMoney(dailyNeed * 3);
     const maxSafeDealCost = Math.max(0, roundMoney(cash - requiredCushion));
 
     // Status evaluation
@@ -183,24 +182,24 @@ export function SmartDealAdvisorModal({
       badgeLabel = 'صفقة مستحيلة - عجز كاش';
       explanation = `تكلفة الصفقة (${formatMoney(cost)}) تتجاوز كامل الكاش المتوفر بيدك (${formatMoney(cash)}) بعجز قدره ${formatMoney(Math.abs(remainingCash))}.`;
       advice = 'لا يمكنك دخول هذه الصفقة نهائياً إلا إذا كان الشراء بالآجل أو تقليص الكمية لأقل من الكاش المتاح.';
-    } else if (safetyDaysCovered < 2.5) {
+    } else if (safetyDaysCovered < 3.0) {
       status = 'danger';
-      title = '🛑 لا! خطر عجز سيولة شديد';
+      title = '🛑 لا! خطر عجز سيولة في الـ 3 أيام القادمة';
       badgeLabel = 'خطر شديد - لا يُنصح بها';
-      explanation = `بعد دفع الصفقة، سيتبقى معك فقط ${formatMoney(remainingCash)}، وهو لا يكفي حتى لتغطية يومين من مشتريات الحليب والخبز الإلزامية (المتوسط اليومي: ${formatMoney(dailyNeed)}). ستعجز عن دفع مستحقات شاحنة الألبان أو الخبز!`;
-      advice = `الحد الأقصى الآمن الذي يمكنك شراؤه حالياً من هذه الصفقة هو: ${formatMoney(maxSafeDealCost)} حتى تحافظ على وسادة أمان تكفي سلعك اليومية.`;
+      explanation = `بعد دفع الصفقة، سيتبقى معك فقط ${formatMoney(remainingCash)}، وهو أقل من وسادة أمان الـ 3 أيام القادمة (${formatMoney(requiredCushion)}) لمشتريات الحليب والخبز الإلزامية (المتوسط اليومي: ${formatMoney(dailyNeed)}). ستعجز عن دفع مستحقات شاحنة الألبان أو الخبز!`;
+      advice = `الحد الأقصى الآمن الذي يمكنك شراؤه حالياً من هذه الصفقة هو: ${formatMoney(maxSafeDealCost)} حتى تحتفظ بكاش يغطي الـ 3 أيام القادمة براحة.`;
     } else if (safetyDaysCovered < 5.0) {
       status = 'caution';
       title = '⚠️ نعم مشروطة - مقبولة بحذر';
       badgeLabel = 'مقبولة بحذر - هامش ضيق';
-      explanation = `سيتبقى معك ${formatMoney(remainingCash)} بعد الصفقة، وهو يكفي لحوالي ${Math.round(safetyDaysCovered)} أيام فقط من مصاريف الحليب والخبز. إذا كانت مداخيل الصندوق اليومية ممتازة ومستمرة يمكنك إتمامها.`;
+      explanation = `سيتبقى معك ${formatMoney(remainingCash)} بعد الصفقة، وهو يغطي الـ 3 أيام القادمة بهامش ضيق (${Math.round(safetyDaysCovered * 10) / 10} أيام). إذا كانت مداخيل الصندوق اليومية ممتازة وتصريف البضاعة سريعاً يمكنك إتمامها.`;
       advice = `إذا كانت البضاعة سريعة الدوران فسارع ببيعها، أو اشترِ كمية أصغر بقيمة ${formatMoney(maxSafeDealCost)} لتكون في أمان تام.`;
     } else {
       status = 'safe';
       title = '🟢 نعم! صفقة آمنة وممتازة';
       badgeLabel = 'صفقة آمنة ومربحة';
-      explanation = `بعد دفع قيمة الصفقة (${formatMoney(cost)})، سيتبقى معك ${formatMoney(remainingCash)} كاش جاهز. هذا المبلغ يغطي مصاريف الحليب والخبز والأساسيات لأكثر من ${Math.round(safetyDaysCovered)} أيام براحة تامة!`;
-      advice = 'الوضع المالي ممتاز والسيولة المتبقية تحميك من أي ضغط؛ توكل على الله واغتنم التخفيض.';
+      explanation = `بعد دفع قيمة الصفقة (${formatMoney(cost)})، سيتبقى معك ${formatMoney(remainingCash)} كاش جاهز. هذا المبلغ يغطي الـ 3 أيام القادمة وأكثر براحة تامة (${Math.round(safetyDaysCovered * 10) / 10} أيام أمان)!`;
+      advice = 'الوضع المالي ممتاز والسيولة المتبقية تحميك تماماً؛ توكل على الله واغتنم التخفيض.';
     }
 
     return {
@@ -219,10 +218,11 @@ export function SmartDealAdvisorModal({
     };
   }, [dealCost, availableCash, recurringAnalysis, settings]);
 
-  // 3. Upcoming Visit Readiness for Today & Tomorrow
+  // 3. Upcoming Visit Readiness for Next 3 Days (Today, Tomorrow, Day after Tomorrow)
   const upcomingReadiness = useMemo(() => {
     const today = new Date().getDay();
     const tomorrow = (today + 1) % 7;
+    const afterTomorrow = (today + 2) % 7;
 
     const daysMap = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 
@@ -240,17 +240,24 @@ export function SmartDealAdvisorModal({
 
     const todayList = getSuppliersForDay(today);
     const tomorrowList = getSuppliersForDay(tomorrow);
+    const afterTomorrowList = getSuppliersForDay(afterTomorrow);
 
     const todayExpectedCash = roundMoney(todayList.reduce((sum, item) => sum + item.avgAmount, 0));
     const tomorrowExpectedCash = roundMoney(tomorrowList.reduce((sum, item) => sum + item.avgAmount, 0));
+    const afterTomorrowExpectedCash = roundMoney(afterTomorrowList.reduce((sum, item) => sum + item.avgAmount, 0));
+    const total3DaysExpectedCash = roundMoney(todayExpectedCash + tomorrowExpectedCash + afterTomorrowExpectedCash);
 
     return {
       todayName: daysMap[today],
       tomorrowName: daysMap[tomorrow],
+      afterTomorrowName: daysMap[afterTomorrow],
       todayList,
       tomorrowList,
+      afterTomorrowList,
       todayExpectedCash,
-      tomorrowExpectedCash
+      tomorrowExpectedCash,
+      afterTomorrowExpectedCash,
+      total3DaysExpectedCash
     };
   }, [suppliers, allTransactions, activeTransactions]);
 
@@ -336,7 +343,7 @@ export function SmartDealAdvisorModal({
               }`}
             >
               <Calendar size={14} />
-              <span>جاهزية الكاش غداً</span>
+              <span>رادار الـ 3 أيام القادمة</span>
             </button>
           </div>
 
@@ -485,6 +492,19 @@ export function SmartDealAdvisorModal({
                       {dealResult.explanation}
                     </p>
 
+                    {/* 3-day radar warning tie-in */}
+                    {upcomingReadiness.total3DaysExpectedCash > 0 && dealResult.remainingCash < upcomingReadiness.total3DaysExpectedCash && (
+                      <div className="mb-3 p-3 bg-amber-100/90 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800/70 rounded-xl flex items-start gap-2.5 text-xs text-amber-950 dark:text-amber-200">
+                        <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold block">⚠️ تحذير مباشر من رادار الـ 3 أيام:</span>
+                          <span className="leading-relaxed">
+                            شاحنات الموردين القادمة خلال الـ 3 أيام القادمة ستحتاج إلى حوالي <strong>{formatMoney(upcomingReadiness.total3DaysExpectedCash)}</strong>، بينما سيتبقى معك بعد هذه الصفقة <strong>{formatMoney(dealResult.remainingCash)}</strong> فقط! قد تواجه حرجاً في الدفع.
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Operational Advice */}
                     <div className="pt-3 border-t border-zinc-200/60 dark:border-zinc-700/60 flex items-start gap-2 text-xs">
                       <span className="font-bold text-zinc-900 dark:text-white shrink-0">توجيه الوكيل:</span>
@@ -574,19 +594,40 @@ export function SmartDealAdvisorModal({
               </div>
             )}
 
-            {/* TAB 3: CASH READINESS FOR TODAY & TOMORROW */}
+            {/* TAB 3: CASH READINESS FOR NEXT 3 DAYS */}
             {activeTab === 'readiness' && (
               <div className="space-y-4">
-                <div className="p-3 bg-zinc-50 dark:bg-zinc-800/40 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 text-xs text-zinc-600 dark:text-zinc-300">
-                  يعتمد هذا الجدول على <span className="font-bold text-zinc-900 dark:text-white">أيام زيارات الموردين المسجلة في التطبيق (Visit Days)</span> ومتوسط فواتيرهم السابقة؛ ليساعدك على حجز الكاش المطلوب في الدرج وتفادي الحرج.
+                {/* 3-day overview banner */}
+                <div className="p-4 bg-brand-50/70 dark:bg-brand-950/30 border border-brand-200/80 dark:border-brand-800/60 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <Calendar size={20} className="text-brand-600 dark:text-brand-400 shrink-0" />
+                    <div>
+                      <span className="text-xs font-black text-brand-950 dark:text-brand-200 block">
+                        إجمالي السيولة المطلوبة للموردين خلال الـ 3 أيام القادمة:
+                      </span>
+                      <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                        ({upcomingReadiness.todayName}، {upcomingReadiness.tomorrowName}، {upcomingReadiness.afterTomorrowName})
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-left">
+                    <span className="text-base sm:text-lg font-black text-brand-600 dark:text-brand-400 block">
+                      {formatMoney(upcomingReadiness.total3DaysExpectedCash)}
+                    </span>
+                    <span className="text-[10px] text-zinc-400">تقدير الكاش المطلوب</span>
+                  </div>
                 </div>
 
-                {/* Today */}
+                <div className="p-3 bg-zinc-50 dark:bg-zinc-800/40 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 text-xs text-zinc-600 dark:text-zinc-300">
+                  يعتمد هذا الجدول على <span className="font-bold text-zinc-900 dark:text-white">أيام زيارات الموردين المسجلة في التطبيق (Visit Days)</span> ومتوسط فواتيرهم؛ ليساعدك على حجز الكاش المطلوب في الدرج وتفادي الحرج.
+                </div>
+
+                {/* Day 1: Today */}
                 <div className="p-4 rounded-xl border border-brand-200 dark:border-brand-900/40 bg-brand-50/40 dark:bg-brand-950/20 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black text-brand-900 dark:text-brand-300 flex items-center gap-1.5">
                       <Calendar size={14} />
-                      زيارات اليوم ({upcomingReadiness.todayName})
+                      اليوم الأول: اليوم ({upcomingReadiness.todayName})
                     </span>
                     <span className="text-xs font-black text-brand-700 dark:text-brand-400 bg-white dark:bg-zinc-900 px-2.5 py-1 rounded-lg border border-brand-200 dark:border-brand-800">
                       كاش متوقع: {formatMoney(upcomingReadiness.todayExpectedCash)}
@@ -612,12 +653,12 @@ export function SmartDealAdvisorModal({
                   )}
                 </div>
 
-                {/* Tomorrow */}
+                {/* Day 2: Tomorrow */}
                 <div className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700/60 bg-zinc-50 dark:bg-zinc-800/30 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
                       <Calendar size={14} />
-                      زيارات الغد ({upcomingReadiness.tomorrowName})
+                      اليوم الثاني: غداً ({upcomingReadiness.tomorrowName})
                     </span>
                     <span className="text-xs font-black text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-900 px-2.5 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700">
                       كاش متوقع: {formatMoney(upcomingReadiness.tomorrowExpectedCash)}
@@ -640,6 +681,37 @@ export function SmartDealAdvisorModal({
                     </div>
                   ) : (
                     <p className="text-xs text-zinc-500 italic">لا توجد زيارات مجدولة ليوم الغد</p>
+                  )}
+                </div>
+
+                {/* Day 3: Day after tomorrow */}
+                <div className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700/60 bg-zinc-50 dark:bg-zinc-800/30 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                      <Calendar size={14} />
+                      اليوم الثالث: بعد غد ({upcomingReadiness.afterTomorrowName})
+                    </span>
+                    <span className="text-xs font-black text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-900 px-2.5 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                      كاش متوقع: {formatMoney(upcomingReadiness.afterTomorrowExpectedCash)}
+                    </span>
+                  </div>
+
+                  {upcomingReadiness.afterTomorrowList.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {upcomingReadiness.afterTomorrowList.map((item, idx) => (
+                        <div key={idx} className="p-2 bg-white dark:bg-zinc-900 rounded-lg flex items-center justify-between text-xs">
+                          <div>
+                            <span className="font-bold text-zinc-900 dark:text-white">{item.supplier.name}</span>
+                            <span className="text-[10px] text-zinc-400 mr-2">({item.supplier.typeOfGoods || 'بضاعة عامة'})</span>
+                          </div>
+                          <span className="font-black text-zinc-700 dark:text-zinc-300">
+                            {item.avgAmount > 0 ? `~${formatMoney(item.avgAmount)}` : 'حسب الفاتورة'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-zinc-500 italic">لا توجد زيارات مجدولة لبعد غد</p>
                   )}
                 </div>
               </div>
