@@ -278,24 +278,19 @@ export function SmartDealAdvisorModal({
           initial={{ opacity: 0, scale: 0.96, y: 15 }} 
           animate={{ opacity: 1, scale: 1, y: 0 }} 
           exit={{ opacity: 0, scale: 0.96, y: 15 }} 
-          className="relative w-full max-w-xl max-h-[92vh] flex flex-col bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-100 dark:border-zinc-800 overflow-hidden text-right"
+          className="relative w-full max-w-xl max-h-[92vh] flex flex-col bg-white dark:bg-zinc-900 rounded-lg shadow-2xl border border-zinc-100 dark:border-zinc-800 overflow-hidden text-right"
           dir="rtl"
         >
           {/* Header */}
-          <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800/80 bg-gradient-to-r from-brand-50/60 via-white to-amber-50/40 dark:from-zinc-900 dark:to-zinc-900 flex items-center justify-between">
+          <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/80 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center shadow-lg shadow-brand-500/25">
-                <BrainCircuit size={22} />
+              <div className="w-10 h-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
+                <BrainCircuit size={20} />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-base sm:text-lg font-black text-zinc-900 dark:text-white">
-                    مستشار الصفقات والسيولة الذكي
-                  </h2>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-                    AI التجاري
-                  </span>
-                </div>
+                <h2 className="text-base sm:text-lg font-black text-zinc-900 dark:text-white">
+                  مستشار الصفقات والسيولة
+                </h2>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
                   يتتبع نفقات الحليب والخبز الإلزامية ويحميك من أزمات السيولة عند الشراء
                 </p>
@@ -304,46 +299,46 @@ export function SmartDealAdvisorModal({
 
             <button 
               onClick={onClose}
-              className="p-2 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              className="h-10 w-10 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:text-zinc-900 dark:hover:text-white transition-colors"
             >
               <X size={20} />
             </button>
           </div>
 
           {/* Sub Navigation Tabs */}
-          <div className="grid grid-cols-3 border-b border-zinc-100 dark:border-zinc-800 text-xs font-bold bg-zinc-50 dark:bg-zinc-900/50 p-1 gap-1">
+          <div className="grid grid-cols-3 border-b border-zinc-100 dark:border-zinc-800 text-xs font-bold bg-zinc-50 dark:bg-zinc-900/50 p-1.5 gap-1.5">
             <button
               onClick={() => setActiveTab('deal')}
-              className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              className={`py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                 activeTab === 'deal'
-                  ? 'bg-white dark:bg-zinc-800 text-brand-600 dark:text-brand-400 shadow-sm'
+                  ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm'
                   : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'
               }`}
             >
               <Sparkles size={14} />
-              <span>فاحص الصفقات (نعم/لا)</span>
+              <span>فاحص الصفقات</span>
             </button>
             <button
               onClick={() => setActiveTab('commitments')}
-              className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              className={`py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                 activeTab === 'commitments'
-                  ? 'bg-white dark:bg-zinc-800 text-brand-600 dark:text-brand-400 shadow-sm'
+                  ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm'
                   : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'
               }`}
             >
               <ShieldCheck size={14} />
-              <span>مصاريفك الإلزامية الثابتة</span>
+              <span>المصاريف الإلزامية</span>
             </button>
             <button
               onClick={() => setActiveTab('readiness')}
-              className={`py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              className={`py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                 activeTab === 'readiness'
-                  ? 'bg-white dark:bg-zinc-800 text-brand-600 dark:text-brand-400 shadow-sm'
+                  ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm'
                   : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'
               }`}
             >
               <Calendar size={14} />
-              <span>رادار الـ 3 أيام القادمة</span>
+              <span>رادار الـ 3 أيام</span>
             </button>
           </div>
 
@@ -353,7 +348,7 @@ export function SmartDealAdvisorModal({
             {activeTab === 'deal' && (
               <div className="space-y-4">
                 {/* Context banner */}
-                <div className="p-3 bg-brand-50/70 dark:bg-brand-950/20 border border-brand-200/60 dark:border-brand-800/50 rounded-xl flex items-start gap-2.5 text-xs text-brand-900 dark:text-brand-200">
+                <div className="p-3 bg-brand-50/70 dark:bg-brand-950/20 border border-brand-200/60 dark:border-brand-800/50 rounded-lg flex items-start gap-2.5 text-xs text-brand-900 dark:text-brand-200">
                   <Info size={16} className="text-brand-600 dark:text-brand-400 shrink-0 mt-0.5" />
                   <p className="leading-relaxed">
                     عرض عليك مورد صفقة أو تخفيضاً؟ اكتب تكلفة الصفقة والمبلغ الموجود في يدك، ليحسب لك الوكيل هل ستتبقى سيولة كافية لشاحنات الحليب والخبز القادمة أم لا!
@@ -361,7 +356,7 @@ export function SmartDealAdvisorModal({
                 </div>
 
                 {/* Inputs Box */}
-                <div className="bg-zinc-50 dark:bg-zinc-800/40 p-4 rounded-xl border border-zinc-200/70 dark:border-zinc-700/60 space-y-3">
+                <div className="bg-zinc-50 dark:bg-zinc-800/40 p-4 rounded-lg border border-zinc-200/70 dark:border-zinc-700/60 space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
@@ -426,7 +421,7 @@ export function SmartDealAdvisorModal({
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`p-4 sm:p-5 rounded-2xl border transition-all ${
+                    className={`p-4 sm:p-5 rounded-lg border transition-all ${
                       dealResult.status === 'safe'
                         ? 'bg-emerald-50/80 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60'
                         : dealResult.status === 'caution'
@@ -454,7 +449,7 @@ export function SmartDealAdvisorModal({
                           {dealResult.title}
                         </h3>
                       </div>
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-black ${
+                      <span className={`px-2.5 py-1 rounded-lg text-xs font-black ${
                         dealResult.status === 'safe'
                           ? 'bg-emerald-200/80 text-emerald-900 dark:bg-emerald-900/60 dark:text-emerald-200'
                           : dealResult.status === 'caution'
@@ -467,19 +462,19 @@ export function SmartDealAdvisorModal({
 
                     {/* Metric strip */}
                     <div className="grid grid-cols-3 gap-2 my-3 text-center">
-                      <div className="p-2 bg-white/70 dark:bg-zinc-900/70 rounded-xl">
+                      <div className="p-2 bg-white/70 dark:bg-zinc-900/70 rounded-lg">
                         <span className="block text-[10px] text-zinc-500 dark:text-zinc-400 font-bold">الكاش المتبقي</span>
                         <span className={`text-sm font-black ${dealResult.remainingCash >= 0 ? 'text-zinc-900 dark:text-white' : 'text-rose-600'}`}>
                           {formatMoney(dealResult.remainingCash)}
                         </span>
                       </div>
-                      <div className="p-2 bg-white/70 dark:bg-zinc-900/70 rounded-xl">
+                      <div className="p-2 bg-white/70 dark:bg-zinc-900/70 rounded-lg">
                         <span className="block text-[10px] text-zinc-500 dark:text-zinc-400 font-bold">تغطية مصاريف الأساسيات</span>
                         <span className="text-sm font-black text-brand-600 dark:text-brand-400">
                           {dealResult.safetyDaysCovered > 0 ? `~${dealResult.safetyDaysCovered} أيام` : 'صفر أيام'}
                         </span>
                       </div>
-                      <div className="p-2 bg-white/70 dark:bg-zinc-900/70 rounded-xl">
+                      <div className="p-2 bg-white/70 dark:bg-zinc-900/70 rounded-lg">
                         <span className="block text-[10px] text-zinc-500 dark:text-zinc-400 font-bold">وسادة الأمان المطلوبة</span>
                         <span className="text-sm font-black text-zinc-700 dark:text-zinc-300">
                           {formatMoney(dealResult.requiredCushion)}
@@ -494,7 +489,7 @@ export function SmartDealAdvisorModal({
 
                     {/* 3-day radar warning tie-in */}
                     {upcomingReadiness.total3DaysExpectedCash > 0 && dealResult.remainingCash < upcomingReadiness.total3DaysExpectedCash && (
-                      <div className="mb-3 p-3 bg-amber-100/90 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800/70 rounded-xl flex items-start gap-2.5 text-xs text-amber-950 dark:text-amber-200">
+                      <div className="mb-3 p-3 bg-amber-100/90 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800/70 rounded-lg flex items-start gap-2.5 text-xs text-amber-950 dark:text-amber-200">
                         <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                         <div>
                           <span className="font-bold block">⚠️ تحذير مباشر من رادار الـ 3 أيام:</span>
@@ -512,7 +507,7 @@ export function SmartDealAdvisorModal({
                     </div>
                   </motion.div>
                 ) : (
-                  <div className="text-center py-8 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl p-6">
+                  <div className="text-center py-8 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-lg p-6">
                     <Coins size={32} className="mx-auto text-zinc-300 dark:text-zinc-600 mb-2" />
                     <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400">
                       أدخل تكلفة الصفقة والكاش المتوفر بيدك للحصول على تقييم فوري بالذكاء التجاري
@@ -525,7 +520,7 @@ export function SmartDealAdvisorModal({
             {/* TAB 2: FIXED COMMITMENTS */}
             {activeTab === 'commitments' && (
               <div className="space-y-4">
-                <div className="p-3 bg-brand-50/70 dark:bg-brand-950/20 border border-brand-200/60 dark:border-brand-800/50 rounded-xl text-xs text-brand-900 dark:text-brand-200 flex items-start gap-2">
+                <div className="p-3 bg-brand-50/70 dark:bg-brand-950/20 border border-brand-200/60 dark:border-brand-800/50 rounded-lg text-xs text-brand-900 dark:text-brand-200 flex items-start gap-2">
                   <ShieldCheck size={18} className="text-brand-600 dark:text-brand-400 shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold block">مفهوم «وسادة الأمان النقدي الإلزامية»:</span>
@@ -537,7 +532,7 @@ export function SmartDealAdvisorModal({
 
                 {/* Summary cards */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-4 bg-zinc-50 dark:bg-zinc-800/40 rounded-xl border border-zinc-200/80 dark:border-zinc-700/60 text-center">
+                  <div className="p-4 bg-zinc-50 dark:bg-zinc-800/40 rounded-lg border border-zinc-200/80 dark:border-zinc-700/60 text-center">
                     <span className="block text-xs font-bold text-zinc-500 dark:text-zinc-400">
                       متوسط المصروف الأسبوعي الثابت
                     </span>
@@ -547,7 +542,7 @@ export function SmartDealAdvisorModal({
                     <span className="text-[10px] text-zinc-400 mt-0.5 block">تقريباً كل 7 أيام</span>
                   </div>
 
-                  <div className="p-4 bg-zinc-50 dark:bg-zinc-800/40 rounded-xl border border-zinc-200/80 dark:border-zinc-700/60 text-center">
+                  <div className="p-4 bg-zinc-50 dark:bg-zinc-800/40 rounded-lg border border-zinc-200/80 dark:border-zinc-700/60 text-center">
                     <span className="block text-xs font-bold text-zinc-500 dark:text-zinc-400">
                       المعدل اليومي للسلع الأساسية
                     </span>
@@ -565,7 +560,7 @@ export function SmartDealAdvisorModal({
                   </h4>
                   {recurringAnalysis.breakdownByCategory.length > 0 ? (
                     recurringAnalysis.breakdownByCategory.map((cat, idx) => (
-                      <div key={idx} className="p-3 bg-white dark:bg-zinc-800/50 border border-zinc-200/70 dark:border-zinc-700/60 rounded-xl flex items-center justify-between">
+                      <div key={idx} className="p-3 bg-white dark:bg-zinc-800/50 border border-zinc-200/70 dark:border-zinc-700/60 rounded-lg flex items-center justify-between">
                         <div className="flex items-center gap-2.5">
                           <span className="text-xl">{cat.icon}</span>
                           <div>
@@ -586,7 +581,7 @@ export function SmartDealAdvisorModal({
                       </div>
                     ))
                   ) : (
-                    <div className="p-4 text-center text-xs text-zinc-500 bg-zinc-50 dark:bg-zinc-800/30 rounded-xl">
+                    <div className="p-4 text-center text-xs text-zinc-500 bg-zinc-50 dark:bg-zinc-800/30 rounded-lg">
                       سيتم توزيع الأصناف تلقائياً مع تسجيل أولى فواتير الموردين أو رفع دورة سابقة
                     </div>
                   )}
@@ -598,7 +593,7 @@ export function SmartDealAdvisorModal({
             {activeTab === 'readiness' && (
               <div className="space-y-4">
                 {/* 3-day overview banner */}
-                <div className="p-4 bg-brand-50/70 dark:bg-brand-950/30 border border-brand-200/80 dark:border-brand-800/60 rounded-xl flex items-center justify-between">
+                <div className="p-4 bg-brand-50/70 dark:bg-brand-950/30 border border-brand-200/80 dark:border-brand-800/60 rounded-lg flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
                     <Calendar size={20} className="text-brand-600 dark:text-brand-400 shrink-0" />
                     <div>
@@ -618,12 +613,12 @@ export function SmartDealAdvisorModal({
                   </div>
                 </div>
 
-                <div className="p-3 bg-zinc-50 dark:bg-zinc-800/40 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 text-xs text-zinc-600 dark:text-zinc-300">
+                <div className="p-3 bg-zinc-50 dark:bg-zinc-800/40 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 text-xs text-zinc-600 dark:text-zinc-300">
                   يعتمد هذا الجدول على <span className="font-bold text-zinc-900 dark:text-white">أيام زيارات الموردين المسجلة في التطبيق (Visit Days)</span> ومتوسط فواتيرهم؛ ليساعدك على حجز الكاش المطلوب في الدرج وتفادي الحرج.
                 </div>
 
                 {/* Day 1: Today */}
-                <div className="p-4 rounded-xl border border-brand-200 dark:border-brand-900/40 bg-brand-50/40 dark:bg-brand-950/20 space-y-3">
+                <div className="p-4 rounded-lg border border-brand-200 dark:border-brand-900/40 bg-brand-50/40 dark:bg-brand-950/20 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black text-brand-900 dark:text-brand-300 flex items-center gap-1.5">
                       <Calendar size={14} />
@@ -654,7 +649,7 @@ export function SmartDealAdvisorModal({
                 </div>
 
                 {/* Day 2: Tomorrow */}
-                <div className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700/60 bg-zinc-50 dark:bg-zinc-800/30 space-y-3">
+                <div className="p-4 rounded-lg border border-zinc-200 dark:border-zinc-700/60 bg-zinc-50 dark:bg-zinc-800/30 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
                       <Calendar size={14} />
@@ -685,7 +680,7 @@ export function SmartDealAdvisorModal({
                 </div>
 
                 {/* Day 3: Day after tomorrow */}
-                <div className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-700/60 bg-zinc-50 dark:bg-zinc-800/30 space-y-3">
+                <div className="p-4 rounded-lg border border-zinc-200 dark:border-zinc-700/60 bg-zinc-50 dark:bg-zinc-800/30 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-black text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
                       <Calendar size={14} />
@@ -726,7 +721,7 @@ export function SmartDealAdvisorModal({
             </span>
             <button
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 text-xs font-bold active:scale-95 transition-transform"
+              className="px-5 py-2.5 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 text-xs font-bold active:scale-95 transition-transform"
             >
               إغلاق
             </button>

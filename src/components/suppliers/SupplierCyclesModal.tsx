@@ -98,7 +98,7 @@ export function SupplierCyclesModal({
           initial={{ opacity: 0, scale: 0.96, y: 15 }} 
           animate={{ opacity: 1, scale: 1, y: 0 }} 
           exit={{ opacity: 0, scale: 0.96, y: 15 }} 
-          className="relative w-full max-w-2xl max-h-[90vh] flex flex-col bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-100 dark:border-zinc-800 overflow-hidden text-right"
+          className="relative w-full max-w-2xl max-h-[90vh] flex flex-col bg-white dark:bg-zinc-900 rounded-lg shadow-2xl border border-zinc-100 dark:border-zinc-800 overflow-hidden text-right"
           dir="rtl"
         >
           {/* Hidden File Input for Excel Import */}
@@ -113,7 +113,7 @@ export function SupplierCyclesModal({
           {/* Header */}
           <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/80 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-lg shadow-amber-500/20">
+              <div className="w-10 h-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
                 <Archive size={20} />
               </div>
               <div>
@@ -128,7 +128,7 @@ export function SupplierCyclesModal({
 
             <button 
               onClick={onClose}
-              className="p-2 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              className="h-10 w-10 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:text-zinc-900 dark:hover:text-white transition-colors"
             >
               <X size={20} />
             </button>
@@ -140,7 +140,7 @@ export function SupplierCyclesModal({
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isImporting}
-                className="px-3 py-2 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-brand-600 dark:text-brand-400 flex items-center gap-1.5 shadow-sm active:scale-95 transition-all disabled:opacity-50"
+                className="px-3 py-2 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5 shadow-sm active:scale-95 transition-all disabled:opacity-50"
               >
                 <Upload size={14} />
                 <span>{isImporting ? 'جاري الاستيراد...' : 'استيراد دورة من ملف Excel على الهاتف'}</span>
@@ -153,7 +153,7 @@ export function SupplierCyclesModal({
                   onClose();
                   onArchiveCurrentCycle();
                 }}
-                className="px-3 py-2 rounded-xl bg-amber-500 text-white text-xs font-black flex items-center gap-1.5 shadow-sm hover:bg-amber-600 active:scale-95 transition-all"
+                className="px-3 py-2 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
               >
                 <Archive size={14} />
                 <span>أرشفة الدورة الحالية الآن ({currentCycleCount} معاملة)</span>
@@ -313,7 +313,7 @@ export function SupplierCyclesModal({
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="relative bg-white dark:bg-zinc-900 p-6 rounded-2xl max-w-xs w-full text-center shadow-xl border border-zinc-200 dark:border-zinc-800"
+                  className="relative bg-white dark:bg-zinc-900 p-6 rounded-lg max-w-xs w-full text-center shadow-xl border border-zinc-200 dark:border-zinc-800"
                 >
                   <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-5">
                     هل أنت متأكد من حذف هذه الدورة من الأرشيف نهائياً؟
@@ -325,13 +325,13 @@ export function SupplierCyclesModal({
                         setDeleteConfirmId(null);
                         if (id) await onDeleteCycle(id);
                       }}
-                      className="flex-1 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold shadow-lg shadow-rose-600/20"
+                      className="flex-1 py-2 rounded-lg bg-rose-600 text-white text-xs font-bold shadow-lg shadow-rose-600/20"
                     >
                       حذف
                     </button>
                     <button
                       onClick={() => setDeleteConfirmId(null)}
-                      className="flex-1 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs font-bold"
+                      className="flex-1 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs font-bold"
                     >
                       إلغاء
                     </button>
@@ -348,7 +348,7 @@ export function SupplierCyclesModal({
             </span>
             <button
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 text-xs font-bold active:scale-95 transition-transform"
+              className="px-5 py-2.5 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 text-xs font-bold active:scale-95 transition-transform"
             >
               إغلاق
             </button>

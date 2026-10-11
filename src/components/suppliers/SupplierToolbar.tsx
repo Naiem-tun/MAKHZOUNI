@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Printer, FileSpreadsheet, Activity, Trash2, ListChecks, BrainCircuit, Archive, Sparkles } from 'lucide-react';
+import { FileText, Printer, FileSpreadsheet, Activity, ListChecks, Archive } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface SupplierToolbarProps {
@@ -36,29 +36,28 @@ export function SupplierToolbar({
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
       <div className="flex items-center gap-1.5 sm:gap-2">
-        {/* Deal & Procurement Advisor Button */}
+        {/* Deal & Procurement Advisor Button - Neutral, no colors or logos, just 'مستشار' */}
         {setIsAdvisorOpen && (
           <button
             onClick={() => setIsAdvisorOpen(true)}
-            className="h-10 px-3 flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-lg shadow-sm shadow-amber-500/20 active:scale-95 transition-all text-xs sm:text-sm font-black"
-            title="مستشار الصفقات والسيولة الذكي"
+            className="h-10 px-3.5 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg shadow-sm active:scale-95 transition-all text-xs sm:text-sm font-bold"
+            title="مستشار"
           >
-            <BrainCircuit size={17} />
-            <span>مستشار الصفقات 🧠</span>
+            <span>مستشار</span>
           </button>
         )}
 
-        {/* Cycles Archive Button */}
+        {/* Unified Cycles Archive Button */}
         {setIsCyclesModalOpen && (
           <button
             onClick={() => setIsCyclesModalOpen(true)}
             className="h-10 px-2.5 sm:px-3 flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg shadow-sm active:scale-95 transition-all text-xs sm:text-sm font-bold"
-            title="أرشيف الدورات السابقة"
+            title="الأرشيف"
           >
-            <Archive size={16} className="text-amber-500" />
-            <span className="hidden sm:inline">أرشيف الدورات</span>
+            <Archive size={16} className="text-zinc-500" />
+            <span className="hidden sm:inline">الأرشيف</span>
             {archivedCyclesCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300 font-black">
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 font-bold">
                 {archivedCyclesCount}
               </span>
             )}
@@ -121,15 +120,6 @@ export function SupplierToolbar({
         >
           <ListChecks size={17} />
           <span className="hidden sm:inline">المتابعة</span>
-        </button>
-        
-        <button 
-          onClick={() => setIsClearAllConfirmOpen(true)}
-          className="h-10 px-2.5 sm:px-3 flex items-center gap-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm hover:text-amber-600 dark:hover:text-amber-400 text-zinc-500 active:scale-95 transition-all text-xs sm:text-sm font-bold"
-          title="أرشفة الدورة أو مسحها"
-        >
-          <Archive size={17} className="text-amber-500" />
-          <span className="hidden sm:inline">إغلاق الدورة</span>
         </button>
       </div>
     </div>

@@ -131,12 +131,12 @@ export function SupplierConfirmModals({
               initial={{ opacity: 0, scale: 0.95, y: 10 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.95, y: 10 }} 
-              className="relative w-full max-w-sm rounded-2xl bg-white p-6 dark:bg-zinc-900 text-right shadow-2xl border border-zinc-100 dark:border-zinc-800"
+              className="relative w-full max-w-sm rounded-lg bg-white p-6 dark:bg-zinc-900 text-right shadow-2xl border border-zinc-100 dark:border-zinc-800"
               dir="rtl"
             >
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                  <Archive size={22} />
+                <div className="w-10 h-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center">
+                  <Archive size={20} />
                 </div>
                 <div>
                   <h3 className="text-sm font-black text-zinc-900 dark:text-white">
@@ -158,12 +158,12 @@ export function SupplierConfirmModals({
                   <button 
                     onClick={handleArchiveCycle}
                     disabled={isSaving || txCount === 0}
-                    className="w-full p-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-black text-xs shadow-lg shadow-amber-500/20 transition-all active:scale-95 disabled:opacity-50 text-right flex items-start gap-3"
+                    className="w-full p-3.5 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 font-bold text-xs shadow-md transition-all active:scale-95 disabled:opacity-50 text-right flex items-start gap-3"
                   >
                     <Archive size={18} className="shrink-0 mt-0.5" />
                     <div>
                       <span className="block font-black">أرشفة الدورة وتصفير الشاشة (موصى به)</span>
-                      <span className="block text-[10px] font-normal opacity-90 mt-0.5">
+                      <span className="block text-[10px] font-normal opacity-80 mt-0.5">
                         ينزل التقرير على هاتفك، يفرغ الشاشة لدورة نظيفة جديدة، ويحفظ البيانات لذاكرة الوكيل الذكي.
                       </span>
                     </div>
@@ -174,7 +174,7 @@ export function SupplierConfirmModals({
                 <button 
                   onClick={handleClearAllTransactions}
                   disabled={isSaving}
-                  className="w-full p-3 rounded-xl border border-rose-200 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-400 font-bold text-xs transition-all active:scale-95 text-right flex items-center gap-2.5"
+                  className="w-full p-3 rounded-lg border border-rose-200 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-400 font-bold text-xs transition-all active:scale-95 text-right flex items-center gap-2.5"
                 >
                   <Trash2 size={16} className="shrink-0" />
                   <span>حذف نهائي بدون أرشفة (مسح تام)</span>
@@ -183,7 +183,7 @@ export function SupplierConfirmModals({
                 {/* Cancel */}
                 <button 
                   onClick={() => setIsClearAllConfirmOpen(false)}
-                  className="w-full py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-xs font-bold active:scale-95 transition-all text-center"
+                  className="w-full py-2.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-xs font-bold active:scale-95 transition-all text-center"
                 >
                   إلغاء والتراجع
                 </button>
