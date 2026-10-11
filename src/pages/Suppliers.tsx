@@ -111,9 +111,30 @@ export default function Suppliers() {
         : new Date());
   const trackingEndDate = new Date();
 
-  // Active transactions for current open cycle (non-archived and on or after trackingStartDate)
+  // Active transactions for current open cycle
   const activeTransactions = React.useMemo(() => {
-    return transactions.filter(t => !t.archived && safeParseDate(t.date).getTime() >= trackingStartDate.getTime());
+    return transactions.filter(t => {
+      // 1. If explicitly marked as archived, it belongs to an archived cycle
+      if (t.archived === true) return false;
+
+      // 2. If explicitly marked as not archived, it belongs to the active cycle
+      if (t.archived === false) return true;
+
+      // 3. For legacy records without boolean `archived` field:
+      const txTime = safeParseDate(t.date).getTime();
+      const updatedTime = t.updatedAt ? safeParseDate(t.updatedAt).getTime() : 0;
+      const createdTime = t.createdAt ? safeParseDate(t.createdAt).getTime() : 0;
+
+      // If created/updated on or after trackingStartDate:
+      if (updatedTime >= trackingStartDate.getTime() || createdTime >= trackingStartDate.getTime()) {
+        return true;
+      }
+
+      // Or compare normalized day
+      const startOfDayTracking = new Date(trackingStartDate);
+      startOfDayTracking.setHours(0, 0, 0, 0);
+      return txTime >= startOfDayTracking.getTime();
+    });
   }, [transactions, trackingStartDate]);
 
   const suppliersWithTotals = suppliers.map(s => {
@@ -318,8 +339,9 @@ export default function Suppliers() {
 
       const cycleRef = await addDoc(collection(db, `users/${user.uid}/supplierCycles`), cycleData);
 
-      // Mark active transactions as archived
-      const updatePromises = activeTransactions.map(t => {
+      // Mark all current unarchived transactions as archived
+      const transactionsToArchive = transactions.filter(t => !t.archived);
+      const updatePromises = transactionsToArchive.map(t => {
         if (!t.id) return Promise.resolve();
         return updateDoc(doc(db, `users/${user.uid}/supplierTransactions`, t.id), {
           archived: true,
@@ -467,14 +489,31 @@ export default function Suppliers() {
     const formData = new FormData(e.currentTarget);
     const amount = roundMoney(parseFloat(formData.get('amount') as string) || 0);
     const dateInput = formData.get('date') as string;
-    const date = dateInput ? new Date(dateInput) : new Date();
+    
+    let finalDate: Date;
+    if (dateInput) {
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      if (dateInput === todayStr) {
+        // Today - preserve exact current timestamp so it is strictly after any archive timestamp
+        finalDate = new Date();
+      } else {
+        // Past or future date - noon local time
+        const parts = dateInput.split('-').map(Number);
+        finalDate = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
+      }
+    } else {
+      finalDate = new Date();
+    }
     
     const data = {
       supplierId: selectedSupplier.id,
       amount,
-      date: Timestamp.fromDate(date),
-      note: formData.get('note') as string,
+      date: Timestamp.fromDate(finalDate),
+      note: ((formData.get('note') as string) || '').trim(),
+      archived: false,
       updatedAt: serverTimestamp(),
+      createdAt: serverTimestamp(),
     };
 
     setIsAddTxModalOpen(false);
@@ -755,6 +794,7 @@ export default function Suppliers() {
         setIsHistoryModalOpen={setIsHistoryModalOpen}
         selectedSupplier={selectedSupplier}
         transactions={transactions}
+        activeTransactions={activeTransactions}
         settings={settings}
         setDeleteTxConfirmId={setDeleteTxConfirmId}
       />

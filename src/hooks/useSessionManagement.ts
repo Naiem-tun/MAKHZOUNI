@@ -140,7 +140,9 @@ export function useSessionManagement(
           amount: amount,
           date: saveTimestamp,
           note: t('session_purchases_total') || 'إجمالي مشتريات الجلسة',
+          archived: false,
           updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
         }).then(docRef => {
           // Do nothing
         })).catch(err => {
