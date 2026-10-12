@@ -114,6 +114,7 @@ export interface SupplierTransaction {
   cycleName?: string;
   archived?: boolean;
   archivedAt?: any;
+  createdAt?: any;
   updatedAt: any;
 }
 

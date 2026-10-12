@@ -6,7 +6,7 @@ import {
   Calendar, Layers, Clock, TrendingUp, User
 } from 'lucide-react';
 import { Supplier, SupplierTransaction } from '../../types';
-import { formatCurrency, formatAppDate, roundMoney } from '../../lib/utils';
+import { formatCurrency, formatAppDate, roundMoney, safeParseDate } from '../../lib/utils';
 import * as xlsx from 'xlsx';
 
 interface SupplierActiveCycleDetailsModalProps {
@@ -107,6 +107,57 @@ export function SupplierActiveCycleDetailsModal({
       return timeB - timeA;
     });
   }, [activeTransactions, supplierMap, searchTerm]);
+
+  // Group filtered transactions chronologically by day
+  const groupedTransactions = useMemo(() => {
+    const map = new Map<string, { dateLabel: string; dayTotal: number; txs: SupplierTransaction[] }>();
+
+    filteredTransactions.forEach(tx => {
+      const parsedDate = safeParseDate(tx.date || tx.updatedAt);
+      const isMissingDate = parsedDate.getTime() === 0;
+      const dateKey = isMissingDate ? 'unknown' : `${parsedDate.getFullYear()}-${String(parsedDate.getMonth() + 1).padStart(2, '0')}-${String(parsedDate.getDate()).padStart(2, '0')}`;
+      
+      let dateLabel = 'تاريخ غير محدد';
+      if (!isMissingDate) {
+        const today = new Date();
+        const yesterday = new Date();
+        yesterday.setDate(today.getDate() - 1);
+
+        const isToday = parsedDate.toDateString() === today.toDateString();
+        const isYesterday = parsedDate.toDateString() === yesterday.toDateString();
+
+        const formattedDate = formatAppDate(parsedDate, settings.language || 'ar', t, {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        });
+
+        if (isToday) {
+          dateLabel = `اليوم (${formattedDate})`;
+        } else if (isYesterday) {
+          dateLabel = `أمس (${formattedDate})`;
+        } else {
+          dateLabel = formattedDate;
+        }
+      }
+
+      if (!map.has(dateKey)) {
+        map.set(dateKey, { dateLabel, dayTotal: 0, txs: [] });
+      }
+
+      const grp = map.get(dateKey)!;
+      grp.dayTotal += (tx.amount || 0);
+      grp.txs.push(tx);
+    });
+
+    return Array.from(map.entries()).map(([key, val]) => ({
+      dateKey: key,
+      dateLabel: val.dateLabel,
+      dayTotal: val.dayTotal,
+      txs: val.txs
+    }));
+  }, [filteredTransactions, settings.language, t]);
 
   const activeSuppliersCount = supplierBreakdown.length;
   const avgTransaction = activeTransactions.length > 0 ? (grandTotal / activeTransactions.length) : 0;
@@ -328,36 +379,69 @@ export function SupplierActiveCycleDetailsModal({
                 })}
               </div>
             ) : (
-              /* Full Transactions List */
-              <div className="divide-y divide-zinc-100 dark:divide-zinc-800 border border-zinc-200/80 dark:border-zinc-800 rounded-lg overflow-hidden bg-white dark:bg-zinc-900">
-                {filteredTransactions.map((tx, idx) => {
-                  const s = tx.supplierId ? supplierMap.get(tx.supplierId) : null;
-                  return (
-                    <div key={tx.id || idx} className="p-3 flex items-center justify-between gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors">
-                      <div className="min-w-0">
-                        <span className="font-bold text-xs text-zinc-900 dark:text-white block truncate">
-                          {s?.name || 'مورد غير محدد'}
+              /* Full Transactions List Organized By Day */
+              <div className="space-y-3">
+                {groupedTransactions.map((group) => (
+                  <div 
+                    key={group.dateKey} 
+                    className="border border-zinc-200/80 dark:border-zinc-800 rounded-lg overflow-hidden bg-white dark:bg-zinc-900 shadow-sm"
+                  >
+                    {/* Date Header */}
+                    <div className="px-3.5 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5 font-black text-zinc-800 dark:text-zinc-200">
+                        <Calendar size={13} className="text-brand-500" />
+                        <span>{group.dateLabel}</span>
+                        <span className="text-[10px] font-bold text-zinc-400 bg-zinc-200/60 dark:bg-zinc-700/60 px-1.5 py-0.2 rounded mr-1">
+                          {group.txs.length}
                         </span>
-                        <div className="flex items-center gap-2 text-[10px] text-zinc-400 mt-0.5">
-                          <span className="flex items-center gap-1">
-                            <Clock size={10} />
-                            {formatAppDate(tx.date || tx.updatedAt)}
-                          </span>
-                          {tx.note && (
-                            <>
-                              <span>•</span>
-                              <span className="truncate max-w-[160px] text-zinc-500">{tx.note}</span>
-                            </>
-                          )}
-                        </div>
                       </div>
-
-                      <div className="text-left shrink-0 font-black text-xs text-zinc-900 dark:text-white" dir="ltr">
-                        {formatMoney(tx.amount || 0)}
+                      <div className="font-black text-brand-600 dark:text-brand-400" dir="ltr">
+                        {formatMoney(group.dayTotal)}
                       </div>
                     </div>
-                  );
-                })}
+
+                    {/* Transactions for this day */}
+                    <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                      {group.txs.map((tx, idx) => {
+                        const s = tx.supplierId ? supplierMap.get(tx.supplierId) : null;
+                        const parsedDate = safeParseDate(tx.date || tx.updatedAt);
+                        const timeStr = parsedDate.getTime() > 0 
+                          ? parsedDate.toLocaleTimeString(settings.language === 'ar' ? 'ar-TN' : 'en-US', { hour: '2-digit', minute: '2-digit' })
+                          : '';
+
+                        return (
+                          <div key={tx.id || idx} className="p-3 flex items-center justify-between gap-3 hover:bg-zinc-50/60 dark:hover:bg-zinc-800/40 transition-colors">
+                            <div className="min-w-0">
+                              <span className="font-bold text-xs text-zinc-900 dark:text-white block truncate">
+                                {s?.name || 'مورد غير محدد'}
+                              </span>
+                              <div className="flex items-center gap-2 text-[10px] text-zinc-400 mt-0.5">
+                                {timeStr && (
+                                  <span className="flex items-center gap-1 font-mono text-zinc-500 dark:text-zinc-400">
+                                    <Clock size={10} />
+                                    {timeStr}
+                                  </span>
+                                )}
+                                {tx.note && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="truncate max-w-[180px] text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
+                                      {tx.note}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="text-left shrink-0 font-black text-xs text-zinc-900 dark:text-white" dir="ltr">
+                              {formatMoney(tx.amount || 0)}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

@@ -5,7 +5,7 @@ import { SupplierTransaction } from '../../types';
 import * as html2pdf from 'html2pdf.js';
 import { X, ExternalLink, Loader2 } from 'lucide-react';
 import { useAppContext } from '../../AppContext';
-import { collection, query, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
 interface PrintSupplierTxModalProps {
@@ -27,11 +27,19 @@ export function PrintSupplierTxModal({
 }: PrintSupplierTxModalProps) {
   const { t } = useTranslation();
   const { user, settings, showToast } = useAppContext();
-  const [sourceScope, setSourceScope] = useState<'active_cycle' | 'all_history'>('active_cycle');
+  const [sourceScope, setSourceScope] = useState<'active_cycle' | 'archived_cycle' | 'all_history'>('active_cycle');
+  const [selectedCycleId, setSelectedCycleId] = useState<string>(archivedCycles[0]?.id || '');
   const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'all' | 'custom'>('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [isPrinting, setIsPrinting] = useState(false);
+
+  // Sync selectedCycleId if archivedCycles changes
+  React.useEffect(() => {
+    if (!selectedCycleId && archivedCycles.length > 0) {
+      setSelectedCycleId(archivedCycles[0].id || '');
+    }
+  }, [archivedCycles, selectedCycleId]);
 
   if (!isOpen) return null;
 
@@ -42,10 +50,41 @@ export function PrintSupplierTxModal({
       showToast('جاري تحضير التقرير...', 'info');
 
       let allTx: SupplierTransaction[] = [];
+      const selectedArchivedCycle = archivedCycles.find(c => c.id === selectedCycleId);
 
       if (sourceScope === 'active_cycle') {
         // Use active transactions only
         allTx = [...activeTransactions];
+      } else if (sourceScope === 'archived_cycle') {
+        // Fetch transactions for the specific archived cycle
+        if (selectedCycleId) {
+          const txQuery = query(
+            collection(db, `users/${user.uid}/supplierTransactions`),
+            where('cycleId', '==', selectedCycleId)
+          );
+          const snap = await getDocs(txQuery);
+          allTx = snap.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              supplierId: data.supplierId,
+              amount: data.amount || 0,
+              date: data.date,
+              note: data.note || ''
+            } as SupplierTransaction;
+          });
+        }
+
+        // If cycle was imported or has no separate transaction documents, reconstruct from breakdown
+        if (allTx.length === 0 && selectedArchivedCycle?.supplierBreakdown) {
+          allTx = selectedArchivedCycle.supplierBreakdown.map(item => ({
+            id: item.supplierId || Math.random().toString(),
+            supplierId: item.supplierId,
+            amount: item.amount,
+            date: selectedArchivedCycle.createdAt || selectedArchivedCycle.endDate,
+            note: item.typeOfGoods || 'بضاعة'
+          } as SupplierTransaction));
+        }
       } else {
         // Fetch all supplier transactions directly from Firestore (including archived)
         const txQuery = query(collection(db, `users/${user.uid}/supplierTransactions`), orderBy('date', 'desc'));
@@ -126,7 +165,11 @@ export function PrintSupplierTxModal({
 
       const totalAmount = filteredTx.reduce((acc, t) => acc + (t.amount || 0), 0);
 
-      const scopeTitle = sourceScope === 'active_cycle' ? 'الدورة الحالية النشطة' : 'السجل الكامل (شامل المؤرشف)';
+      const scopeTitle = sourceScope === 'active_cycle' 
+        ? 'الدورة الحالية النشطة' 
+        : sourceScope === 'archived_cycle'
+          ? (selectedArchivedCycle?.name || 'دورة مؤرشفة')
+          : 'السجل الكامل (شامل المؤرشف)';
       const periodTitle = period === 'today' ? 'اليوم' : 
                           period === 'week' ? 'أسبوع' : 
                           period === 'month' ? 'شهر' : 
@@ -241,15 +284,15 @@ export function PrintSupplierTxModal({
         </div>
         
         <div className="p-6 space-y-5">
-          {/* Scope Selector: Active Cycle vs Full History */}
-          <div className="space-y-2">
+          {/* Scope Selector: Active Cycle vs Archived Cycle vs Full History */}
+          <div className="space-y-2.5">
             <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">نطاق التقرير</label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-1.5">
               <button
                 type="button"
                 disabled={isPrinting}
                 onClick={() => setSourceScope('active_cycle')}
-                className={`py-2.5 px-3 rounded-lg text-xs font-bold transition-all border ${
+                className={`py-2 px-1.5 rounded-lg text-xs font-bold transition-all border text-center ${
                   sourceScope === 'active_cycle'
                     ? 'bg-brand-50 border-brand-500 text-brand-700 dark:bg-brand-500/10 dark:border-brand-500 dark:text-brand-400 shadow-sm'
                     : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400'
@@ -259,21 +302,59 @@ export function PrintSupplierTxModal({
               </button>
               <button
                 type="button"
+                disabled={isPrinting || archivedCycles.length === 0}
+                onClick={() => setSourceScope('archived_cycle')}
+                className={`py-2 px-1.5 rounded-lg text-xs font-bold transition-all border text-center disabled:opacity-40 ${
+                  sourceScope === 'archived_cycle'
+                    ? 'bg-brand-50 border-brand-500 text-brand-700 dark:bg-brand-500/10 dark:border-brand-500 dark:text-brand-400 shadow-sm'
+                    : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400'
+                }`}
+              >
+                أرشيف الدورات ({archivedCycles.length})
+              </button>
+              <button
+                type="button"
                 disabled={isPrinting}
                 onClick={() => setSourceScope('all_history')}
-                className={`py-2.5 px-3 rounded-lg text-xs font-bold transition-all border ${
+                className={`py-2 px-1.5 rounded-lg text-xs font-bold transition-all border text-center ${
                   sourceScope === 'all_history'
                     ? 'bg-brand-50 border-brand-500 text-brand-700 dark:bg-brand-500/10 dark:border-brand-500 dark:text-brand-400 shadow-sm'
                     : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400'
                 }`}
               >
-                السجل الكامل (شامل المؤرشف)
+                السجل الكامل
               </button>
             </div>
 
             {sourceScope === 'active_cycle' && activeTransactions.length === 0 && (
-              <div className="p-2.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg text-[11px] font-bold text-amber-800 dark:text-amber-300 text-center leading-relaxed">
-                الدورة الحالية لا تحتوي على معاملات (0 بعد الأرشفة). يمكنك اختيار "السجل الكامل" لتوليد تقرير عن العمليات السابقة.
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-lg text-xs font-bold text-amber-800 dark:text-amber-300 text-center leading-relaxed">
+                الدورة الحالية فارغة (0 معاملات مسجلة). لقد تم إغلاق الدورة وأرشفتها.
+                {archivedCycles.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSourceScope('archived_cycle')}
+                    className="block mx-auto mt-2 text-brand-600 dark:text-brand-400 font-black underline hover:text-brand-700"
+                  >
+                    اضغط هنا لاختيار الدورة المؤرشفة وتنزيل ملف PDF الخاص بها
+                  </button>
+                )}
+              </div>
+            )}
+
+            {sourceScope === 'archived_cycle' && (
+              <div className="space-y-1.5 pt-1">
+                <label className="text-xs font-bold text-zinc-600 dark:text-zinc-400">اختر الدورة المؤرشفة:</label>
+                <select
+                  value={selectedCycleId}
+                  onChange={(e) => setSelectedCycleId(e.target.value)}
+                  className="w-full p-2.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs font-bold text-zinc-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+                >
+                  {archivedCycles.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} — ({c.transactionCount || c.supplierBreakdown?.length || 0} معاملة)
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
           </div>
@@ -334,7 +415,12 @@ export function PrintSupplierTxModal({
           
           <button
             onClick={handlePrint}
-            disabled={isPrinting || (period === 'custom' && (!startDate || !endDate))}
+            disabled={
+              isPrinting || 
+              (sourceScope === 'active_cycle' && activeTransactions.length === 0) ||
+              (sourceScope === 'archived_cycle' && !selectedCycleId) ||
+              (period === 'custom' && (!startDate || !endDate))
+            }
             className="w-full py-4 rounded-xl font-black text-sm bg-brand-600 hover:bg-brand-700 text-white shadow-lg shadow-brand-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isPrinting ? (
@@ -342,6 +428,8 @@ export function PrintSupplierTxModal({
                 <Loader2 size={18} className="animate-spin" />
                 يتم التجهيز...
               </>
+            ) : sourceScope === 'active_cycle' && activeTransactions.length === 0 ? (
+              <span>لا توجد معاملات في الدورة الحالية (0)</span>
             ) : (
               <>
                 <ExternalLink size={18} />

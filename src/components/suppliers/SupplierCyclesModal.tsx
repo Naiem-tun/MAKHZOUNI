@@ -3,11 +3,12 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Archive, Download, Upload, Calendar, 
   Trash2, ChevronLeft, FileSpreadsheet, Eye, 
-  CheckCircle, Plus
+  CheckCircle, Plus, FileText
 } from 'lucide-react';
 import { SupplierCycle, Supplier } from '../../types';
 import { formatCurrency, formatAppDate, roundMoney } from '../../lib/utils';
 import * as xlsx from 'xlsx';
+import * as html2pdf from 'html2pdf.js';
 
 interface SupplierCyclesModalProps {
   isOpen: boolean;
@@ -64,6 +65,88 @@ export function SupplierCyclesModal({
 
     const safeName = (cycle.name || 'cycle').replace(/[\/\\?%*:|"<>]/g, '_');
     xlsx.writeFile(wb, `${safeName}.xlsx`);
+  };
+
+  const handleExportCycleToPDF = async (cycle: SupplierCycle) => {
+    try {
+      const safeName = (cycle.name || 'تقرير_دورة_الموردين').replace(/[\/\\?%*:|"<>]/g, '_');
+      const storeName = settings.storeName || 'مخزوني';
+      const archiveDate = formatAppDate(cycle.createdAt || cycle.endDate, settings.language || 'ar');
+
+      let tableHtml = '';
+      (cycle.supplierBreakdown || []).forEach(item => {
+        tableHtml += `
+          <tr style="border-bottom: 1px solid #e5e7eb; page-break-inside: avoid;">
+            <td style="padding: 10px; text-align: right; font-size: 13px; font-weight: 700; color: #0f172a;">${item.supplierName}</td>
+            <td style="padding: 10px; text-align: center; font-size: 12px; color: #475569;">${item.typeOfGoods || '-'}</td>
+            <td style="padding: 10px; text-align: center; font-size: 12px; font-weight: 600;">${item.count || 1}</td>
+            <td style="padding: 10px; text-align: left; font-size: 13px; font-weight: 800; color: #0f172a;" dir="ltr">${formatMoney(item.amount)}</td>
+          </tr>
+        `;
+      });
+
+      const elementHtml = `
+      <div id="print-cycle-container" style="padding: 35px; font-family: 'Inter', sans-serif; background-color: white; color: #18181b; direction: rtl;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; border-bottom: 2px solid #f4f4f5; padding-bottom: 18px;">
+          <div>
+            <h1 style="font-size: 24px; font-weight: 900; margin: 0 0 6px 0; color: #18181b;">تقرير دورة الموردين (أرشيف)</h1>
+            <p style="font-size: 14px; font-weight: 700; color: #0284c7; margin: 0;">${cycle.name}</p>
+          </div>
+          <div style="text-align: left;">
+            <p style="font-size: 18px; font-weight: 800; color: #0284c7; margin: 0 0 4px 0;">${storeName}</p>
+            <p style="font-size: 12px; font-weight: 600; color: #71717a; margin: 0;">تاريخ الأرشفة: <span dir="ltr">${archiveDate}</span></p>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-bottom: 25px;">
+          <div style="flex: 1; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+            <span style="font-size: 11px; color: #64748b; display: block;">إجمالي المشتريات</span>
+            <span style="font-size: 18px; font-weight: 900; color: #0f172a; display: block; margin-top: 4px;" dir="ltr">${formatMoney(cycle.totalAmount)}</span>
+          </div>
+          <div style="flex: 1; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+            <span style="font-size: 11px; color: #64748b; display: block;">عدد المعاملات</span>
+            <span style="font-size: 18px; font-weight: 900; color: #0f172a; display: block; margin-top: 4px;">${cycle.transactionCount}</span>
+          </div>
+          <div style="flex: 1; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center;">
+            <span style="font-size: 11px; color: #64748b; display: block;">عدد الموردين</span>
+            <span style="font-size: 18px; font-weight: 900; color: #0f172a; display: block; margin-top: 4px;">${cycle.supplierBreakdown?.length || 0}</span>
+          </div>
+        </div>
+        
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px;">
+          <thead>
+            <tr style="background-color: #f4f4f5;">
+              <th style="padding: 10px; text-align: right; font-size: 13px; font-weight: 700; color: #52525b;">المورد</th>
+              <th style="padding: 10px; text-align: center; font-size: 13px; font-weight: 700; color: #52525b;">نوع البضاعة</th>
+              <th style="padding: 10px; text-align: center; font-size: 13px; font-weight: 700; color: #52525b;">عدد الدفعات</th>
+              <th style="padding: 10px; text-align: left; font-size: 13px; font-weight: 700; color: #52525b;">الإجمالي</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableHtml}
+          </tbody>
+        </table>
+      </div>
+      `;
+
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = elementHtml;
+      
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `${safeName}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: 'avoid-all' }
+      };
+
+      // @ts-ignore
+      const html2pdfModule: any = html2pdf.default || html2pdf;
+      await html2pdfModule().set(opt).from(wrapper.firstElementChild).save();
+    } catch (e) {
+      console.error("Export cycle to PDF error:", e);
+    }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -175,13 +258,22 @@ export function SupplierCyclesModal({
                     <span>العودة لقائمة الدورات</span>
                   </button>
 
-                  <button
-                    onClick={() => handleExportCycleToExcel(selectedCycle)}
-                    className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 hover:bg-emerald-700 active:scale-95 transition-all"
-                  >
-                    <FileSpreadsheet size={14} />
-                    <span>تنزيل Excel</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleExportCycleToPDF(selectedCycle)}
+                      className="px-3 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-bold flex items-center gap-1.5 hover:bg-brand-700 active:scale-95 transition-all shadow-sm"
+                    >
+                      <FileText size={14} />
+                      <span>تنزيل PDF</span>
+                    </button>
+                    <button
+                      onClick={() => handleExportCycleToExcel(selectedCycle)}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 hover:bg-emerald-700 active:scale-95 transition-all shadow-sm"
+                    >
+                      <FileSpreadsheet size={14} />
+                      <span>تنزيل Excel</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/70 dark:border-zinc-700/60">
@@ -266,6 +358,14 @@ export function SupplierCyclesModal({
                       >
                         <Eye size={14} />
                         <span>عرض التفاصيل</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleExportCycleToPDF(cycle)}
+                        className="p-1.5 rounded-lg text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/30 transition-colors"
+                        title="تنزيل PDF"
+                      >
+                        <FileText size={18} />
                       </button>
 
                       <button
