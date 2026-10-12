@@ -46,23 +46,6 @@ export function SupplierToolbar({
             <span>مستشار</span>
           </button>
         )}
-
-        {/* Unified Cycles Archive Button */}
-        {setIsCyclesModalOpen && (
-          <button
-            onClick={() => setIsCyclesModalOpen(true)}
-            className="h-10 px-2.5 sm:px-3 flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg shadow-sm active:scale-95 transition-all text-xs sm:text-sm font-bold"
-            title="الأرشيف"
-          >
-            <Archive size={16} className="text-zinc-500" />
-            <span className="hidden sm:inline">الأرشيف</span>
-            {archivedCyclesCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 font-bold">
-                {archivedCyclesCount}
-              </span>
-            )}
-          </button>
-        )}
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-2">
@@ -121,6 +104,23 @@ export function SupplierToolbar({
           <ListChecks size={17} />
           <span className="hidden sm:inline">المتابعة</span>
         </button>
+
+        {/* Unified Cycles Archive Button - positioned at the outer edge as the last button */}
+        {setIsCyclesModalOpen && (
+          <button
+            onClick={() => setIsCyclesModalOpen(true)}
+            className="h-10 px-2.5 sm:px-3 flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg shadow-sm active:scale-95 transition-all text-xs sm:text-sm font-bold"
+            title="أرشيف الدورات السابقة للموردين"
+          >
+            <Archive size={16} className="text-zinc-500" />
+            <span className="hidden sm:inline">الأرشيف</span>
+            {archivedCyclesCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 font-bold">
+                {archivedCyclesCount}
+              </span>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

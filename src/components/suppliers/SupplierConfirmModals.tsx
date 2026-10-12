@@ -18,9 +18,9 @@ interface SupplierConfirmModalsProps {
   handleArchiveCycle?: () => void;
   txCount?: number;
 
-  isTotalModalOpen: boolean;
-  setIsTotalModalOpen: (open: boolean) => void;
-  grandTotal: number;
+  isTotalModalOpen?: boolean;
+  setIsTotalModalOpen?: (open: boolean) => void;
+  grandTotal?: number;
 
   isSaving: boolean;
   settings: any;
@@ -41,10 +41,6 @@ export function SupplierConfirmModals({
   handleClearAllTransactions,
   handleArchiveCycle,
   txCount = 0,
-
-  isTotalModalOpen,
-  setIsTotalModalOpen,
-  grandTotal,
 
   isSaving,
   settings
@@ -188,38 +184,6 @@ export function SupplierConfirmModals({
                   إلغاء والتراجع
                 </button>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Total Modal */}
-      <AnimatePresence>
-        {isTotalModalOpen && (
-          <motion.div key="modal-total" className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsTotalModalOpen(false)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 10 }} 
-              animate={{ opacity: 1, scale: 1, y: 0 }} 
-              exit={{ opacity: 0, scale: 0.95, y: 10 }} 
-              className="relative w-full max-w-[320px] rounded-lg bg-white p-8 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
-            >
-              <h2 className="text-zinc-500 dark:text-zinc-400 font-bold mb-2">{t('total_expenses')}</h2>
-              <div className="flex items-center justify-center gap-2 mb-8">
-                <span className="text-4xl font-black text-zinc-900 dark:text-white tracking-tighter">
-                  {grandTotal.toLocaleString(settings.language === 'ar' ? 'ar-TN' : 'en-US', { 
-                    minimumFractionDigits: settings.currency === 'TND' || settings.currency === 'د.ت' ? 3 : 2, 
-                    maximumFractionDigits: settings.currency === 'TND' || settings.currency === 'د.ت' ? 3 : 2 
-                  })}
-                </span>
-                <span className="text-sm font-bold text-zinc-400 mt-2">{settings.currency}</span>
-              </div>
-              <button 
-                onClick={() => setIsTotalModalOpen(false)}
-                className="w-full py-4 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white font-bold active:scale-95 transition-all border border-zinc-200 dark:border-zinc-700"
-              >
-                {t('close')}
-              </button>
             </motion.div>
           </motion.div>
         )}

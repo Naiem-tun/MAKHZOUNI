@@ -6,7 +6,7 @@ import { db } from '../lib/firebase';
 import { Supplier, SupplierTransaction, Debt, OperationType, SupplierCycle } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { syncTracker } from '../lib/syncTracker';
-import { Truck, Plus, Phone, Trash2, Edit2, X, RotateCcw, UserPlus, Eye, Receipt, History, CirclePlus, Calendar, Search, Play, Square, Printer, FileSpreadsheet, Activity, BrainCircuit, Archive } from 'lucide-react';
+import { Truck, Plus, Phone, Trash2, Edit2, X, RotateCcw, UserPlus, Eye, Receipt, History, CirclePlus, Calendar, Search, Play, Square, Printer, FileSpreadsheet, Activity, BrainCircuit, Archive, ArrowLeftRight, ShoppingCart, Layers, Handshake } from 'lucide-react';
 import { formatCurrency, handleFirestoreError, safeParseDate, formatAppDate, roundMoney } from '../lib/utils';
 import { logAudit } from '../lib/auditLogger';
 import { PrintSupplierTxModal } from '../components/suppliers/PrintSupplierTxModal';
@@ -14,6 +14,7 @@ import { SupplierFormModal } from '../components/suppliers/SupplierFormModal';
 import { SupplierTransactionModal } from '../components/suppliers/SupplierTransactionModal';
 import { SupplierHistoryModal } from '../components/suppliers/SupplierHistoryModal';
 import { SupplierConfirmModals } from '../components/suppliers/SupplierConfirmModals';
+import { SupplierActiveCycleDetailsModal } from '../components/suppliers/SupplierActiveCycleDetailsModal';
 import { SupplierCard } from '../components/suppliers/SupplierCard';
 import { SupplierHeader } from '../components/suppliers/SupplierHeader';
 import { SupplierToolbar } from '../components/suppliers/SupplierToolbar';
@@ -223,6 +224,7 @@ export default function Suppliers() {
   });
 
   const grandTotal = activeTransactions.reduce((acc, t) => acc + (t.amount || 0), 0);
+  const activeSuppliersInCycleCount = new Set(activeTransactions.filter(t => t.supplierId && (t.amount || 0) > 0).map(t => t.supplierId)).size;
 
   const filteredSuppliers = suppliersWithTotals.filter(s => 
     (s.name || "").toLowerCase().includes((searchQuery || "").toLowerCase()) ||
@@ -712,6 +714,58 @@ export default function Suppliers() {
         archivedCyclesCount={cycles.length}
       />
 
+      {/* Compact Purchases Summary - Dashboard-inspired & matching app curvature */}
+      {(settings.showFloatingTotals ?? true) && (
+        <div 
+          onClick={() => setIsTotalModalOpen(true)}
+          className="relative p-3 sm:p-3.5 rounded-lg bg-brand-800 dark:bg-zinc-900 text-white shadow-sm border border-brand-700/40 dark:border-zinc-800 cursor-pointer transition-all hover:bg-brand-900 active:scale-[0.99] overflow-hidden group"
+        >
+          {/* Subtle ambient light */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+
+          <div className="relative z-10 flex flex-wrap items-center justify-between gap-2.5">
+            {/* Right side: Icon + Label + Value */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="h-8 w-8 shrink-0 rounded-lg bg-white/10 dark:bg-white/5 flex items-center justify-center text-emerald-300">
+                <ArrowLeftRight size={16} />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[11px] font-bold text-brand-200 dark:text-zinc-400 leading-tight">
+                  إجمالي المعاملات مع الموردين
+                </div>
+                <div className="text-lg sm:text-xl font-black tracking-tight text-white leading-none mt-0.5">
+                  {!(settings.showFinancials ?? true) ? '••••••' : formatCurrency(grandTotal, settings.currency, settings.language || 'ar')}
+                </div>
+              </div>
+            </div>
+
+            {/* Left side (in RTL): Metrics + Details Button */}
+            <div className="flex items-center gap-1.5 mr-auto sm:mr-0 flex-wrap">
+              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10 dark:bg-white/5 text-[11px] font-bold text-brand-100">
+                <Layers size={12} className="text-brand-300" />
+                <span>{activeTransactions.length}</span>
+                <span className="text-[10px] font-normal text-brand-200 opacity-80">{t('operations') || 'عملية'}</span>
+              </div>
+
+              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10 dark:bg-white/5 text-[11px] font-bold text-emerald-200">
+                <Truck size={12} className="text-emerald-300" />
+                <span>{activeSuppliersInCycleCount}</span>
+                <span className="text-[10px] font-normal text-brand-200 opacity-80">/ {suppliers.length} مورد</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setIsTotalModalOpen(true); }}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/20 active:bg-white/25 text-white text-[11px] font-bold transition-colors"
+              >
+                <span>التفاصيل</span>
+                <Eye size={12} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <SupplierSearchBar
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -719,7 +773,7 @@ export default function Suppliers() {
         removeUploadedReport={removeUploadedReport}
       />
 
-      <div className="grid grid-cols-1 gap-4 pb-40">
+      <div className="grid grid-cols-1 gap-4 pb-24">
         {filteredSuppliers.map((s) => (
           <SupplierCard
             key={s.id}
@@ -744,31 +798,6 @@ export default function Suppliers() {
           />
         ))}
       </div>
-
-      {/* Total Summary */}
-      {(settings.showFloatingTotals ?? true) && (
-        <div className="fixed bottom-28 left-0 right-0 z-40 flex justify-center pointer-events-none px-4">
-          <motion.div 
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="max-w-fit bg-brand-50 dark:bg-zinc-900 border border-brand-200/60 dark:border-zinc-800 px-8 py-3 rounded-xl shadow-lg shadow-brand-500/10 pointer-events-auto relative cursor-pointer"
-            onClick={() => setIsTotalModalOpen(true)}
-          >
-            {/* Decorative handle at top */}
-            <div className="absolute -top-1.5 w-10 h-2 bg-brand-50 dark:bg-zinc-900 left-1/2 -translate-x-1/2 rounded-t-md border-t border-x border-brand-200/60 dark:border-zinc-800" />
-            
-            <div className="flex items-center justify-center gap-3">
-              <span className="text-[1.35rem] font-black text-brand-900 dark:text-white tracking-tight">
-                {!(settings.showFinancials ?? true) ? '••••••' : grandTotal.toLocaleString(settings.language === 'ar' ? 'ar-TN' : 'en-US', { 
-                  minimumFractionDigits: settings.currency === 'TND' || settings.currency === 'د.ت' ? 3 : 2, 
-                  maximumFractionDigits: settings.currency === 'TND' || settings.currency === 'د.ت' ? 3 : 2 
-                })}
-              </span>
-              <span className="text-base font-bold text-brand-600 dark:text-zinc-500 mt-1">{settings.currency}</span>
-            </div>
-          </motion.div>
-        </div>
-      )}
 
       <SupplierFormModal
         isModalOpen={isModalOpen}
@@ -811,10 +840,16 @@ export default function Suppliers() {
         handleClearAllTransactions={handleClearAllTransactions}
         handleArchiveCycle={handleArchiveCycle}
         txCount={activeTransactions.length}
-        isTotalModalOpen={isTotalModalOpen}
-        setIsTotalModalOpen={setIsTotalModalOpen}
-        grandTotal={grandTotal}
         isSaving={isSaving}
+        settings={settings}
+      />
+
+      <SupplierActiveCycleDetailsModal
+        isOpen={isTotalModalOpen}
+        onClose={() => setIsTotalModalOpen(false)}
+        grandTotal={grandTotal}
+        activeTransactions={activeTransactions}
+        suppliers={suppliers}
         settings={settings}
       />
 

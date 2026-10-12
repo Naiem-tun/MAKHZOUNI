@@ -186,10 +186,17 @@ export default function Inventory() {
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const categoryRef = useRef<HTMLDivElement>(null);
 
+  const [stockFilter, setStockFilter] = useState<'all' | 'in_stock' | 'zero_stock'>('all');
+  const [stockDropdownOpen, setStockDropdownOpen] = useState(false);
+  const stockFilterRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (categoryRef.current && !categoryRef.current.contains(event.target as Node)) {
         setCategoryDropdownOpen(false);
+      }
+      if (stockFilterRef.current && !stockFilterRef.current.contains(event.target as Node)) {
+        setStockDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -369,10 +376,22 @@ export default function Inventory() {
     return () => unsubscribe();
   }, [user]);
 
-  // Reset to first page on search
+  // Reset to first page on search or filter change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, categoryFilter, showUninventoriedOnly, stockFilter]);
+
+  const stockStats = useMemo(() => {
+    if (!groupedProducts) return { total: 0, inStock: 0, zeroStock: 0 };
+    let inStock = 0;
+    let zeroStock = 0;
+    groupedProducts.forEach(p => {
+      const q = cleanQuantity(p.quantity || 0);
+      if (q > 0) inStock++;
+      else zeroStock++;
+    });
+    return { total: groupedProducts.length, inStock, zeroStock };
+  }, [groupedProducts]);
 
   const filteredProducts = useMemo(() => {
     if (!groupedProducts) return [];
@@ -382,7 +401,16 @@ export default function Inventory() {
       const matchSearch = (p.name || "").toLowerCase().includes(s) || p.barcode?.includes(s) || p.barcode2?.includes(s);
       const matchCat = categoryFilter === 'all' || p.category === categoryFilter;
       const matchUninventoried = !showUninventoriedOnly || !checkedProducts[p.id];
-      return matchSearch && matchCat && matchUninventoried;
+      
+      const qty = cleanQuantity(p.quantity || 0);
+      let matchStock = true;
+      if (stockFilter === 'in_stock') {
+        matchStock = qty > 0;
+      } else if (stockFilter === 'zero_stock') {
+        matchStock = qty <= 0;
+      }
+
+      return matchSearch && matchCat && matchUninventoried && matchStock;
     });
 
     return [...filtered].sort((a, b) => {
@@ -390,7 +418,7 @@ export default function Inventory() {
       if (categoryCompare !== 0) return categoryCompare;
       return (a.name || '').localeCompare(b.name || '', settings.language);
     });
-  }, [groupedProducts, searchTerm, categoryFilter, showUninventoriedOnly, inventoryData]);
+  }, [groupedProducts, searchTerm, categoryFilter, showUninventoriedOnly, stockFilter, checkedProducts]);
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
   const sortedProducts = filteredProducts.slice(
@@ -758,114 +786,126 @@ export default function Inventory() {
       {/* Header Section */}
       <div className="flex items-center justify-between pt-2 px-4 gap-4 min-w-0">
         <div className="text-right space-y-1 shrink-0">
-          <h1 className="text-2xl sm:text-3xl font-bold text-black dark:text-white leading-tight">{t('jard_monthly')}</h1>
-          <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-medium">{t('enter_actual_quantity')}</p>
+          <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white leading-tight">{t('jard_monthly')}</h1>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">{t('enter_actual_quantity')}</p>
         </div>
         <button 
           onClick={handleCompleteInventory} 
-          className="flex items-center justify-center gap-1.5 h-10 px-4 rounded-xl bg-brand-600 text-sm font-bold text-white transition-all hover:bg-brand-700 shadow-md shadow-brand-500/20 active:scale-95 whitespace-nowrap"
+          className="flex items-center justify-center gap-2 h-11 px-4 sm:px-5 rounded-xl bg-brand-600 text-sm font-bold text-white transition-all hover:bg-brand-700 shadow-md shadow-brand-500/20 active:scale-95 whitespace-nowrap"
         >
           <ClipboardCheck size={18} strokeWidth={2.5} />
           <span>{t('save') || 'حفظ'}</span>
         </button>
       </div>
 
-      <div className="px-4 pb-2 pt-1 -mt-1 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] w-full">
-        <div className="inline-flex min-w-max items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm overflow-hidden divide-x divide-x-reverse divide-zinc-200 dark:divide-zinc-800">
-          <button 
-            onClick={() => setShowHistoryModal(true)}
-            className="shrink-0 h-9 px-3 flex items-center justify-center text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-            title={t('inventory_log')}
-          >
-            <FileText size={16} />
-          </button>
+      {/* Toolbar - Matching Suppliers page button style & curvature */}
+      <div className="px-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {/* Group 1: History, Analytics & Expenses */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button 
+              onClick={() => setShowHistoryModal(true)}
+              className="h-10 px-2.5 sm:px-3 flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg shadow-sm active:scale-95 transition-all text-xs sm:text-sm font-bold"
+              title={t('inventory_log')}
+            >
+              <History size={16} className="text-zinc-500" />
+              <span className="hidden sm:inline">{t('inventory_log') || 'سجل الجرد'}</span>
+              {historyReports.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 font-bold">
+                  {historyReports.length}
+                </span>
+              )}
+            </button>
 
-          <button 
-            onClick={() => {
-              setActiveTab('reports');
-              window.dispatchEvent(new CustomEvent('open-analytics-tab', { detail: 'inventory_intel' }));
-            }}
-            className="shrink-0 h-9 px-3 flex items-center gap-1.5 bg-brand-50 hover:bg-brand-100 dark:bg-brand-900/30 dark:hover:bg-brand-900/50 text-brand-600 dark:text-brand-400 transition-colors text-xs font-black whitespace-nowrap"
-            title="تحليلات واستخبارات الجرد"
-          >
-            <TrendingUp size={16} />
-            <span>تحليلات الجرد</span>
-          </button>
-          
-          <button 
-            onClick={() => setShowExpensesModal(true)}
-            className={cn(
-              "shrink-0 h-9 px-3 flex items-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-xs font-bold whitespace-nowrap",
-              expensesAmount > 0 ? "text-[#B34C36] bg-[#B34C36]/5" : "text-zinc-600 dark:text-zinc-400 justify-center"
-            )}
-            title={t('expenses')}
-          >
-            <Wallet size={16} />
-            {expensesAmount > 0 && <span>{formatCurrency(expensesAmount, settings.currency, settings.language)}</span>}
-          </button>
+            <button 
+              onClick={() => {
+                setActiveTab('reports');
+                window.dispatchEvent(new CustomEvent('open-analytics-tab', { detail: 'inventory_intel' }));
+              }}
+              className="h-10 px-2.5 sm:px-3 flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg shadow-sm active:scale-95 transition-all text-xs sm:text-sm font-bold"
+              title="تحليلات واستخبارات الجرد"
+            >
+              <TrendingUp size={16} className="text-zinc-500" />
+              <span className="hidden sm:inline">تحليلات الجرد</span>
+            </button>
+            
+            <button 
+              onClick={() => setShowExpensesModal(true)}
+              className="h-10 px-2.5 sm:px-3 flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg shadow-sm active:scale-95 transition-all text-xs sm:text-sm font-bold"
+              title={t('expenses')}
+            >
+              <Wallet size={16} className={expensesAmount > 0 ? "text-[#B34C36]" : "text-zinc-500"} />
+              <span className="hidden md:inline">{t('expenses')}</span>
+              {expensesAmount > 0 ? (
+                <span className="font-mono font-black text-xs text-[#B34C36] tracking-tight">
+                  {formatCurrency(expensesAmount, settings.currency, settings.language)}
+                </span>
+              ) : (
+                <span className="hidden sm:inline">{t('expenses')}</span>
+              )}
+            </button>
+          </div>
 
-          <button 
-            onClick={() => setShowCompareModal(true)}
-            className="shrink-0 h-9 px-3 flex items-center gap-2 bg-brand-50 hover:bg-brand-100 dark:bg-brand-900/20 dark:hover:bg-brand-900/40 text-brand-600 dark:text-brand-400 transition-colors text-xs font-bold whitespace-nowrap"
-            title="مقارنة الجرد الذكية"
-          >
-            <Activity size={16} />
-            <span className="hidden sm:inline">مقارنة بـ Excel</span>
-          </button>
+          {/* Group 2: Operational tools (Compare, Print, Detailed Mode, Damage, Clear) */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button 
+              onClick={() => setShowCompareModal(true)}
+              className="h-10 px-2.5 sm:px-3 flex items-center gap-1.5 bg-brand-50 border border-brand-200 dark:bg-brand-900/20 dark:border-brand-800 text-brand-600 dark:text-brand-400 rounded-lg shadow-sm active:scale-95 transition-all text-xs sm:text-sm font-bold"
+              title="مقارنة الجرد الذكية بـ Excel"
+            >
+              <Activity size={17} />
+              <span className="hidden md:inline">مقارنة بـ Excel</span>
+            </button>
 
-          <button 
-            onClick={() => setShowPrintModal(true)}
-            className="shrink-0 h-9 px-3 flex items-center justify-center text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-            title="طباعة كشف الجرد الورقي"
-          >
-            <Printer size={16} />
-          </button>
+            <button 
+              onClick={() => setShowPrintModal(true)}
+              className="w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 active:scale-95 transition-transform"
+              title="طباعة كشف الجرد الورقي"
+            >
+              <Printer size={18} />
+            </button>
 
-          <button 
-            onClick={() => setShowDetailedControls(!showDetailedControls)}
-            className={cn(
-              "shrink-0 h-9 px-3 flex items-center justify-center transition-colors",
-              showDetailedControls 
-                ? "bg-brand-600 text-white hover:bg-brand-700" 
-                : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-            )}
-            title={t('detailed_inventory_mode')}
-          >
-            <PlusCircle size={16} />
-          </button>
+            <button 
+              onClick={() => setShowDetailedControls(!showDetailedControls)}
+              className={cn(
+                "h-10 px-2.5 sm:px-3 flex items-center gap-1.5 rounded-lg shadow-sm active:scale-95 transition-all text-xs sm:text-sm font-bold border",
+                showDetailedControls 
+                  ? "bg-brand-600 text-white border-brand-600 hover:bg-brand-700 shadow-brand-500/20" 
+                  : "bg-white text-zinc-700 border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+              )}
+              title={t('detailed_inventory_mode')}
+            >
+              <PlusCircle size={16} />
+              <span className="hidden sm:inline">تفصيلي</span>
+            </button>
 
-          <button 
-            onClick={() => setShowDamageModal(true)}
-            className={cn(
-              "shrink-0 h-9 px-3 flex items-center gap-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-xs font-bold whitespace-nowrap",
-              damageCount > 0 ? "text-[#B34C36] bg-[#B34C36]/5" : "text-zinc-600 dark:text-zinc-400 justify-center"
-            )}
-            title="تسجيل وإدارة التالف"
-          >
-            <AlertTriangle size={16} className={damageCount > 0 ? "text-[#B34C36]" : ""} />
-            {damageCount > 0 && (
-              <span className="flex items-center gap-1">
-                <span className="bg-[#B34C36] text-white text-[10px] px-1.5 py-0.5 rounded-full font-black">
+            <button 
+              onClick={() => setShowDamageModal(true)}
+              className="h-10 px-2.5 sm:px-3 flex items-center gap-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg shadow-sm active:scale-95 transition-all text-xs sm:text-sm font-bold"
+              title="تسجيل وإدارة التالف"
+            >
+              <AlertTriangle size={16} className={damageCount > 0 ? "text-[#B34C36]" : "text-zinc-500"} />
+              <span className="hidden sm:inline">التالف</span>
+              {damageCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-zinc-100 text-[#B34C36] dark:bg-zinc-800 font-black">
                   {damageCount}
                 </span>
-                <span className="hidden sm:inline">{formatCurrency(damageAmount, settings.currency, settings.language)}</span>
-              </span>
-            )}
-          </button>
+              )}
+            </button>
 
-          <button 
-            onClick={handleClearInventory}
-            className={cn(
-              "shrink-0 h-9 px-3 flex items-center justify-center transition-colors",
-              Object.keys(inventoryData).length > 0 
-                ? "text-white hover:brightness-110" 
-                : "text-zinc-400 dark:text-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-            )}
-            style={Object.keys(inventoryData).length > 0 ? { backgroundColor: '#B34C36' } : {}}
-            title={t('confirm_clear_quantities')}
-          >
-            <Trash2 size={16} />
-          </button>
+            <button 
+              onClick={handleClearInventory}
+              className={cn(
+                "w-10 h-10 flex items-center justify-center rounded-lg shadow-sm active:scale-95 transition-all border",
+                Object.keys(inventoryData).length > 0 
+                  ? "bg-[#B34C36] border-[#B34C36] text-white hover:bg-[#9E3E2A] shadow-md shadow-[#B34C36]/20" 
+                  : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+              )}
+              title={t('confirm_clear_quantities')}
+            >
+              <Trash2 size={17} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -889,12 +929,13 @@ export default function Inventory() {
         <div className="flex gap-2">
           <button 
             onClick={() => setIsScannerOpen(true)}
-            className="w-11 h-11 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm active:scale-95"
+            className="w-11 h-11 shrink-0 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 active:scale-95 transition-all"
+            title="مسح الباركود"
           >
-            <ScanBarcode size={20} className="text-zinc-400" />
+            <ScanBarcode size={20} className="text-zinc-500" />
           </button>
           <div className="relative flex-1">
-            <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-300" size={16} />
+            <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" size={18} />
             <input 
               type="search"
               name="inventory_search"
@@ -904,18 +945,18 @@ export default function Inventory() {
               spellCheck={false}
               data-lpignore="true"
               data-form-type="other"
-              className="w-full h-11 pr-10 pl-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg outline-none text-[13px] placeholder:text-zinc-300"
+              className="w-full h-11 pr-11 pl-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg outline-none text-xs sm:text-[13px] placeholder:text-zinc-400 dark:placeholder:text-zinc-500 shadow-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
               placeholder={t('search_product_inventory_placeholder')} 
               value={searchTerm} 
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
-        <div className="flex gap-2">
-          <div className="relative group/filter flex-1" ref={categoryRef}>
+        <div className="flex flex-wrap sm:flex-nowrap gap-2">
+          <div className="relative group/filter flex-1 min-w-[130px]" ref={categoryRef}>
             <button 
               onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
-              className="w-full flex items-center justify-between py-2.5 px-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[13px] font-bold text-zinc-600 dark:text-zinc-400 outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors shadow-sm focus:border-brand-500/50"
+              className="w-full h-11 flex items-center justify-between px-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs sm:text-[13px] font-bold text-zinc-700 dark:text-zinc-300 outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors shadow-sm focus:border-brand-500"
             >
               <span className="truncate flex-1 text-center">{categoryFilter === 'all' ? t('all_categories_filter') : t(categories.find(c => c.name === categoryFilter)?.key || categoryFilter)}</span>
               <svg className="h-4 w-4 fill-current text-zinc-400 shrink-0" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
@@ -952,13 +993,81 @@ export default function Inventory() {
               </div>
             )}
           </div>
+
+          {/* Stock Filter Dropdown */}
+          <div className="relative" ref={stockFilterRef}>
+            <button
+              onClick={() => setStockDropdownOpen(!stockDropdownOpen)}
+              className={cn(
+                "h-11 px-3 sm:px-3.5 flex items-center gap-1.5 rounded-lg border text-xs sm:text-[13px] font-bold transition-all shadow-sm active:scale-95 whitespace-nowrap",
+                stockFilter !== 'all'
+                  ? "bg-brand-600 border-brand-600 text-white shadow-brand-500/20"
+                  : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+              )}
+              title="فلترة حسب كمية المخزون"
+            >
+              <span>
+                {stockFilter === 'all' && 'الكمية: الكل'}
+                {stockFilter === 'in_stock' && 'المتوفر فقط (>0)'}
+                {stockFilter === 'zero_stock' && 'غير متوفر (كمية 0)'}
+              </span>
+              <svg className="h-4 w-4 fill-current opacity-70 shrink-0" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+            </button>
+
+            {stockDropdownOpen && (
+              <div className="absolute top-full right-0 mt-1 min-w-[215px] z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl py-1 overflow-hidden">
+                <button
+                  onClick={() => {
+                    setStockFilter('all');
+                    setStockDropdownOpen(false);
+                  }}
+                  className={cn(
+                    "w-full text-right px-4 py-2.5 text-[13px] hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center justify-between",
+                    stockFilter === 'all' ? "text-brand-600 font-bold bg-brand-50/50 dark:bg-brand-900/10 dark:text-brand-400" : "text-zinc-600 dark:text-zinc-400"
+                  )}
+                >
+                  <span>جميع المنتجات (الكل)</span>
+                  <span className="text-[11px] font-mono opacity-70">({stockStats.total})</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setStockFilter('in_stock');
+                    setStockDropdownOpen(false);
+                  }}
+                  className={cn(
+                    "w-full text-right px-4 py-2.5 text-[13px] hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center justify-between",
+                    stockFilter === 'in_stock' ? "text-brand-600 font-bold bg-brand-50/50 dark:bg-brand-900/10 dark:text-brand-400" : "text-zinc-600 dark:text-zinc-400"
+                  )}
+                >
+                  <span>المتوفر فقط (إخفاء كمية 0)</span>
+                  <span className="text-[11px] font-mono opacity-70">({stockStats.inStock})</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setStockFilter('zero_stock');
+                    setStockDropdownOpen(false);
+                  }}
+                  className={cn(
+                    "w-full text-right px-4 py-2.5 text-[13px] hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center justify-between",
+                    stockFilter === 'zero_stock' ? "text-brand-600 font-bold bg-brand-50/50 dark:bg-brand-900/10 dark:text-brand-400" : "text-zinc-600 dark:text-zinc-400"
+                  )}
+                >
+                  <span>غير المتوفرة فقط (كمية 0)</span>
+                  <span className="text-[11px] font-mono opacity-70">({stockStats.zeroStock})</span>
+                </button>
+              </div>
+            )}
+          </div>
+
           <button
             onClick={() => setShowUninventoriedOnly(!showUninventoriedOnly)}
             className={cn(
-              "px-4 py-2.5 rounded-lg border text-[13px] font-bold transition-all whitespace-nowrap",
+              "h-11 px-3 sm:px-4 rounded-lg border text-xs sm:text-[13px] font-bold transition-all shadow-sm active:scale-95 whitespace-nowrap",
               showUninventoriedOnly 
-                ? "bg-brand-500 border-brand-500 text-white shadow-md shadow-brand-500/20" 
-                : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                ? "bg-brand-600 border-brand-600 text-white shadow-brand-500/20" 
+                : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
             )}
           >
             {t('not_inventoried')}
