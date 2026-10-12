@@ -879,6 +879,9 @@ export default function Suppliers() {
         isOpen={isPrintModalOpen}
         onClose={() => setIsPrintModalOpen(false)}
         storeName={settings.storeName || 'مخزوني'}
+        activeTransactions={activeTransactions}
+        suppliers={suppliers}
+        archivedCycles={cycles}
       />
     </div>
   );

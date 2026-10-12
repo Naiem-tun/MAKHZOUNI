@@ -88,15 +88,23 @@ export function SupplierActiveCycleDetailsModal({
     );
   }, [supplierBreakdown, searchTerm]);
 
-  // Filtered transactions
+  // Filtered transactions - strictly sorted chronologically descending (newest first)
   const filteredTransactions = useMemo(() => {
-    if (!searchTerm.trim()) return activeTransactions;
-    const q = searchTerm.toLowerCase();
-    return activeTransactions.filter(tx => {
-      const s = tx.supplierId ? supplierMap.get(tx.supplierId) : null;
-      const sName = s?.name || '';
-      const note = tx.note || '';
-      return sName.toLowerCase().includes(q) || note.toLowerCase().includes(q);
+    let list = activeTransactions;
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      list = list.filter(tx => {
+        const s = tx.supplierId ? supplierMap.get(tx.supplierId) : null;
+        const sName = s?.name || '';
+        const note = tx.note || '';
+        return sName.toLowerCase().includes(q) || note.toLowerCase().includes(q);
+      });
+    }
+
+    return [...list].sort((a, b) => {
+      const timeA = safeParseDate(a.date || a.updatedAt).getTime();
+      const timeB = safeParseDate(b.date || b.updatedAt).getTime();
+      return timeB - timeA;
     });
   }, [activeTransactions, supplierMap, searchTerm]);
 
@@ -106,7 +114,13 @@ export function SupplierActiveCycleDetailsModal({
   // Export to Excel
   const handleExportExcel = () => {
     const headers = ['المورد', 'نوع البضاعة', 'المبلغ', 'التاريخ', 'ملاحظات'];
-    const rows = activeTransactions.map(tx => {
+    const sortedTxs = [...activeTransactions].sort((a, b) => {
+      const timeA = safeParseDate(a.date || a.updatedAt).getTime();
+      const timeB = safeParseDate(b.date || b.updatedAt).getTime();
+      return timeB - timeA;
+    });
+
+    const rows = sortedTxs.map(tx => {
       const s = tx.supplierId ? supplierMap.get(tx.supplierId) : null;
       return [
         s?.name || 'مورد غير محدد',

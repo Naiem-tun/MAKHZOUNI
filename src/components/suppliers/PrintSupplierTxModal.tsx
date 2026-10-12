@@ -12,16 +12,23 @@ interface PrintSupplierTxModalProps {
   isOpen: boolean;
   onClose: () => void;
   storeName: string;
+  activeTransactions?: SupplierTransaction[];
+  suppliers?: any[];
+  archivedCycles?: any[];
 }
 
 export function PrintSupplierTxModal({
   isOpen,
   onClose,
-  storeName
+  storeName,
+  activeTransactions = [],
+  suppliers = [],
+  archivedCycles = []
 }: PrintSupplierTxModalProps) {
   const { t } = useTranslation();
   const { user, settings, showToast } = useAppContext();
-  const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'all' | 'custom'>('week');
+  const [sourceScope, setSourceScope] = useState<'active_cycle' | 'all_history'>('active_cycle');
+  const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'all' | 'custom'>('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [isPrinting, setIsPrinting] = useState(false);
@@ -34,20 +41,32 @@ export function PrintSupplierTxModal({
       setIsPrinting(true);
       showToast('جاري تحضير التقرير...', 'info');
 
-      // Fetch all supplier transactions directly from Firestore
-      const txQuery = query(collection(db, `users/${user.uid}/supplierTransactions`), orderBy('date', 'desc'));
-      const snap = await getDocs(txQuery);
-      
-      const allTx = snap.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          supplierId: data.supplierId,
-          amount: data.amount || 0,
-          date: data.date,
-          note: data.note || ''
-        } as SupplierTransaction;
-      });
+      let allTx: SupplierTransaction[] = [];
+
+      if (sourceScope === 'active_cycle') {
+        // Use active transactions only
+        allTx = [...activeTransactions];
+      } else {
+        // Fetch all supplier transactions directly from Firestore (including archived)
+        const txQuery = query(collection(db, `users/${user.uid}/supplierTransactions`), orderBy('date', 'desc'));
+        const snap = await getDocs(txQuery);
+        allTx = snap.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            supplierId: data.supplierId,
+            amount: data.amount || 0,
+            date: data.date,
+            note: data.note || ''
+          } as SupplierTransaction;
+        });
+      }
+
+      if (allTx.length === 0) {
+        showToast('لا توجد معاملات للطباعة في هذا النطاق', 'error');
+        setIsPrinting(false);
+        return;
+      }
 
       // Filter based on period
       const now = new Date();
@@ -75,13 +94,26 @@ export function PrintSupplierTxModal({
         });
       }
 
-      // Fetch suppliers to get their names
-      const suppliersQuery = query(collection(db, `users/${user.uid}/suppliers`));
-      const suppliersSnap = await getDocs(suppliersQuery);
+      if (filteredTx.length === 0) {
+        showToast('لا توجد معاملات ضمن الفترة المحددة', 'error');
+        setIsPrinting(false);
+        return;
+      }
+
+      // Sort all transactions strictly chronologically descending
+      filteredTx.sort((a, b) => safeParseDate(b.date).getTime() - safeParseDate(a.date).getTime());
+
+      // Suppliers mapping
       const suppliersMap = new Map();
-      suppliersSnap.docs.forEach(doc => {
-        suppliersMap.set(doc.id, doc.data().name);
-      });
+      if (suppliers && suppliers.length > 0) {
+        suppliers.forEach(s => suppliersMap.set(s.id, s.name));
+      } else {
+        const suppliersQuery = query(collection(db, `users/${user.uid}/suppliers`));
+        const suppliersSnap = await getDocs(suppliersQuery);
+        suppliersSnap.docs.forEach(doc => {
+          suppliersMap.set(doc.id, doc.data().name);
+        });
+      }
 
       // Group transactions by supplier
       const txBySupplier: Record<string, SupplierTransaction[]> = {};
@@ -94,17 +126,20 @@ export function PrintSupplierTxModal({
 
       const totalAmount = filteredTx.reduce((acc, t) => acc + (t.amount || 0), 0);
 
-      // Generate HTML string
-      const titleStr = period === 'today' ? 'اليوم' : 
-                       period === 'week' ? 'أسبوع' : 
-                       period === 'month' ? 'شهر' : 
-                       period === 'custom' ? `من ${startDate} إلى ${endDate}` : 'الكل';
+      const scopeTitle = sourceScope === 'active_cycle' ? 'الدورة الحالية النشطة' : 'السجل الكامل (شامل المؤرشف)';
+      const periodTitle = period === 'today' ? 'اليوم' : 
+                          period === 'week' ? 'أسبوع' : 
+                          period === 'month' ? 'شهر' : 
+                          period === 'custom' ? `من ${startDate} إلى ${endDate}` : 'الكل';
+      const titleStr = `${scopeTitle} - ${periodTitle}`;
       const reportDate = formatAppDate(now, settings.language, t);
 
       let tableHtml = "";
       Object.keys(txBySupplier).forEach(supplierId => {
         const supplierName = suppliersMap.get(supplierId) || 'مورد غير معروف';
         const supplierTxs = txBySupplier[supplierId];
+        // Sort each supplier's transactions strictly chronologically descending
+        supplierTxs.sort((a, b) => safeParseDate(b.date).getTime() - safeParseDate(a.date).getTime());
         const supplierTotal = supplierTxs.reduce((sum, t) => sum + (t.amount || 0), 0);
 
         tableHtml += `
@@ -205,7 +240,44 @@ export function PrintSupplierTxModal({
           </button>
         </div>
         
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-5">
+          {/* Scope Selector: Active Cycle vs Full History */}
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">نطاق التقرير</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={isPrinting}
+                onClick={() => setSourceScope('active_cycle')}
+                className={`py-2.5 px-3 rounded-lg text-xs font-bold transition-all border ${
+                  sourceScope === 'active_cycle'
+                    ? 'bg-brand-50 border-brand-500 text-brand-700 dark:bg-brand-500/10 dark:border-brand-500 dark:text-brand-400 shadow-sm'
+                    : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400'
+                }`}
+              >
+                الدورة الحالية ({activeTransactions.length})
+              </button>
+              <button
+                type="button"
+                disabled={isPrinting}
+                onClick={() => setSourceScope('all_history')}
+                className={`py-2.5 px-3 rounded-lg text-xs font-bold transition-all border ${
+                  sourceScope === 'all_history'
+                    ? 'bg-brand-50 border-brand-500 text-brand-700 dark:bg-brand-500/10 dark:border-brand-500 dark:text-brand-400 shadow-sm'
+                    : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400'
+                }`}
+              >
+                السجل الكامل (شامل المؤرشف)
+              </button>
+            </div>
+
+            {sourceScope === 'active_cycle' && activeTransactions.length === 0 && (
+              <div className="p-2.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg text-[11px] font-bold text-amber-800 dark:text-amber-300 text-center leading-relaxed">
+                الدورة الحالية لا تحتوي على معاملات (0 بعد الأرشفة). يمكنك اختيار "السجل الكامل" لتوليد تقرير عن العمليات السابقة.
+              </div>
+            )}
+          </div>
+
           <div className="space-y-2">
             <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">الفترة الزمنية</label>
             <div className="grid grid-cols-2 gap-2">
