@@ -100,7 +100,7 @@ export const AppLockScreen: React.FC = () => {
 
   return (
     <div 
-      className="fixed inset-0 z-[120] flex flex-col items-center justify-between bg-zinc-50 dark:bg-[#0B1121] text-zinc-900 dark:text-white px-4 py-8 select-none transition-colors duration-300 overflow-y-auto"
+      className="fixed inset-0 z-[120] flex flex-col items-center justify-between bg-[var(--app-bg,#F4F7FB)] dark:bg-[var(--app-bg-dark,#0B1121)] text-zinc-900 dark:text-white px-4 py-8 select-none transition-colors duration-300 overflow-y-auto"
       dir="rtl"
     >
       {/* Background Subtle Pattern */}

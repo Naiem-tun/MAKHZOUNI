@@ -443,16 +443,51 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 mt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 mt-1">
               {[
-                { id: 'harbor', name: 'أزرق الميناء (Harbor)', desc: 'بحري فخم مميز', color: '#134C65' },
-                { id: 'navy', name: 'الأزرق البترولي', desc: 'الرسمي الكلاسيكي', color: '#023859' },
-                { id: 'sage', name: 'أخضر المريمية (Sage)', desc: 'طبيعي مهدئ للعين', color: '#4E635E' },
-                { id: 'slate', name: 'الأسود الفاخر', desc: 'طابع مينيمال', color: '#18181B' },
-                { id: 'copper', name: 'النحاسي الفاخر (Copper)', desc: 'نحاسي عتيق دافئ', color: '#B52D02' },
+                { 
+                  id: 'navy', 
+                  name: 'الأزرق البترولي', 
+                  desc: 'الرسمي الكلاسيكي', 
+                  color: '#023859', 
+                  bgLight: '#F4F7FB',
+                  bgDark: '#0B1121' 
+                },
+                { 
+                  id: 'harbor', 
+                  name: 'أزرق الميناء (Harbor)', 
+                  desc: 'البحري الفخم', 
+                  color: '#134C65', 
+                  bgLight: '#F0F4F8',
+                  bgDark: '#0A131C' 
+                },
+                { 
+                  id: 'sage', 
+                  name: 'أخضر المريمية (Sage)', 
+                  desc: 'طبيعي مهدئ للعين', 
+                  color: '#4E635E', 
+                  bgLight: '#F2F5F3',
+                  bgDark: '#0E1513' 
+                },
+                { 
+                  id: 'charcoal', 
+                  name: 'الكحلي الفحمي (Charcoal)', 
+                  desc: 'مينيمال عصري ونظيف', 
+                  color: '#1E2837', 
+                  bgLight: '#F7F8FA',
+                  bgDark: '#0F1115' 
+                },
+                { 
+                  id: 'amethyst', 
+                  name: 'البنفسجي الدافئ (Amethyst)', 
+                  desc: 'تقني هادئ ومتناسق', 
+                  color: '#552D77', 
+                  bgLight: '#F7F4F9',
+                  bgDark: '#130F19' 
+                },
               ].map((theme) => {
                 const currentTheme = settings.colorTheme || 'navy';
-                const isSelected = currentTheme === theme.id || (theme.id === 'copper' && currentTheme === 'amber');
+                const isSelected = currentTheme === theme.id;
                 return (
                   <button
                     key={theme.id}
@@ -461,17 +496,34 @@ export default function SettingsPage() {
                       updateSettings({ colorTheme: theme.id as any });
                       showToast(`تم تفعيل: ${theme.name}`, 'info');
                     }}
-                    className={`relative flex items-center gap-2 p-2.5 rounded-xl border text-right transition-all cursor-pointer active:scale-95 ${
+                    className={`relative flex items-center gap-2.5 p-3 rounded-xl border text-right transition-all cursor-pointer active:scale-95 ${
                       isSelected
                         ? 'border-brand-600 bg-white dark:bg-zinc-800 shadow-sm ring-2 ring-brand-500/20'
                         : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
                     }`}
                   >
+                    {/* Dual Swatch Circle: Primary Color + App Background Color */}
                     <div 
-                      className="w-5 h-5 rounded-full shrink-0 shadow-xs border border-white/30 flex items-center justify-center transition-transform"
-                      style={{ backgroundColor: theme.color }}
+                      className="w-7 h-7 rounded-full shrink-0 relative overflow-hidden border border-zinc-200 dark:border-zinc-700 shadow-xs flex items-center justify-center"
+                      title={`${theme.name} - الأساسي والخلفية`}
                     >
-                      {isSelected && <Check size={12} strokeWidth={3} className="text-white" />}
+                      <div className="absolute inset-0 flex">
+                        <div 
+                          className="w-1/2 h-full" 
+                          style={{ backgroundColor: theme.color }} 
+                          title="اللون الأساسي"
+                        />
+                        <div 
+                          className="w-1/2 h-full border-r border-black/10 dark:border-white/10" 
+                          style={{ backgroundColor: settings.darkMode ? theme.bgDark : theme.bgLight }} 
+                          title="خلفية التطبيق"
+                        />
+                      </div>
+                      {isSelected && (
+                        <div className="relative z-10 w-4 h-4 rounded-full bg-black/50 backdrop-blur-xs flex items-center justify-center">
+                          <Check size={11} strokeWidth={3} className="text-white" />
+                        </div>
+                      )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">

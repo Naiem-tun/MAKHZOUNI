@@ -32,9 +32,13 @@
   --color-add-bg: #ECFDF5;
   --color-add-text: #059669;
   --color-add-border: #D1FAE5;
+  --color-app-bg: var(--app-bg, #F4F7FB);
+  --color-app-bg-dark: var(--app-bg-dark, #0B1121);
 }
 
 :root, [data-theme="navy"] {
+  --app-bg: #F4F7FB;
+  --app-bg-dark: #0B1121;
   --brand-950: #011C40;
   --brand-900: #023859;
   --brand-800: #052659;
@@ -48,6 +52,8 @@
 }
 
 [data-theme="harbor"] {
+  --app-bg: #F0F4F8;
+  --app-bg-dark: #0A131C;
   --brand-950: #0b1726;
   --brand-900: #152740; /* MIDNIGHT TIDE */
   --brand-800: #0f374a;
@@ -57,46 +63,52 @@
   --brand-400: #679fa6;
   --brand-300: #98c2c8;
   --brand-200: #cce3e6;
-  --brand-100: #F0ECDA; /* DRIFTWOOD BEIGE */
+  --brand-100: #e2eff5;
 }
 
 [data-theme="sage"] {
-  --brand-950: #202b28;
-  --brand-900: #33433e;
-  --brand-800: #4E635E; /* OCEAN DEEP */
-  --brand-700: #62766f;
-  --brand-600: #818C78; /* BIG RIVER */
-  --brand-500: #93a08b;
-  --brand-400: #A6B49E; /* SIREN SONG */
-  --brand-300: #c2cdbc;
-  --brand-200: #dde3d8;
-  --brand-100: #E2E0C8; /* VILLA NOVA */
+  --app-bg: #F2F5F3;
+  --app-bg-dark: #0E1513;
+  --brand-950: #1a2421;
+  --brand-900: #2a3733;
+  --brand-800: #3c4c47;
+  --brand-700: #4E635E; /* SAGE MAIN */
+  --brand-600: #627771;
+  --brand-500: #7c918b;
+  --brand-400: #9daea9;
+  --brand-300: #bfccc8;
+  --brand-200: #dee6e3;
+  --brand-100: #edf3f0;
 }
 
-[data-theme="slate"] {
-  --brand-950: #09090b;
-  --brand-900: #18181b;
-  --brand-800: #27272a;
-  --brand-700: #3f3f46;
-  --brand-600: #52525b;
-  --brand-500: #71717a;
-  --brand-400: #a1a1aa;
-  --brand-300: #d4d4d8;
-  --brand-200: #e4e4e7;
-  --brand-100: #f4f4f5;
+[data-theme="charcoal"], [data-theme="slate"] {
+  --app-bg: #F7F8FA;
+  --app-bg-dark: #0F1115;
+  --brand-950: #0b1118;
+  --brand-900: #131b26;
+  --brand-800: #1c2635;
+  --brand-700: #253347;
+  --brand-600: #354761;
+  --brand-500: #4c6282;
+  --brand-400: #6c81a1;
+  --brand-300: #97a8c0;
+  --brand-200: #c9d4e3;
+  --brand-100: #ebf0f7;
 }
 
-[data-theme="copper"], [data-theme="amber"] {
-  --brand-950: #270902; /* ROOT BREW */
-  --brand-900: #4A0D02; /* LONELY CHOCOLATE */
-  --brand-800: #621402;
-  --brand-700: #7E1902; /* NEW KENYAN COPPER */
-  --brand-600: #B52D02; /* CRIMSON VELVET SUNSET */
-  --brand-500: #D65505; /* EXUBERANCE */
-  --brand-400: #EA771E;
-  --brand-300: #F79E3A; /* CHAT ORANGE */
-  --brand-200: #FBC974;
-  --brand-100: #FDDF84; /* SWEDISH YELLOW */
+[data-theme="amethyst"], [data-theme="copper"], [data-theme="amber"] {
+  --app-bg: #F7F4F9;
+  --app-bg-dark: #130F19;
+  --brand-950: #170d22;
+  --brand-900: #28153b;
+  --brand-800: #3b1e56;
+  --brand-700: #522977;
+  --brand-600: #6c379c;
+  --brand-500: #884bc0;
+  --brand-400: #a76fd5;
+  --brand-300: #c89ee8;
+  --brand-200: #e6cff7;
+  --brand-100: #f5eafa;
 }
 
 @layer utilities {
@@ -110,11 +122,12 @@
 }
 
 html, body {
-  background-color: #F4F7FB;
+  background-color: var(--app-bg, #F4F7FB);
+  transition: background-color 0.3s ease;
 }
 
 html.dark, html.dark body {
-  background-color: #0B1121;
+  background-color: var(--app-bg-dark, #0B1121);
 }
 
 @media print {

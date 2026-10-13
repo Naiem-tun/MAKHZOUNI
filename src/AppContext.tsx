@@ -47,6 +47,15 @@ const defaultSettings: UserSettings = {
   showFinancials: true,
 };
 
+const normalizeTheme = (theme?: string): 'navy' | 'harbor' | 'sage' | 'charcoal' | 'amethyst' => {
+  if (!theme) return 'navy';
+  if (['slate', 'copper', 'amber'].includes(theme)) return 'navy';
+  if (['navy', 'harbor', 'sage', 'charcoal', 'amethyst'].includes(theme)) {
+    return theme as 'navy' | 'harbor' | 'sage' | 'charcoal' | 'amethyst';
+  }
+  return 'navy';
+};
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -63,7 +72,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Apply dark mode and language immediately
       if (parsed.darkMode) document.documentElement.classList.add('dark');
       if (parsed.language) i18n.changeLanguage(parsed.language);
-      document.documentElement.setAttribute('data-theme', parsed.colorTheme || 'navy');
+      const normalizedTheme = normalizeTheme(parsed.colorTheme);
+      parsed.colorTheme = normalizedTheme;
+      document.documentElement.setAttribute('data-theme', normalizedTheme);
       return parsed;
     }
     document.documentElement.setAttribute('data-theme', 'navy');
@@ -72,7 +83,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Keep theme attribute in sync
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', settings.colorTheme || 'navy');
+    const normalizedTheme = normalizeTheme(settings.colorTheme);
+    document.documentElement.setAttribute('data-theme', normalizedTheme);
   }, [settings.colorTheme]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
@@ -210,6 +222,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubscribe = onSnapshot(settingsDoc, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data() as UserSettings;
+        if (data.colorTheme) {
+          data.colorTheme = normalizeTheme(data.colorTheme);
+          document.documentElement.setAttribute('data-theme', data.colorTheme);
+        }
         setSettings(data);
         localStorage.setItem('user_settings', JSON.stringify(data));
         i18n.changeLanguage(data.language);

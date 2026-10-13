@@ -428,7 +428,7 @@ function AppContent() {
 
       {!loading && user && (
         <div
-          className={`flex flex-col bg-[#F4F7FB] dark:bg-[#0B1121] font-sans transition-colors duration-300 relative min-h-[100dvh]`}
+          className={`flex flex-col bg-[var(--app-bg,#F4F7FB)] dark:bg-[var(--app-bg-dark,#0B1121)] font-sans transition-colors duration-300 relative min-h-[100dvh]`}
         >
           <AppHeader setMobileMenuOpen={setMobileMenuOpen} activeTab={activeTab} setActiveTab={setActiveTab} />
 
