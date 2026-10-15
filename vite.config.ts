@@ -16,7 +16,7 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['index.html', 'icon.svg'],
+        includeAssets: ['icon.svg'],
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
           cleanupOutdatedCaches: true,
@@ -89,6 +89,7 @@ export default defineConfig(({mode}) => {
     ],
     build: {
       target: 'es2022',
+      emptyOutDir: true,
     },
     define: {
       '__APP_VERSION__': JSON.stringify(packageJson.version),
