@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { auth, setupRecaptcha, signInWithGoogle } from '../../lib/firebase';
 import { signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
 import { useTranslation } from 'react-i18next';
-import { Phone, ArrowRight, Package, Globe, ShieldCheck } from 'lucide-react';
+import { Phone, ArrowRight, Package, Globe, ShieldCheck, Copy, Check, ExternalLink, AlertTriangle } from 'lucide-react';
 
 export function Login() {
   const { t } = useTranslation();
@@ -13,6 +13,14 @@ export function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [isUnauthorizedDomain, setIsUnauthorizedDomain] = useState(false);
+  const [copiedDomain, setCopiedDomain] = useState(false);
+
+  const handleCopyCurrentDomain = () => {
+    navigator.clipboard.writeText(window.location.hostname);
+    setCopiedDomain(true);
+    setTimeout(() => setCopiedDomain(false), 2500);
+  };
   const recaptchaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -140,10 +148,12 @@ export function Login() {
                   try {
                     setLoading(true);
                     setError(null);
+                    setIsUnauthorizedDomain(false);
                     await signInWithGoogle();
                   } catch (err: any) {
                     console.error("Google Sign-in Error:", err);
                     if (err.code === 'auth/unauthorized-domain') {
+                      setIsUnauthorizedDomain(true);
                       setError(t('auth_domain_error'));
                     } else if (err.code === 'auth/popup-closed-by-user') {
                       setError(t('popup_closed_error'));
@@ -206,9 +216,50 @@ export function Login() {
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="mt-6 rounded-lg bg-red-50 p-4 text-center text-sm font-medium text-red-600 dark:bg-red-900/20 dark:text-red-400 border border-red-100 dark:border-red-900/30"
+            className="mt-6 rounded-lg bg-red-50 p-4 text-sm font-medium text-red-600 dark:bg-red-900/20 dark:text-red-400 border border-red-100 dark:border-red-900/30 text-right"
           >
-            {error}
+            <div className="flex items-start gap-2">
+              <AlertTriangle size={18} className="shrink-0 mt-0.5 text-red-600 dark:text-red-400" />
+              <div className="space-y-2 w-full">
+                <p className="font-bold">{error}</p>
+                {isUnauthorizedDomain && (
+                  <div className="space-y-2 pt-1 text-xs text-zinc-700 dark:text-zinc-300">
+                    <p>
+                      للسماح بالدخول عبر Google، يجب إضافة نطاق التطبيق الحالي إلى قائمة النطاقات المصرح بها (Authorized domains) في إعدادات Firebase:
+                    </p>
+                    <div className="flex items-center justify-between gap-2 bg-white dark:bg-zinc-800 p-2 rounded border border-zinc-200 dark:border-zinc-700 font-mono text-[11px] text-zinc-800 dark:text-zinc-200">
+                      <span className="truncate" dir="ltr">{window.location.hostname}</span>
+                      <button
+                        type="button"
+                        onClick={handleCopyCurrentDomain}
+                        className="shrink-0 flex items-center gap-1 px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-200 text-xs font-sans font-bold transition-colors"
+                      >
+                        {copiedDomain ? (
+                          <>
+                            <Check size={12} className="text-emerald-600" />
+                            <span>تم النسخ</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={12} />
+                            <span>نسخ</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    <a
+                      href="https://console.firebase.google.com/project/gen-lang-client-0031511633/authentication/settings"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-700 dark:text-brand-400 hover:underline pt-1"
+                    >
+                      <ExternalLink size={13} />
+                      فتح إعدادات النطاقات في Firebase Console
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
           </motion.div>
         )}
       </motion.div>

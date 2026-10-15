@@ -7,6 +7,7 @@ import {
   Package, 
   AlertTriangle, 
   TrendingUp, 
+  TrendingDown,
   Wallet, 
   Plus, 
   ScanBarcode,
@@ -37,6 +38,8 @@ import { handleFirestoreError } from '../lib/utils';
 import { logAudit } from '../lib/auditLogger';
 import { PrintPurchasesModal } from '../components/dashboard/PrintPurchasesModal';
 import { DashboardCarousel } from '../components/dashboard/DashboardCarousel';
+import { PurchaseVarianceModal } from '../components/dashboard/PurchaseVarianceModal';
+import { calculatePurchaseVariance } from '../lib/purchaseVarianceCalculator';
 
 import { useTranslation } from 'react-i18next';
 const Dashboard = memo(() => {
@@ -88,7 +91,12 @@ const Dashboard = memo(() => {
   const [showDeletePurchases, setShowDeletePurchases] = useState(false);
   const [deletingPurchaseId, setDeletingPurchaseId] = useState<string | null>(null);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [isVarianceModalOpen, setIsVarianceModalOpen] = useState(false);
   const [expandedPurchaseGroups, setExpandedPurchaseGroups] = useState<Record<string, boolean>>({});
+
+  const purchaseVarianceAnalysis = useMemo(() => {
+    return calculatePurchaseVariance(products, allPurchases);
+  }, [products, allPurchases]);
 
   const togglePurchaseGroup = (groupKey: string) => {
     setExpandedPurchaseGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }));
@@ -449,6 +457,46 @@ const Dashboard = memo(() => {
         </div>
       </div>
 
+      {/* SECTION 1.5: PURCHASE PRICE VARIANCE CARD (STANDALONE CARD) */}
+      <div 
+        onClick={() => setIsVarianceModalOpen(true)}
+        className="cursor-pointer select-none rounded-xl p-5 border border-rose-200/80 dark:border-rose-900/40 bg-gradient-to-r from-rose-50/80 via-white to-rose-50/40 dark:from-rose-950/20 dark:via-zinc-900 dark:to-rose-950/10 shadow-sm hover:shadow-md transition-all duration-200 group relative overflow-hidden"
+      >
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-xl bg-rose-100 dark:bg-rose-900/40 border border-rose-200 dark:border-rose-800/60 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0 group-hover:scale-105 transition-transform">
+              <TrendingDown size={22} />
+            </div>
+            <div className="space-y-0.5 text-right">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-rose-700 dark:text-rose-400 uppercase tracking-wider">
+                  إجمالي خسارة الشراء في المخزون الحالي
+                </span>
+                {purchaseVarianceAnalysis.affectedProductsCount > 0 && (
+                  <span className="text-[10px] font-bold text-rose-600 dark:text-rose-300 bg-rose-100 dark:bg-rose-900/50 px-2 py-0.5 rounded-full">
+                    {purchaseVarianceAnalysis.affectedProductsCount} أصناف متأثرة
+                  </span>
+                )}
+              </div>
+              <div className="text-2xl md:text-3xl font-black font-mono tabular-nums text-rose-600 dark:text-rose-400 tracking-tight">
+                {!showFinancials ? '••••••' : formatCurrency(purchaseVarianceAnalysis.totalPurchasesLoss, settings.currency, language)}
+              </div>
+              <div className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 pt-0.5">
+                <span>توفير الأرخص (للعلم):</span>
+                <span className="font-mono tabular-nums font-bold text-emerald-600 dark:text-emerald-400">
+                  {!showFinancials ? '••••••' : formatCurrency(purchaseVarianceAnalysis.totalCheapestBatchSavings, settings.currency, language)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1 text-xs font-bold text-rose-600 dark:text-rose-400 bg-white/80 dark:bg-zinc-800/80 border border-rose-200 dark:border-rose-800/60 px-3 py-1.5 rounded-lg shrink-0 group-hover:bg-rose-600 group-hover:text-white transition-colors">
+            <span>التفاصيل</span>
+            <ChevronDown size={14} className="-rotate-90 rtl:rotate-90 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 transition-transform" />
+          </div>
+        </div>
+      </div>
+
       <div className="px-0.5 space-y-6 mt-6">
         {/* SECTION 2: FINANCIAL SUMMARY (COMPACT GRID) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -615,6 +663,13 @@ const Dashboard = memo(() => {
         onClose={() => setIsPrintModalOpen(false)}
         purchases={allPurchases}
         storeName={settings.storeName || 'مخزوني'}
+      />
+      <PurchaseVarianceModal
+        isOpen={isVarianceModalOpen}
+        onClose={() => setIsVarianceModalOpen(false)}
+        analysis={purchaseVarianceAnalysis}
+        currency={settings.currency}
+        language={language}
       />
     </div>
   );
