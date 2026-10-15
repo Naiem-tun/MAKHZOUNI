@@ -179,9 +179,6 @@ export interface Transaction {
   supplierId?: string;
   supplierName?: string;
   date: any;
-  barcode?: string;
-  priceHikeImpact?: number;
-  previousPrice?: number;
 }
 
 export interface Expense {
@@ -247,36 +244,4 @@ export interface Invoice {
   totalProfit: number;
   deductedFrom?: 'warehouse' | 'cashier' | 'both' | 'none';
   createdAt: any;
-}
-
-export interface InventoryLayer {
-  qty: number;
-  cost: number;
-  date?: any;
-}
-
-export interface PriceHikeItem {
-  productId: string;
-  productName: string;
-  barcode: string;
-  batchCost: number;
-  latestCost: number;
-  sold: number;
-  loss: number;
-  matchType: 'barcode' | 'id' | 'name';
-}
-
-export interface PriceHikeSummary {
-  totalBookProfit: number;
-  totalPriceHikeLoss: number;
-  realProfit: number;
-  priceHikeSinceLastJard?: number;
-  topImpactedItems: PriceHikeItem[];
-  isEstimatedOpening?: boolean;
-}
-
-export interface ActivePriceHikeCounter {
-  currentAmount: number;
-  lastResetDate?: any;
-  lastResetReportId?: string;
 }

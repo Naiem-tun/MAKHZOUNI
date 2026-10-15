@@ -37,8 +37,6 @@ import { handleFirestoreError } from '../lib/utils';
 import { logAudit } from '../lib/auditLogger';
 import { PrintPurchasesModal } from '../components/dashboard/PrintPurchasesModal';
 import { DashboardCarousel } from '../components/dashboard/DashboardCarousel';
-import { MonthlyPriceHikeCard } from '../components/dashboard/MonthlyPriceHikeCard';
-import { PRICE_HIKE_COUNTER_DOC_PATH } from '../lib/priceHikeTracker';
 
 import { useTranslation } from 'react-i18next';
 const Dashboard = memo(() => {
@@ -398,12 +396,6 @@ const Dashboard = memo(() => {
         details: `حذف عملية شراء بقيمة: ${purchase.amount || 0}`,
         timestamp: new Date(),
       });
-
-      // 5. Reverse price hike impact if present
-      if (purchase.priceHikeImpact && Number(purchase.priceHikeImpact) > 0) {
-        const counterRef = doc(db, PRICE_HIKE_COUNTER_DOC_PATH(user.uid));
-        batch.set(counterRef, { currentAmount: increment(-Number(purchase.priceHikeImpact)), lastUpdated: new Date() }, { merge: true });
-      }
       
       // Commit the transaction
       await syncTracker.track(batch.commit());
@@ -458,9 +450,6 @@ const Dashboard = memo(() => {
       </div>
 
       <div className="px-0.5 space-y-6 mt-6">
-        {/* PRICE HIKE COUNTER SINCE LAST INVENTORY */}
-        <MonthlyPriceHikeCard />
-
         {/* SECTION 2: FINANCIAL SUMMARY (COMPACT GRID) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[

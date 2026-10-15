@@ -36,14 +36,6 @@ import { DamageModal } from '../components/inventory/DamageModal';
 import { InventoryItem } from '../components/inventory/InventoryItem';
 import { useTranslation } from 'react-i18next';
 import { logAudit } from '../lib/auditLogger';
-import { 
-  evaluateItemPriceHike, 
-  calculatePriceHikeSummary, 
-  PRICE_HIKE_COUNTER_DOC_PATH, 
-  EvaluatedItemResult 
-} from '../lib/priceHikeTracker';
-import { PriceHikeReportCard } from '../components/inventory/PriceHikeReportCard';
-import { InventoryLayer } from '../types';
 
 
 
@@ -110,9 +102,6 @@ export default function Inventory() {
   const [loading, setLoading] = useState(products.length === 0);
   
   const [currentPage, setCurrentPage] = useState(1);
-  const [latestReport, setLatestReport] = useState<any>(null);
-  const [allPurchases, setAllPurchases] = useState<any[]>([]);
-  const [activeCounterAmount, setActiveCounterAmount] = useState<number>(0);
 
   const groupedProducts = useMemo(() => {
     const groups: Record<string, any> = {};
@@ -152,100 +141,6 @@ export default function Inventory() {
 
     return Object.values(groups);
   }, [products]);
-
-  const priceHikeCalculation = useMemo(() => {
-    if (!groupedProducts || groupedProducts.length === 0) return null;
-
-    const lastJardTime = latestReport ? safeParseDate(latestReport.date).getTime() : 0;
-    
-    // 1. Filter purchases since last Jard timestamp strictly
-    const periodPurchases = allPurchases.filter(p => {
-      const pTime = safeParseDate(p.date).getTime();
-      return pTime > lastJardTime;
-    });
-
-    // 2. Build map of previous report items for opening balance
-    const reportItemsMap = new Map<string, any>();
-    let hasEstimatedOpening = false;
-
-    if (latestReport && Array.isArray(latestReport.items)) {
-      latestReport.items.forEach((it: any) => {
-        const barcodeKey = (it.barcode || '').trim().toLowerCase();
-        const nameKey = (it.productName || '').trim().toLowerCase();
-        if (barcodeKey) reportItemsMap.set(barcodeKey, it);
-        if (nameKey) reportItemsMap.set(nameKey, it);
-      });
-    } else {
-      hasEstimatedOpening = true;
-    }
-
-    const evaluatedResults: EvaluatedItemResult[] = [];
-
-    groupedProducts.forEach((group: any) => {
-      const actualQty = inventoryData[group.id];
-      const groupFinalQty = actualQty !== undefined ? Number(actualQty) : Number(group.quantity || 0);
-
-      const barcodeKey = (group.barcode || '').trim().toLowerCase();
-      const nameKey = (group.name || '').trim().toLowerCase();
-      
-      let matchedReportItem = barcodeKey ? reportItemsMap.get(barcodeKey) : null;
-      let matchType: 'barcode' | 'id' | 'name' = 'barcode';
-
-      if (!matchedReportItem && nameKey) {
-        matchedReportItem = reportItemsMap.get(nameKey);
-        matchType = 'name';
-      }
-
-      let openingLayers: InventoryLayer[] = [];
-      if (matchedReportItem?.remainingLayers && Array.isArray(matchedReportItem.remainingLayers) && matchedReportItem.remainingLayers.length > 0) {
-        openingLayers = matchedReportItem.remainingLayers;
-      } else if (matchedReportItem) {
-        openingLayers = [{
-          qty: cleanQuantity(matchedReportItem.quantityAfter || 0),
-          cost: roundMoney(matchedReportItem.purchasePrice || group.purchasePrice || 0)
-        }];
-        hasEstimatedOpening = true;
-      } else {
-        openingLayers = [{
-          qty: cleanQuantity(group.quantity || 0),
-          cost: roundMoney(group.purchasePrice || 0)
-        }];
-        hasEstimatedOpening = true;
-      }
-
-      // Filter period purchases for this group
-      const groupOriginalIds = new Set(group.originalProducts?.map((p: any) => p.id) || [group.id]);
-      const groupPurchases = periodPurchases.filter(p => {
-        if (group.barcode && p.barcode && p.barcode.trim() === group.barcode.trim()) return true;
-        if (p.productId && groupOriginalIds.has(p.productId)) return true;
-        if (p.productName && p.productName.trim().toLowerCase() === nameKey) return true;
-        return false;
-      });
-
-      const evalResult = evaluateItemPriceHike({
-        productId: group.id,
-        productName: group.name,
-        barcode: group.barcode || '',
-        openingLayers,
-        periodPurchases: groupPurchases,
-        quantityBefore: Number(group.quantity || 0),
-        quantityAfter: groupFinalQty,
-        sellingPrice: Number(group.sellingPrice || 0),
-        fallbackPurchasePrice: Number(group.purchasePrice || 0),
-        matchType
-      });
-
-      evaluatedResults.push(evalResult);
-    });
-
-    const summary = calculatePriceHikeSummary(
-      evaluatedResults,
-      activeCounterAmount,
-      hasEstimatedOpening
-    );
-
-    return { evaluatedResults, summary };
-  }, [groupedProducts, inventoryData, latestReport, allPurchases, activeCounterAmount]);
 
   const ITEMS_PER_PAGE = 20;
 
@@ -360,8 +255,6 @@ export default function Inventory() {
       const surplusQuantity = isSurplus ? Math.abs(sold) : 0;
       const surplusCostValue = isSurplus ? roundMoney(surplusQuantity * purchasePrice) : 0;
 
-      const evalItem = priceHikeCalculation?.evaluatedResults.find(r => r.productId === group.id);
-
       return {
         productName: group.name, 
         category: group.category,
@@ -375,15 +268,10 @@ export default function Inventory() {
         remainingValue,
         isSurplus,
         surplusQuantity,
-        surplusCostValue,
-        remainingLayers: evalItem?.remainingLayers || [],
-        loss: evalItem?.loss || 0,
-        latestCost: evalItem?.latestCost || purchasePrice,
-        batchCost: evalItem?.batchCost || purchasePrice,
-        matchType: evalItem?.matchType || 'barcode'
+        surplusCostValue
       };
     });
-  }, [groupedProducts, inventoryData, priceHikeCalculation]);
+  }, [groupedProducts, inventoryData]);
 
   const handleClearInventory = () => {
     if (Object.keys(inventoryData).length === 0 && Object.keys(checkedProducts).length === 0) return;
@@ -453,41 +341,14 @@ export default function Inventory() {
       const reports = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      })).sort((a: any, b: any) => safeParseDate(b.date).getTime() - safeParseDate(a.date).getTime());
+      })).sort((a: any, b: any) => (b.date?.seconds || 0) - (a.date?.seconds || 0));
       setHistoryReports(reports);
-      if (reports.length > 0) {
-        setLatestReport(reports[0]);
-      }
     } catch (err) {
       console.error("Fetch history failed:", err);
     } finally {
       setLoadingHistory(false);
     }
   };
-
-  useEffect(() => {
-    if (!user) return;
-    fetchHistory();
-
-    const purchasesPath = `users/${user.uid}/purchases`;
-    const unsubPurchases = onSnapshot(collection(db, purchasesPath), (snap) => {
-      setAllPurchases(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    }, (err) => console.error("Purchases listener error in Inventory:", err));
-
-    const counterRef = doc(db, PRICE_HIKE_COUNTER_DOC_PATH(user.uid));
-    const unsubCounter = onSnapshot(counterRef, (snap) => {
-      if (snap.exists()) {
-        setActiveCounterAmount(Number(snap.data().currentAmount) || 0);
-      } else {
-        setActiveCounterAmount(0);
-      }
-    }, (err) => console.error("Counter listener error in Inventory:", err));
-
-    return () => {
-      unsubPurchases();
-      unsubCounter();
-    };
-  }, [user]);
 
   useEffect(() => {
     if (showHistoryModal) {
@@ -625,7 +486,6 @@ export default function Inventory() {
           type: 'set' | 'update' | 'delete';
           ref: any;
           data?: any;
-          options?: { merge?: boolean };
         }> = [];
         
         let totalRevenue = 0;
@@ -685,7 +545,6 @@ export default function Inventory() {
             surplusDetails.push(`${group.name}: المسجل (${group.quantity || 0}) -> الفعلي (${groupFinalQty}) [زيادة غير مفسرة: +${surplusQuantity} بقيمة تكلفة ${surplusCostValue}]`);
           }
           
-          const evalItem = priceHikeCalculation?.evaluatedResults.find(r => r.productId === group.id);
           items.push({ 
             productName: group.name, 
             category: group.category,
@@ -699,12 +558,7 @@ export default function Inventory() {
             remainingValue: roundMoney(groupRemainingValue),
             isSurplus,
             surplusQuantity,
-            surplusCostValue: roundMoney(surplusCostValue),
-            remainingLayers: evalItem?.remainingLayers || [],
-            loss: evalItem?.loss || 0,
-            latestCost: evalItem?.latestCost || roundMoney(group.purchasePrice || 0),
-            batchCost: evalItem?.batchCost || roundMoney(group.purchasePrice || 0),
-            matchType: evalItem?.matchType || 'barcode'
+            surplusCostValue: roundMoney(surplusCostValue)
           });
           
           if (actualQty !== undefined) {
@@ -765,22 +619,7 @@ export default function Inventory() {
             damageItems, // Save damage items
             totalDamageLoss, // Save total damage loss
             type: 'inventory',
-            expensesDeducted: shouldDeductExpenses,
-            priceHikeSummary: priceHikeCalculation?.summary || null,
-            priceHikeSinceLastJard: activeCounterAmount
-          }
-        });
-
-        // Save last inventory audit date for optional period filtering without wiping the cumulative counter
-        const counterRef = doc(db, PRICE_HIKE_COUNTER_DOC_PATH(user.uid));
-        writeOperations.push({
-          type: 'set',
-          ref: counterRef,
-          options: { merge: true },
-          data: {
-            lastResetDate: auditTime,
-            lastResetReportId: reportRef.id,
-            priceHikeAtAudit: activeCounterAmount
+            expensesDeducted: shouldDeductExpenses
           }
         });
 
@@ -865,9 +704,7 @@ export default function Inventory() {
           totalExpenses: roundMoney(finalExpensesAmount),
           netProfit: roundMoney(netProfit),
           items,
-          expensesDeducted: shouldDeductExpenses,
-          priceHikeSummary: priceHikeCalculation?.summary || null,
-          priceHikeSinceLastJard: activeCounterAmount
+          expensesDeducted: shouldDeductExpenses
         };
         
         setInventoryData({});
@@ -1237,13 +1074,6 @@ export default function Inventory() {
           </button>
         </div>
       </div>
-
-      {/* Live Price Hike Impact Summary when counting */}
-      {Object.keys(inventoryData).length > 0 && priceHikeCalculation?.summary && (
-        <div className="px-2">
-          <PriceHikeReportCard summary={priceHikeCalculation.summary} />
-        </div>
-      )}
 
       {/* Product List */}
       <div className="grid grid-cols-1 gap-2 px-2">

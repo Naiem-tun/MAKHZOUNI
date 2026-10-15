@@ -19,7 +19,6 @@ import { PriceNegotiationModal } from '../components/products/PriceNegotiationMo
 import { SmartPurchasePopup } from '../components/products/SmartPurchasePopup';
 import { PriceAuditModal } from '../components/products/PriceAuditModal';
 import { auditAllProducts } from '../lib/priceAuditor';
-import { calculatePurchaseImpact, PRICE_HIKE_COUNTER_DOC_PATH } from '../lib/priceHikeTracker';
 import { deleteLocalImage, saveLocalImage } from '../lib/localImages';
 import { uploadCloudImage, deleteCloudImage } from '../lib/cloudImages';
 import { compressImage } from '../lib/imageCompressor';
@@ -172,19 +171,13 @@ export default function Products() {
       const purchasesPath = `users/${user.uid}/purchases`;
       const purchaseRef = doc(collection(db, purchasesPath));
 
-      const previousPrice = Number(quantityProduct.purchasePrice || quantityProduct.costPrice || 0);
-      const impact = calculatePurchaseImpact(addedQty, piecePrice, previousPrice);
-
       // Record the purchase transaction
       batch.set(purchaseRef, {
         productId: quantityProduct.id,
         productName: quantityProduct.name,
-        barcode: quantityProduct.barcode || quantityProduct.barcode2 || '',
         qtyAdded: addedQty,
         amount: purchaseAmount,
         price: piecePrice,
-        previousPrice: previousPrice > 0 ? previousPrice : null,
-        priceHikeImpact: impact,
         boxPrice: boxPrice,
         numBoxes,
         extraPieces,
@@ -193,11 +186,6 @@ export default function Products() {
         supplierName: activeSupplier?.name || null,
         date: Timestamp.now(),
       });
-
-      if (impact > 0) {
-        const counterRef = doc(db, PRICE_HIKE_COUNTER_DOC_PATH(user.uid));
-        batch.set(counterRef, { currentAmount: increment(impact), lastUpdated: serverTimestamp() }, { merge: true });
-      }
 
       // Update product stock
       const currentPosQty = cleanQuantity(quantityProduct.posQuantity !== undefined ? quantityProduct.posQuantity : quantityProduct.quantity);
@@ -322,47 +310,17 @@ export default function Products() {
 
         // Record initial stock as a purchase
         if (productData.quantity > 0) {
-          const currentPrice = Number(productData.purchasePrice || 0);
-          const purchaseAmount = Number((productData.quantity * currentPrice).toFixed(3));
+          const purchaseAmount = Number((productData.quantity * (productData.purchasePrice || 0)).toFixed(3));
           const purchaseRef = doc(collection(db, purchasesPath));
-
-          // Check if another product card already exists with the same barcode or same name to detect price hikes
-          const trimmedName = (productData.name || '').trim().toLowerCase();
-          const b1 = (productData.barcode || '').trim();
-          const b2 = (productData.barcode2 || '').trim();
-          const existingMatch = products.find(p => {
-            const pName = (p.name || '').trim().toLowerCase();
-            const pB1 = (p.barcode || '').trim();
-            const pB2 = (p.barcode2 || '').trim();
-            if (b1 && (pB1 === b1 || pB2 === b1)) return true;
-            if (b2 && (pB1 === b2 || pB2 === b2)) return true;
-            if (trimmedName && pName === trimmedName) return true;
-            return false;
-          });
-
-          const previousPrice = existingMatch ? Number(existingMatch.purchasePrice || existingMatch.costPrice || 0) : null;
-          const impact = (previousPrice && previousPrice > 0)
-            ? calculatePurchaseImpact(productData.quantity, currentPrice, previousPrice)
-            : 0;
-
           batch.set(purchaseRef, {
             productId: productRef.id,
             productName: productData.name,
-            barcode: productData.barcode || productData.barcode2 || '',
             qtyAdded: productData.quantity,
             amount: purchaseAmount,
-            price: currentPrice,
-            previousPrice: previousPrice && previousPrice > 0 ? previousPrice : null,
-            priceHikeImpact: impact,
             supplierId: activeSupplier?.id || null,
             supplierName: activeSupplier?.name || null,
             date: Timestamp.now(),
           });
-
-          if (impact > 0) {
-            const counterRef = doc(db, PRICE_HIKE_COUNTER_DOC_PATH(user.uid));
-            batch.set(counterRef, { currentAmount: increment(impact), lastUpdated: serverTimestamp() }, { merge: true });
-          }
 
           if (activeSupplier) {
             setActiveSupplier(prev => prev ? { ...prev, sessionTotal: (prev.sessionTotal || 0) + purchaseAmount } : null);
