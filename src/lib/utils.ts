@@ -195,6 +195,7 @@ export async function commitBatchesInChunks(
     type: 'set' | 'update' | 'delete';
     ref: any;
     data?: any;
+    options?: { merge?: boolean };
   }>,
   createBatchFn: (firestoreInstance: any) => any
 ): Promise<void> {
@@ -207,7 +208,11 @@ export async function commitBatchesInChunks(
       if (op.type === 'update') {
         batch.update(op.ref, op.data);
       } else if (op.type === 'set') {
-        batch.set(op.ref, op.data);
+        if (op.options) {
+          batch.set(op.ref, op.data, op.options);
+        } else {
+          batch.set(op.ref, op.data);
+        }
       } else if (op.type === 'delete') {
         batch.delete(op.ref);
       }

@@ -7,6 +7,7 @@ import { useAppContext } from '../../AppContext';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import * as xlsx from 'xlsx';
+import { PriceHikeReportCard } from './PriceHikeReportCard';
 
 interface InventoryReportViewProps {
   report: any;
@@ -75,6 +76,16 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
       wsData.push(["فائض مخزون غير مبرَّر (بسعر التكلفة) :", Number(surplusCostTotal) || 0]);
       wsData.push(["عدد الأصناف الفائضة :", Number(surplusCount) || 0]);
       wsData.push(["إجمالي الكمية الفائضة :", Number(surplusTotalQty) || 0]);
+    }
+    if (report.priceHikeSummary) {
+      wsData.push([]);
+      wsData.push(["تحليل أثر ارتفاع الأسعار على الأرباح (الدفعات الفعلية) :"]);
+      wsData.push(["الربح الدفتري :", Number(report.priceHikeSummary.totalBookProfit) || 0]);
+      wsData.push(["خسارة الغلاء :", Number(report.priceHikeSummary.totalPriceHikeLoss) || 0]);
+      wsData.push(["الربح الحقيقي الصافي :", Number(report.priceHikeSummary.realProfit) || 0]);
+      if (report.priceHikeSummary.priceHikeSinceLastJard !== undefined) {
+        wsData.push(["ارتفاع الأسعار منذ آخر جرد (العداد) :", Number(report.priceHikeSummary.priceHikeSinceLastJard) || 0]);
+      }
     }
     wsData.push([]);
     
@@ -358,6 +369,29 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
               <div style="font-size: 14px; color: #64748b;" dir="ltr">${formattedDate}</div>
             </div>
 
+            <!-- Price Hike Summary (Page 1 Only) -->
+            ${(isFirstPage && report.priceHikeSummary) ? `
+            <div style="border: 2px solid #fecdd3; border-radius: 12px; padding: 16px; margin-bottom: 20px; background-color: #fff1f2;">
+              <div style="font-size: 15px; font-weight: 800; color: #9f1239; margin-bottom: 12px; border-bottom: 1px solid #fecdd3; padding-bottom: 8px;">
+                تحليل أثر ارتفاع الأسعار على الأرباح (الدفعات الفعلية)
+              </div>
+              <div style="display: flex; gap: 16px;">
+                <div style="flex: 1; text-align: center;">
+                  <div style="font-size: 12px; color: #475569;">الربح الدفتري</div>
+                  <div style="font-size: 16px; font-weight: 800; font-family: monospace; color: #0f172a;" dir="ltr">${formatCurrency(report.priceHikeSummary.totalBookProfit || 0, settings.currency, settings.language)}</div>
+                </div>
+                <div style="flex: 1; text-align: center;">
+                  <div style="font-size: 12px; color: #e11d48; font-weight: bold;">خسارة الغلاء</div>
+                  <div style="font-size: 16px; font-weight: 800; font-family: monospace; color: #e11d48;" dir="ltr">-${formatCurrency(report.priceHikeSummary.totalPriceHikeLoss || 0, settings.currency, settings.language)}</div>
+                </div>
+                <div style="flex: 1; text-align: center;">
+                  <div style="font-size: 12px; color: ${report.priceHikeSummary.realProfit < 0 ? '#e11d48' : '#059669'}; font-weight: bold;">الربح الحقيقي الصافي</div>
+                  <div style="font-size: 16px; font-weight: 900; font-family: monospace; color: ${report.priceHikeSummary.realProfit < 0 ? '#e11d48' : '#059669'};" dir="ltr">${formatCurrency(report.priceHikeSummary.realProfit || 0, settings.currency, settings.language)}</div>
+                </div>
+              </div>
+            </div>
+            ` : ''}
+
             <!-- Summary Cards (Page 1 Only) -->
             ${isFirstPage ? `
             <div style="border: 2px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 24px; background-color: #f8fafc;">
@@ -552,6 +586,11 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
             {formatAppDate(safeParseDate(report.date), settings.language, t)}
           </div>
         </div>
+
+        {/* PRICE HIKE & REAL PROFIT CARD */}
+        {report.priceHikeSummary && (
+          <PriceHikeReportCard summary={report.priceHikeSummary} />
+        )}
 
         <div className="mb-8 p-5 sm:p-6 bg-white border-2 border-zinc-200 rounded-2xl shadow-sm">
           <h2 className="text-[18px] sm:text-xl font-bold text-zinc-800 mb-5 sm:mb-6 border-b pb-3">التقرير المالي الشامل</h2>
