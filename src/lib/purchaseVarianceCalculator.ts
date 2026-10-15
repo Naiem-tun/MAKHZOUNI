@@ -33,7 +33,9 @@ export interface VarianceProductGroup {
 }
 
 export interface AffectedBatchSummary {
+  productId?: string;
   productName: string;
+  barcode?: string;
   quantity: number;
   piecesPerBox: number;
   boxPrice: number;
@@ -240,7 +242,9 @@ export function calculatePurchaseVariance(
         supEntry.totalLoss += b.batchLoss;
         supEntry.affectedProductNames.add(group.name);
         supEntry.affectedBatches.push({
+          productId: b.productId,
           productName: group.name,
+          barcode: b.barcode || group.barcode,
           quantity: b.quantity,
           piecesPerBox: b.piecesPerBox,
           boxPrice: b.boxPurchasePrice,

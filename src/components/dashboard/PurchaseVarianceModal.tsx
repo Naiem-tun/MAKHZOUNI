@@ -27,17 +27,59 @@ interface PurchaseVarianceModalProps {
   language?: string;
 }
 
+export const normalizeArabic = (text: string): string => {
+  if (!text) return '';
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[\u064B-\u065F\u0670]/g, '')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/[يى]/g, 'ي')
+    .replace(/ة/g, 'ه');
+};
+
+export const matchesQuery = (text: string | undefined | null, query: string): boolean => {
+  if (!text) return false;
+  if (!query || !query.trim()) return true;
+  const normText = normalizeArabic(text);
+  const normQuery = normalizeArabic(query);
+  return normText.includes(normQuery);
+};
+
+export const createArabicHighlightRegex = (query: string): RegExp | null => {
+  if (!query || !query.trim()) return null;
+  const q = query.trim();
+  let pattern = '';
+  for (const ch of q) {
+    if (/[اأإآٱ]/.test(ch)) {
+      pattern += '[اأإآٱ]';
+    } else if (/[هة]/.test(ch)) {
+      pattern += '[هة]';
+    } else if (/[يى]/.test(ch)) {
+      pattern += '[يى]';
+    } else if (/[.*+?^${}()|[\]\\]/.test(ch)) {
+      pattern += '\\' + ch;
+    } else {
+      pattern += ch;
+    }
+  }
+  try {
+    return new RegExp(`(${pattern})`, 'gi');
+  } catch {
+    return null;
+  }
+};
+
 const highlightMatch = (text: string, query: string) => {
   if (!text || !query || !query.trim()) return text;
-  const q = query.trim();
-  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const regex = new RegExp(`(${escaped})`, 'gi');
+  const regex = createArabicHighlightRegex(query);
+  if (!regex) return text;
   const parts = text.split(regex);
   if (parts.length <= 1) return text;
   return (
     <span>
       {parts.map((part, i) =>
-        part.toLowerCase() === q.toLowerCase() ? (
+        matchesQuery(part, query) && part.length > 0 ? (
           <mark key={i} className="bg-amber-300 dark:bg-amber-500/50 text-amber-950 dark:text-amber-100 px-1 py-0.5 rounded font-black">
             {part}
           </mark>
@@ -62,6 +104,12 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
   const [onlyLossItems, setOnlyLossItems] = useState(true);
   const [expandedProductKeys, setExpandedProductKeys] = useState<Record<string, boolean>>({});
   const [expandedSupplierIds, setExpandedSupplierIds] = useState<Record<string, boolean>>({});
+  const [showAllSupplierBatches, setShowAllSupplierBatches] = useState<Record<string, boolean>>({});
+
+  const toggleShowAllSupplierBatches = (supKey: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setShowAllSupplierBatches(prev => ({ ...prev, [supKey]: !prev[supKey] }));
+  };
 
   if (!isOpen) return null;
 
@@ -73,23 +121,26 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
     setExpandedSupplierIds(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // تصفية الأصناف بالبحث وحالة الخسارة
+  // تصفية الأصناف بالبحث وحالة الخسارة مع دعم التوافق العربي الكامل
   const filteredProducts = analysis.productGroups.filter(group => {
     if (onlyLossItems && group.totalLoss <= 0.0001) return false;
     if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    const nameMatch = group.name.toLowerCase().includes(q);
-    const barcodeMatch = group.barcode?.toLowerCase().includes(q);
-    const supplierMatch = group.batches.some(b => b.supplierName.toLowerCase().includes(q));
+    const q = searchQuery.trim();
+    const nameMatch = matchesQuery(group.name, q);
+    const barcodeMatch = matchesQuery(group.barcode, q);
+    const supplierMatch = group.batches.some(b => matchesQuery(b.supplierName, q));
     return nameMatch || barcodeMatch || supplierMatch;
   });
 
   // تصفية الموردين بالبحث
   const filteredSuppliers = analysis.lossMakingSuppliers.filter(sup => {
     if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    const nameMatch = sup.supplierName.toLowerCase().includes(q);
-    const prodMatch = sup.affectedBatches.some(b => b.productName.toLowerCase().includes(q));
+    const q = searchQuery.trim();
+    const nameMatch = matchesQuery(sup.supplierName, q);
+    const prodMatch = sup.affectedBatches.some(b => 
+      matchesQuery(b.productName, q) || 
+      matchesQuery(b.barcode, q)
+    );
     return nameMatch || prodMatch;
   });
 
@@ -444,35 +495,47 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
                   </div>
 
                   {filteredSuppliers.map((supplier) => {
-                    const q = searchQuery.trim().toLowerCase();
-                    const matchingBatchesCount = q 
-                      ? supplier.affectedBatches.filter(b => b.productName.toLowerCase().includes(q)).length 
-                      : 0;
-
-                    // وضع الأصناف المطابقة للبحث في أول القائمة
-                    const sortedBatches = q
-                      ? [...supplier.affectedBatches].sort((a, b) => {
-                          const aMatch = a.productName.toLowerCase().includes(q) ? 1 : 0;
-                          const bMatch = b.productName.toLowerCase().includes(q) ? 1 : 0;
-                          return bMatch - aMatch;
-                        })
+                    const supKey = supplier.supplierId || supplier.supplierName;
+                    const q = searchQuery.trim();
+                    const isSupplierNameMatch = q ? matchesQuery(supplier.supplierName, q) : false;
+                    const matchingBatches = q 
+                      ? supplier.affectedBatches.filter(b => 
+                          matchesQuery(b.productName, q) || 
+                          matchesQuery(b.barcode, q)
+                        ) 
                       : supplier.affectedBatches;
+                    const matchingBatchesCount = matchingBatches.length;
+
+                    // إذا بحث المستخدم ووجد أصنافاً مطابقة:
+                    // نعرض حصراً تلك الأصناف المطابقة فقط (المنتج وحده) لاختصار القائمة الطويلة
+                    const isShowingAll = showAllSupplierBatches[supKey] === true;
+                    const displayedBatches = (q && matchingBatchesCount > 0 && !isShowingAll)
+                      ? matchingBatches
+                      : (q && !isSupplierNameMatch && matchingBatchesCount === 0)
+                        ? []
+                        : supplier.affectedBatches;
+
+                    const hiddenBatchesCount = supplier.affectedBatches.length - displayedBatches.length;
 
                     // فتح المورد تلقائياً إذا كان يحتوي على صنف مطابق للبحث
-                    const isExpanded = expandedSupplierIds[supplier.supplierId || supplier.supplierName] ?? (q.length > 0 && matchingBatchesCount > 0);
+                    const isExpanded = expandedSupplierIds[supKey] ?? (q.length > 0 && (matchingBatchesCount > 0 || isSupplierNameMatch));
+
+                    const displayedLoss = (q && matchingBatchesCount > 0 && !isShowingAll)
+                      ? matchingBatches.reduce((sum, b) => sum + b.batchLoss, 0)
+                      : supplier.totalLoss;
 
                     return (
                       <div 
-                        key={supplier.supplierId || supplier.supplierName}
+                        key={supKey}
                         className={cn(
                           "rounded-xl border transition-all overflow-hidden text-right",
-                          matchingBatchesCount > 0
+                          matchingBatchesCount > 0 && q
                             ? "border-amber-300 dark:border-amber-700/80 bg-white dark:bg-zinc-800/95 shadow-sm ring-1 ring-amber-400/20"
                             : "border-zinc-200 dark:border-zinc-700/80 bg-white dark:bg-zinc-800/90 shadow-xs"
                         )}
                       >
                         <div 
-                          onClick={() => toggleSupplier(supplier.supplierId || supplier.supplierName)}
+                          onClick={() => toggleSupplier(supKey)}
                           className="p-3 sm:p-4 cursor-pointer select-none flex items-center justify-between gap-3"
                         >
                           <div className="space-y-0.5">
@@ -483,25 +546,35 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
                               <h3 className="text-xs sm:text-sm font-black text-zinc-900 dark:text-white">
                                 {highlightMatch(supplier.supplierName, searchQuery)}
                               </h3>
-                              {matchingBatchesCount > 0 && (
+                              {q && matchingBatchesCount > 0 && (
                                 <span className="text-[10px] font-bold text-amber-800 dark:text-amber-200 bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 rounded-md flex items-center gap-1 border border-amber-200 dark:border-amber-800">
                                   <Sparkles size={11} className="text-amber-600" />
-                                  <span>{matchingBatchesCount} صنف مطابق</span>
+                                  <span>
+                                    {matchingBatchesCount === 1 ? 'المنتج المطلوب وحده' : `${matchingBatchesCount} أصناف مطابقة`}
+                                  </span>
                                 </span>
                               )}
                             </div>
                             <p className="text-[11px] text-zinc-500 dark:text-zinc-400 pr-9">
-                              تسبب بزيادة على <span className="font-bold text-zinc-800 dark:text-zinc-200">{supplier.affectedProductsCount}</span> صنف
+                              {q && matchingBatchesCount > 0 && !isShowingAll ? (
+                                <span>
+                                  يظهر المنتج وحده (مخفي <strong className="text-zinc-700 dark:text-zinc-300">{hiddenBatchesCount}</strong> أصناف أخرى لهذا المورد)
+                                </span>
+                              ) : (
+                                <span>
+                                  تسبب بزيادة على <span className="font-bold text-zinc-800 dark:text-zinc-200">{supplier.affectedProductsCount}</span> صنف
+                                </span>
+                              )}
                             </p>
                           </div>
 
                           <div className="flex items-center gap-3 shrink-0">
                             <div className="text-left">
                               <div className="text-[9px] font-bold text-zinc-400 uppercase tracking-tight">
-                                إجمالي الزيادة
+                                {q && matchingBatchesCount > 0 && !isShowingAll ? 'الزيادة على المنتج' : 'إجمالي الزيادة'}
                               </div>
                               <div className="text-sm sm:text-base font-black font-mono tabular-nums text-rose-600 dark:text-rose-400">
-                                {formatCurrency(supplier.totalLoss, currency, language)}
+                                {formatCurrency(displayedLoss, currency, language)}
                               </div>
                             </div>
                             <div className="h-6 w-6 rounded-md bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center text-zinc-500">
@@ -514,16 +587,22 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
                         {isExpanded && (
                           <div className="border-t border-zinc-100 dark:border-zinc-700/60 bg-zinc-50/70 dark:bg-zinc-900/60 p-3 space-y-1.5">
                             <div className="text-[10px] font-bold text-zinc-500 mb-1 flex items-center justify-between">
-                              <span>الأصناف المشتراة بأسعار أعلى من السعر الأرخص:</span>
-                              {matchingBatchesCount > 0 && (
-                                <span className="text-amber-700 dark:text-amber-400 text-[10px]">
-                                  (تم إبراز الأصناف المطابقة للبحث في الأعلى)
+                              <span>
+                                {hiddenBatchesCount > 0 
+                                  ? `المنتج المطلوب وحده (${displayedBatches.length}):`
+                                  : 'الأصناف المشتراة بأسعار أعلى من السعر الأرخص:'}
+                              </span>
+                              {hiddenBatchesCount > 0 && (
+                                <span className="text-amber-700 dark:text-amber-400 text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-900/50">
+                                  تم اختصار القائمة لإظهار المنتج وحده
                                 </span>
                               )}
                             </div>
                             <div className="space-y-1.5">
-                              {sortedBatches.map((b, idx) => {
-                                const isBatchMatch = q ? b.productName.toLowerCase().includes(q) : false;
+                              {displayedBatches.map((b, idx) => {
+                                const isBatchMatch = q 
+                                  ? matchesQuery(b.productName, q) || matchesQuery(b.barcode, q)
+                                  : false;
 
                                 return (
                                   <div 
@@ -540,9 +619,14 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
                                         <div className="font-bold text-zinc-900 dark:text-white text-[11px] sm:text-xs">
                                           {highlightMatch(b.productName, searchQuery)}
                                         </div>
+                                        {b.barcode && (
+                                          <span className="font-mono tabular-nums text-[9px] text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1 py-0.2 rounded">
+                                            {highlightMatch(b.barcode, searchQuery)}
+                                          </span>
+                                        )}
                                         {isBatchMatch && (
                                           <span className="text-[9px] font-bold text-amber-800 dark:text-amber-200 bg-amber-200/90 dark:bg-amber-900/80 px-1.5 py-0.2 rounded-md flex items-center gap-1 shrink-0">
-                                            <Sparkles size={10} /> مطابق للبحث
+                                            <Sparkles size={10} /> المنتج المطلوب
                                           </span>
                                         )}
                                       </div>
@@ -572,6 +656,28 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
                                   </div>
                                 );
                               })}
+
+                              {/* زر إظهار باقي الأصناف إذا رغب المستخدم في استعراض كل قائمة المورد */}
+                              {hiddenBatchesCount > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => toggleShowAllSupplierBatches(supKey, e)}
+                                  className="w-full py-2 px-3 text-center text-xs font-bold text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors border border-dashed border-zinc-300 dark:border-zinc-700 flex items-center justify-center gap-1.5 mt-2"
+                                >
+                                  <ChevronDown size={14} />
+                                  <span>عرض باقي أصناف هذا المورد ({hiddenBatchesCount} صنف إضافي)</span>
+                                </button>
+                              )}
+                              {isShowingAll && supplier.affectedBatches.length > displayedBatches.length && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => toggleShowAllSupplierBatches(supKey, e)}
+                                  className="w-full py-2 px-3 text-center text-xs font-bold text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors border border-dashed border-zinc-300 dark:border-zinc-700 flex items-center justify-center gap-1.5 mt-2"
+                                >
+                                  <ChevronUp size={14} />
+                                  <span>إخفاء باقي الأصناف (عرض المنتج المطلوب وحده)</span>
+                                </button>
+                              )}
                             </div>
                           </div>
                         )}

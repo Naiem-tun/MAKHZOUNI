@@ -89,6 +89,7 @@ const Dashboard = memo(() => {
   });
   const [isMovementExpanded, setIsMovementExpanded] = useState(false);
   const [showDeletePurchases, setShowDeletePurchases] = useState(false);
+  const [deletingPurchaseId, setDeletingPurchaseId] = useState<string | null>(null);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [isVarianceModalOpen, setIsVarianceModalOpen] = useState(false);
   const [isVarianceCardCollapsed, setIsVarianceCardCollapsed] = useState<boolean>(() => {
