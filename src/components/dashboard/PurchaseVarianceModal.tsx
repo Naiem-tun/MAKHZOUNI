@@ -9,7 +9,8 @@ import {
   Truck, 
   Package, 
   Info,
-  CheckCircle2
+  CheckCircle2,
+  Sparkles
 } from 'lucide-react';
 import { 
   PurchaseVarianceAnalysisResult, 
@@ -25,6 +26,28 @@ interface PurchaseVarianceModalProps {
   currency: string;
   language?: string;
 }
+
+const highlightMatch = (text: string, query: string) => {
+  if (!text || !query || !query.trim()) return text;
+  const q = query.trim();
+  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${escaped})`, 'gi');
+  const parts = text.split(regex);
+  if (parts.length <= 1) return text;
+  return (
+    <span>
+      {parts.map((part, i) =>
+        part.toLowerCase() === q.toLowerCase() ? (
+          <mark key={i} className="bg-amber-300 dark:bg-amber-500/50 text-amber-950 dark:text-amber-100 px-1 py-0.5 rounded font-black">
+            {part}
+          </mark>
+        ) : (
+          part
+        )
+      )}
+    </span>
+  );
+};
 
 export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
   isOpen,
@@ -258,7 +281,7 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
                             <div className="space-y-0.5">
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <h3 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-white leading-snug">
-                                  {item.name}
+                                  {highlightMatch(item.name, searchQuery)}
                                 </h3>
                                 {item.barcode && (
                                   <span className="font-mono tabular-nums text-[10px] text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.2 rounded">
@@ -421,25 +444,51 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
                   </div>
 
                   {filteredSuppliers.map((supplier) => {
-                    const isExpanded = expandedSupplierIds[supplier.supplierId || supplier.supplierName] ?? false;
+                    const q = searchQuery.trim().toLowerCase();
+                    const matchingBatchesCount = q 
+                      ? supplier.affectedBatches.filter(b => b.productName.toLowerCase().includes(q)).length 
+                      : 0;
+
+                    // وضع الأصناف المطابقة للبحث في أول القائمة
+                    const sortedBatches = q
+                      ? [...supplier.affectedBatches].sort((a, b) => {
+                          const aMatch = a.productName.toLowerCase().includes(q) ? 1 : 0;
+                          const bMatch = b.productName.toLowerCase().includes(q) ? 1 : 0;
+                          return bMatch - aMatch;
+                        })
+                      : supplier.affectedBatches;
+
+                    // فتح المورد تلقائياً إذا كان يحتوي على صنف مطابق للبحث
+                    const isExpanded = expandedSupplierIds[supplier.supplierId || supplier.supplierName] ?? (q.length > 0 && matchingBatchesCount > 0);
 
                     return (
                       <div 
                         key={supplier.supplierId || supplier.supplierName}
-                        className="rounded-xl border border-zinc-200 dark:border-zinc-700/80 bg-white dark:bg-zinc-800/90 shadow-xs overflow-hidden text-right"
+                        className={cn(
+                          "rounded-xl border transition-all overflow-hidden text-right",
+                          matchingBatchesCount > 0
+                            ? "border-amber-300 dark:border-amber-700/80 bg-white dark:bg-zinc-800/95 shadow-sm ring-1 ring-amber-400/20"
+                            : "border-zinc-200 dark:border-zinc-700/80 bg-white dark:bg-zinc-800/90 shadow-xs"
+                        )}
                       >
                         <div 
                           onClick={() => toggleSupplier(supplier.supplierId || supplier.supplierName)}
                           className="p-3 sm:p-4 cursor-pointer select-none flex items-center justify-between gap-3"
                         >
                           <div className="space-y-0.5">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <div className="h-7 w-7 rounded-lg bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-brand-600 dark:text-brand-400 shrink-0">
                                 <Truck size={14} />
                               </div>
                               <h3 className="text-xs sm:text-sm font-black text-zinc-900 dark:text-white">
-                                {supplier.supplierName}
+                                {highlightMatch(supplier.supplierName, searchQuery)}
                               </h3>
+                              {matchingBatchesCount > 0 && (
+                                <span className="text-[10px] font-bold text-amber-800 dark:text-amber-200 bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 rounded-md flex items-center gap-1 border border-amber-200 dark:border-amber-800">
+                                  <Sparkles size={11} className="text-amber-600" />
+                                  <span>{matchingBatchesCount} صنف مطابق</span>
+                                </span>
+                              )}
                             </div>
                             <p className="text-[11px] text-zinc-500 dark:text-zinc-400 pr-9">
                               تسبب بزيادة على <span className="font-bold text-zinc-800 dark:text-zinc-200">{supplier.affectedProductsCount}</span> صنف
@@ -464,44 +513,65 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
                         {/* قائمة الأصناف المتأثرة من هذا المورد */}
                         {isExpanded && (
                           <div className="border-t border-zinc-100 dark:border-zinc-700/60 bg-zinc-50/70 dark:bg-zinc-900/60 p-3 space-y-1.5">
-                            <div className="text-[10px] font-bold text-zinc-500 mb-1">
-                              الأصناف المشتراة بأسعار أعلى من السعر الأرخص:
+                            <div className="text-[10px] font-bold text-zinc-500 mb-1 flex items-center justify-between">
+                              <span>الأصناف المشتراة بأسعار أعلى من السعر الأرخص:</span>
+                              {matchingBatchesCount > 0 && (
+                                <span className="text-amber-700 dark:text-amber-400 text-[10px]">
+                                  (تم إبراز الأصناف المطابقة للبحث في الأعلى)
+                                </span>
+                              )}
                             </div>
                             <div className="space-y-1.5">
-                              {supplier.affectedBatches.map((b, idx) => (
-                                <div 
-                                  key={`${b.productName}-${idx}`}
-                                  className="p-2.5 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200/80 dark:border-zinc-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
-                                >
-                                  <div className="space-y-0.5">
-                                    <div className="font-bold text-zinc-900 dark:text-white text-[11px] sm:text-xs">
-                                      {b.productName}
-                                    </div>
-                                    <div className="text-[10px] text-zinc-500">
-                                      الكمية المتبقية: <span className="font-bold text-zinc-700 dark:text-zinc-300">{formatBoxesAndPieces(b.quantity, b.piecesPerBox)}</span>
-                                    </div>
-                                  </div>
+                              {sortedBatches.map((b, idx) => {
+                                const isBatchMatch = q ? b.productName.toLowerCase().includes(q) : false;
 
-                                  <div className="flex items-center gap-4 justify-between sm:justify-end text-left pt-1 sm:pt-0 border-t sm:border-t-0 border-zinc-100 dark:border-zinc-700/40">
-                                    <div>
-                                      <div className="text-[9px] text-zinc-400">سعر المورد / الأرخص</div>
-                                      <div className="font-mono tabular-nums font-bold text-zinc-800 dark:text-zinc-200 text-[11px]">
-                                        {formatCurrency(b.boxPrice, currency, language)}
-                                        <span className="text-emerald-600 dark:text-emerald-400 text-[9px] mr-1">
-                                          ({formatCurrency(b.minPiecePrice * (b.piecesPerBox || 1), currency, language)})
-                                        </span>
+                                return (
+                                  <div 
+                                    key={`${b.productName}-${idx}`}
+                                    className={cn(
+                                      "p-2.5 rounded-lg border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-all",
+                                      isBatchMatch
+                                        ? "bg-amber-50/90 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700/90 ring-2 ring-amber-400/50 shadow-xs"
+                                        : "bg-white dark:bg-zinc-800 border-zinc-200/80 dark:border-zinc-700/80"
+                                    )}
+                                  >
+                                    <div className="space-y-0.5">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <div className="font-bold text-zinc-900 dark:text-white text-[11px] sm:text-xs">
+                                          {highlightMatch(b.productName, searchQuery)}
+                                        </div>
+                                        {isBatchMatch && (
+                                          <span className="text-[9px] font-bold text-amber-800 dark:text-amber-200 bg-amber-200/90 dark:bg-amber-900/80 px-1.5 py-0.2 rounded-md flex items-center gap-1 shrink-0">
+                                            <Sparkles size={10} /> مطابق للبحث
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="text-[10px] text-zinc-500">
+                                        الكمية المتبقية: <span className="font-bold text-zinc-700 dark:text-zinc-300">{formatBoxesAndPieces(b.quantity, b.piecesPerBox)}</span>
                                       </div>
                                     </div>
 
-                                    <div>
-                                      <div className="text-[9px] text-zinc-400">الزيادة</div>
-                                      <div className="font-mono tabular-nums font-black text-rose-600 dark:text-rose-400 text-xs">
-                                        +{formatCurrency(b.batchLoss, currency, language)}
+                                    <div className="flex items-center gap-4 justify-between sm:justify-end text-left pt-1 sm:pt-0 border-t sm:border-t-0 border-zinc-100 dark:border-zinc-700/40">
+                                      <div>
+                                        <div className="text-[9px] text-zinc-400">سعر المورد / الأرخص</div>
+                                        <div className="font-mono tabular-nums font-bold text-zinc-800 dark:text-zinc-200 text-[11px]">
+                                          {formatCurrency(b.boxPrice, currency, language)}
+                                          <span className="text-emerald-600 dark:text-emerald-400 text-[9px] mr-1">
+                                            ({formatCurrency(b.minPiecePrice * (b.piecesPerBox || 1), currency, language)})
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      <div>
+                                        <div className="text-[9px] text-zinc-400">الزيادة</div>
+                                        <div className="font-mono tabular-nums font-black text-rose-600 dark:text-rose-400 text-xs">
+                                          +{formatCurrency(b.batchLoss, currency, language)}
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           </div>
                         )}
