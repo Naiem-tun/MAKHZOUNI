@@ -120,13 +120,38 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
     setExpandedSupplierIds(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  // تصفية الأصناف بالبحث وحالة الخسارة مع دعم التوافق العربي الكامل
+  const productGroups = analysis?.productGroups || [];
+  const lossMakingSuppliers = analysis?.lossMakingSuppliers || [];
+
+  const filteredProducts = productGroups.filter(group => {
+    if (onlyLossItems && group.totalLoss <= 0.0001) return false;
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.trim();
+    const nameMatch = matchesQuery(group.name, q);
+    const barcodeMatch = matchesQuery(group.barcode, q);
+    const supplierMatch = group.batches.some(b => matchesQuery(b.supplierName, q));
+    return nameMatch || barcodeMatch || supplierMatch;
+  });
+
+  // تصفية الموردين بالبحث
+  const filteredSuppliers = lossMakingSuppliers.filter(sup => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.trim();
+    const nameMatch = matchesQuery(sup.supplierName, q);
+    const prodMatch = sup.affectedBatches.some(b => 
+      matchesQuery(b.productName, q) || 
+      matchesQuery(b.barcode, q)
+    );
+    return nameMatch || prodMatch;
+  });
+
   // تحديد صاحب السعر الأفضل (المرجع الأرخص) للمنتجات المطابقة للبحث
   const bestSuppliersForQuery = useMemo(() => {
-    if (!analysis?.productGroups) return [];
     const q = searchQuery.trim();
     if (!q) return [];
 
-    const matchingGroups = analysis.productGroups.filter(g => 
+    const matchingGroups = (analysis?.productGroups || []).filter(g => 
       matchesQuery(g.name, q) || 
       matchesQuery(g.barcode, q)
     );
@@ -159,29 +184,6 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
   }, [analysis?.productGroups, searchQuery]);
 
   if (!isOpen) return null;
-
-  // تصفية الأصناف بالبحث وحالة الخسارة مع دعم التوافق العربي الكامل
-  const filteredProducts = (analysis?.productGroups || []).filter(group => {
-    if (onlyLossItems && group.totalLoss <= 0.0001) return false;
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.trim();
-    const nameMatch = matchesQuery(group.name, q);
-    const barcodeMatch = matchesQuery(group.barcode, q);
-    const supplierMatch = group.batches.some(b => matchesQuery(b.supplierName, q));
-    return nameMatch || barcodeMatch || supplierMatch;
-  });
-
-  // تصفية الموردين بالبحث
-  const filteredSuppliers = (analysis?.lossMakingSuppliers || []).filter(sup => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.trim();
-    const nameMatch = matchesQuery(sup.supplierName, q);
-    const prodMatch = sup.affectedBatches.some(b => 
-      matchesQuery(b.productName, q) || 
-      matchesQuery(b.barcode, q)
-    );
-    return nameMatch || prodMatch;
-  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-zinc-950/60 backdrop-blur-sm overflow-hidden animate-in fade-in duration-200" dir="rtl">

@@ -14,6 +14,7 @@ export default function Analytics() {
   const [products, setProducts] = useState<any[]>([]);
   const [inventoryReports, setInventoryReports] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [purchases, setPurchases] = useState<any[]>([]);
   const [supplierTransactions, setSupplierTransactions] = useState<SupplierTransaction[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,6 +26,7 @@ export default function Analytics() {
     let unsubProducts: any;
     let unsubReports: any;
     let unsubSuppliers: any;
+    let unsubPurchases: any;
     let unsubSupplierTx: any;
     let unsubDebts: any;
 
@@ -46,6 +48,14 @@ export default function Analytics() {
       const suppliersPath = `users/${uid}/suppliers`;
       unsubSuppliers = onSnapshot(collection(db, suppliersPath), (snap) => {
         setSuppliers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Supplier)));
+      });
+
+      // Itemized Stock Purchases Listener: from warehouse intake & purchase logs
+      const purchasesPath = `users/${uid}/purchases`;
+      unsubPurchases = onSnapshot(collection(db, purchasesPath), (snap) => {
+        setPurchases(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      }, (err) => {
+        console.warn("Purchases listener note:", err);
       });
 
       // Debts Listener: for customer credit analysis & market exposure
@@ -71,6 +81,7 @@ export default function Analytics() {
       if (unsubProducts) unsubProducts();
       if (unsubReports) unsubReports();
       if (unsubSuppliers) unsubSuppliers();
+      if (unsubPurchases) unsubPurchases();
       if (unsubSupplierTx) unsubSupplierTx();
       if (unsubDebts) unsubDebts();
     };
@@ -105,7 +116,8 @@ export default function Analytics() {
         <InventoryAnalytics
           inventoryReports={inventoryReports}
           products={products}
-          purchases={supplierTransactions}
+          purchases={purchases}
+          supplierTransactions={supplierTransactions}
           suppliers={suppliers}
           debts={debts}
           settings={settings}
