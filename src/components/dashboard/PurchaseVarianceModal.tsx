@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   X, 
   TrendingDown, 
@@ -10,7 +10,8 @@ import {
   Package, 
   Info,
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  Award
 } from 'lucide-react';
 import { 
   PurchaseVarianceAnalysisResult, 
@@ -80,7 +81,7 @@ const highlightMatch = (text: string, query: string) => {
     <span>
       {parts.map((part, i) =>
         matchesQuery(part, query) && part.length > 0 ? (
-          <mark key={i} className="bg-amber-300 dark:bg-amber-500/50 text-amber-950 dark:text-amber-100 px-1 py-0.5 rounded font-black">
+          <mark key={i} className="bg-amber-100/90 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 px-1 py-0.2 rounded font-bold">
             {part}
           </mark>
         ) : (
@@ -111,8 +112,6 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
     setShowAllSupplierBatches(prev => ({ ...prev, [supKey]: !prev[supKey] }));
   };
 
-  if (!isOpen) return null;
-
   const toggleProduct = (key: string) => {
     setExpandedProductKeys(prev => ({ ...prev, [key]: !prev[key] }));
   };
@@ -121,8 +120,48 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
     setExpandedSupplierIds(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  // تحديد صاحب السعر الأفضل (المرجع الأرخص) للمنتجات المطابقة للبحث
+  const bestSuppliersForQuery = useMemo(() => {
+    if (!analysis?.productGroups) return [];
+    const q = searchQuery.trim();
+    if (!q) return [];
+
+    const matchingGroups = analysis.productGroups.filter(g => 
+      matchesQuery(g.name, q) || 
+      matchesQuery(g.barcode, q)
+    );
+
+    const results: Array<{
+      productName: string;
+      barcode?: string;
+      supplierName: string;
+      boxPrice: number;
+      piecesPerBox: number;
+      quantity: number;
+      maxDifference: number;
+    }> = [];
+
+    for (const group of matchingGroups) {
+      const refBatch = group.batches.find(b => b.isReference) || group.batches[group.batches.length - 1];
+      if (refBatch) {
+        results.push({
+          productName: group.name,
+          barcode: group.barcode,
+          supplierName: refBatch.supplierName || 'دفعة مسجلة بدون مورد',
+          boxPrice: refBatch.boxPurchasePrice,
+          piecesPerBox: refBatch.piecesPerBox,
+          quantity: refBatch.quantity,
+          maxDifference: group.boxPriceDifference,
+        });
+      }
+    }
+    return results;
+  }, [analysis?.productGroups, searchQuery]);
+
+  if (!isOpen) return null;
+
   // تصفية الأصناف بالبحث وحالة الخسارة مع دعم التوافق العربي الكامل
-  const filteredProducts = analysis.productGroups.filter(group => {
+  const filteredProducts = (analysis?.productGroups || []).filter(group => {
     if (onlyLossItems && group.totalLoss <= 0.0001) return false;
     if (!searchQuery.trim()) return true;
     const q = searchQuery.trim();
@@ -133,7 +172,7 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
   });
 
   // تصفية الموردين بالبحث
-  const filteredSuppliers = analysis.lossMakingSuppliers.filter(sup => {
+  const filteredSuppliers = (analysis?.lossMakingSuppliers || []).filter(sup => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.trim();
     const nameMatch = matchesQuery(sup.supplierName, q);
@@ -487,12 +526,64 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
                 </div>
               ) : (
                 <div className="space-y-2.5">
-                  <div className="p-2.5 bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-900/30 rounded-xl text-[11px] text-amber-800 dark:text-amber-300 flex items-center gap-2">
-                    <Info size={14} className="shrink-0 text-amber-600 dark:text-amber-400" />
+                  <div className="p-2.5 bg-zinc-50/80 dark:bg-zinc-800/40 border border-zinc-200/70 dark:border-zinc-800 rounded-xl text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
+                    <Info size={14} className="shrink-0 text-zinc-400" />
                     <span>
                       الموردون الذين تسببوا في فرق زيادة بالأسعار مقارنةً بأرخص سعر شراء لنفس الأصناف
                     </span>
                   </div>
+
+                  {/* بطاقة صاحب السعر الأفضل (المرجع الأرخص) تظهر في الأعلى عند البحث أو التصفية */}
+                  {bestSuppliersForQuery.length > 0 && (
+                    <div className="space-y-2">
+                      {bestSuppliersForQuery.map((best, bIdx) => (
+                        <div 
+                          key={`best-${bIdx}`}
+                          className="rounded-xl border border-emerald-200/80 dark:border-emerald-800/60 bg-gradient-to-r from-emerald-50/60 via-teal-50/30 to-emerald-50/40 dark:from-emerald-950/20 dark:via-zinc-800/40 dark:to-teal-950/20 p-3 sm:p-3.5 shadow-xs text-right space-y-1.5"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <div className="h-6 w-6 rounded-md bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-700 dark:text-emerald-300 shrink-0">
+                                  <Award size={14} />
+                                </div>
+                                <span className="text-xs font-black text-emerald-800 dark:text-emerald-300">
+                                  صاحب السعر الأفضل (الأرخص):
+                                </span>
+                                <span className="text-xs sm:text-sm font-black text-zinc-900 dark:text-white bg-white dark:bg-zinc-800 px-2 py-0.5 rounded-md border border-emerald-200/80 dark:border-emerald-800/50 shadow-2xs">
+                                  {best.supplierName}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-zinc-600 dark:text-zinc-400 pr-7.5 flex items-center gap-2 flex-wrap">
+                                <span>المنتج: <strong className="text-zinc-800 dark:text-zinc-200">{highlightMatch(best.productName, searchQuery)}</strong></span>
+                                {best.barcode && (
+                                  <span className="font-mono text-[10px] text-zinc-400 bg-white/60 dark:bg-zinc-800/60 px-1 py-0.2 rounded">
+                                    {best.barcode}
+                                  </span>
+                                )}
+                                <span className="text-zinc-300 dark:text-zinc-600">·</span>
+                                <span>الكمية بالسعر الأرخص: <strong className="text-zinc-800 dark:text-zinc-200">{formatBoxesAndPieces(best.quantity, best.piecesPerBox)}</strong></span>
+                              </div>
+                            </div>
+
+                            <div className="text-left shrink-0">
+                              <div className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-tight">
+                                أفضل سعر كرتونة
+                              </div>
+                              <div className="text-sm sm:text-base font-black font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
+                                {formatCurrency(best.boxPrice, currency, language)}
+                              </div>
+                              {best.maxDifference > 0.0001 && (
+                                <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">
+                                  يوفر {formatCurrency(best.maxDifference, currency, language)} / كرتونة
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {filteredSuppliers.map((supplier) => {
                     const supKey = supplier.supplierId || supplier.supplierName;
@@ -527,12 +618,7 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
                     return (
                       <div 
                         key={supKey}
-                        className={cn(
-                          "rounded-xl border transition-all overflow-hidden text-right",
-                          matchingBatchesCount > 0 && q
-                            ? "border-amber-300 dark:border-amber-700/80 bg-white dark:bg-zinc-800/95 shadow-sm ring-1 ring-amber-400/20"
-                            : "border-zinc-200 dark:border-zinc-700/80 bg-white dark:bg-zinc-800/90 shadow-xs"
-                        )}
+                        className="rounded-xl border border-zinc-200/90 dark:border-zinc-700/80 bg-white dark:bg-zinc-800/90 shadow-2xs transition-all overflow-hidden text-right hover:border-zinc-300 dark:hover:border-zinc-600"
                       >
                         <div 
                           onClick={() => toggleSupplier(supKey)}
@@ -540,15 +626,15 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
                         >
                           <div className="space-y-0.5">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <div className="h-7 w-7 rounded-lg bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-brand-600 dark:text-brand-400 shrink-0">
+                              <div className="h-7 w-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300 shrink-0">
                                 <Truck size={14} />
                               </div>
                               <h3 className="text-xs sm:text-sm font-black text-zinc-900 dark:text-white">
                                 {highlightMatch(supplier.supplierName, searchQuery)}
                               </h3>
                               {q && matchingBatchesCount > 0 && (
-                                <span className="text-[10px] font-bold text-amber-800 dark:text-amber-200 bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 rounded-md flex items-center gap-1 border border-amber-200 dark:border-amber-800">
-                                  <Sparkles size={11} className="text-amber-600" />
+                                <span className="text-[10px] font-medium text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md flex items-center gap-1 border border-zinc-200 dark:border-zinc-700">
+                                  <Sparkles size={11} className="text-amber-500" />
                                   <span>
                                     {matchingBatchesCount === 1 ? 'المنتج المطلوب وحده' : `${matchingBatchesCount} أصناف مطابقة`}
                                   </span>
@@ -593,8 +679,8 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
                                   : 'الأصناف المشتراة بأسعار أعلى من السعر الأرخص:'}
                               </span>
                               {hiddenBatchesCount > 0 && (
-                                <span className="text-amber-700 dark:text-amber-400 text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-900/50">
-                                  تم اختصار القائمة لإظهار المنتج وحده
+                                <span className="text-[10px] text-zinc-400 font-normal">
+                                  (تم إخفاء {hiddenBatchesCount} أصناف غير مطابقة)
                                 </span>
                               )}
                             </div>
@@ -607,12 +693,7 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
                                 return (
                                   <div 
                                     key={`${b.productName}-${idx}`}
-                                    className={cn(
-                                      "p-2.5 rounded-lg border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-all",
-                                      isBatchMatch
-                                        ? "bg-amber-50/90 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700/90 ring-2 ring-amber-400/50 shadow-xs"
-                                        : "bg-white dark:bg-zinc-800 border-zinc-200/80 dark:border-zinc-700/80"
-                                    )}
+                                    className="p-2.5 rounded-lg border border-zinc-200/80 dark:border-zinc-700/70 bg-zinc-50/50 dark:bg-zinc-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-all"
                                   >
                                     <div className="space-y-0.5">
                                       <div className="flex items-center gap-1.5 flex-wrap">
@@ -622,11 +703,6 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
                                         {b.barcode && (
                                           <span className="font-mono tabular-nums text-[9px] text-zinc-400 dark:text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1 py-0.2 rounded">
                                             {highlightMatch(b.barcode, searchQuery)}
-                                          </span>
-                                        )}
-                                        {isBatchMatch && (
-                                          <span className="text-[9px] font-bold text-amber-800 dark:text-amber-200 bg-amber-200/90 dark:bg-amber-900/80 px-1.5 py-0.2 rounded-md flex items-center gap-1 shrink-0">
-                                            <Sparkles size={10} /> المنتج المطلوب
                                           </span>
                                         )}
                                       </div>

@@ -44,12 +44,14 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
 
   // Selected report index (0 = latest report)
   const [selectedReportIndex, setSelectedReportIndex] = useState<number>(0);
-  const [subTab, setSubTab] = useState<'diagnostic' | 'overview' | 'categories' | 'velocity' | 'purchases' | 'shrinkage' | 'trends'>('diagnostic');
+  const [subTab, setSubTab] = useState<'diagnostic' | 'overview' | 'categories' | 'velocity' | 'purchases' | 'suppliers' | 'shrinkage' | 'trends'>('diagnostic');
   const [filterQuery, setFilterQuery] = useState('');
   const [replenishmentSearch, setReplenishmentSearch] = useState('');
   const [itemsPerPage, setItemsPerPage] = useState<number>(20);
   const [urgentFilter, setUrgentFilter] = useState<'all' | 'critical' | 'warning'>('all');
   const [expandedDayKey, setExpandedDayKey] = useState<string | null>(null);
+  const [supplierSearchQuery, setSupplierSearchQuery] = useState('');
+  const [supplierSortBy, setSupplierSortBy] = useState<'purchases' | 'frequency' | 'margin'>('purchases');
 
   // Sort reports chronologically descending (0 is latest)
   const sortedReports = useMemo(() => {
@@ -1023,6 +1025,166 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
     return Object.values(groups).sort((a, b) => b.date.getTime() - a.date.getTime());
   }, [purchases, suppliersMap]);
 
+  // Supplier Performance Analysis (تحليل أداء الموردين: إجمالي المشتريات، متوسط مدة التوريد، ومعدل الهوامش الربحية)
+  const supplierPerformanceData = useMemo(() => {
+    const statsMap = new Map<string, {
+      supplierId: string;
+      supplierName: string;
+      phone: string;
+      typeOfGoods: string;
+      totalPurchases: number;
+      txCount: number;
+      dates: number[];
+      recentTxDate: Date | null;
+      margins: number[];
+    }>();
+
+    // 1. التهيئة من سجل الموردين المسجلين في النظام
+    (suppliers || []).forEach(sup => {
+      const key = sup.id || sup.name;
+      statsMap.set(key, {
+        supplierId: sup.id || '',
+        supplierName: sup.name || 'مورد مسجل',
+        phone: sup.phone || '',
+        typeOfGoods: (sup.typeOfGoods || 'عام / بضائع متنوعة').trim(),
+        totalPurchases: 0, // سنحسبه من فواتير المشتريات الفعلية
+        txCount: 0,
+        dates: [],
+        recentTxDate: null,
+        margins: [],
+      });
+    });
+
+    // 2. تجميع فواتير المشتريات وتواريخ التوريد لكل مورد
+    (purchases || []).forEach(p => {
+      const supId = p.supplierId;
+      const supObj = supId ? suppliersMap.get(supId) : null;
+      const key = supId || supObj?.name || p.supplierName || 'unknown';
+      const name = supObj?.name || p.supplierName || 'مورد بدون اسم';
+      const amount = Number(p.amount) || 0;
+      const pDate = safeParseDate(p.date || p.createdAt);
+      const time = pDate.getTime();
+
+      let entry = statsMap.get(key);
+      if (!entry) {
+        entry = {
+          supplierId: supId || '',
+          supplierName: name,
+          phone: supObj?.phone || '',
+          typeOfGoods: supObj?.typeOfGoods || 'عام / غير محدد',
+          totalPurchases: 0,
+          txCount: 0,
+          dates: [],
+          recentTxDate: null,
+          margins: [],
+        };
+        statsMap.set(key, entry);
+      }
+
+      entry.totalPurchases += amount;
+      entry.txCount += 1;
+      if (!isNaN(time) && time > 0) {
+        entry.dates.push(time);
+        if (!entry.recentTxDate || time > entry.recentTxDate.getTime()) {
+          entry.recentTxDate = pDate;
+        }
+      }
+    });
+
+    // 3. احتساب معدلات الهامش الربحي لأصناف كل مورد بناءً على الجرد وقائمة الأصناف
+    (analyzedItems || []).forEach(it => {
+      const itemAny = it as any;
+      const cost = Number(itemAny.costPrice || 0);
+      const sell = Number(itemAny.sellPrice || itemAny.sellingPrice || 0);
+      if (sell > 0 && cost > 0 && sell >= cost) {
+        const marginPct = ((sell - cost) / sell) * 100;
+        
+        // ربط الصنف بالمورد المناسب حسب المعرف أو الاسم أو فئة البضاعة
+        let matched = false;
+        if (itemAny.supplierId && statsMap.has(itemAny.supplierId)) {
+          statsMap.get(itemAny.supplierId)!.margins.push(marginPct);
+          matched = true;
+        } else if (itemAny.supplierName) {
+          for (const s of statsMap.values()) {
+            if (s.supplierName.toLowerCase() === String(itemAny.supplierName).toLowerCase()) {
+              s.margins.push(marginPct);
+              matched = true;
+              break;
+            }
+          }
+        }
+        
+        // مطابقة بالصنف وفئة البضاعة المشتركة
+        if (!matched && it.category) {
+          for (const s of statsMap.values()) {
+            if (s.typeOfGoods && (
+              it.category.toLowerCase().includes(s.typeOfGoods.toLowerCase()) || 
+              s.typeOfGoods.toLowerCase().includes(it.category.toLowerCase())
+            )) {
+              s.margins.push(marginPct);
+            }
+          }
+        }
+      }
+    });
+
+    // 4. معالجة المؤشرات الحسابية لكل مورد (مدة التوريد ومتوسط الهامش)
+    let grandTotalPurchases = 0;
+    const allSuppliers = Array.from(statsMap.values()).map(sup => {
+      grandTotalPurchases += sup.totalPurchases;
+
+      // حساب متوسط مدة / وتيرة التوريد بين الشحنات (بالأيام)
+      let avgSupplyDays: number | null = null;
+      if (sup.dates.length >= 2) {
+        sup.dates.sort((a, b) => a - b);
+        const spanMs = sup.dates[sup.dates.length - 1] - sup.dates[0];
+        const spanDays = Math.max(1, Math.round(spanMs / (1000 * 60 * 60 * 24)));
+        avgSupplyDays = Math.max(1, Math.round(spanDays / (sup.dates.length - 1)));
+      }
+
+      // حساب معدل الهامش الربحي للمورد (الافتراضي التجاري المتزن 20% إذا لم توجد أصناف جرد مرتبطة حصراً)
+      const avgMargin = sup.margins.length > 0
+        ? sup.margins.reduce((a, b) => a + b, 0) / sup.margins.length
+        : 20.0;
+
+      // تحديد مستوى الكفاءة وتقييم الشراكة
+      let tier: 'star' | 'good' | 'average' | 'slow' = 'good';
+      if (sup.totalPurchases > 0 && avgMargin >= 22 && (avgSupplyDays !== null && avgSupplyDays <= 14)) {
+        tier = 'star';
+      } else if (avgMargin >= 18) {
+        tier = 'good';
+      } else if (avgMargin < 12) {
+        tier = 'slow';
+      } else {
+        tier = 'average';
+      }
+
+      return {
+        ...sup,
+        avgSupplyDays,
+        avgMargin,
+        tier,
+      };
+    });
+
+    // تصفية وترتيب القائمة
+    const activeSuppliers = allSuppliers.filter(s => s.totalPurchases > 0 || s.txCount > 0);
+    const sorted = [...(activeSuppliers.length > 0 ? activeSuppliers : allSuppliers)].sort((a, b) => b.totalPurchases - a.totalPurchases);
+
+    const topVolumeSupplier = sorted.length > 0 ? sorted[0] : null;
+    const topMarginSupplier = [...sorted].sort((a, b) => b.avgMargin - a.avgMargin)[0] || null;
+    const mostConsistentSupplier = [...sorted].filter(s => s.avgSupplyDays !== null).sort((a, b) => a.avgSupplyDays! - b.avgSupplyDays!)[0] || null;
+
+    return {
+      suppliers: sorted,
+      grandTotalPurchases,
+      topVolumeSupplier,
+      topMarginSupplier,
+      mostConsistentSupplier,
+      totalSuppliersCount: sorted.length,
+    };
+  }, [suppliers, purchases, suppliersMap, analyzedItems]);
+
   // Multi-Inventory Trend Chart Data (Chronological left-to-right)
   const multiInventoryTrends = useMemo(() => {
     const list = timeHorizon === 'cycle' ? sortedReports : periodReports;
@@ -1276,6 +1438,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
           { id: 'categories', label: 'مردودية الأقسام ورأس المال', icon: PieChartIcon },
           { id: 'velocity', label: 'سرعة الدوران والأصناف الراكدة', icon: Zap },
           { id: 'purchases', label: 'حركة المشتريات اليومية', icon: History },
+          { id: 'suppliers', label: 'تحليل أداء الموردين 🚚', icon: Truck },
           { id: 'shrinkage', label: 'سلامة الجرد والهدر والتوالف', icon: ShieldAlert },
           { id: 'trends', label: 'مسار وتطور الجرود السابقة', icon: TrendingUp },
         ].map((tab) => {
@@ -2821,6 +2984,316 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                 <p className="text-xs text-zinc-400 mt-1">عند تسجيل فواتير شراء من الموردين، ستظهر مجاميعها اليومية هنا تلقائياً.</p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB: SUPPLIER PERFORMANCE ANALYSIS (تحليل أداء الموردين) */}
+      {subTab === 'suppliers' && (
+        <div className="space-y-6">
+          {/* Header Banner */}
+          <div className="bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-zinc-900 border border-blue-800/40 rounded-2xl p-5 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 shrink-0">
+                  <Truck size={24} />
+                </div>
+                <div>
+                  <h3 className="font-black text-lg text-white">
+                    لوحة تحليل أداء وتوريدات الموردين
+                  </h3>
+                  <p className="text-xs text-zinc-300">
+                    تقييم شامل لحجم المشتريات، متوسط مدة وتكرار التوريد، ومعدل الهوامش الربحية لكل مورد
+                  </p>
+                </div>
+              </div>
+              <div className="text-left bg-zinc-900/80 border border-zinc-800 px-4 py-2 rounded-xl">
+                <span className="text-[11px] text-zinc-400 block font-medium">إجمالي الإنفاق التوريدي</span>
+                <span className="text-lg font-black text-blue-400" dir="ltr">
+                  {!showFinancials ? '••••••' : formatCurrency(supplierPerformanceData.grandTotalPurchases, settings.currency, language)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Top 4 KPI Metric Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {/* 1. إجمالي المشتريات */}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-xs">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-zinc-500">إجمالي المشتريات</span>
+                <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600">
+                  <DollarSign size={16} />
+                </div>
+              </div>
+              <div className="text-xl font-black text-zinc-900 dark:text-white" dir="ltr">
+                {!showFinancials ? '••••••' : formatCurrency(supplierPerformanceData.grandTotalPurchases, settings.currency, language)}
+              </div>
+              <span className="text-[11px] text-zinc-400 mt-1 block">
+                عبر {supplierPerformanceData.totalSuppliersCount} مورد مسجل
+              </span>
+            </div>
+
+            {/* 2. المورد الأكثر حجماً */}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-xs">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-zinc-500">أعلى مورد من حيث المشتريات</span>
+                <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600">
+                  <Award size={16} />
+                </div>
+              </div>
+              <div className="text-base font-black text-zinc-900 dark:text-white truncate">
+                {supplierPerformanceData.topVolumeSupplier ? supplierPerformanceData.topVolumeSupplier.supplierName : 'لا يوجد بيانات'}
+              </div>
+              <div className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold mt-1">
+                {supplierPerformanceData.topVolumeSupplier && showFinancials
+                  ? `${formatCurrency(supplierPerformanceData.topVolumeSupplier.totalPurchases, settings.currency, language)} (${supplierPerformanceData.grandTotalPurchases > 0 ? ((supplierPerformanceData.topVolumeSupplier.totalPurchases / supplierPerformanceData.grandTotalPurchases) * 100).toFixed(0) : 0}%)`
+                  : '—'}
+              </div>
+            </div>
+
+            {/* 3. الأكثر وتيرة وتوريداً */}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-xs">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-zinc-500">الأكثر وتيرة وانتظاماً</span>
+                <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600">
+                  <Clock size={16} />
+                </div>
+              </div>
+              <div className="text-base font-black text-zinc-900 dark:text-white truncate">
+                {supplierPerformanceData.mostConsistentSupplier ? supplierPerformanceData.mostConsistentSupplier.supplierName : 'لا توجد دورات كافية'}
+              </div>
+              <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold mt-1">
+                {supplierPerformanceData.mostConsistentSupplier?.avgSupplyDays !== null && supplierPerformanceData.mostConsistentSupplier?.avgSupplyDays !== undefined
+                  ? `متوسط التوريد: كل ${supplierPerformanceData.mostConsistentSupplier.avgSupplyDays} أيام`
+                  : 'دورة توريد واحدة'}
+              </div>
+            </div>
+
+            {/* 4. الأعلى في هوامش الربحية */}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-xs">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-zinc-500">الأعلى في معدل الربحية</span>
+                <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600">
+                  <TrendingUp size={16} />
+                </div>
+              </div>
+              <div className="text-base font-black text-zinc-900 dark:text-white truncate">
+                {supplierPerformanceData.topMarginSupplier ? supplierPerformanceData.topMarginSupplier.supplierName : 'لا يوجد بيانات'}
+              </div>
+              <div className="text-[11px] text-amber-600 dark:text-amber-400 font-bold mt-1">
+                {supplierPerformanceData.topMarginSupplier
+                  ? `معدل هامش الربح: ${supplierPerformanceData.topMarginSupplier.avgMargin.toFixed(1)}%`
+                  : '—'}
+              </div>
+            </div>
+          </div>
+
+          {/* Controls: Search & Sort Bar */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search size={15} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+              <input
+                type="text"
+                value={supplierSearchQuery}
+                onChange={(e) => setSupplierSearchQuery(e.target.value)}
+                placeholder="ابحث باسم المورد أو نوع البضاعة..."
+                className="w-full pr-9 pl-8 py-2 text-xs bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/80 rounded-xl text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+              {supplierSearchQuery && (
+                <button
+                  onClick={() => setSupplierSearchQuery('')}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-0.5"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Sort Buttons */}
+            <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800/90 p-1 rounded-xl text-xs font-bold self-start sm:self-auto overflow-x-auto">
+              <span className="text-[10px] text-zinc-400 px-2 hidden sm:inline">ترتيب حسب:</span>
+              <button
+                onClick={() => setSupplierSortBy('purchases')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  supplierSortBy === 'purchases'
+                    ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-xs'
+                    : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+                }`}
+              >
+                إجمالي المشتريات
+              </button>
+              <button
+                onClick={() => setSupplierSortBy('frequency')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  supplierSortBy === 'frequency'
+                    ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-xs'
+                    : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+                }`}
+              >
+                مدة التوريد (الأسرع)
+              </button>
+              <button
+                onClick={() => setSupplierSortBy('margin')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  supplierSortBy === 'margin'
+                    ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-xs'
+                    : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+                }`}
+              >
+                هامش الربحية
+              </button>
+            </div>
+          </div>
+
+          {/* Supplier Cards & Performance Table */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-right text-xs">
+                <thead>
+                  <tr className="bg-zinc-50/80 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-bold">
+                    <th className="py-3 px-4">المورد ونوع البضاعة</th>
+                    <th className="py-3 px-4">إجمالي المشتريات</th>
+                    <th className="py-3 px-4">الحصة من المشتريات</th>
+                    <th className="py-3 px-4">عدد الفواتير</th>
+                    <th className="py-3 px-4">متوسط مدة التوريد</th>
+                    <th className="py-3 px-4">معدل الهامش الربحي</th>
+                    <th className="py-3 px-4">آخر توريد</th>
+                    <th className="py-3 px-4">تقييم الأداء</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                  {supplierPerformanceData.suppliers
+                    .filter(s => {
+                      if (!supplierSearchQuery.trim()) return true;
+                      const q = supplierSearchQuery.toLowerCase().trim();
+                      return s.supplierName.toLowerCase().includes(q) || s.typeOfGoods.toLowerCase().includes(q);
+                    })
+                    .sort((a, b) => {
+                      if (supplierSortBy === 'purchases') return b.totalPurchases - a.totalPurchases;
+                      if (supplierSortBy === 'frequency') {
+                        const daysA = a.avgSupplyDays ?? 999;
+                        const daysB = b.avgSupplyDays ?? 999;
+                        return daysA - daysB;
+                      }
+                      if (supplierSortBy === 'margin') return b.avgMargin - a.avgMargin;
+                      return 0;
+                    })
+                    .map((s, idx) => {
+                      const sharePct = supplierPerformanceData.grandTotalPurchases > 0 
+                        ? (s.totalPurchases / supplierPerformanceData.grandTotalPurchases) * 100 
+                        : 0;
+
+                      return (
+                        <tr key={s.supplierId || idx} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors">
+                          {/* 1. المورد */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300 font-black text-xs shrink-0">
+                                {idx + 1}
+                              </div>
+                              <div>
+                                <span className="font-bold text-zinc-900 dark:text-white block text-sm">
+                                  {s.supplierName}
+                                </span>
+                                <span className="text-[11px] text-zinc-400">
+                                  {s.typeOfGoods} {s.phone ? `• ${s.phone}` : ''}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* 2. إجمالي المشتريات */}
+                          <td className="py-3.5 px-4 font-black text-sm text-zinc-900 dark:text-white" dir="ltr">
+                            {!showFinancials ? '••••••' : formatCurrency(s.totalPurchases, settings.currency, language)}
+                          </td>
+
+                          {/* 3. الحصة من إجمالي مشتريات المتجر */}
+                          <td className="py-3.5 px-4">
+                            <div className="w-24">
+                              <div className="flex items-center justify-between text-[10px] font-bold text-zinc-500 mb-1">
+                                <span>{sharePct.toFixed(1)}%</span>
+                              </div>
+                              <div className="h-1.5 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-blue-500 rounded-full" 
+                                  style={{ width: `${Math.min(100, Math.max(3, sharePct))}%` }}
+                                />
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* 4. عدد الفواتير */}
+                          <td className="py-3.5 px-4">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold text-xs">
+                              {s.txCount} {s.txCount === 1 ? 'فاتورة' : 'فواتير'}
+                            </span>
+                          </td>
+
+                          {/* 5. متوسط مدة التوريد */}
+                          <td className="py-3.5 px-4">
+                            {s.avgSupplyDays !== null ? (
+                              <div className="flex items-center gap-1.5 text-xs font-bold">
+                                <Clock size={13} className={s.avgSupplyDays <= 7 ? 'text-emerald-500' : (s.avgSupplyDays <= 15 ? 'text-blue-500' : 'text-zinc-400')} />
+                                <span className={s.avgSupplyDays <= 7 ? 'text-emerald-600 dark:text-emerald-400' : (s.avgSupplyDays <= 15 ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-600 dark:text-zinc-300')}>
+                                  كل {s.avgSupplyDays} أيام
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-zinc-400">توريد أولي مسجل</span>
+                            )}
+                          </td>
+
+                          {/* 6. معدل الهامش الربحي */}
+                          <td className="py-3.5 px-4">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-black text-xs ${
+                              s.avgMargin >= 22
+                                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-900/50'
+                                : s.avgMargin >= 16
+                                ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-900/50'
+                                : 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-900/50'
+                            }`}>
+                              <TrendingUp size={11} />
+                              {s.avgMargin.toFixed(1)}%
+                            </span>
+                          </td>
+
+                          {/* 7. آخر توريد */}
+                          <td className="py-3.5 px-4 text-zinc-500 text-[11px]">
+                            {s.recentTxDate 
+                              ? s.recentTxDate.toLocaleDateString(language === 'ar' ? 'ar-TN' : 'en-US', { day: 'numeric', month: 'short' })
+                              : 'غير محدد'}
+                          </td>
+
+                          {/* 8. تقييم الشراكة */}
+                          <td className="py-3.5 px-4">
+                            {s.tier === 'star' ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[10px] font-black border border-amber-200/60">
+                                🌟 شريك استراتيجي
+                              </span>
+                            ) : s.tier === 'good' ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold border border-emerald-200/60">
+                                🟢 شريك موثوق
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-[10px] font-bold">
+                                ⚪ مورد دوري
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  {supplierPerformanceData.suppliers.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="py-12 text-center text-zinc-400">
+                        لا توجد بيانات توريد مسجلة حتى الآن
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
