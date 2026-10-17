@@ -42,7 +42,6 @@ import {
   PRICE_HIKE_COUNTER_DOC_PATH, 
   EvaluatedItemResult 
 } from '../lib/priceHikeTracker';
-import { PriceHikeReportCard } from '../components/inventory/PriceHikeReportCard';
 import { InventoryLayer } from '../types';
 
 
@@ -1237,13 +1236,6 @@ export default function Inventory() {
           </button>
         </div>
       </div>
-
-      {/* Live Price Hike Impact Summary when counting */}
-      {Object.keys(inventoryData).length > 0 && priceHikeCalculation?.summary && (
-        <div className="px-2">
-          <PriceHikeReportCard summary={priceHikeCalculation.summary} />
-        </div>
-      )}
 
       {/* Product List */}
       <div className="grid grid-cols-1 gap-2 px-2">
