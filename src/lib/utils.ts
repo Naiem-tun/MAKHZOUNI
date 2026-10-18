@@ -186,8 +186,47 @@ export function safeDispatchEvent(name: string, detail?: any) {
 }
 
 /**
+ * Recursively cleanses an object or array of any `undefined` values before Firestore writes.
+ * Firestore rejects any document containing `undefined` with:
+ * "Unsupported field value: undefined".
+ */
+export function sanitizeForFirestore<T>(val: T): T {
+  if (val === undefined) {
+    return null as unknown as T;
+  }
+  if (val === null || typeof val !== 'object') {
+    return val;
+  }
+  if (val instanceof Date) {
+    return val;
+  }
+  // Preserve Firestore Timestamp and FieldValue objects
+  if (
+    typeof (val as any).toDate === 'function' ||
+    typeof (val as any).isEqual === 'function' ||
+    (val as any)._methodName ||
+    (val.constructor && val.constructor.name === 'FieldValue')
+  ) {
+    return val;
+  }
+  if (Array.isArray(val)) {
+    return val
+      .filter(item => item !== undefined)
+      .map(item => sanitizeForFirestore(item)) as unknown as T;
+  }
+  const cleanObj: Record<string, any> = {};
+  for (const [k, v] of Object.entries(val)) {
+    if (v !== undefined) {
+      cleanObj[k] = sanitizeForFirestore(v);
+    }
+  }
+  return cleanObj as T;
+}
+
+/**
  * Commits a large array of Firestore write operations by splitting them into batches
  * conforming to Firestore's 500 operations per batch limit (using safe chunk size of 400).
+ * Automatically sanitizes all data payloads to eliminate invalid `undefined` values.
  */
 export async function commitBatchesInChunks(
   db: any,
@@ -206,12 +245,14 @@ export async function commitBatchesInChunks(
     const batch = createBatchFn(db);
     for (const op of chunk) {
       if (op.type === 'update') {
-        batch.update(op.ref, op.data);
+        const cleanData = sanitizeForFirestore(op.data);
+        batch.update(op.ref, cleanData);
       } else if (op.type === 'set') {
+        const cleanData = sanitizeForFirestore(op.data);
         if (op.options) {
-          batch.set(op.ref, op.data, op.options);
+          batch.set(op.ref, cleanData, op.options);
         } else {
-          batch.set(op.ref, op.data);
+          batch.set(op.ref, cleanData);
         }
       } else if (op.type === 'delete') {
         batch.delete(op.ref);
@@ -220,3 +261,4 @@ export async function commitBatchesInChunks(
     await batch.commit();
   }
 }
+

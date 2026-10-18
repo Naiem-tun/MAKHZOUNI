@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, ScanBarcode, CheckCircle2, Check,
   Package, Wallet, FileText, ClipboardCheck, Trash2, History,
-  X, PlusCircle, MinusCircle, ArrowRight, Download, Receipt, FileBarChart, TrendingUp, Activity, Printer, AlertTriangle
+  X, PlusCircle, MinusCircle, ArrowRight, Download, Receipt, FileBarChart, TrendingUp, Activity, Printer, AlertTriangle,
+  Loader2
 } from 'lucide-react';
 import { 
   collection, 
@@ -248,6 +249,8 @@ export default function Inventory() {
 
   const ITEMS_PER_PAGE = 20;
 
+  const [isSavingInventory, setIsSavingInventory] = useState(false);
+
   const [modalConfig, setModalConfig] = useState<{
     show: boolean;
     message: string;
@@ -362,8 +365,8 @@ export default function Inventory() {
       const evalItem = priceHikeCalculation?.evaluatedResults.find(r => r.productId === group.id);
 
       return {
-        productName: group.name, 
-        category: group.category,
+        productName: group.name || '', 
+        category: group.category || '',
         barcode: group.barcode || '',
         purchasePrice,
         sellingPrice: group.sellingPrice || 0,
@@ -375,7 +378,11 @@ export default function Inventory() {
         isSurplus,
         surplusQuantity,
         surplusCostValue,
-        remainingLayers: evalItem?.remainingLayers || [],
+        remainingLayers: (evalItem?.remainingLayers || []).map(l => ({
+          qty: cleanQuantity(l.qty || 0),
+          cost: roundMoney(l.cost || 0),
+          date: l.date || null
+        })),
         loss: evalItem?.loss || 0,
         latestCost: evalItem?.latestCost || purchasePrice,
         batchCost: evalItem?.batchCost || purchasePrice,
@@ -611,12 +618,14 @@ export default function Inventory() {
 
   const handleCompleteInventory = async () => {
     if (!user) return;
+    if (isSavingInventory) return;
     if (Object.keys(inventoryData).length === 0) {
       showAlert(t('enter_inventory_data_first'));
       return;
     }
     
     showConfirm(t('confirm_save_inventory'), async () => {
+      setIsSavingInventory(true);
       try {
         const auditTime = serverTimestamp();
         const localNow = new Date();
@@ -684,25 +693,29 @@ export default function Inventory() {
             surplusDetails.push(`${group.name}: المسجل (${group.quantity || 0}) -> الفعلي (${groupFinalQty}) [زيادة غير مفسرة: +${surplusQuantity} بقيمة تكلفة ${surplusCostValue}]`);
           }
           
-          const evalItem = priceHikeCalculation?.evaluatedResults.find(r => r.productId === group.id);
+          const evalItem = priceHikeCalculation?.evaluatedResults?.find(r => r.productId === group.id);
           items.push({ 
-            productName: group.name, 
-            category: group.category,
+            productName: group.name || '', 
+            category: group.category || '',
             barcode: group.barcode || '',
-            purchasePrice: roundMoney(group.purchasePrice || 0),
-            sellingPrice: roundMoney(group.sellingPrice || 0),
-            quantityBefore: group.quantity || 0, 
-            quantityAfter: groupFinalQty, 
-            salesCalculated: sold, 
+            purchasePrice: roundMoney(Number(group.purchasePrice || 0)),
+            sellingPrice: roundMoney(Number(group.sellingPrice || 0)),
+            quantityBefore: Number(group.quantity || 0), 
+            quantityAfter: Number(groupFinalQty || 0), 
+            salesCalculated: Number(sold || 0), 
             profit: sold > 0 ? roundMoney(groupProfit) : 0,
-            remainingValue: roundMoney(groupRemainingValue),
-            isSurplus,
-            surplusQuantity,
-            surplusCostValue: roundMoney(surplusCostValue),
-            remainingLayers: evalItem?.remainingLayers || [],
-            loss: evalItem?.loss || 0,
-            latestCost: evalItem?.latestCost || roundMoney(group.purchasePrice || 0),
-            batchCost: evalItem?.batchCost || roundMoney(group.purchasePrice || 0),
+            remainingValue: roundMoney(groupRemainingValue || 0),
+            isSurplus: Boolean(isSurplus),
+            surplusQuantity: Number(surplusQuantity || 0),
+            surplusCostValue: roundMoney(surplusCostValue || 0),
+            remainingLayers: (evalItem?.remainingLayers || []).map(l => ({
+              qty: cleanQuantity(l.qty || 0),
+              cost: roundMoney(l.cost || 0),
+              date: l.date || null
+            })),
+            loss: Number(evalItem?.loss || 0),
+            latestCost: Number(evalItem?.latestCost || group.purchasePrice || 0),
+            batchCost: Number(evalItem?.batchCost || group.purchasePrice || 0),
             matchType: evalItem?.matchType || 'barcode'
           });
           
@@ -723,25 +736,43 @@ export default function Inventory() {
           }
         });
 
-        // Fetch expenses (cached if offline)
+        // Parallel fetch for expenses, damage logs, and metadata for maximum speed
         const expensesPath = `users/${user.uid}/expenses`;
         const expensesQuery = query(
           collection(db, expensesPath),
           where("audited", "==", false)
         );
-        const expensesSnapshot = await getDocs(expensesQuery);
-        const actualExpensesAmount = roundMoney(expensesSnapshot.docs.reduce((acc, doc) => acc + (doc.data().amount || 0), 0));
-        const finalExpensesAmount = shouldDeductExpenses ? actualExpensesAmount : 0;
-        const netProfit = roundMoney(totalProfit - finalExpensesAmount);
-
-        // Fetch damage logs
         const damageLogsPath = `users/${user.uid}/damage_logs`;
         const damageLogsQuery = query(
           collection(db, damageLogsPath),
           where("audited", "==", false)
         );
-        const damageLogsSnapshot = await getDocs(damageLogsQuery);
-        const damageItems = damageLogsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const profilePath = `users/${user.uid}/profile`;
+        const metaQuery = query(collection(db, profilePath), where("type", "==", "inventory_metadata"));
+
+        const [expensesSnapshot, damageLogsSnapshot, finalMetaDocs] = await Promise.all([
+          getDocs(expensesQuery),
+          getDocs(damageLogsQuery),
+          getDocs(metaQuery)
+        ]);
+
+        const actualExpensesAmount = roundMoney(expensesSnapshot.docs.reduce((acc, doc) => acc + (doc.data().amount || 0), 0));
+        const finalExpensesAmount = shouldDeductExpenses ? actualExpensesAmount : 0;
+        const netProfit = roundMoney(totalProfit - finalExpensesAmount);
+
+        const damageItems = damageLogsSnapshot.docs.map(doc => {
+          const d = doc.data();
+          return {
+            id: doc.id,
+            productName: d.productName || d.name || '',
+            quantity: Number(d.quantity || 0),
+            costPrice: Number(d.costPrice || 0),
+            totalLoss: Number(d.totalLoss || 0),
+            date: d.date || null,
+            reason: d.reason || '',
+            barcode: d.barcode || ''
+          };
+        });
         const totalDamageLoss = roundMoney(damageItems.reduce((acc, item: any) => acc + (item.totalLoss || 0), 0));
 
         // Prepare Report
@@ -752,21 +783,21 @@ export default function Inventory() {
           ref: reportRef,
           data: {
             date: auditTime,
-            totalRevenue: roundMoney(totalRevenue),
-            totalProfit: roundMoney(totalProfit),
-            totalRemainingValue: roundMoney(totalRemainingValue),
-            surplusValueUnverified: roundMoney(surplusValueUnverified),
-            surplusItemsCount,
-            surplusTotalQuantity,
-            totalExpenses: roundMoney(finalExpensesAmount), 
-            netProfit: roundMoney(netProfit),
+            totalRevenue: roundMoney(totalRevenue || 0),
+            totalProfit: roundMoney(totalProfit || 0),
+            totalRemainingValue: roundMoney(totalRemainingValue || 0),
+            surplusValueUnverified: roundMoney(surplusValueUnverified || 0),
+            surplusItemsCount: Number(surplusItemsCount || 0),
+            surplusTotalQuantity: Number(surplusTotalQuantity || 0),
+            totalExpenses: roundMoney(finalExpensesAmount || 0), 
+            netProfit: roundMoney(netProfit || 0),
             items,
             damageItems, // Save damage items
-            totalDamageLoss, // Save total damage loss
+            totalDamageLoss: roundMoney(totalDamageLoss || 0), // Save total damage loss
             type: 'inventory',
-            expensesDeducted: shouldDeductExpenses,
-            priceHikeSummary: priceHikeCalculation?.summary || null,
-            priceHikeSinceLastJard: activeCounterAmount
+            expensesDeducted: Boolean(shouldDeductExpenses),
+            priceHikeSummary: null,
+            priceHikeSinceLastJard: Number(activeCounterAmount || 0)
           }
         });
 
@@ -778,8 +809,8 @@ export default function Inventory() {
           options: { merge: true },
           data: {
             lastResetDate: auditTime,
-            lastResetReportId: reportRef.id,
-            priceHikeAtAudit: activeCounterAmount
+            lastResetReportId: reportRef.id || '',
+            priceHikeAtAudit: Number(activeCounterAmount || 0)
           }
         });
 
@@ -812,8 +843,6 @@ export default function Inventory() {
         });
 
         // Update meta
-        const profilePath = `users/${user.uid}/profile`;
-        const finalMetaDocs = await getDocs(query(collection(db, profilePath), where("type", "==", "inventory_metadata")));
         if (finalMetaDocs.empty) {
           writeOperations.push({
             type: 'set',
@@ -829,27 +858,25 @@ export default function Inventory() {
         }
 
         // Commit all operations safely in chunks of 400 (under Firestore's 500 limit)
-        commitBatchesInChunks(db, writeOperations, writeBatch).then(() => {
+        await commitBatchesInChunks(db, writeOperations, writeBatch);
+
+        logAudit(
+          'create',
+          'inventory',
+          reportRef.id,
+          `جرد ${formatAppDate(localNow, settings?.language || 'ar', t)}`,
+          `تسجيل عملية جرد بإجمالي ربح: ${roundMoney(totalProfit)}${surplusItemsCount > 0 ? ` | يوجد ${surplusItemsCount} صنف بزيادة غير مفسرة بقيمة تكلفة: ${roundMoney(surplusValueUnverified)}` : ''}`
+        );
+
+        if (surplusItemsCount > 0) {
           logAudit(
-            'create',
+            'update',
             'inventory',
             reportRef.id,
-            `جرد ${formatAppDate(localNow, settings?.language || 'ar', t)}`,
-            `تسجيل عملية جرد بإجمالي ربح: ${roundMoney(totalProfit)}${surplusItemsCount > 0 ? ` | يوجد ${surplusItemsCount} صنف بزيادة غير مفسرة بقيمة تكلفة: ${roundMoney(surplusValueUnverified)}` : ''}`
+            'زيادات مخزون غير مفسرة أثناء الجرد',
+            `أصناف أظهرت فائضاً في الجرد الفعلي بعدد (${surplusItemsCount}) صنف وإجمالي كمية (+${surplusTotalQuantity}) بقيمة تكلفة ${roundMoney(surplusValueUnverified)} د.ت:\n${surplusDetails.join('\n')}`
           );
-
-          if (surplusItemsCount > 0) {
-            logAudit(
-              'update',
-              'inventory',
-              reportRef.id,
-              'زيادات مخزون غير مفسرة أثناء الجرد',
-              `أصناف أظهرت فائضاً في الجرد الفعلي بعدد (${surplusItemsCount}) صنف وإجمالي كمية (+${surplusTotalQuantity}) بقيمة تكلفة ${roundMoney(surplusValueUnverified)} د.ت:\n${surplusDetails.join('\n')}`
-            );
-          }
-        }).catch(err => {
-          console.error("Inventory background chunked sync failed:", err);
-        });
+        }
 
         // UI SUCCESS: Show report immediately
         const newReport = {
@@ -865,7 +892,7 @@ export default function Inventory() {
           netProfit: roundMoney(netProfit),
           items,
           expensesDeducted: shouldDeductExpenses,
-          priceHikeSummary: priceHikeCalculation?.summary || null,
+          priceHikeSummary: null,
           priceHikeSinceLastJard: activeCounterAmount
         };
         
@@ -881,7 +908,10 @@ export default function Inventory() {
         localStorage.removeItem('checked_inventory_products');
         
       } catch (err) {
+        console.error("Inventory save error:", err);
         handleFirestoreError(err, OperationType.WRITE, `users/${user.uid}/inventory`);
+      } finally {
+        setIsSavingInventory(false);
       }
     });
   };
@@ -952,11 +982,26 @@ export default function Inventory() {
           <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">{t('enter_actual_quantity')}</p>
         </div>
         <button 
-          onClick={handleCompleteInventory} 
-          className="flex items-center justify-center gap-2 h-11 px-4 sm:px-5 rounded-xl bg-brand-600 text-sm font-bold text-white transition-all hover:bg-brand-700 shadow-md shadow-brand-500/20 active:scale-95 whitespace-nowrap"
+          onClick={handleCompleteInventory}
+          disabled={isSavingInventory}
+          className={cn(
+            "flex items-center justify-center gap-2 h-11 px-4 sm:px-5 rounded-xl text-sm font-bold text-white transition-all shadow-md shadow-brand-500/20 active:scale-95 whitespace-nowrap",
+            isSavingInventory 
+              ? "bg-brand-500/70 cursor-not-allowed opacity-80" 
+              : "bg-brand-600 hover:bg-brand-700"
+          )}
         >
-          <ClipboardCheck size={18} strokeWidth={2.5} />
-          <span>{t('save') || 'حفظ'}</span>
+          {isSavingInventory ? (
+            <>
+              <Loader2 size={18} className="animate-spin" />
+              <span>{t('saving') || 'جارٍ الحفظ...'}</span>
+            </>
+          ) : (
+            <>
+              <ClipboardCheck size={18} strokeWidth={2.5} />
+              <span>{t('save') || 'حفظ'}</span>
+            </>
+          )}
         </button>
       </div>
 
@@ -1325,6 +1370,39 @@ export default function Inventory() {
                     {t('ok')}
                   </button>
                 )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Full-screen Loading Overlay during Inventory Save */}
+      <AnimatePresence>
+        {isSavingInventory && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 15 }}
+              className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-2xl p-6 sm:p-7 shadow-2xl border border-zinc-200 dark:border-zinc-800 text-center flex flex-col items-center"
+            >
+              <div className="w-16 h-16 rounded-2xl bg-brand-50 dark:bg-brand-950/60 border border-brand-100 dark:border-brand-900/40 flex items-center justify-center text-brand-600 dark:text-brand-400 mb-4 shadow-inner">
+                <Loader2 className="w-8 h-8 animate-spin" />
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-zinc-900 dark:text-white mb-2">
+                {t('saving_inventory') || 'جارٍ حفظ الجرد وتحديث المخزون...'}
+              </h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed mb-4">
+                يتم الآن تحديث أرصدة المنتجات في قاعدة البيانات وتسجيل التقرير المالي، يرجى الانتظار لحين اكتمال العملية.
+              </p>
+              <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                <div className="bg-brand-600 h-full rounded-full animate-pulse" style={{ width: '100%' }} />
               </div>
             </motion.div>
           </div>
