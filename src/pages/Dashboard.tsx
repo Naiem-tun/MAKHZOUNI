@@ -43,7 +43,7 @@ import { calculatePurchaseVariance } from '../lib/purchaseVarianceCalculator';
 
 import { useTranslation } from 'react-i18next';
 const Dashboard = memo(() => {
-  const { user, settings, showToast } = useAppContext();
+  const { user, settings, showToast, setActiveTab } = useAppContext();
   const { t } = useTranslation();
   const [products, setProducts] = useState<Product[]>(() => {
     if (!user) return [];
@@ -285,7 +285,48 @@ const Dashboard = memo(() => {
     const totalCustomerDebts = debts.filter(d => d.type !== 'payable').reduce((sum, d) => sum + (Number(d.totalAmount) || 0), 0);
     const totalSupplierDebts = debts.filter(d => d.type === 'payable').reduce((sum, d) => sum + (Number(d.totalAmount) || 0), 0);
 
-    const totalSupplierPurchasesValue = supplierTransactions.reduce((acc, t) => acc + (t.amount || 0), 0);
+    // Active cycle tracking start date: aligned with Suppliers cycle clear date
+    const trackingStartDate = settings?.lastSuppliersClearDate 
+      ? new Date(settings.lastSuppliersClearDate)
+      : (supplierTransactions.length > 0 
+          ? new Date(Math.min(...supplierTransactions.map((t: any) => safeParseDate(t.date).getTime()))) 
+          : new Date(0));
+
+    // Active transactions for current open cycle (resets when a cycle is archived)
+    const activeSupplierTransactions = supplierTransactions.filter(t => {
+      // 1. If explicitly marked as archived, it belongs to an archived cycle
+      if (t.archived === true) return false;
+
+      // 2. Check if dated/created before last clear/archive date
+      if (settings?.lastSuppliersClearDate) {
+        const clearTime = new Date(settings.lastSuppliersClearDate).getTime();
+        const txTime = safeParseDate(t.date).getTime();
+        const updatedTime = t.updatedAt ? safeParseDate(t.updatedAt).getTime() : 0;
+        const createdTime = t.createdAt ? safeParseDate(t.createdAt).getTime() : 0;
+        if (txTime < clearTime && createdTime < clearTime && updatedTime < clearTime) {
+          return false;
+        }
+      }
+
+      // 3. If explicitly marked as not archived, it belongs to active cycle
+      if (t.archived === false) return true;
+
+      // 4. Legacy records fallback without boolean archived field
+      const txTime = safeParseDate(t.date).getTime();
+      const updatedTime = t.updatedAt ? safeParseDate(t.updatedAt).getTime() : 0;
+      const createdTime = t.createdAt ? safeParseDate(t.createdAt).getTime() : 0;
+
+      if (updatedTime >= trackingStartDate.getTime() || createdTime >= trackingStartDate.getTime()) {
+        return true;
+      }
+
+      const startOfDayTracking = new Date(trackingStartDate);
+      startOfDayTracking.setHours(0, 0, 0, 0);
+      return txTime >= startOfDayTracking.getTime();
+    });
+
+    const totalSupplierPurchasesValue = activeSupplierTransactions.reduce((acc, t) => acc + (t.amount || 0), 0);
+    const allTimeSupplierPurchasesValue = supplierTransactions.reduce((acc, t) => acc + (t.amount || 0), 0);
     const totalAllPurchasesValue = allPurchases.reduce((acc, p) => acc + (p.amount || 0), 0);
     const unregisteredPurchasesValue = Math.max(0, totalAllPurchasesValue - totalSupplierPurchasesValue);
 
@@ -309,7 +350,7 @@ const Dashboard = memo(() => {
       .map(([date, total]) => ({ date, total: total as number }))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    // Top Suppliers Analysis
+    // Top Suppliers Analysis based on active cycle purchases
     const suppliersData: Record<string, { name: string, debt: number, purchaseVolume: number }> = {};
     
     // Initialize with actual active suppliers
@@ -327,7 +368,7 @@ const Dashboard = memo(() => {
       suppliersData[name].debt += Number(d.totalAmount) || 0;
     });
 
-    supplierTransactions.forEach(t => {
+    activeSupplierTransactions.forEach(t => {
       const supplier = suppliers.find(s => s.id === t.supplierId);
       const name = supplier?.name || 'غير معروف';
       
@@ -355,12 +396,13 @@ const Dashboard = memo(() => {
       totalCustomerDebts,
       totalSupplierDebts,
       totalSupplierPurchasesValue,
+      allTimeSupplierPurchasesValue,
       totalAllPurchasesValue,
       unregisteredPurchasesValue,
       todayPurchasesTotal,
       movementHistory
     };
-  }, [products, expenses, debts, supplierTransactions, allPurchases, suppliers]);
+  }, [products, expenses, debts, supplierTransactions, allPurchases, suppliers, settings?.lastSuppliersClearDate]);
 
   const language = settings.language || 'ar';
   const showFinancials = settings.showFinancials ?? true;
@@ -578,14 +620,48 @@ const Dashboard = memo(() => {
         {/* SECTION 2: FINANCIAL SUMMARY (COMPACT GRID) */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: t('customer_debts'), value: stats.totalCustomerDebts, color: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400', icon: CreditCard },
-            { label: t('supplier_debts'), value: stats.totalSupplierDebts, color: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400', icon: Truck },
-            { label: t('expenses'), value: stats.totalExpenses, color: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400', icon: Wallet },
-            { label: t('total_supplier_purchases'), value: stats.totalSupplierPurchasesValue, color: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400', icon: ShoppingCart },
+            { 
+              label: t('customer_debts'), 
+              value: stats.totalCustomerDebts, 
+              color: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400', 
+              icon: CreditCard,
+              onClick: () => setActiveTab('debts')
+            },
+            { 
+              label: t('supplier_debts'), 
+              value: stats.totalSupplierDebts, 
+              color: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400', 
+              icon: Truck,
+              onClick: () => setActiveTab('suppliers')
+            },
+            { 
+              label: t('expenses'), 
+              value: stats.totalExpenses, 
+              color: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400', 
+              icon: Wallet,
+              badge: t('waiting_label', 'بانتظار الجرد'),
+              onClick: () => setActiveTab('expenses')
+            },
+            { 
+              label: t('total_supplier_purchases'), 
+              value: stats.totalSupplierPurchasesValue, 
+              color: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400', 
+              icon: ShoppingCart,
+              onClick: () => setActiveTab('suppliers')
+            },
           ].map((item, idx) => (
-            <div key={idx} className="bg-white dark:bg-zinc-800/80 rounded-lg p-5 border border-zinc-100/80 dark:border-zinc-700/50 shadow-sm relative overflow-hidden group flex flex-col items-start">
-              <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center mb-4", item.color)}>
-                <item.icon size={18} />
+            <div 
+              key={idx} 
+              onClick={item.onClick}
+              className={cn(
+                "bg-white dark:bg-zinc-800/80 rounded-lg p-5 border border-zinc-100/80 dark:border-zinc-700/50 shadow-sm relative overflow-hidden group flex flex-col items-start transition-all",
+                item.onClick && "cursor-pointer hover:border-brand-300 dark:hover:border-brand-600/50 hover:shadow-md"
+              )}
+            >
+              <div className="flex items-center justify-between w-full mb-4">
+                <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center shrink-0", item.color)}>
+                  <item.icon size={18} />
+                </div>
               </div>
               <h3 className="text-lg font-black font-sans text-zinc-900 dark:text-white tracking-tight leading-none mb-1 text-right">
                 {formatPrivateValue(item.value)}

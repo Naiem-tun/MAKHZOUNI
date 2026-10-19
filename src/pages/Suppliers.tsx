@@ -118,10 +118,21 @@ export default function Suppliers() {
       // 1. If explicitly marked as archived, it belongs to an archived cycle
       if (t.archived === true) return false;
 
-      // 2. If explicitly marked as not archived, it belongs to the active cycle
+      // 2. Check if dated/created before last clear/archive date
+      if (settings?.lastSuppliersClearDate) {
+        const clearTime = new Date(settings.lastSuppliersClearDate).getTime();
+        const txTime = safeParseDate(t.date).getTime();
+        const updatedTime = t.updatedAt ? safeParseDate(t.updatedAt).getTime() : 0;
+        const createdTime = t.createdAt ? safeParseDate(t.createdAt).getTime() : 0;
+        if (txTime < clearTime && createdTime < clearTime && updatedTime < clearTime) {
+          return false;
+        }
+      }
+
+      // 3. If explicitly marked as not archived, it belongs to the active cycle
       if (t.archived === false) return true;
 
-      // 3. For legacy records without boolean `archived` field:
+      // 4. For legacy records without boolean `archived` field:
       const txTime = safeParseDate(t.date).getTime();
       const updatedTime = t.updatedAt ? safeParseDate(t.updatedAt).getTime() : 0;
       const createdTime = t.createdAt ? safeParseDate(t.createdAt).getTime() : 0;
@@ -136,7 +147,7 @@ export default function Suppliers() {
       startOfDayTracking.setHours(0, 0, 0, 0);
       return txTime >= startOfDayTracking.getTime();
     });
-  }, [transactions, trackingStartDate]);
+  }, [transactions, trackingStartDate, settings?.lastSuppliersClearDate]);
 
   const suppliersWithTotals = suppliers.map(s => {
     const supplierTx = activeTransactions.filter(t => t.supplierId === s.id);
@@ -342,7 +353,7 @@ export default function Suppliers() {
       const cycleRef = await addDoc(collection(db, `users/${user.uid}/supplierCycles`), cycleData);
 
       // Mark all current unarchived transactions as archived
-      const transactionsToArchive = transactions.filter(t => !t.archived);
+      const transactionsToArchive = transactions.filter(t => !t.archived || activeTransactions.some(at => at.id === t.id));
       const updatePromises = transactionsToArchive.map(t => {
         if (!t.id) return Promise.resolve();
         return updateDoc(doc(db, `users/${user.uid}/supplierTransactions`, t.id), {
