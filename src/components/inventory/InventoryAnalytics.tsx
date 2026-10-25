@@ -8,7 +8,7 @@ import {
   Zap, DollarSign, Layers, Clock, RefreshCw, AlertCircle,
   Search, X, PieChart as PieChartIcon, Award, ArrowUpRight, History, Truck, ChevronUp,
   Target, Compass, Activity, ThumbsUp, ThumbsDown,
-  Wallet, Users, Flame, Plus, Check, Link2, ExternalLink
+  Wallet, Users, Flame, Plus, Check, Link2, ExternalLink, HelpCircle
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, 
@@ -60,6 +60,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
   const [supplierSearchQuery, setSupplierSearchQuery] = useState('');
   const [supplierSortBy, setSupplierSortBy] = useState<'profit' | 'purchases' | 'stock_qty' | 'margin'>('profit');
   const [expandedSupplierDetailsId, setExpandedSupplierDetailsId] = useState<string | null>(null);
+  const [showCycleExplainer, setShowCycleExplainer] = useState(false);
 
   // Sort reports chronologically descending (0 is latest)
   const sortedReports = useMemo(() => {
@@ -1540,11 +1541,29 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
             </div>
 
             <div>
-              <span className="block text-[11px] text-zinc-400">المدة المحسوبة للاستهلاك</span>
-              <span className="font-bold text-zinc-200 flex items-center gap-1.5">
-                <Clock size={14} className="text-brand-400" />
-                {previousReport ? `${elapsedDays} يوماً منذ الجرد السابق` : 'دورة جرد أولى'}
-              </span>
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="block text-[11px] text-zinc-400">المدة المحسوبة للاستهلاك</span>
+                <button
+                  type="button"
+                  onClick={() => setShowCycleExplainer(true)}
+                  className="inline-flex items-center gap-1 text-[10px] font-bold text-brand-400 hover:text-brand-300 bg-brand-500/10 hover:bg-brand-500/20 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                  title="اضغط لمعرفة كيف تم حساب الأيام وسرعة النفاد"
+                >
+                  <HelpCircle size={11} />
+                  <span>كيف تُحسب؟</span>
+                </button>
+              </div>
+              <div className="space-y-0.5">
+                <span className="font-black text-sm text-zinc-200 flex items-center gap-1.5">
+                  <Clock size={14} className="text-brand-400 shrink-0" />
+                  <span>{previousReport ? `${elapsedDays} يوماً استهلاك فعلي` : 'دورة جرد أولى'}</span>
+                </span>
+                {previousReport && (
+                  <span className="block text-[11px] text-zinc-400 font-medium">
+                    (من {formatAppDate(safeParseDate(previousReport.date), 'ar', t, { day: 'numeric', month: 'short' })} إلى {formatAppDate(safeParseDate(currentReport.date), 'ar', t, { day: 'numeric', month: 'short', year: 'numeric' })})
+                  </span>
+                )}
+              </div>
             </div>
 
             <div>
@@ -3970,6 +3989,120 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
           </div>
         </div>
       )}
+
+      {/* Modal: شرح كيفية احتساب مدة الاستهلاك وسرعة النفاد */}
+      <AnimatePresence>
+        {showCycleExplainer && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowCycleExplainer(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-xs"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 sm:p-6 shadow-2xl text-right z-10 space-y-4 max-h-[90vh] overflow-y-auto"
+              dir="rtl"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0">
+                    <Clock size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm sm:text-base font-black text-zinc-900 dark:text-white">
+                      آلية احتساب مدة الاستهلاك وسرعة النفاد
+                    </h3>
+                    <p className="text-[11px] text-zinc-400">
+                      مرونة تامة تتكيف مع تواريخ الجرد الحقيقية في محلك
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowCycleExplainer(false)}
+                  className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-400 hover:text-zinc-600 flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Dynamic Timeline Card */}
+              <div className="bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/60 rounded-xl p-3.5 space-y-3">
+                <div className="flex items-center justify-between text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                  <span>المخطط الزمني الفعلي لهذه الدورة:</span>
+                  <span className="text-brand-600 dark:text-brand-400 font-black">{elapsedDays} يوماً بالتمام</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-center">
+                  <div className="p-2.5 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200/60 dark:border-zinc-800">
+                    <span className="text-[10px] text-zinc-400 block font-medium">الجرد السابق</span>
+                    <span className="text-xs font-black text-zinc-800 dark:text-zinc-200">
+                      {previousReport 
+                        ? formatAppDate(safeParseDate(previousReport.date), 'ar', t, { day: 'numeric', month: 'long', year: 'numeric' })
+                        : 'أول جرد'}
+                    </span>
+                  </div>
+                  <div className="p-2.5 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200/60 dark:border-zinc-800">
+                    <span className="text-[10px] text-zinc-400 block font-medium">الجرد الحالي</span>
+                    <span className="text-xs font-black text-brand-600 dark:text-brand-400">
+                      {currentReport 
+                        ? formatAppDate(safeParseDate(currentReport.date), 'ar', t, { day: 'numeric', month: 'long', year: 'numeric' })
+                        : '—'}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                  💡 <strong>ليونة كاملة</strong>: التطبيق لا يفرض شهراً ثابتاً من 30 يوماً؛ بل يطرح التاريخين من بعضهما في الروزنامة بدقة. إذا أجريت الجرد القادم بعد 15 يوماً سيحسب 15 يوماً، وإذا أجريته بعد 40 يوماً سيحسب 40 يوماً.
+                </p>
+              </div>
+
+              {/* The Two Equations */}
+              <div className="space-y-2.5">
+                <h4 className="text-xs font-black text-zinc-800 dark:text-zinc-200">
+                  كيف يستفيد محلك من هذه المدة الحقيقية؟
+                </h4>
+
+                <div className="p-3 bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40 rounded-xl space-y-1">
+                  <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300 text-xs font-black">
+                    <span>1. قياس معدل السحب اليومي الحقيقي:</span>
+                  </div>
+                  <p className="text-[11px] text-blue-900 dark:text-blue-200 font-mono font-bold">
+                    معدل السحب اليومي = الكمية المباعة بين الجردين ÷ {elapsedDays} يوماً
+                  </p>
+                  <p className="text-[10px] text-blue-600 dark:text-blue-400">
+                    يعرف بدقة كم قطعة يشتريها الزبائن من كل سلعة في اليوم الواحد.
+                  </p>
+                </div>
+
+                <div className="p-3 bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/40 rounded-xl space-y-1">
+                  <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 text-xs font-black">
+                    <span>2. التنبؤ بموعد نفاد الرفوف:</span>
+                  </div>
+                  <p className="text-[11px] text-emerald-900 dark:text-emerald-200 font-mono font-bold">
+                    أيام بقاء المخزون = الرصيد المتوفر اليوم ÷ معدل السحب اليومي
+                  </p>
+                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                    يحميك من نفاد السلع المطلوبة فجأة وينبهك بتجهيز الطلبيات قبل نفادها.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCycleExplainer(false)}
+                  className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs transition-colors shadow-sm cursor-pointer"
+                >
+                  فهمت ذلك، إغلاق
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
