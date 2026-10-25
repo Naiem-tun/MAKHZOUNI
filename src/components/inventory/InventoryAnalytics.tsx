@@ -18,7 +18,7 @@ import {
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAppContext } from '../../AppContext';
-import { formatCurrency, safeParseDate, formatAppDate } from '../../lib/utils';
+import { formatCurrency, safeParseDate, formatAppDate, cleanQuantity, roundMoney, formatQuantity, formatQuantityWithGrouping } from '../../lib/utils';
 import { UserSettings } from '../../types';
 
 interface InventoryAnalyticsProps {
@@ -1160,32 +1160,33 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
     let grandStockPieces = 0;
 
     (products || []).forEach((prod: any) => {
-      const liveQty = Math.max(0, Number(prod.quantity || 0));
+      const liveQty = Math.max(0, cleanQuantity(prod.quantity || 0));
       if (liveQty <= 0) return;
 
-      const cost = Number(prod.purchasePrice || prod.costPrice || 0);
-      const sell = Number(prod.sellingPrice || 0);
-      const unitProfit = Math.max(0, sell - cost);
-      const marginPct = sell > 0 ? ((sell - cost) / sell) * 100 : 0;
+      const cost = roundMoney(prod.purchasePrice || prod.costPrice || 0);
+      const sell = roundMoney(prod.sellingPrice || 0);
+      const unitProfit = roundMoney(Math.max(0, sell - cost));
+      const marginPct = sell > 0 ? Number(((sell - cost) / sell * 100).toFixed(1)) : 0;
       const barcode = prod.barcode || prod.barcode2 || '';
       const category = prod.category || 'عام';
       const prodName = prod.name || 'صنف بدون اسم';
       const prodId = prod.id || '';
 
-      grandStockCost += (cost * liveQty);
-      grandStockProfit += (unitProfit * liveQty);
-      grandStockPieces += liveQty;
+      grandStockCost = roundMoney(grandStockCost + (cost * liveQty));
+      grandStockProfit = roundMoney(grandStockProfit + (unitProfit * liveQty));
+      grandStockPieces = cleanQuantity(grandStockPieces + liveQty);
 
       const addItemToSupplier = (supId: string, supName: string, allocatedQty: number) => {
-        if (allocatedQty <= 0) return;
+        const cleanAlloc = cleanQuantity(allocatedQty);
+        if (cleanAlloc <= 0) return;
         const supplierEntry = getOrCreateSupplier(supId, supName);
         const itemKey = prodId || prodName;
 
         const existing = supplierEntry.itemsMap.get(itemKey);
         if (existing) {
-          existing.currentStockQty += allocatedQty;
-          existing.currentStockCost += (cost * allocatedQty);
-          existing.currentStockProfit += (unitProfit * allocatedQty);
+          existing.currentStockQty = cleanQuantity(existing.currentStockQty + cleanAlloc);
+          existing.currentStockCost = roundMoney(existing.currentStockCost + (cost * cleanAlloc));
+          existing.currentStockProfit = roundMoney(existing.currentStockProfit + (unitProfit * cleanAlloc));
         } else {
           supplierEntry.itemsMap.set(itemKey, {
             productId: prodId,
@@ -1196,9 +1197,9 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
             sellPrice: sell,
             unitProfit,
             marginPct,
-            currentStockQty: allocatedQty,
-            currentStockCost: cost * allocatedQty,
-            currentStockProfit: unitProfit * allocatedQty,
+            currentStockQty: cleanAlloc,
+            currentStockCost: roundMoney(cost * cleanAlloc),
+            currentStockProfit: roundMoney(unitProfit * cleanAlloc),
           });
         }
       };
@@ -1210,16 +1211,19 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
       const validPurchases = prodPurchases.filter(p => p.supplierId || p.supplierName);
 
       if (validPurchases.length > 0) {
-        let remainingQty = liveQty;
+        let remainingQty = cleanQuantity(liveQty);
         for (const p of validPurchases) {
-          if (remainingQty <= 0) break;
-          const pQty = Number(p.qtyAdded || p.quantity || 0);
+          if (remainingQty <= 0.0001) break;
+          const pQty = cleanQuantity(p.qtyAdded || p.quantity || 0);
           const chunk = pQty > 0 ? Math.min(remainingQty, pQty) : remainingQty;
-          addItemToSupplier(p.supplierId || '', p.supplierName || '', chunk);
-          remainingQty -= chunk;
+          const cleanChunk = cleanQuantity(chunk);
+          if (cleanChunk > 0) {
+            addItemToSupplier(p.supplierId || '', p.supplierName || '', cleanChunk);
+            remainingQty = cleanQuantity(remainingQty - cleanChunk);
+          }
         }
 
-        if (remainingQty > 0) {
+        if (remainingQty > 0.0001) {
           const fallbackSupId = prod.supplierId || validPurchases[0].supplierId || '';
           const fallbackSupName = prod.supplierName || validPurchases[0].supplierName || 'أصناف بدون مورد مسجل';
           addItemToSupplier(fallbackSupId, fallbackSupName, remainingQty);
@@ -1234,9 +1238,9 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
     // 6. تحويل بيانات الموردين إلى مصفوفة وإجراء العمليات الحسابية
     const calculatedSuppliers = Array.from(statsMap.values()).map(sup => {
       const itemsList = Array.from(sup.itemsMap.values()).sort((a, b) => b.currentStockProfit - a.currentStockProfit);
-      const currentStockCost = itemsList.reduce((acc, it) => acc + it.currentStockCost, 0);
-      const currentStockProfit = itemsList.reduce((acc, it) => acc + it.currentStockProfit, 0);
-      const currentStockPieces = itemsList.reduce((acc, it) => acc + it.currentStockQty, 0);
+      const currentStockCost = roundMoney(itemsList.reduce((acc, it) => acc + it.currentStockCost, 0));
+      const currentStockProfit = roundMoney(itemsList.reduce((acc, it) => acc + it.currentStockProfit, 0));
+      const currentStockPieces = cleanQuantity(itemsList.reduce((acc, it) => acc + it.currentStockQty, 0));
       const currentStockItemsCount = itemsList.length;
 
       const totalVal = currentStockCost + currentStockProfit;
@@ -2115,7 +2119,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                         </span>
                       </div>
                       <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
-                        ساهم ببيع {cycleHighlights.starProfitItem.soldQty} قطعة. احرص على عدم نفاد مخزونه نهائياً.
+                        ساهم ببيع {formatQuantityWithGrouping(cycleHighlights.starProfitItem.soldQty)} قطعة. احرص على عدم نفاد مخزونه نهائياً.
                       </p>
                     </div>
                   ) : (
@@ -2142,7 +2146,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                       <div className="flex items-baseline justify-between mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
                         <span className="text-xs text-zinc-400">إجمالي المبيعات:</span>
                         <span className="text-sm font-black text-blue-600 dark:text-blue-400 font-mono">
-                          {cycleHighlights.starVelocityItem.soldQty} قطعة
+                          {formatQuantityWithGrouping(cycleHighlights.starVelocityItem.soldQty)} قطعة
                         </span>
                       </div>
                       <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
@@ -2177,7 +2181,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                         </span>
                       </div>
                       <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
-                        لديك {cycleHighlights.heaviestDeadStock.currentStock} قطعة لم تبع قط. يُنصح بعمل تخفيض لتسييل هذا الصنف.
+                        لديك {formatQuantityWithGrouping(cycleHighlights.heaviestDeadStock.currentStock)} قطعة لم تبع قط. يُنصح بعمل تخفيض لتسييل هذا الصنف.
                       </p>
                     </div>
                   ) : (
@@ -2372,7 +2376,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                 {!showFinancials ? '••••••' : formatCurrency(summaryMetrics.totalRevenue, settings.currency, language)}
               </div>
               <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 font-medium">
-                تم استهلاك {summaryMetrics.totalSoldPieces.toLocaleString('en-US')} قطعة خلال الدورة
+                تم استهلاك {formatQuantityWithGrouping(summaryMetrics.totalSoldPieces)} قطعة خلال الدورة
               </p>
             </div>
 
@@ -2649,14 +2653,14 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                             )}
                           </div>
                           <div className="text-[11px] text-zinc-400">
-                            معدل: {item.dailyVelocity.toFixed(1)} قطعة/يوم • الرصيد المجمع: {item.currentStock}
+                            معدل: {item.dailyVelocity.toFixed(1)} قطعة/يوم • الرصيد المجمع: {formatQuantityWithGrouping(item.currentStock)}
                           </div>
                         </div>
                       </div>
 
                       <div className="text-left">
                         <div className="font-black text-sm text-emerald-600 dark:text-emerald-400">
-                          {item.soldQty} مباع
+                          {formatQuantityWithGrouping(item.soldQty)} مباع
                         </div>
                         <div className="text-[10px] text-zinc-400">
                           ربح: {formatCurrency(item.profit, settings.currency, language)}
@@ -2701,7 +2705,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                           )}
                         </div>
                         <div className="text-[11px] text-zinc-400">
-                          الكمية الراكدة المجمعة: {item.currentStock} قطعة • القسم: {item.category}
+                          الكمية الراكدة المجمعة: {formatQuantityWithGrouping(item.currentStock)} قطعة • القسم: {item.category}
                         </div>
                       </div>
 
@@ -2857,16 +2861,16 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                         </div>
                         {isLatestReportSelected && (
                           <div className="text-[10px] text-zinc-400 font-normal mt-0.5">
-                            رصيد النظام: {item.liveCurrentStock}
+                            رصيد النظام: {formatQuantityWithGrouping(item.liveCurrentStock)}
                             {item.estimatedConsumedSinceInventory > 0 && (
-                              <span className="text-zinc-500"> (قُدّر استهلاك ~{item.estimatedConsumedSinceInventory} في {daysSinceLatestInventory} أيام)</span>
+                              <span className="text-zinc-500"> (قُدّر استهلاك ~{formatQuantityWithGrouping(item.estimatedConsumedSinceInventory)} في {daysSinceLatestInventory} أيام)</span>
                             )}
                           </div>
                         )}
                       </td>
                       <td className="py-2.5 text-zinc-500">{item.category}</td>
                       <td className="py-2.5 font-black text-sm text-zinc-900 dark:text-zinc-100">
-                        {item.currentStock} قطعة
+                        {formatQuantityWithGrouping(item.currentStock)} قطعة
                       </td>
                       <td className="py-2.5 text-zinc-600 dark:text-zinc-300 font-medium">
                         {item.dailyVelocity.toFixed(1)} / يوم
@@ -3183,7 +3187,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
               </div>
               <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold mt-1 font-mono tabular-nums" dir="ltr">
                 {supplierPerformanceData.topProfitSupplier && showFinancials
-                  ? `+${formatCurrency(supplierPerformanceData.topProfitSupplier.currentStockProfit, settings.currency, language)} (${supplierPerformanceData.topProfitSupplier.currentStockPieces} قطعة)`
+                  ? `+${formatCurrency(supplierPerformanceData.topProfitSupplier.currentStockProfit, settings.currency, language)} (${formatQuantityWithGrouping(supplierPerformanceData.topProfitSupplier.currentStockPieces)} قطعة)`
                   : '—'}
               </div>
             </div>
@@ -3197,7 +3201,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                 </div>
               </div>
               <div className="text-xl font-black text-zinc-900 dark:text-white font-mono tabular-nums" dir="ltr">
-                {supplierPerformanceData.grandCurrentStockPieces.toLocaleString()} قطعة
+                {formatQuantityWithGrouping(supplierPerformanceData.grandCurrentStockPieces)} قطعة
               </div>
               <span className="text-[11px] text-zinc-400 mt-1 block">
                 عبر {supplierPerformanceData.suppliersWithStockCount} مورد لديهم بضاعة حالياً
@@ -3363,7 +3367,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                                   : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400'
                               }`}>
                                 <Package size={12} />
-                                {s.currentStockPieces.toLocaleString()} قطعة
+                                {formatQuantityWithGrouping(s.currentStockPieces)} قطعة
                               </span>
                             </td>
 
@@ -3453,8 +3457,8 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                                       <span className="text-[11px] text-purple-600 dark:text-purple-400 font-bold block mb-1">
                                         إجمالي القطع بالمخزن
                                       </span>
-                                      <span className="text-sm font-black text-purple-600 dark:text-purple-400">
-                                        {s.currentStockPieces.toLocaleString()} قطعة
+                                      <span className="text-sm font-black text-purple-600 dark:text-purple-400 font-mono tabular-nums">
+                                        {formatQuantityWithGrouping(s.currentStockPieces)} قطعة
                                       </span>
                                     </div>
                                     <div className="bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60 rounded-xl p-2.5">
@@ -3502,8 +3506,8 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                                             <tr key={iIdx} className="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30">
                                               <td className="py-2 px-3 font-bold text-zinc-800 dark:text-zinc-200">{item.name}</td>
                                               <td className="py-2 px-3">
-                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-black text-xs bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200">
-                                                  {item.currentStockQty} قطعة
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-black text-xs bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200 font-mono tabular-nums">
+                                                  {formatQuantityWithGrouping(item.currentStockQty)} قطعة
                                                 </span>
                                               </td>
                                               <td className="py-2 px-3 font-semibold text-zinc-600 dark:text-zinc-400" dir="ltr">
@@ -3589,7 +3593,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                         <div>
                           <div className="font-bold text-sm text-zinc-900 dark:text-white">{item.name}</div>
                           <div className="text-[11px] text-zinc-400">
-                            الزيادة: +{item.surplusQuantity} قطعة
+                            الزيادة: +{formatQuantityWithGrouping(item.surplusQuantity)} قطعة
                           </div>
                         </div>
                         <div className="text-left font-black text-amber-600 dark:text-amber-400">

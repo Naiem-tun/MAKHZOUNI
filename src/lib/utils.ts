@@ -60,6 +60,19 @@ export function formatQuantity(val: any, maxDecimals: number = 3): string {
   return parseFloat(fixed).toString();
 }
 
+/**
+ * تنسيق الكميات والقطع مع فواصل الآلاف وبحد أقصى للكسور بدون شوائب عشرية
+ * يمنع ظهور أخطاء الفاصلة العائمة مثل 3832.6500000000005
+ */
+export function formatQuantityWithGrouping(val: any, maxDecimals: number = 2): string {
+  const cleaned = cleanQuantity(val);
+  if (cleaned === 0) return '0';
+  return cleaned.toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: maxDecimals,
+  });
+}
+
 export function sanitizeProduct<T extends Record<string, any>>(prod: T): T {
   if (!prod) return prod;
   const sanitized = { ...prod } as any;
