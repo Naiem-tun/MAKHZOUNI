@@ -56,6 +56,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
   const [itemsPerPage, setItemsPerPage] = useState<number>(20);
   const [urgentFilter, setUrgentFilter] = useState<'all' | 'critical' | 'warning'>('all');
   const [expandedDayKey, setExpandedDayKey] = useState<string | null>(null);
+  const [expandedInvoiceId, setExpandedInvoiceId] = useState<string | null>(null);
   const [supplierSearchQuery, setSupplierSearchQuery] = useState('');
   const [supplierSortBy, setSupplierSortBy] = useState<'profit' | 'purchases' | 'stock_qty' | 'margin'>('profit');
   const [expandedSupplierDetailsId, setExpandedSupplierDetailsId] = useState<string | null>(null);
@@ -194,14 +195,14 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
 
       const existing = groupedReportItems.get(groupKey);
       if (existing) {
-        existing.quantityAfter = (existing.quantityAfter || 0) + Number(item.quantityAfter || 0);
-        existing.salesCalculated = (existing.salesCalculated || 0) + Number(item.salesCalculated || 0);
-        existing.profit = (existing.profit || 0) + Number(item.profit || 0);
-        existing.remainingValue = (existing.remainingValue || 0) + Number(item.remainingValue || 0);
+        existing.quantityAfter = cleanQuantity((existing.quantityAfter || 0) + Number(item.quantityAfter || 0));
+        existing.salesCalculated = cleanQuantity((existing.salesCalculated || 0) + Number(item.salesCalculated || 0));
+        existing.profit = roundMoney((existing.profit || 0) + Number(item.profit || 0));
+        existing.remainingValue = roundMoney((existing.remainingValue || 0) + Number(item.remainingValue || 0));
         if (item.isSurplus) {
           existing.isSurplus = true;
-          existing.surplusQuantity = (existing.surplusQuantity || 0) + (item.surplusQuantity || 0);
-          existing.surplusCostValue = (existing.surplusCostValue || 0) + (item.surplusCostValue || 0);
+          existing.surplusQuantity = cleanQuantity((existing.surplusQuantity || 0) + (item.surplusQuantity || 0));
+          existing.surplusCostValue = roundMoney((existing.surplusCostValue || 0) + (item.surplusCostValue || 0));
         }
       } else {
         groupedReportItems.set(groupKey, { ...item });
@@ -216,57 +217,47 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
       const liveGroup = (nKey && groupedLiveProducts.nameMap.get(nKey)) || 
                         (bKey && groupedLiveProducts.barcodeMap.get(bKey));
 
-      const costPrice = Number(item.purchasePrice || liveGroup?.latestCostPrice || 0);
-      const sellPrice = Number(item.sellingPrice || liveGroup?.sellingPrice || 0);
+      const costPrice = roundMoney(Number(item.purchasePrice || liveGroup?.latestCostPrice || 0));
+      const sellPrice = roundMoney(Number(item.sellingPrice || liveGroup?.sellingPrice || 0));
       
-      // Stock quantity & Simulation:
-      // In a periodic inventory system without POS daily sales deduction,
-      // the live quantity in the app only increases when purchases are entered, but doesn't decrease daily.
-      // Therefore, for the latest inventory, we compute:
-      // 1. recordedReportStock: stock at the moment of the last inventory
-      // 2. liveCurrentStock: current recorded stock in the app (inventory + purchases made after inventory)
-      // 3. estimatedConsumedSinceInventory: (dailyVelocity * daysSinceLatestInventory)
-      // 4. estimatedCurrentStockToday: liveCurrentStock - estimatedConsumedSinceInventory
-      const recordedReportStock = Number(item.quantityAfter || 0);
-      const liveCurrentStock = liveGroup ? liveGroup.totalQuantity : recordedReportStock;
+      const recordedReportStock = cleanQuantity(Number(item.quantityAfter || 0));
+      const liveCurrentStock = liveGroup ? cleanQuantity(liveGroup.totalQuantity) : recordedReportStock;
       
-      const soldQty = Number(item.salesCalculated || 0);
-      const profit = Number(item.profit || 0);
-      const revenue = soldQty > 0 ? (soldQty * sellPrice) : 0;
-      const cogs = soldQty > 0 ? (soldQty * costPrice) : 0;
+      const soldQty = cleanQuantity(Number(item.salesCalculated || 0));
+      const profit = roundMoney(Number(item.profit || 0));
+      const revenue = roundMoney(soldQty > 0 ? (soldQty * sellPrice) : 0);
+      const cogs = roundMoney(soldQty > 0 ? (soldQty * costPrice) : 0);
 
       // Return per 1 Dinar invested in sold inventory:
-      // If 10 Dinars cost generated 14 Dinars revenue -> 1.40 Dinars return per 1 Dinar invested
-      const returnPerDinar = cogs > 0 ? (revenue / cogs) : (costPrice > 0 && sellPrice > 0 ? (sellPrice / costPrice) : 0);
+      const returnPerDinar = cogs > 0 ? Number((revenue / cogs).toFixed(2)) : (costPrice > 0 && sellPrice > 0 ? Number((sellPrice / costPrice).toFixed(2)) : 0);
 
       // Daily consumption velocity based on elapsed days between inventories
-      const dailyVelocity = soldQty > 0 ? (soldQty / elapsedDays) : 0;
+      const safeElapsed = Math.max(1, elapsedDays || 1);
+      const dailyVelocity = soldQty > 0 ? Number((soldQty / safeElapsed).toFixed(2)) : 0;
 
       // Simulated estimated depletion since the last inventory until today
       const estimatedConsumedSinceInventory = isLatestReportSelected && dailyVelocity > 0
-        ? Math.round(dailyVelocity * daysSinceLatestInventory)
+        ? cleanQuantity(Math.round(dailyVelocity * Math.max(0, daysSinceLatestInventory || 0)))
         : 0;
 
       // Real estimated shelf stock today:
-      // Taking what's currently in the system (base inventory + new purchases) minus estimated consumption
       const estimatedCurrentStockToday = isLatestReportSelected
-        ? Math.max(0, liveCurrentStock - estimatedConsumedSinceInventory)
+        ? Math.max(0, cleanQuantity(liveCurrentStock - estimatedConsumedSinceInventory))
         : recordedReportStock;
 
       const currentStock = isLatestReportSelected ? estimatedCurrentStockToday : recordedReportStock;
       
       // Stock Runway (Days until stock out from today)
-      // Remaining shelf days starting from TODAY:
       const daysUntilStockout = dailyVelocity > 0 
         ? Math.max(0, Math.floor(estimatedCurrentStockToday / dailyVelocity)) 
         : (estimatedCurrentStockToday > 0 ? 999 : 0);
 
       // Previous inventory stock
-      const prevStock = prevItem ? Number(prevItem.quantityAfter || 0) : null;
+      const prevStock = prevItem ? cleanQuantity(Number(prevItem.quantityAfter || 0)) : null;
       
       // Dead stock flag: item had positive stock before and sold 0
       const isDeadStock = soldQty <= 0 && currentStock > 0;
-      const deadCapital = isDeadStock ? (currentStock * costPrice) : 0;
+      const deadCapital = isDeadStock ? roundMoney(currentStock * costPrice) : 0;
 
       // Status
       let stockStatus: 'depleted' | 'critical' | 'healthy' | 'excess' | 'stagnant' = 'healthy';
@@ -324,31 +315,31 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
       };
     }
 
-    const totalRevenue = Number(currentReport.totalRevenue || 0);
-    const totalProfit = Number(currentReport.totalProfit || 0);
-    const totalRemainingValue = Number(currentReport.totalRemainingValue || 0);
-    const totalExpenses = Number(currentReport.totalExpenses || 0);
-    const netProfit = Number(currentReport.netProfit ?? (totalProfit - totalExpenses));
-    const surplusValue = Number(currentReport.surplusValueUnverified || 0);
-    const surplusCount = Number(currentReport.surplusItemsCount || 0);
-    const damageLoss = Number(currentReport.totalDamageLoss || 0);
+    const totalRevenue = roundMoney(Number(currentReport.totalRevenue || 0));
+    const totalProfit = roundMoney(Number(currentReport.totalProfit || 0));
+    const totalRemainingValue = roundMoney(Number(currentReport.totalRemainingValue || 0));
+    const totalExpenses = roundMoney(Number(currentReport.totalExpenses || 0));
+    const netProfit = roundMoney(Number(currentReport.netProfit ?? (totalProfit - totalExpenses)));
+    const surplusValue = roundMoney(Number(currentReport.surplusValueUnverified || 0));
+    const surplusCount = cleanQuantity(Number(currentReport.surplusItemsCount || 0));
+    const damageLoss = roundMoney(Number(currentReport.totalDamageLoss || 0));
 
-    const totalSoldPieces = analyzedItems.reduce((acc, it) => acc + (it.soldQty > 0 ? it.soldQty : 0), 0);
+    const totalSoldPieces = cleanQuantity(analyzedItems.reduce((acc, it) => acc + (it.soldQty > 0 ? it.soldQty : 0), 0));
     const deadStockItems = analyzedItems.filter(it => it.isDeadStock);
     const deadStockCount = deadStockItems.length;
-    const deadStockCapital = deadStockItems.reduce((acc, it) => acc + it.deadCapital, 0);
+    const deadStockCapital = roundMoney(deadStockItems.reduce((acc, it) => acc + it.deadCapital, 0));
     const criticalStockCount = analyzedItems.filter(it => it.stockStatus === 'critical').length;
 
     let growthRevenuePct: number | null = null;
     let growthProfitPct: number | null = null;
 
     if (previousReport && Number(previousReport.totalRevenue || 0) > 0) {
-      const prevRev = Number(previousReport.totalRevenue);
-      growthRevenuePct = ((totalRevenue - prevRev) / prevRev) * 100;
+      const prevRev = roundMoney(Number(previousReport.totalRevenue));
+      growthRevenuePct = roundMoney(((totalRevenue - prevRev) / prevRev) * 100);
     }
     if (previousReport && Number(previousReport.totalProfit || 0) > 0) {
-      const prevProf = Number(previousReport.totalProfit);
-      growthProfitPct = ((totalProfit - prevProf) / prevProf) * 100;
+      const prevProf = roundMoney(Number(previousReport.totalProfit));
+      growthProfitPct = roundMoney(((totalProfit - prevProf) / prevProf) * 100);
     }
 
     return {
@@ -920,11 +911,11 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
       };
 
       existing.itemCount += 1;
-      existing.revenue += Number(item.revenue || 0);
-      existing.profit += Number(item.profit || 0);
-      existing.remainingValue += Number(item.currentStock || 0) * Number(item.costPrice || 0);
-      const itemCogs = Number(item.soldQty || 0) * Number(item.costPrice || 0);
-      existing.cogs += itemCogs;
+      existing.revenue = roundMoney(existing.revenue + Number(item.revenue || 0));
+      existing.profit = roundMoney(existing.profit + Number(item.profit || 0));
+      existing.remainingValue = roundMoney(existing.remainingValue + (Number(item.currentStock || 0) * Number(item.costPrice || 0)));
+      const itemCogs = roundMoney(Number(item.soldQty || 0) * Number(item.costPrice || 0));
+      existing.cogs = roundMoney(existing.cogs + itemCogs);
 
       map.set(cat, existing);
     });
@@ -933,10 +924,10 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
     const totalProf = summaryMetrics.totalProfit || 1;
 
     return Array.from(map.values()).map(c => {
-      const revPct = summaryMetrics.totalRevenue > 0 ? (c.revenue / totalRev) * 100 : 0;
-      const profPct = summaryMetrics.totalProfit > 0 ? (c.profit / totalProf) * 100 : 0;
-      const profitMargin = c.revenue > 0 ? (c.profit / c.revenue) * 100 : 0;
-      const returnOnDinar = c.cogs > 0 ? (c.revenue / c.cogs) : (c.profit > 0 ? 1 + (c.profit / (c.revenue - c.profit)) : 1);
+      const revPct = summaryMetrics.totalRevenue > 0 ? roundMoney((c.revenue / totalRev) * 100) : 0;
+      const profPct = summaryMetrics.totalProfit > 0 ? roundMoney((c.profit / totalProf) * 100) : 0;
+      const profitMargin = c.revenue > 0 ? roundMoney((c.profit / c.revenue) * 100) : 0;
+      const returnOnDinar = c.cogs > 0 ? roundMoney(c.revenue / c.cogs) : (c.profit > 0 ? roundMoney(1 + (c.profit / (c.revenue - c.profit))) : 1);
 
       return {
         ...c,
@@ -956,79 +947,165 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
       .slice(0, 5);
   }, [analyzedItems]);
 
-  // Map suppliers by ID for instant lookup
+  // Map suppliers by ID and Name for instant lookup
   const suppliersMap = useMemo(() => {
     const map = new Map<string, any>();
     (suppliers || []).forEach(s => {
       if (s.id) map.set(s.id, s);
+      if (s.name) map.set(s.name.trim().toLowerCase(), s);
     });
     return map;
   }, [suppliers]);
 
-  // Group purchases by Day (Daily total purchases with breakdown by categories and suppliers)
+  // Group purchases by Day & Invoices (Daily total purchases grouped by real invoices and suppliers)
   const dailyPurchases = useMemo(() => {
-    const groups: Record<string, { 
+    interface DayInvoiceItem {
+      id: string;
+      name: string;
+      barcode?: string;
+      qtyAdded: number;
+      price: number;
+      amount: number;
+      numBoxes?: number;
+      boxPrice?: number;
+      piecesPerBox?: number;
+      note?: string;
+    }
+
+    interface DayInvoice {
+      id: string;
+      invoiceNumber: string;
+      hasExplicitInvoiceNumber: boolean;
+      supplierId?: string;
+      supplierName: string;
+      category: string;
+      totalAmount: number;
+      totalPieces: number;
+      itemsCount: number;
+      items: DayInvoiceItem[];
+      date: Date;
+    }
+
+    interface DayPurchasesGroup {
       key: string;
       date: Date;
       total: number;
-      count: number;
-      txs: Array<{
-        id?: string;
-        amount: number;
-        note?: string;
-        supplierName: string;
-        category: string;
-      }>;
-      categoriesBreakdown: Record<string, { total: number; count: number }>;
-      suppliersBreakdown: Record<string, { total: number; count: number }>;
-    }> = {};
+      totalPieces: number;
+      totalItems: number;
+      invoicesCount: number;
+      invoices: DayInvoice[];
+      categoriesBreakdown: Record<string, { total: number; count: number; pieces: number }>;
+      suppliersBreakdown: Record<string, { total: number; count: number; pieces: number; invoicesCount: number }>;
+    }
+
+    const groups: Record<string, DayPurchasesGroup> = {};
     
     const records = (purchases && purchases.length > 0) ? purchases : (supplierTransactions || []);
     
-    records.forEach((p: any) => {
+    records.forEach((p: any, pIdx: number) => {
       const date = safeParseDate(p.date || p.createdAt);
       const dateKey = date.toLocaleDateString('en-GB');
       
-      const supplierObj = p.supplierId ? suppliersMap.get(p.supplierId) : null;
+      const supplierObj = p.supplierId ? suppliersMap.get(p.supplierId) : (p.supplierName ? suppliersMap.get(p.supplierName.trim().toLowerCase()) : null);
       const supplierName = supplierObj?.name || p.supplierName || 'مورد غير مسجل';
-      const category = (supplierObj?.typeOfGoods || 'عام / غير محدد').trim();
-      const amount = Number(p.amount) || 0;
+      const supplierId = p.supplierId || supplierObj?.id || '';
+      const category = (supplierObj?.typeOfGoods || p.category || 'عام / غير محدد').trim();
+
+      const qty = cleanQuantity(p.qtyAdded ?? p.quantity ?? 1);
+      const price = roundMoney(Number(p.price ?? p.purchasePrice ?? p.costPrice ?? 0));
+      const amount = roundMoney(Number(p.amount !== undefined ? p.amount : (qty * price)));
+
+      // Invoice grouping identifier:
+      // Priority 1: Explicit invoice number
+      // Priority 2: Supplier session / batch ID
+      // Priority 3: Fallback to supplier group on that date
+      const rawInvNum = p.invoiceNumber || p.invoiceNo || p.billNumber || '';
+      const hasExplicitInv = Boolean(rawInvNum && String(rawInvNum).trim());
+      const cleanInvNum = hasExplicitInv ? String(rawInvNum).trim() : '';
+
+      const invSession = p.supplierSessionId || p.sessionId || p.cycleId || '';
+      const supplierKey = (supplierId || supplierName).trim().toLowerCase();
+      
+      const invoiceKey = hasExplicitInv 
+        ? `${dateKey}_inv_${supplierKey}_${cleanInvNum}`
+        : (invSession ? `${dateKey}_sess_${supplierKey}_${invSession}` : `${dateKey}_sup_${supplierKey}`);
 
       if (!groups[dateKey]) {
         groups[dateKey] = { 
           key: dateKey,
           date, 
           total: 0, 
-          count: 0,
-          txs: [],
+          totalPieces: 0,
+          totalItems: 0,
+          invoicesCount: 0,
+          invoices: [],
           categoriesBreakdown: {},
           suppliersBreakdown: {}
         };
       }
       
-      groups[dateKey].total += amount;
-      groups[dateKey].count += 1;
-      groups[dateKey].txs.push({
-        id: p.id,
-        amount,
-        note: p.note || '',
-        supplierName,
-        category
-      });
+      const day = groups[dateKey];
+      day.total = roundMoney(day.total + amount);
+      day.totalPieces = cleanQuantity(day.totalPieces + qty);
+      day.totalItems += 1;
 
       // Categories accumulation
-      if (!groups[dateKey].categoriesBreakdown[category]) {
-        groups[dateKey].categoriesBreakdown[category] = { total: 0, count: 0 };
+      if (!day.categoriesBreakdown[category]) {
+        day.categoriesBreakdown[category] = { total: 0, count: 0, pieces: 0 };
       }
-      groups[dateKey].categoriesBreakdown[category].total += amount;
-      groups[dateKey].categoriesBreakdown[category].count += 1;
+      day.categoriesBreakdown[category].total = roundMoney(day.categoriesBreakdown[category].total + amount);
+      day.categoriesBreakdown[category].count += 1;
+      day.categoriesBreakdown[category].pieces = cleanQuantity(day.categoriesBreakdown[category].pieces + qty);
 
       // Suppliers accumulation
-      if (!groups[dateKey].suppliersBreakdown[supplierName]) {
-        groups[dateKey].suppliersBreakdown[supplierName] = { total: 0, count: 0 };
+      if (!day.suppliersBreakdown[supplierName]) {
+        day.suppliersBreakdown[supplierName] = { total: 0, count: 0, pieces: 0, invoicesCount: 0 };
       }
-      groups[dateKey].suppliersBreakdown[supplierName].total += amount;
-      groups[dateKey].suppliersBreakdown[supplierName].count += 1;
+      day.suppliersBreakdown[supplierName].total = roundMoney(day.suppliersBreakdown[supplierName].total + amount);
+      day.suppliersBreakdown[supplierName].count += 1;
+      day.suppliersBreakdown[supplierName].pieces = cleanQuantity(day.suppliersBreakdown[supplierName].pieces + qty);
+
+      // Find or create unified invoice in this day
+      let invoice = day.invoices.find(inv => inv.id === invoiceKey);
+      if (!invoice) {
+        invoice = {
+          id: invoiceKey,
+          invoiceNumber: cleanInvNum,
+          hasExplicitInvoiceNumber: hasExplicitInv,
+          supplierId,
+          supplierName,
+          category,
+          totalAmount: 0,
+          totalPieces: 0,
+          itemsCount: 0,
+          items: [],
+          date
+        };
+        day.invoices.push(invoice);
+        day.suppliersBreakdown[supplierName].invoicesCount += 1;
+      }
+
+      invoice.totalAmount = roundMoney(invoice.totalAmount + amount);
+      invoice.totalPieces = cleanQuantity(invoice.totalPieces + qty);
+      invoice.itemsCount += 1;
+      invoice.items.push({
+        id: p.id || `${invoiceKey}_it_${pIdx}`,
+        name: p.productName || p.name || 'صنف توريد',
+        barcode: p.barcode || '',
+        qtyAdded: qty,
+        price,
+        amount,
+        numBoxes: p.numBoxes,
+        boxPrice: p.boxPrice,
+        piecesPerBox: p.piecesPerBox,
+        note: p.note || ''
+      });
+    });
+
+    // Finalize invoice counts and sort
+    Object.values(groups).forEach(day => {
+      day.invoicesCount = day.invoices.length;
+      day.invoices.sort((a, b) => b.totalAmount - a.totalAmount);
     });
 
     return Object.values(groups).sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -2970,12 +3047,15 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                           {i + 1}
                         </div>
                         <div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm font-black text-zinc-900 dark:text-white">
                               {day.date.toLocaleDateString(language === 'ar' ? 'ar-TN' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                             </span>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400">
-                              {day.count} {day.count === 1 ? 'فاتورة' : 'فواتير'}
+                            <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-800/40">
+                              {day.invoicesCount} {day.invoicesCount === 1 ? 'فاتورة' : 'فواتير'}
+                            </span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                              {formatQuantityWithGrouping(day.totalItems)} صنف ({formatQuantityWithGrouping(day.totalPieces)} قطعة)
                             </span>
                           </div>
                           
@@ -3011,9 +3091,9 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                       </div>
                     </div>
 
-                    {/* Expanded Detail Panel: Categories & Suppliers breakdown */}
+                    {/* Expanded Detail Panel: Categories & Invoices breakdown */}
                     {isExpanded && (
-                      <div className="p-4 bg-zinc-50/70 dark:bg-zinc-950/40 border-t border-zinc-100 dark:border-zinc-800 space-y-4">
+                      <div className="p-4 bg-zinc-50/70 dark:bg-zinc-950/40 border-t border-zinc-100 dark:border-zinc-800 space-y-5">
                         {/* 1. Category Breakdown */}
                         <div>
                           <div className="flex items-center gap-1.5 mb-2.5">
@@ -3039,7 +3119,9 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                                     </span>
                                   </div>
                                   <div className="flex items-baseline justify-between">
-                                    <span className="text-[11px] text-zinc-400">{catData.count} عملية</span>
+                                    <span className="text-[11px] text-zinc-400">
+                                      {catData.count} عملية ({formatQuantityWithGrouping(catData.pieces)} ق)
+                                    </span>
                                     <span className="text-xs font-black text-zinc-900 dark:text-white">
                                       {formatCurrency(catData.total, settings.currency, language)}
                                     </span>
@@ -3050,37 +3132,153 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                           </div>
                         </div>
 
-                        {/* 2. Suppliers & Invoices breakdown */}
+                        {/* 2. Grouped Invoices breakdown (كارت لكل فاتورة مورد يوضح رقمها وإجماليها والسلع التابعة لها) */}
                         <div>
-                          <div className="flex items-center gap-1.5 mb-2.5">
-                            <Truck size={14} className="text-blue-500" />
-                            <span className="text-xs font-black text-zinc-700 dark:text-zinc-300">
-                              الموردون والفواتير في هذا اليوم
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <Truck size={15} className="text-blue-500" />
+                              <span className="text-xs font-black text-zinc-800 dark:text-zinc-200">
+                                فواتير المشتريات والتوريد ({day.invoicesCount} {day.invoicesCount === 1 ? 'فاتورة' : 'فواتير'})
+                              </span>
+                            </div>
+                            <span className="text-[11px] text-zinc-400">
+                              اضغط على أي فاتورة لعرض تفاصيل السلع المشتراة
                             </span>
                           </div>
-                          <div className="space-y-2">
-                            {day.txs.map((tx, txIdx) => (
-                              <div 
-                                key={tx.id || txIdx}
-                                className="flex items-center justify-between p-2.5 bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/80 rounded-xl text-xs"
-                              >
-                                <div className="flex items-center gap-2.5">
-                                  <div className="w-2 h-2 rounded-full bg-brand-500 shrink-0" />
-                                  <div>
-                                    <span className="font-bold text-zinc-900 dark:text-white block">
-                                      {tx.supplierName}
-                                    </span>
-                                    <div className="flex items-center gap-2 text-[11px] text-zinc-400">
-                                      <span>فئة: {tx.category}</span>
-                                      {tx.note && <span>• {tx.note}</span>}
+
+                          <div className="space-y-3">
+                            {day.invoices.map((inv, invIdx) => {
+                              const isInvoiceExpanded = expandedInvoiceId === inv.id;
+                              return (
+                                <div 
+                                  key={inv.id || invIdx}
+                                  className="bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-xl overflow-hidden shadow-xs transition-all hover:border-zinc-300 dark:hover:border-zinc-700"
+                                >
+                                  {/* Invoice Card Header */}
+                                  <div 
+                                    onClick={() => setExpandedInvoiceId(isInvoiceExpanded ? null : inv.id)}
+                                    className="p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 transition-colors"
+                                  >
+                                    <div className="flex items-start sm:items-center gap-3">
+                                      <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 font-bold text-xs shadow-xs">
+                                        <Truck size={16} />
+                                      </div>
+                                      <div>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <span className="font-black text-xs sm:text-sm text-zinc-900 dark:text-white">
+                                            {inv.supplierName}
+                                          </span>
+                                          {inv.hasExplicitInvoiceNumber ? (
+                                            <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border border-amber-200/50 dark:border-amber-800/40">
+                                              فاتورة #{inv.invoiceNumber}
+                                            </span>
+                                          ) : (
+                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                                              فاتورة توريد يومية
+                                            </span>
+                                          )}
+                                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
+                                            {inv.category}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-1 text-[11px] text-zinc-400">
+                                          <span className="font-medium">{inv.itemsCount} صنف</span>
+                                          <span>•</span>
+                                          <span className="font-medium">{formatQuantityWithGrouping(inv.totalPieces)} قطعة</span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between sm:justify-end gap-3.5 pt-2 sm:pt-0 border-t sm:border-t-0 border-zinc-100 dark:border-zinc-800/60">
+                                      <div className="text-left">
+                                        <span className="text-[10px] text-zinc-400 block font-medium">إجمالي الفاتورة</span>
+                                        <span className="text-sm font-black text-brand-600 dark:text-brand-400 tabular-nums">
+                                          {!showFinancials ? '••••••' : formatCurrency(inv.totalAmount, settings.currency, language)}
+                                        </span>
+                                      </div>
+                                      <div className="w-7 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 shrink-0">
+                                        {isInvoiceExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                      </div>
                                     </div>
                                   </div>
+
+                                  {/* Invoice Itemized Products Table */}
+                                  {isInvoiceExpanded && (
+                                    <div className="bg-zinc-50/90 dark:bg-zinc-950/60 border-t border-zinc-100 dark:border-zinc-800/80 p-3 sm:p-4">
+                                      <div className="overflow-x-auto">
+                                        <table className="w-full text-right text-xs">
+                                          <thead>
+                                            <tr className="border-b border-zinc-200/80 dark:border-zinc-800 text-zinc-400 text-[10px] font-bold">
+                                              <th className="pb-2 pr-2">الصنف</th>
+                                              <th className="pb-2 text-center">الكمية المشتراة</th>
+                                              <th className="pb-2 text-center">سعر الشراء</th>
+                                              <th className="pb-2 text-left pl-2">المجموع</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-zinc-200/50 dark:divide-zinc-800/50">
+                                            {inv.items.map((it, itIdx) => (
+                                              <tr key={it.id || itIdx} className="hover:bg-zinc-100/50 dark:hover:bg-zinc-800/30 transition-colors">
+                                                <td className="py-2.5 pr-2">
+                                                  <span className="font-bold text-zinc-900 dark:text-white block">
+                                                    {it.name}
+                                                  </span>
+                                                  <div className="flex items-center gap-2 mt-0.5">
+                                                    {it.barcode && (
+                                                      <span className="font-mono text-[10px] text-zinc-400">
+                                                        {it.barcode}
+                                                      </span>
+                                                    )}
+                                                    {it.note && (
+                                                      <span className="text-[10px] text-zinc-400 italic">
+                                                        ({it.note})
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                </td>
+                                                <td className="py-2.5 text-center">
+                                                  {it.numBoxes && it.numBoxes > 0 ? (
+                                                    <div>
+                                                      <span className="font-bold text-zinc-900 dark:text-white">
+                                                        {it.numBoxes} كرتونة
+                                                      </span>
+                                                      <span className="block text-[10px] text-zinc-400 font-mono">
+                                                        ({formatQuantityWithGrouping(it.qtyAdded)} ق)
+                                                      </span>
+                                                    </div>
+                                                  ) : (
+                                                    <span className="font-bold text-zinc-900 dark:text-white">
+                                                      {formatQuantityWithGrouping(it.qtyAdded)} قطعة
+                                                    </span>
+                                                  )}
+                                                </td>
+                                                <td className="py-2.5 text-center font-mono font-bold text-zinc-700 dark:text-zinc-300">
+                                                  {!showFinancials ? '••••••' : formatCurrency(it.price, settings.currency, language)}
+                                                </td>
+                                                <td className="py-2.5 text-left pl-2 font-mono font-black text-zinc-900 dark:text-white">
+                                                  {!showFinancials ? '••••••' : formatCurrency(it.amount, settings.currency, language)}
+                                                </td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                          <tfoot>
+                                            <tr className="border-t-2 border-zinc-200 dark:border-zinc-800 font-black text-xs text-zinc-900 dark:text-white">
+                                              <td className="pt-2 pr-2">الإجمالي ({inv.itemsCount} صنف):</td>
+                                              <td className="pt-2 text-center text-brand-600 dark:text-brand-400">
+                                                {formatQuantityWithGrouping(inv.totalPieces)} قطعة
+                                              </td>
+                                              <td className="pt-2 text-center text-zinc-400">-</td>
+                                              <td className="pt-2 text-left pl-2 text-brand-600 dark:text-brand-400">
+                                                {!showFinancials ? '••••••' : formatCurrency(inv.totalAmount, settings.currency, language)}
+                                              </td>
+                                            </tr>
+                                          </tfoot>
+                                        </table>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
-                                <span className="font-black text-zinc-900 dark:text-white text-xs">
-                                  {formatCurrency(tx.amount, settings.currency, language)}
-                                </span>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       </div>
