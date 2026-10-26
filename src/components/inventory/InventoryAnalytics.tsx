@@ -1013,7 +1013,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
     };
   }, [analyzedItems]);
 
-  // Margin Squeeze Alert & Cost Inflation Analysis (رصد تآكل الأرباح بسبب زيادات الموردين)
+  // Margin Squeeze Alert & Cost Inflation Analysis (رصد تآكل الأرباح بسبب زيادات أسعار الموردين الحقيقية)
   const marginSqueezeAnalysis = useMemo(() => {
     const squeezedItems: Array<{
       id?: string;
@@ -1022,6 +1022,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
       category: string;
       previousCost: number;
       currentCost: number;
+      costDiff: number;
       sellingPrice: number;
       currentMarginPct: number;
       previousMarginPct: number;
@@ -1029,6 +1030,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
       suggestedSellingPrice: number;
       unitsSoldOrStock: number;
       estimatedLoss: number;
+      reason: 'supplier_hike' | 'negative_margin';
     }> = [];
 
     // Map latest purchase hikes from purchases history
@@ -1063,54 +1065,65 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
 
       const currentMargin = sell > cost ? ((sell - cost) / sell) * 100 : 0;
 
+      // 1. حالة زيادة سعر التكلفة من المورد (زيادة حقيقية غير معكوسة على سعر البيع)
       if (hike && hike.currentPrice > hike.previousPrice) {
         const oldCost = roundMoney(hike.previousPrice);
-        const oldMargin = sell > oldCost ? ((sell - oldCost) / sell) * 100 : 0;
-        if (oldMargin > currentMargin) {
-          const targetMultiplier = 1 - (oldMargin / 100);
-          const suggested = targetMultiplier > 0 ? roundMoney(cost / targetMultiplier) : roundMoney(cost * 1.2);
-          const estLoss = roundMoney(Math.max(1, it.soldQty || it.currentStock) * (suggested - sell));
+        const costDiff = roundMoney(hike.currentPrice - oldCost);
 
-          squeezedItems.push({
-            name: it.name,
-            barcode: it.barcode,
-            category: it.category,
-            previousCost: oldCost,
-            currentCost: cost,
-            sellingPrice: sell,
-            currentMarginPct: Number(currentMargin.toFixed(1)),
-            previousMarginPct: Number(oldMargin.toFixed(1)),
-            marginLostPct: Number((oldMargin - currentMargin).toFixed(1)),
-            suggestedSellingPrice: suggested,
-            unitsSoldOrStock: it.soldQty > 0 ? it.soldQty : it.currentStock,
-            estimatedLoss: estLoss,
-          });
+        if (costDiff > 0) {
+          // السعر المقترح الواقعي هو سعر البيع الحالي + فارق زيادة التكلفة بالضبط
+          const suggested = roundMoney(sell + costDiff);
+          const oldMargin = (sell + costDiff) > oldCost ? (((sell + costDiff) - oldCost) / (sell + costDiff)) * 100 : currentMargin;
+          const marginLost = Number(Math.max(0, oldMargin - currentMargin).toFixed(1));
+
+          // يتم التنبيه إذا كان تآكل الهامش ملحوظاً أو لم يُعدل السعر بعد
+          if (costDiff > 0.01 && (marginLost > 1 || currentMargin < 12)) {
+            const unitsCount = it.soldQty > 0 ? it.soldQty : (it.currentStock > 0 ? it.currentStock : 1);
+            const estLoss = roundMoney(unitsCount * costDiff);
+
+            squeezedItems.push({
+              name: it.name,
+              barcode: it.barcode,
+              category: it.category,
+              previousCost: oldCost,
+              currentCost: cost,
+              costDiff,
+              sellingPrice: sell,
+              currentMarginPct: Number(currentMargin.toFixed(1)),
+              previousMarginPct: Number((currentMargin + marginLost).toFixed(1)),
+              marginLostPct: marginLost,
+              suggestedSellingPrice: suggested,
+              unitsSoldOrStock: unitsCount,
+              estimatedLoss: estLoss,
+              reason: 'supplier_hike',
+            });
+          }
         }
-      } else if (currentMargin < 8 && sell > cost) {
-        // Unusually low margin
-        const healthyMargin = 15;
-        const suggested = roundMoney(cost / (1 - healthyMargin / 100));
-        const estLoss = roundMoney(Math.max(1, it.soldQty || it.currentStock) * (suggested - sell));
+      } else if (sell <= cost) {
+        // 2. حالة بيع بالخسارة الصريحة (سعر البيع أقل أو مساوٍ للتكلفة)
+        const suggested = roundMoney(cost * 1.08); // تغطية التكلفة مع 8% هامش رمزي
+        const estLoss = roundMoney(Math.max(1, it.soldQty || it.currentStock) * (cost - sell + (cost * 0.05)));
         squeezedItems.push({
           name: it.name,
           barcode: it.barcode,
           category: it.category,
           previousCost: cost,
           currentCost: cost,
+          costDiff: roundMoney(cost - sell),
           sellingPrice: sell,
-          currentMarginPct: Number(currentMargin.toFixed(1)),
-          previousMarginPct: healthyMargin,
-          marginLostPct: Number((healthyMargin - currentMargin).toFixed(1)),
+          currentMarginPct: 0,
+          previousMarginPct: 8,
+          marginLostPct: 8,
           suggestedSellingPrice: suggested,
           unitsSoldOrStock: it.soldQty > 0 ? it.soldQty : it.currentStock,
           estimatedLoss: estLoss,
+          reason: 'negative_margin',
         });
       }
     });
 
     squeezedItems.sort((a, b) => b.estimatedLoss - a.estimatedLoss);
     const totalEstimatedLoss = roundMoney(squeezedItems.reduce((acc, it) => acc + it.estimatedLoss, 0));
-
     return {
       items: squeezedItems,
       count: squeezedItems.length,
@@ -3195,25 +3208,25 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
               </span>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs">
+            <div className="overflow-x-auto pb-2 scrollbar-thin">
+              <table className="w-full min-w-[780px] text-right text-xs">
                 <thead>
                   <tr className="border-b border-zinc-200 dark:border-zinc-800 text-zinc-400">
-                    <th className="pb-2.5 font-bold">#</th>
-                    <th className="pb-2.5 font-bold">المنتج (مجمع النسخ)</th>
-                    <th className="pb-2.5 font-bold">القسم</th>
-                    <th className="pb-2.5 font-bold">
+                    <th className="pb-2.5 font-bold w-10 text-center whitespace-nowrap">#</th>
+                    <th className="pb-2.5 font-bold min-w-[180px] whitespace-nowrap">المنتج (مجمع النسخ)</th>
+                    <th className="pb-2.5 font-bold min-w-[90px] whitespace-nowrap">القسم</th>
+                    <th className="pb-2.5 font-bold min-w-[130px] whitespace-nowrap text-center">
                       {isLatestReportSelected ? 'المتبقي التقديري على الرف اليوم' : 'رصيد الجرد'}
                     </th>
-                    <th className="pb-2.5 font-bold">معدل السحب (يومي / أسبوعي / بالكرتونة)</th>
-                    <th className="pb-2.5 font-bold">أيام البقاء ابتداءً من اليوم</th>
-                    <th className="pb-2.5 font-bold">القرار المقترح</th>
+                    <th className="pb-2.5 font-bold min-w-[180px] whitespace-nowrap">معدل السحب (يومي / أسبوعي / بالكرتونة)</th>
+                    <th className="pb-2.5 font-bold min-w-[110px] whitespace-nowrap text-center">أيام البقاء ابتداءً من اليوم</th>
+                    <th className="pb-2.5 font-bold min-w-[130px] whitespace-nowrap">القرار المقترح</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
                   {displayReplenishmentItems.map((item, i) => (
                     <tr key={i} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30">
-                      <td className="py-2.5 font-bold text-zinc-400 text-[11px]">{i + 1}</td>
+                      <td className="py-2.5 font-bold text-zinc-400 text-[11px] text-center whitespace-nowrap">{i + 1}</td>
                       <td className="py-2.5 font-bold text-zinc-900 dark:text-white">
                         <div className="flex items-center gap-2">
                           <span>{item.name}</span>
@@ -3237,31 +3250,31 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                           </div>
                         )}
                       </td>
-                      <td className="py-2.5 text-zinc-500">{item.category}</td>
-                      <td className="py-2.5 font-black text-sm text-zinc-900 dark:text-zinc-100">
+                      <td className="py-2.5 text-zinc-500 whitespace-nowrap">{item.category}</td>
+                      <td className="py-2.5 font-black text-sm text-zinc-900 dark:text-zinc-100 text-center whitespace-nowrap">
                         {formatQuantityWithGrouping(item.currentStock)} قطعة
                       </td>
                       <td className="py-2.5 text-zinc-700 dark:text-zinc-200">
                         <div className="font-bold text-xs flex items-center gap-1.5 flex-wrap">
-                          <span>{item.dailyVelocity.toFixed(1)} <span className="text-[10px] text-zinc-400 font-normal">ق/يوم</span></span>
+                          <span className="whitespace-nowrap">{item.dailyVelocity.toFixed(1)} <span className="text-[10px] text-zinc-400 font-normal">ق/يوم</span></span>
                           <span className="text-zinc-300 dark:text-zinc-700">•</span>
-                          <span className="text-brand-600 dark:text-brand-400 font-black">{item.weeklyVelocity.toFixed(1)} <span className="text-[10px] text-zinc-400 font-normal">ق/أسبوع</span></span>
+                          <span className="text-brand-600 dark:text-brand-400 font-black whitespace-nowrap">{item.weeklyVelocity.toFixed(1)} <span className="text-[10px] text-zinc-400 font-normal">ق/أسبوع</span></span>
                         </div>
                         {item.piecesPerBox > 1 && (
                           <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/40">
+                            <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/40 whitespace-nowrap">
                               📦 {item.weeklyBoxesVelocity !== null ? `${item.weeklyBoxesVelocity} كرتونة/أسبوع` : '—'}
                             </span>
                             {item.daysForOneBox && item.daysForOneBox > 0 && (
-                              <span className="text-[10px] text-zinc-400">
+                              <span className="text-[10px] text-zinc-400 whitespace-nowrap">
                                 (كرتونة كل {item.daysForOneBox} يوم)
                               </span>
                             )}
                           </div>
                         )}
                       </td>
-                      <td className="py-2.5">
-                        <span className={`px-2.5 py-0.5 rounded-full font-black text-xs inline-flex items-center gap-1 ${
+                      <td className="py-2.5 text-center whitespace-nowrap">
+                        <span className={`px-2.5 py-0.5 rounded-full font-black text-xs inline-flex items-center gap-1 whitespace-nowrap ${
                           item.currentStock === 0
                             ? 'bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 font-black'
                             : item.daysUntilStockout <= 5
@@ -4456,37 +4469,37 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
               </div>
 
               {/* Table of Golden Items */}
-              <div className="overflow-x-auto border border-zinc-200 dark:border-zinc-800 rounded-xl">
-                <table className="w-full text-right text-xs">
+              <div className="overflow-x-auto border border-zinc-200 dark:border-zinc-800 rounded-xl pb-1 scrollbar-thin">
+                <table className="w-full min-w-[560px] text-right text-xs">
                   <thead className="bg-zinc-50 dark:bg-zinc-800/60 text-zinc-400 font-bold border-b border-zinc-200 dark:border-zinc-800">
                     <tr>
-                      <th className="p-2.5">#</th>
-                      <th className="p-2.5">السلعة الذهبية</th>
-                      <th className="p-2.5 text-center">المباع</th>
-                      <th className="p-2.5 text-center">سعر البيع</th>
-                      <th className="p-2.5 text-center">الربح الصافي</th>
-                      <th className="p-2.5 text-left pl-3">الرصيد المتبقي</th>
+                      <th className="p-2.5 w-10 text-center whitespace-nowrap">#</th>
+                      <th className="p-2.5 min-w-[150px] whitespace-nowrap">السلعة الذهبية</th>
+                      <th className="p-2.5 text-center min-w-[90px] whitespace-nowrap">المباع</th>
+                      <th className="p-2.5 text-center min-w-[100px] whitespace-nowrap">سعر البيع</th>
+                      <th className="p-2.5 text-center min-w-[100px] whitespace-nowrap">الربح الصافي</th>
+                      <th className="p-2.5 text-left pl-3 min-w-[110px] whitespace-nowrap">الرصيد المتبقي</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                     {paretoProfitAnalysis.topItems.map((item, idx) => (
                       <tr key={idx} className="hover:bg-amber-50/30 dark:hover:bg-amber-950/10 transition-colors">
-                        <td className="p-2.5 text-[11px] font-bold text-amber-600">{idx + 1}</td>
+                        <td className="p-2.5 text-[11px] font-bold text-amber-600 text-center whitespace-nowrap">{idx + 1}</td>
                         <td className="p-2.5">
                           <span className="font-bold text-zinc-900 dark:text-white block">{item.name}</span>
                           <span className="text-[10px] text-zinc-400">{item.category}</span>
                         </td>
-                        <td className="p-2.5 text-center font-bold text-zinc-800 dark:text-zinc-200">
+                        <td className="p-2.5 text-center font-bold text-zinc-800 dark:text-zinc-200 whitespace-nowrap">
                           {formatQuantityWithGrouping(item.soldQty)}
                         </td>
-                        <td className="p-2.5 text-center font-mono font-medium text-zinc-600 dark:text-zinc-300">
+                        <td className="p-2.5 text-center font-mono font-medium text-zinc-600 dark:text-zinc-300 whitespace-nowrap">
                           {!showFinancials ? '••••••' : formatCurrency(item.sellPrice, settings.currency, language)}
                         </td>
-                        <td className="p-2.5 text-center font-mono font-black text-amber-600 dark:text-amber-400">
+                        <td className="p-2.5 text-center font-mono font-black text-amber-600 dark:text-amber-400 whitespace-nowrap">
                           {!showFinancials ? '••••••' : formatCurrency(item.profit, settings.currency, language)}
                         </td>
-                        <td className="p-2.5 text-left pl-3">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        <td className="p-2.5 text-left pl-3 whitespace-nowrap">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${
                             item.currentStock <= 0 
                               ? 'bg-rose-100 dark:bg-rose-950/50 text-rose-600 font-black' 
                               : item.daysUntilStockout <= 5 
@@ -4563,29 +4576,29 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                   <div className="p-3 bg-rose-50/80 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-900/40 rounded-xl flex items-center justify-between">
                     <div>
                       <span className="text-xs font-bold text-rose-800 dark:text-rose-200 block">
-                        تم رصد {marginSqueezeAnalysis.count} سلع انكمش هامش ربحها
+                        تم رصد {marginSqueezeAnalysis.count} سلع ارتفعت تكلفة شرائها من الموردين
                       </span>
                       <p className="text-[11px] text-rose-600 dark:text-rose-400">
-                        التأخر في رفع أسعار هذه السلع يسبب خسائر في الأرباح المتوقعة
+                        التأخر في عكس زيادات الموردين يسبب تآكل أرباحك الصافية
                       </p>
                     </div>
-                    <div className="text-left font-mono">
-                      <span className="text-[10px] text-zinc-400 block">فارق أرباح مهدد</span>
-                      <span className="text-base font-black text-rose-600 dark:text-rose-400">
+                    <div className="text-left font-mono shrink-0 pr-2">
+                      <span className="text-[10px] text-zinc-400 block whitespace-nowrap">فارق أرباح مهدد</span>
+                      <span className="text-base font-black text-rose-600 dark:text-rose-400 whitespace-nowrap">
                         {!showFinancials ? '••••••' : formatCurrency(marginSqueezeAnalysis.totalEstimatedLoss, settings.currency, language)}
                       </span>
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto border border-zinc-200 dark:border-zinc-800 rounded-xl">
-                    <table className="w-full text-right text-xs">
+                  <div className="overflow-x-auto border border-zinc-200 dark:border-zinc-800 rounded-xl pb-1 scrollbar-thin">
+                    <table className="w-full min-w-[580px] text-right text-xs">
                       <thead className="bg-zinc-50 dark:bg-zinc-800/60 text-zinc-400 font-bold border-b border-zinc-200 dark:border-zinc-800">
                         <tr>
-                          <th className="p-2.5">السلعة</th>
-                          <th className="p-2.5 text-center">سعر التكلفة الجديد</th>
-                          <th className="p-2.5 text-center">سعر البيع الحالي</th>
-                          <th className="p-2.5 text-center">الهامش الحالي</th>
-                          <th className="p-2.5 text-left pl-3">السعر المقترح للبيع</th>
+                          <th className="p-2.5 min-w-[150px] whitespace-nowrap">السلعة</th>
+                          <th className="p-2.5 text-center min-w-[120px] whitespace-nowrap">سعر التكلفة الجديد</th>
+                          <th className="p-2.5 text-center min-w-[100px] whitespace-nowrap">سعر البيع الحالي</th>
+                          <th className="p-2.5 text-center min-w-[80px] whitespace-nowrap">الهامش الحالي</th>
+                          <th className="p-2.5 text-left pl-3 min-w-[130px] whitespace-nowrap">السعر المقترح للبيع</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -4595,19 +4608,24 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                               <span className="font-bold text-zinc-900 dark:text-white block">{it.name}</span>
                               <span className="text-[10px] text-zinc-400">{it.category}</span>
                             </td>
-                            <td className="p-2.5 text-center font-mono font-bold text-zinc-800 dark:text-zinc-200">
-                              {!showFinancials ? '••••••' : formatCurrency(it.currentCost, settings.currency, language)}
+                            <td className="p-2.5 text-center font-mono font-bold text-zinc-800 dark:text-zinc-200 whitespace-nowrap">
+                              <div>{!showFinancials ? '••••••' : formatCurrency(it.currentCost, settings.currency, language)}</div>
+                              {it.costDiff > 0 && (
+                                <span className="text-[10px] text-rose-500 font-bold block mt-0.5">
+                                  (+{!showFinancials ? '•••' : formatCurrency(it.costDiff, settings.currency, language)} زيادة)
+                                </span>
+                              )}
                             </td>
-                            <td className="p-2.5 text-center font-mono font-bold text-zinc-800 dark:text-zinc-200">
+                            <td className="p-2.5 text-center font-mono font-bold text-zinc-800 dark:text-zinc-200 whitespace-nowrap">
                               {!showFinancials ? '••••••' : formatCurrency(it.sellingPrice, settings.currency, language)}
                             </td>
-                            <td className="p-2.5 text-center">
+                            <td className="p-2.5 text-center whitespace-nowrap">
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300">
                                 {it.currentMarginPct}%
                               </span>
                             </td>
-                            <td className="p-2.5 text-left pl-3">
-                              <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 font-mono">
+                            <td className="p-2.5 text-left pl-3 whitespace-nowrap">
+                              <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 font-mono inline-block">
                                 {!showFinancials ? '••••••' : formatCurrency(it.suggestedSellingPrice, settings.currency, language)}
                               </span>
                             </td>
@@ -4615,6 +4633,13 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                         ))}
                       </tbody>
                     </table>
+                  </div>
+
+                  <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl text-[11px] text-zinc-500 flex items-start gap-2">
+                    <span className="font-bold text-zinc-700 dark:text-zinc-300 shrink-0">💡 آلية التسعير المقترح:</span>
+                    <span>
+                      يقوم النظام بعكس فارق زيادة المورد الحقيقي مباشرة على سعر بيعك (التكلفة الجديدة - التكلفة السابقة)، دون أي مضاعفات، لضمان استرداد كامل الزيادة وحماية هامش ربحك الصافي.
+                    </span>
                   </div>
                 </>
               ) : (
