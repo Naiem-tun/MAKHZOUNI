@@ -8,7 +8,8 @@ import {
   Zap, DollarSign, Layers, Clock, RefreshCw, AlertCircle,
   Search, X, PieChart as PieChartIcon, Award, ArrowUpRight, History, Truck, ChevronUp,
   Target, Compass, Activity, ThumbsUp, ThumbsDown,
-  Wallet, Users, Flame, Plus, Check, Link2, ExternalLink, HelpCircle
+  Wallet, Users, Flame, Plus, Check, Link2, ExternalLink, HelpCircle,
+  Crown, ArrowLeft
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, 
@@ -61,6 +62,9 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
   const [supplierSortBy, setSupplierSortBy] = useState<'profit' | 'purchases' | 'stock_qty' | 'margin'>('profit');
   const [expandedSupplierDetailsId, setExpandedSupplierDetailsId] = useState<string | null>(null);
   const [showCycleExplainer, setShowCycleExplainer] = useState(false);
+  const [showParetoModal, setShowParetoModal] = useState(false);
+  const [showMarginSqueezeModal, setShowMarginSqueezeModal] = useState(false);
+  const [velocityUnitFilter, setVelocityUnitFilter] = useState<'both' | 'cartons' | 'pieces'>('both');
 
   // Sort reports chronologically descending (0 is latest)
   const sortedReports = useMemo(() => {
@@ -130,13 +134,14 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
       barcode: string;
       name: string;
       batchCount: number;
+      piecesPerBox: number;
     }>();
 
     const barcodeMap = new Map<string, any>();
 
     products.forEach(p => {
-      const nameKey = (p.name || '').trim().toLowerCase();
-      const barcodeKey = (p.barcode || p.barcode2 || '').trim().toLowerCase();
+      const nameKey = String(p.name || '').trim().toLowerCase();
+      const barcodeKey = String(p.barcode || p.barcode2 || '').trim().toLowerCase();
       
       const primaryKey = nameKey || barcodeKey;
       if (!primaryKey) return;
@@ -144,6 +149,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
       const q = Number(p.quantity ?? 0);
       const cost = Number(p.purchasePrice || p.costPrice || 0);
       const sell = Number(p.sellingPrice || 0);
+      const piecesBox = Math.max(1, Number(p.piecesPerBox || 1));
 
       let record = nameKey ? nameMap.get(nameKey) : (barcodeKey ? barcodeMap.get(barcodeKey) : undefined);
 
@@ -152,6 +158,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
         record.batchCount += 1;
         if (cost > 0) record.latestCostPrice = cost;
         if (sell > 0) record.sellingPrice = sell;
+        if (piecesBox > 1) record.piecesPerBox = piecesBox;
         if (!record.barcode && barcodeKey) record.barcode = p.barcode || p.barcode2;
       } else {
         record = {
@@ -162,6 +169,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
           barcode: p.barcode || p.barcode2 || '',
           name: p.name || '',
           batchCount: 1,
+          piecesPerBox: piecesBox,
         };
         if (nameKey) nameMap.set(nameKey, record);
       }
@@ -179,8 +187,8 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
     const prevItemsMap = new Map<string, any>();
     if (previousReport && previousReport.items) {
       previousReport.items.forEach((it: any) => {
-        const nKey = (it.productName || '').trim().toLowerCase();
-        const bKey = (it.barcode || '').trim().toLowerCase();
+        const nKey = String(it.productName || '').trim().toLowerCase();
+        const bKey = String(it.barcode || '').trim().toLowerCase();
         if (nKey) prevItemsMap.set(nKey, it);
         if (bKey) prevItemsMap.set(bKey, it);
       });
@@ -189,8 +197,8 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
     // Group report items by Name first (or barcode if name empty)
     const groupedReportItems = new Map<string, any>();
     currentReport.items.forEach((item: any) => {
-      const nKey = (item.productName || '').trim().toLowerCase();
-      const bKey = (item.barcode || '').trim().toLowerCase();
+      const nKey = String(item.productName || '').trim().toLowerCase();
+      const bKey = String(item.barcode || '').trim().toLowerCase();
       const groupKey = nKey || bKey;
       if (!groupKey) return;
 
@@ -211,8 +219,8 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
     });
 
     return Array.from(groupedReportItems.values()).map((item: any) => {
-      const nKey = (item.productName || '').trim().toLowerCase();
-      const bKey = (item.barcode || '').trim().toLowerCase();
+      const nKey = String(item.productName || '').trim().toLowerCase();
+      const bKey = String(item.barcode || '').trim().toLowerCase();
       
       const prevItem = (nKey && prevItemsMap.get(nKey)) || (bKey && prevItemsMap.get(bKey));
       const liveGroup = (nKey && groupedLiveProducts.nameMap.get(nKey)) || 
@@ -235,6 +243,12 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
       // Daily consumption velocity based on elapsed days between inventories
       const safeElapsed = Math.max(1, elapsedDays || 1);
       const dailyVelocity = soldQty > 0 ? Number((soldQty / safeElapsed).toFixed(2)) : 0;
+      const weeklyVelocity = roundMoney(dailyVelocity * 7);
+
+      const piecesPerBox = Math.max(1, Number(liveGroup?.piecesPerBox || item.piecesPerBox || 1));
+      const weeklyBoxesVelocity = piecesPerBox > 1 && weeklyVelocity > 0 ? Number((weeklyVelocity / piecesPerBox).toFixed(1)) : null;
+      const dailyBoxesVelocity = piecesPerBox > 1 && dailyVelocity > 0 ? Number((dailyVelocity / piecesPerBox).toFixed(2)) : null;
+      const daysForOneBox = piecesPerBox > 1 && dailyVelocity > 0 ? Math.round(piecesPerBox / dailyVelocity) : null;
 
       // Simulated estimated depletion since the last inventory until today
       const estimatedConsumedSinceInventory = isLatestReportSelected && dailyVelocity > 0
@@ -279,6 +293,11 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
         estimatedConsumedSinceInventory,
         soldQty,
         dailyVelocity,
+        weeklyVelocity,
+        piecesPerBox,
+        weeklyBoxesVelocity,
+        dailyBoxesVelocity,
+        daysForOneBox,
         daysUntilStockout,
         revenue,
         profit,
@@ -947,6 +966,157 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
       .sort((a, b) => b.returnPerDinar - a.returnPerDinar)
       .slice(0, 5);
   }, [analyzedItems]);
+
+  // Pareto 80/20 Golden Profit Drivers analysis (السلع التي تصنع النسبة الكبرى من أرباح المتجر)
+  const paretoProfitAnalysis = useMemo(() => {
+    const profitItems = [...analyzedItems]
+      .filter(it => it.profit > 0)
+      .sort((a, b) => b.profit - a.profit);
+
+    const totalStoreProfit = profitItems.reduce((acc, it) => acc + it.profit, 0);
+    if (totalStoreProfit <= 0 || profitItems.length === 0) {
+      return {
+        topItems: [],
+        topItemsCount: 0,
+        totalItemsCount: analyzedItems.length,
+        topItemsProfit: 0,
+        totalStoreProfit: 0,
+        profitSharePct: 0,
+        itemsSharePct: 0,
+      };
+    }
+
+    let cumulative = 0;
+    const targetThreshold = totalStoreProfit * 0.70; // 70% threshold
+    const topGoldenItems: typeof profitItems = [];
+
+    for (const item of profitItems) {
+      topGoldenItems.push(item);
+      cumulative += item.profit;
+      if (cumulative >= targetThreshold || topGoldenItems.length >= 30) {
+        break;
+      }
+    }
+
+    const topItemsProfit = roundMoney(cumulative);
+    const profitSharePct = Math.round((topItemsProfit / totalStoreProfit) * 100);
+    const itemsSharePct = Math.max(1, Math.round((topGoldenItems.length / Math.max(1, analyzedItems.length)) * 100));
+
+    return {
+      topItems: topGoldenItems,
+      topItemsCount: topGoldenItems.length,
+      totalItemsCount: analyzedItems.length,
+      topItemsProfit,
+      totalStoreProfit: roundMoney(totalStoreProfit),
+      profitSharePct,
+      itemsSharePct,
+    };
+  }, [analyzedItems]);
+
+  // Margin Squeeze Alert & Cost Inflation Analysis (رصد تآكل الأرباح بسبب زيادات الموردين)
+  const marginSqueezeAnalysis = useMemo(() => {
+    const squeezedItems: Array<{
+      id?: string;
+      name: string;
+      barcode: string;
+      category: string;
+      previousCost: number;
+      currentCost: number;
+      sellingPrice: number;
+      currentMarginPct: number;
+      previousMarginPct: number;
+      marginLostPct: number;
+      suggestedSellingPrice: number;
+      unitsSoldOrStock: number;
+      estimatedLoss: number;
+    }> = [];
+
+    // Map latest purchase hikes from purchases history
+    const hikesMap = new Map<string, { previousPrice: number; currentPrice: number; date: any }>();
+    (purchases || []).forEach((p: any) => {
+      if (!p) return;
+      const prev = Number(p.previousPrice || 0);
+      const curr = Number(p.price || 0);
+      if (prev > 0 && curr > prev) {
+        const keys = [
+          p.productId !== undefined && p.productId !== null ? String(p.productId).trim().toLowerCase() : '',
+          p.barcode !== undefined && p.barcode !== null ? String(p.barcode).trim().toLowerCase() : '',
+          p.productName !== undefined && p.productName !== null ? String(p.productName).trim().toLowerCase() : '',
+        ].filter(Boolean);
+
+        keys.forEach(k => {
+          const existing = hikesMap.get(k);
+          if (!existing || safeParseDate(p.date).getTime() > safeParseDate(existing.date).getTime()) {
+            hikesMap.set(k, { previousPrice: prev, currentPrice: curr, date: p.date });
+          }
+        });
+      }
+    });
+
+    analyzedItems.forEach(it => {
+      const bKey = it.barcode !== undefined && it.barcode !== null ? String(it.barcode).trim().toLowerCase() : '';
+      const nKey = it.name !== undefined && it.name !== null ? String(it.name).trim().toLowerCase() : '';
+      const hike = (bKey ? hikesMap.get(bKey) : null) || (nKey ? hikesMap.get(nKey) : null);
+      const cost = roundMoney(it.costPrice);
+      const sell = roundMoney(it.sellPrice);
+      if (cost <= 0 || sell <= 0) return;
+
+      const currentMargin = sell > cost ? ((sell - cost) / sell) * 100 : 0;
+
+      if (hike && hike.currentPrice > hike.previousPrice) {
+        const oldCost = roundMoney(hike.previousPrice);
+        const oldMargin = sell > oldCost ? ((sell - oldCost) / sell) * 100 : 0;
+        if (oldMargin > currentMargin) {
+          const targetMultiplier = 1 - (oldMargin / 100);
+          const suggested = targetMultiplier > 0 ? roundMoney(cost / targetMultiplier) : roundMoney(cost * 1.2);
+          const estLoss = roundMoney(Math.max(1, it.soldQty || it.currentStock) * (suggested - sell));
+
+          squeezedItems.push({
+            name: it.name,
+            barcode: it.barcode,
+            category: it.category,
+            previousCost: oldCost,
+            currentCost: cost,
+            sellingPrice: sell,
+            currentMarginPct: Number(currentMargin.toFixed(1)),
+            previousMarginPct: Number(oldMargin.toFixed(1)),
+            marginLostPct: Number((oldMargin - currentMargin).toFixed(1)),
+            suggestedSellingPrice: suggested,
+            unitsSoldOrStock: it.soldQty > 0 ? it.soldQty : it.currentStock,
+            estimatedLoss: estLoss,
+          });
+        }
+      } else if (currentMargin < 8 && sell > cost) {
+        // Unusually low margin
+        const healthyMargin = 15;
+        const suggested = roundMoney(cost / (1 - healthyMargin / 100));
+        const estLoss = roundMoney(Math.max(1, it.soldQty || it.currentStock) * (suggested - sell));
+        squeezedItems.push({
+          name: it.name,
+          barcode: it.barcode,
+          category: it.category,
+          previousCost: cost,
+          currentCost: cost,
+          sellingPrice: sell,
+          currentMarginPct: Number(currentMargin.toFixed(1)),
+          previousMarginPct: healthyMargin,
+          marginLostPct: Number((healthyMargin - currentMargin).toFixed(1)),
+          suggestedSellingPrice: suggested,
+          unitsSoldOrStock: it.soldQty > 0 ? it.soldQty : it.currentStock,
+          estimatedLoss: estLoss,
+        });
+      }
+    });
+
+    squeezedItems.sort((a, b) => b.estimatedLoss - a.estimatedLoss);
+    const totalEstimatedLoss = roundMoney(squeezedItems.reduce((acc, it) => acc + it.estimatedLoss, 0));
+
+    return {
+      items: squeezedItems,
+      count: squeezedItems.length,
+      totalEstimatedLoss,
+    };
+  }, [analyzedItems, purchases]);
 
   // Map suppliers by ID and Name for instant lookup
   const suppliersMap = useMemo(() => {
@@ -1637,6 +1807,109 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Executive Strategic Intelligence Cards Ribbon (كروت الذكاء التجاري والاستخبارات الربحية) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* 1. Pareto 80/20 Golden Profit Drivers Card */}
+        <div 
+          onClick={() => setShowParetoModal(true)}
+          className="relative overflow-hidden bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent dark:from-amber-500/15 dark:via-zinc-900 dark:to-zinc-900 border border-amber-300/80 dark:border-amber-700/60 rounded-2xl p-4 sm:p-5 shadow-xs hover:border-amber-400 dark:hover:border-amber-500 cursor-pointer transition-all group"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                <Crown size={20} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                    قاعدة 80/20 الذهبية
+                  </span>
+                  <span className="text-[11px] text-zinc-400 font-bold">
+                    أعمدة أرباح المتجر
+                  </span>
+                </div>
+                <h4 className="text-sm sm:text-base font-black text-zinc-900 dark:text-white mt-1">
+                  {paretoProfitAnalysis.topItemsCount > 0 
+                    ? `${paretoProfitAnalysis.topItemsCount} أصناف تصنع ${paretoProfitAnalysis.profitSharePct}% من أرباح محلك`
+                    : 'تحليل السلع الذهبية الأكثر ربحية'}
+                </h4>
+              </div>
+            </div>
+            <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1 group-hover:translate-x-[-2px] transition-transform shrink-0">
+              <span>عرض القائمة</span>
+              <ArrowLeft size={13} />
+            </span>
+          </div>
+
+          <div className="mt-3 pt-3 border-t border-amber-200/50 dark:border-amber-800/40 flex items-center justify-between text-xs">
+            <span className="text-zinc-600 dark:text-zinc-300 font-medium">
+              أرباح هذه السلع الذهبية: <strong className="text-amber-600 dark:text-amber-400 font-black">{!showFinancials ? '••••••' : formatCurrency(paretoProfitAnalysis.topItemsProfit, settings.currency, language)}</strong>
+            </span>
+            <span className="text-[11px] text-zinc-400">
+              تمثل {paretoProfitAnalysis.itemsSharePct}% فقط من مجمل أصناف المحل
+            </span>
+          </div>
+        </div>
+
+        {/* 2. Margin Squeeze & Supplier Price Hike Alert Card */}
+        <div 
+          onClick={() => setShowMarginSqueezeModal(true)}
+          className={`relative overflow-hidden bg-gradient-to-br ${
+            marginSqueezeAnalysis.count > 0 
+              ? 'from-rose-500/10 via-rose-500/5 to-transparent dark:from-rose-950/30 dark:via-zinc-900 dark:to-zinc-900 border-rose-300/80 dark:border-rose-800/60 hover:border-rose-400' 
+              : 'from-emerald-500/10 via-emerald-500/5 to-transparent dark:from-emerald-950/30 dark:via-zinc-900 dark:to-zinc-900 border-emerald-300/80 dark:border-emerald-800/60 hover:border-emerald-400'
+          } border rounded-2xl p-4 sm:p-5 shadow-xs cursor-pointer transition-all group`}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl ${
+                marginSqueezeAnalysis.count > 0 ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white'
+              } flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform`}>
+                {marginSqueezeAnalysis.count > 0 ? <AlertTriangle size={20} /> : <CheckCircle2 size={20} />}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-black px-2 py-0.5 rounded-md ${
+                    marginSqueezeAnalysis.count > 0 
+                      ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300' 
+                      : 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
+                  }`}>
+                    {marginSqueezeAnalysis.count > 0 ? 'رادار تآكل الأرباح' : 'سلامة الهوامش الربحية'}
+                  </span>
+                  <span className="text-[11px] text-zinc-400 font-bold">
+                    أسعار الموردين والبيع
+                  </span>
+                </div>
+                <h4 className="text-sm sm:text-base font-black text-zinc-900 dark:text-white mt-1">
+                  {marginSqueezeAnalysis.count > 0
+                    ? `رصد ${marginSqueezeAnalysis.count} سلع تآكلت أرباحها وتحتاج تعديل السعر`
+                    : 'كافة أسعار البيع متناسقة ومحمية بهامش ربح صحي'}
+                </h4>
+              </div>
+            </div>
+            <span className={`text-[11px] font-bold ${
+              marginSqueezeAnalysis.count > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
+            } flex items-center gap-1 group-hover:translate-x-[-2px] transition-transform shrink-0`}>
+              <span>{marginSqueezeAnalysis.count > 0 ? 'فحص السلع' : 'عرض التفاصيل'}</span>
+              <ArrowLeft size={13} />
+            </span>
+          </div>
+
+          <div className="mt-3 pt-3 border-t border-zinc-200/50 dark:border-zinc-800/60 flex items-center justify-between text-xs">
+            <span className="text-zinc-600 dark:text-zinc-300 font-medium">
+              {marginSqueezeAnalysis.count > 0 ? (
+                <>فارق أرباح مهددة: <strong className="text-rose-600 dark:text-rose-400 font-black">{!showFinancials ? '••••••' : formatCurrency(marginSqueezeAnalysis.totalEstimatedLoss, settings.currency, language)}</strong></>
+              ) : (
+                <>جميع زيادات الموردين تم استيعابها في أسعار البيع بنجاح</>
+              )}
+            </span>
+            <span className="text-[11px] text-zinc-400">
+              {marginSqueezeAnalysis.count > 0 ? 'انقر لتعديل أسعار البيع المقترحة' : 'حماية الهامش 100%'}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Sub-Tabs Navigation */}
@@ -2932,7 +3205,7 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                     <th className="pb-2.5 font-bold">
                       {isLatestReportSelected ? 'المتبقي التقديري على الرف اليوم' : 'رصيد الجرد'}
                     </th>
-                    <th className="pb-2.5 font-bold">معدل السحب اليومي</th>
+                    <th className="pb-2.5 font-bold">معدل السحب (يومي / أسبوعي / بالكرتونة)</th>
                     <th className="pb-2.5 font-bold">أيام البقاء ابتداءً من اليوم</th>
                     <th className="pb-2.5 font-bold">القرار المقترح</th>
                   </tr>
@@ -2968,8 +3241,24 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                       <td className="py-2.5 font-black text-sm text-zinc-900 dark:text-zinc-100">
                         {formatQuantityWithGrouping(item.currentStock)} قطعة
                       </td>
-                      <td className="py-2.5 text-zinc-600 dark:text-zinc-300 font-medium">
-                        {item.dailyVelocity.toFixed(1)} / يوم
+                      <td className="py-2.5 text-zinc-700 dark:text-zinc-200">
+                        <div className="font-bold text-xs flex items-center gap-1.5 flex-wrap">
+                          <span>{item.dailyVelocity.toFixed(1)} <span className="text-[10px] text-zinc-400 font-normal">ق/يوم</span></span>
+                          <span className="text-zinc-300 dark:text-zinc-700">•</span>
+                          <span className="text-brand-600 dark:text-brand-400 font-black">{item.weeklyVelocity.toFixed(1)} <span className="text-[10px] text-zinc-400 font-normal">ق/أسبوع</span></span>
+                        </div>
+                        {item.piecesPerBox > 1 && (
+                          <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/40">
+                              📦 {item.weeklyBoxesVelocity !== null ? `${item.weeklyBoxesVelocity} كرتونة/أسبوع` : '—'}
+                            </span>
+                            {item.daysForOneBox && item.daysForOneBox > 0 && (
+                              <span className="text-[10px] text-zinc-400">
+                                (كرتونة كل {item.daysForOneBox} يوم)
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="py-2.5">
                         <span className={`px-2.5 py-0.5 rounded-full font-black text-xs inline-flex items-center gap-1 ${
@@ -4097,6 +4386,252 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                   className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs transition-colors shadow-sm cursor-pointer"
                 >
                   فهمت ذلك، إغلاق
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal: كارت قاعدة 80/20 للأرباح (Golden Profit Drivers) */}
+      <AnimatePresence>
+        {showParetoModal && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowParetoModal(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-xs"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 sm:p-6 shadow-2xl text-right z-10 space-y-4 max-h-[90vh] overflow-y-auto"
+              dir="rtl"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
+                    <Crown size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm sm:text-base font-black text-zinc-900 dark:text-white">
+                      قائمة السلع الذهبية (قاعدة 80/20 للأرباح)
+                    </h3>
+                    <p className="text-[11px] text-zinc-400">
+                      السلع المسؤولة عن أكثر من {paretoProfitAnalysis.profitSharePct}% من أرباح المتجر الصافية
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowParetoModal(false)}
+                  className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-400 hover:text-zinc-600 flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Summary Stats Strip */}
+              <div className="grid grid-cols-3 gap-2.5 text-center">
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 rounded-xl">
+                  <span className="text-[10px] text-zinc-400 block font-medium">عدد السلع الذهبية</span>
+                  <span className="text-base font-black text-amber-600 dark:text-amber-400">
+                    {paretoProfitAnalysis.topItemsCount} صنف
+                  </span>
+                </div>
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 rounded-xl">
+                  <span className="text-[10px] text-zinc-400 block font-medium">إجمالي أرباحها الصافية</span>
+                  <span className="text-base font-black text-amber-600 dark:text-amber-400 font-mono">
+                    {!showFinancials ? '••••••' : formatCurrency(paretoProfitAnalysis.topItemsProfit, settings.currency, language)}
+                  </span>
+                </div>
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 rounded-xl">
+                  <span className="text-[10px] text-zinc-400 block font-medium">حصة الأرباح الإجمالية</span>
+                  <span className="text-base font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                    {paretoProfitAnalysis.profitSharePct}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Table of Golden Items */}
+              <div className="overflow-x-auto border border-zinc-200 dark:border-zinc-800 rounded-xl">
+                <table className="w-full text-right text-xs">
+                  <thead className="bg-zinc-50 dark:bg-zinc-800/60 text-zinc-400 font-bold border-b border-zinc-200 dark:border-zinc-800">
+                    <tr>
+                      <th className="p-2.5">#</th>
+                      <th className="p-2.5">السلعة الذهبية</th>
+                      <th className="p-2.5 text-center">المباع</th>
+                      <th className="p-2.5 text-center">سعر البيع</th>
+                      <th className="p-2.5 text-center">الربح الصافي</th>
+                      <th className="p-2.5 text-left pl-3">الرصيد المتبقي</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                    {paretoProfitAnalysis.topItems.map((item, idx) => (
+                      <tr key={idx} className="hover:bg-amber-50/30 dark:hover:bg-amber-950/10 transition-colors">
+                        <td className="p-2.5 text-[11px] font-bold text-amber-600">{idx + 1}</td>
+                        <td className="p-2.5">
+                          <span className="font-bold text-zinc-900 dark:text-white block">{item.name}</span>
+                          <span className="text-[10px] text-zinc-400">{item.category}</span>
+                        </td>
+                        <td className="p-2.5 text-center font-bold text-zinc-800 dark:text-zinc-200">
+                          {formatQuantityWithGrouping(item.soldQty)}
+                        </td>
+                        <td className="p-2.5 text-center font-mono font-medium text-zinc-600 dark:text-zinc-300">
+                          {!showFinancials ? '••••••' : formatCurrency(item.sellPrice, settings.currency, language)}
+                        </td>
+                        <td className="p-2.5 text-center font-mono font-black text-amber-600 dark:text-amber-400">
+                          {!showFinancials ? '••••••' : formatCurrency(item.profit, settings.currency, language)}
+                        </td>
+                        <td className="p-2.5 text-left pl-3">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            item.currentStock <= 0 
+                              ? 'bg-rose-100 dark:bg-rose-950/50 text-rose-600 font-black' 
+                              : item.daysUntilStockout <= 5 
+                              ? 'bg-rose-50 text-rose-600 border border-rose-200' 
+                              : 'bg-emerald-50 text-emerald-600'
+                          }`}>
+                            {formatQuantityWithGrouping(item.currentStock)} ق ({item.daysUntilStockout} يوم)
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowParetoModal(false)}
+                  className="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition-colors shadow-sm cursor-pointer"
+                >
+                  إغلاق القائمة
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal: كارت كشف تآكل الأرباح بسبب أسعار الموردين (Margin Squeeze Alert) */}
+      <AnimatePresence>
+        {showMarginSqueezeModal && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowMarginSqueezeModal(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-xs"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 sm:p-6 shadow-2xl text-right z-10 space-y-4 max-h-[90vh] overflow-y-auto"
+              dir="rtl"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-10 h-10 rounded-xl ${
+                    marginSqueezeAnalysis.count > 0 ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white'
+                  } flex items-center justify-center shrink-0`}>
+                    {marginSqueezeAnalysis.count > 0 ? <AlertTriangle size={20} /> : <CheckCircle2 size={20} />}
+                  </div>
+                  <div>
+                    <h3 className="text-sm sm:text-base font-black text-zinc-900 dark:text-white">
+                      رادار كشف تآكل الأرباح (زيادات أسعار الموردين)
+                    </h3>
+                    <p className="text-[11px] text-zinc-400">
+                      السلع التي زادت تكلفتها أو تقلص هامش ربحها وتتطلب تعديل سعر البيع
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowMarginSqueezeModal(false)}
+                  className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-400 hover:text-zinc-600 flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {marginSqueezeAnalysis.count > 0 ? (
+                <>
+                  <div className="p-3 bg-rose-50/80 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-900/40 rounded-xl flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-rose-800 dark:text-rose-200 block">
+                        تم رصد {marginSqueezeAnalysis.count} سلع انكمش هامش ربحها
+                      </span>
+                      <p className="text-[11px] text-rose-600 dark:text-rose-400">
+                        التأخر في رفع أسعار هذه السلع يسبب خسائر في الأرباح المتوقعة
+                      </p>
+                    </div>
+                    <div className="text-left font-mono">
+                      <span className="text-[10px] text-zinc-400 block">فارق أرباح مهدد</span>
+                      <span className="text-base font-black text-rose-600 dark:text-rose-400">
+                        {!showFinancials ? '••••••' : formatCurrency(marginSqueezeAnalysis.totalEstimatedLoss, settings.currency, language)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto border border-zinc-200 dark:border-zinc-800 rounded-xl">
+                    <table className="w-full text-right text-xs">
+                      <thead className="bg-zinc-50 dark:bg-zinc-800/60 text-zinc-400 font-bold border-b border-zinc-200 dark:border-zinc-800">
+                        <tr>
+                          <th className="p-2.5">السلعة</th>
+                          <th className="p-2.5 text-center">سعر التكلفة الجديد</th>
+                          <th className="p-2.5 text-center">سعر البيع الحالي</th>
+                          <th className="p-2.5 text-center">الهامش الحالي</th>
+                          <th className="p-2.5 text-left pl-3">السعر المقترح للبيع</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                        {marginSqueezeAnalysis.items.map((it, idx) => (
+                          <tr key={idx} className="hover:bg-rose-50/20 dark:hover:bg-rose-950/10 transition-colors">
+                            <td className="p-2.5">
+                              <span className="font-bold text-zinc-900 dark:text-white block">{it.name}</span>
+                              <span className="text-[10px] text-zinc-400">{it.category}</span>
+                            </td>
+                            <td className="p-2.5 text-center font-mono font-bold text-zinc-800 dark:text-zinc-200">
+                              {!showFinancials ? '••••••' : formatCurrency(it.currentCost, settings.currency, language)}
+                            </td>
+                            <td className="p-2.5 text-center font-mono font-bold text-zinc-800 dark:text-zinc-200">
+                              {!showFinancials ? '••••••' : formatCurrency(it.sellingPrice, settings.currency, language)}
+                            </td>
+                            <td className="p-2.5 text-center">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300">
+                                {it.currentMarginPct}%
+                              </span>
+                            </td>
+                            <td className="p-2.5 text-left pl-3">
+                              <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 font-mono">
+                                {!showFinancials ? '••••••' : formatCurrency(it.suggestedSellingPrice, settings.currency, language)}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                <div className="py-8 text-center text-zinc-400 space-y-2">
+                  <CheckCircle2 size={36} className="text-emerald-500 mx-auto" />
+                  <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300">جميع الأسعار متزنة ومحمية</p>
+                  <p className="text-xs">لم يتم رصد أي تآكل خطير في هوامش الربح في هذه الدورة.</p>
+                </div>
+              )}
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowMarginSqueezeModal(false)}
+                  className="w-full py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-800 dark:hover:bg-zinc-700 font-bold text-xs transition-colors shadow-sm cursor-pointer"
+                >
+                  إغلاق النافذة
                 </button>
               </div>
             </motion.div>
