@@ -193,6 +193,14 @@ export interface Expense {
   audited?: boolean;
 }
 
+export interface PersonalExpense {
+  id?: string;
+  description: string;
+  amount: number;
+  date: any;
+  createdAt?: any;
+}
+
 export interface MonitoredProductHistory {
   date: any;
   quantity: number;

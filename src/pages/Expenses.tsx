@@ -8,12 +8,14 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Wallet, Plus, Trash2, X, ReceiptText, Calendar, Tag, CheckCheck, Clock } from 'lucide-react';
 import { formatCurrency, cn, safeParseDate, formatAppDate, roundMoney } from '../lib/utils';
 import { logAudit } from '../lib/auditLogger';
+import { PersonalExpensesModal } from '../components/expenses/PersonalExpensesModal';
 
 export default function Expenses() {
   const { t } = useTranslation();
   const { user, settings, showToast } = useAppContext();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPersonalModalOpen, setIsPersonalModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'pending' | 'audited' | 'all'>('pending');
   const [expenseAmount, setExpenseAmount] = useState('');
@@ -115,9 +117,14 @@ export default function Expenses() {
               {formatCurrency(displayTotal, settings.currency, settings.language)}
             </div>
           </div>
-          <div className="w-10 h-10 rounded-lg bg-white dark:bg-brand-900/40 text-brand-600 flex items-center justify-center shadow-sm">
+          <button 
+            type="button"
+            onClick={() => setIsPersonalModalOpen(true)}
+            className="w-10 h-10 rounded-lg bg-white dark:bg-brand-900/40 text-brand-600 dark:text-brand-400 flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer border border-brand-100/50 dark:border-brand-800/40"
+            title="المصروف الشخصي"
+          >
             <Wallet size={20} />
-          </div>
+          </button>
         </div>
       </div>
 
@@ -340,6 +347,12 @@ export default function Expenses() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Dedicated Personal Expenses Modal */}
+      <PersonalExpensesModal 
+        isOpen={isPersonalModalOpen} 
+        onClose={() => setIsPersonalModalOpen(false)} 
+      />
     </div>
   );
 }
