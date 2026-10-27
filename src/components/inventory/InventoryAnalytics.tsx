@@ -226,11 +226,20 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
       const liveGroup = (nKey && groupedLiveProducts.nameMap.get(nKey)) || 
                         (bKey && groupedLiveProducts.barcodeMap.get(bKey));
 
-      const costPrice = roundMoney(Number(item.purchasePrice || liveGroup?.latestCostPrice || 0));
-      const sellPrice = roundMoney(Number(item.sellingPrice || liveGroup?.sellingPrice || 0));
+      // Current live selling and cost prices take precedence when liveGroup exists!
+      const liveSellPrice = liveGroup && liveGroup.sellingPrice > 0 ? liveGroup.sellingPrice : 0;
+      const liveCostPrice = liveGroup && liveGroup.latestCostPrice > 0 ? liveGroup.latestCostPrice : 0;
+
+      const reportSellPrice = roundMoney(Number(item.sellingPrice || 0));
+      const reportCostPrice = roundMoney(Number(item.purchasePrice || 0));
+
+      const sellPrice = roundMoney(Number(liveSellPrice > 0 ? liveSellPrice : reportSellPrice));
+      const costPrice = roundMoney(Number(liveCostPrice > 0 ? liveCostPrice : reportCostPrice));
+
+      const isDeletedFromStore = Boolean(products.length > 0 && !liveGroup);
       
       const recordedReportStock = cleanQuantity(Number(item.quantityAfter || 0));
-      const liveCurrentStock = liveGroup ? cleanQuantity(liveGroup.totalQuantity) : recordedReportStock;
+      const liveCurrentStock = liveGroup ? cleanQuantity(liveGroup.totalQuantity) : (isDeletedFromStore ? 0 : recordedReportStock);
       
       const soldQty = cleanQuantity(Number(item.salesCalculated || 0));
       const profit = roundMoney(Number(item.profit || 0));
@@ -310,9 +319,14 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
         surplusQuantity: item.surplusQuantity || 0,
         surplusCostValue: item.surplusCostValue || 0,
         prevStock,
+        isDeletedFromStore,
+        reportSellPrice,
+        reportCostPrice,
+        liveSellPrice,
+        liveCostPrice,
       };
     });
-  }, [currentReport, previousReport, elapsedDays, daysSinceLatestInventory, groupedLiveProducts, isLatestReportSelected]);
+  }, [currentReport, previousReport, elapsedDays, daysSinceLatestInventory, groupedLiveProducts, isLatestReportSelected, products]);
 
   // Overall Metrics for selected report
   const summaryMetrics = useMemo(() => {
@@ -876,9 +890,9 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
   // Products with runway / replenishment analysis sorted by urgency (soonest to run out first)
   const replenishmentItems = useMemo(() => {
     return [...analyzedItems]
-      .filter(it => it.dailyVelocity > 0 || it.currentStock === 0)
+      .filter(it => (!isLatestReportSelected || !it.isDeletedFromStore) && (it.dailyVelocity > 0 || it.currentStock === 0))
       .sort((a, b) => a.daysUntilStockout - b.daysUntilStockout);
-  }, [analyzedItems]);
+  }, [analyzedItems, isLatestReportSelected]);
 
   // Urgent subset (<= 7 days or depleted)
   const urgentReplenishItems = useMemo(() => {
@@ -1056,6 +1070,10 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
     });
 
     analyzedItems.forEach(it => {
+      // 1. استبعاد السلع المحذوفة من المتجر أو غير المتوفرة حالياً (رصيد المخزون = 0)
+      if (it.isDeletedFromStore) return;
+      if (it.liveCurrentStock <= 0 && it.currentStock <= 0) return;
+
       const bKey = it.barcode !== undefined && it.barcode !== null ? String(it.barcode).trim().toLowerCase() : '';
       const nKey = it.name !== undefined && it.name !== null ? String(it.name).trim().toLowerCase() : '';
       const hike = (bKey ? hikesMap.get(bKey) : null) || (nKey ? hikesMap.get(nKey) : null);
@@ -1063,23 +1081,66 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
       const sell = roundMoney(it.sellPrice);
       if (cost <= 0 || sell <= 0) return;
 
-      const currentMargin = sell > cost ? ((sell - cost) / sell) * 100 : 0;
+      const availableShelfStock = it.liveCurrentStock > 0 ? it.liveCurrentStock : it.currentStock;
 
-      // 1. حالة زيادة سعر التكلفة من المورد (زيادة حقيقية غير معكوسة على سعر البيع)
+      // 2. حالة بيع بالخسارة الصريحة (سعر البيع الحالي أقل من أو مساوٍ للتكلفة)
+      if (sell <= cost) {
+        const costDiff = roundMoney(cost - sell);
+        const suggested = roundMoney(cost * 1.08); // تغطية التكلفة مع 8% هامش رمزي
+        const unitsCount = Math.max(1, availableShelfStock);
+        const estLoss = roundMoney(unitsCount * Math.max(0.01, suggested - sell));
+
+        squeezedItems.push({
+          name: it.name,
+          barcode: it.barcode,
+          category: it.category,
+          previousCost: cost,
+          currentCost: cost,
+          costDiff,
+          sellingPrice: sell,
+          currentMarginPct: 0,
+          previousMarginPct: 8,
+          marginLostPct: 8,
+          suggestedSellingPrice: suggested,
+          unitsSoldOrStock: unitsCount,
+          estimatedLoss: estLoss,
+          reason: 'negative_margin',
+        });
+        return;
+      }
+
+      // 3. حالة زيادة سعر التكلفة من المورد (زيادة حقيقية غير معكوسة على سعر البيع)
       if (hike && hike.currentPrice > hike.previousPrice) {
         const oldCost = roundMoney(hike.previousPrice);
-        const costDiff = roundMoney(hike.currentPrice - oldCost);
+        const newCost = roundMoney(hike.currentPrice);
+        const costDiff = roundMoney(newCost - oldCost);
 
-        if (costDiff > 0) {
-          // السعر المقترح الواقعي هو سعر البيع الحالي + فارق زيادة التكلفة بالضبط
-          const suggested = roundMoney(sell + costDiff);
-          const oldMargin = (sell + costDiff) > oldCost ? (((sell + costDiff) - oldCost) / (sell + costDiff)) * 100 : currentMargin;
-          const marginLost = Number(Math.max(0, oldMargin - currentMargin).toFixed(1));
+        // إذا كان الصنف في المتجر حالياً مسجلاً بتكلفة أقل من سعر الزيادة (مثل الكركم تكلفته 8 د.ت وتم فسخ نسخة 12 د.ت)
+        if (cost < newCost) {
+          return;
+        }
 
-          // يتم التنبيه إذا كان تآكل الهامش ملحوظاً أو لم يُعدل السعر بعد
-          if (costDiff > 0.01 && (marginLost > 1 || currentMargin < 12)) {
-            const unitsCount = it.soldQty > 0 ? it.soldQty : (it.currentStock > 0 ? it.currentStock : 1);
-            const estLoss = roundMoney(unitsCount * costDiff);
+        if (costDiff > 0.005) {
+          // سعر البيع المرجعي قبل الزيادة: سعر الجرد المسجل أو السعر الحالي
+          const baseSellingPrice = it.reportSellPrice > 0 ? it.reportSellPrice : sell;
+          
+          // السعر المطلوب للبيع لتعويض زيادة تكلفة المورد بالكامل
+          const requiredSellingPrice = roundMoney(baseSellingPrice + costDiff);
+
+          // فحص جوهري: هل قام التاجر بتعديل سعر البيع بالفعل في التطبيق؟
+          // إذا كان سعر البيع الحالي في التطبيق (sell) يغطي أو يتجاوز السعر المطلوب (مثل دليس 100غ أصبح 0.60 د.ت):
+          if (sell >= requiredSellingPrice) {
+            return; // تم استيعاب وتطبيق الزيادة بالفعل من قِبل التاجر! يختفي التنبيه تلقائياً
+          }
+
+          // إذا كان سعر البيع الحالي لا يزال دون السعر المطلوب:
+          const unrecoveredPerUnit = roundMoney(requiredSellingPrice - sell);
+          if (unrecoveredPerUnit > 0.005) {
+            const currentMargin = ((sell - cost) / sell) * 100;
+            const oldMargin = ((baseSellingPrice - oldCost) / baseSellingPrice) * 100;
+            const marginLost = Number(Math.max(0, oldMargin - currentMargin).toFixed(1));
+            const unitsCount = Math.max(1, availableShelfStock);
+            const estLoss = roundMoney(unitsCount * unrecoveredPerUnit);
 
             squeezedItems.push({
               name: it.name,
@@ -1092,33 +1153,13 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
               currentMarginPct: Number(currentMargin.toFixed(1)),
               previousMarginPct: Number((currentMargin + marginLost).toFixed(1)),
               marginLostPct: marginLost,
-              suggestedSellingPrice: suggested,
+              suggestedSellingPrice: requiredSellingPrice,
               unitsSoldOrStock: unitsCount,
               estimatedLoss: estLoss,
               reason: 'supplier_hike',
             });
           }
         }
-      } else if (sell <= cost) {
-        // 2. حالة بيع بالخسارة الصريحة (سعر البيع أقل أو مساوٍ للتكلفة)
-        const suggested = roundMoney(cost * 1.08); // تغطية التكلفة مع 8% هامش رمزي
-        const estLoss = roundMoney(Math.max(1, it.soldQty || it.currentStock) * (cost - sell + (cost * 0.05)));
-        squeezedItems.push({
-          name: it.name,
-          barcode: it.barcode,
-          category: it.category,
-          previousCost: cost,
-          currentCost: cost,
-          costDiff: roundMoney(cost - sell),
-          sellingPrice: sell,
-          currentMarginPct: 0,
-          previousMarginPct: 8,
-          marginLostPct: 8,
-          suggestedSellingPrice: suggested,
-          unitsSoldOrStock: it.soldQty > 0 ? it.soldQty : it.currentStock,
-          estimatedLoss: estLoss,
-          reason: 'negative_margin',
-        });
       }
     });
 
@@ -4576,10 +4617,10 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                   <div className="p-3 bg-rose-50/80 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-900/40 rounded-xl flex items-center justify-between">
                     <div>
                       <span className="text-xs font-bold text-rose-800 dark:text-rose-200 block">
-                        تم رصد {marginSqueezeAnalysis.count} سلع ارتفعت تكلفة شرائها من الموردين
+                        تم رصد {marginSqueezeAnalysis.count} سلع متوفرة في المحل ارتفعت تكلفتها
                       </span>
                       <p className="text-[11px] text-rose-600 dark:text-rose-400">
-                        التأخر في عكس زيادات الموردين يسبب تآكل أرباحك الصافية
+                        سلع موجودة على الرف حالياً (كمية &gt; 0) تتطلب تعديل سعر البيع لعدم تآكل الربح
                       </p>
                     </div>
                     <div className="text-left font-mono shrink-0 pr-2">
@@ -4591,14 +4632,15 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                   </div>
 
                   <div className="overflow-x-auto border border-zinc-200 dark:border-zinc-800 rounded-xl pb-1 scrollbar-thin">
-                    <table className="w-full min-w-[580px] text-right text-xs">
+                    <table className="w-full min-w-[620px] text-right text-xs">
                       <thead className="bg-zinc-50 dark:bg-zinc-800/60 text-zinc-400 font-bold border-b border-zinc-200 dark:border-zinc-800">
                         <tr>
-                          <th className="p-2.5 min-w-[150px] whitespace-nowrap">السلعة</th>
+                          <th className="p-2.5 min-w-[140px] whitespace-nowrap">السلعة</th>
+                          <th className="p-2.5 text-center min-w-[90px] whitespace-nowrap">المتوفر بالمتجر</th>
                           <th className="p-2.5 text-center min-w-[120px] whitespace-nowrap">سعر التكلفة الجديد</th>
-                          <th className="p-2.5 text-center min-w-[100px] whitespace-nowrap">سعر البيع الحالي</th>
-                          <th className="p-2.5 text-center min-w-[80px] whitespace-nowrap">الهامش الحالي</th>
-                          <th className="p-2.5 text-left pl-3 min-w-[130px] whitespace-nowrap">السعر المقترح للبيع</th>
+                          <th className="p-2.5 text-center min-w-[95px] whitespace-nowrap">سعر البيع الحالي</th>
+                          <th className="p-2.5 text-center min-w-[75px] whitespace-nowrap">الهامش الحالي</th>
+                          <th className="p-2.5 text-left pl-3 min-w-[125px] whitespace-nowrap">السعر المقترح للبيع</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -4607,6 +4649,11 @@ export const InventoryAnalytics: React.FC<InventoryAnalyticsProps> = ({
                             <td className="p-2.5">
                               <span className="font-bold text-zinc-900 dark:text-white block">{it.name}</span>
                               <span className="text-[10px] text-zinc-400">{it.category}</span>
+                            </td>
+                            <td className="p-2.5 text-center whitespace-nowrap">
+                              <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                                {formatQuantityWithGrouping(it.unitsSoldOrStock)} قطعة
+                              </span>
                             </td>
                             <td className="p-2.5 text-center font-mono font-bold text-zinc-800 dark:text-zinc-200 whitespace-nowrap">
                               <div>{!showFinancials ? '••••••' : formatCurrency(it.currentCost, settings.currency, language)}</div>
