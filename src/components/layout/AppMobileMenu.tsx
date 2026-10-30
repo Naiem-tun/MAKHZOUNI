@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { X, Eye, EyeOff, Lock, BarChart3 } from "lucide-react";
+import { X, Eye, EyeOff, Lock, BarChart3, Layers } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../../AppContext";
 
@@ -124,6 +124,28 @@ export function AppMobileMenu({
                 }
               />
               <span className="font-medium">{t("reports") || "التقارير والتحليلات"}</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab("category-analysis");
+                setMobileMenuOpen(false);
+              }}
+              className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                activeTab === "category-analysis"
+                  ? "bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 font-bold"
+                  : "text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
+              }`}
+            >
+              <Layers
+                size={20}
+                className={
+                  activeTab === "category-analysis"
+                    ? "text-brand-500"
+                    : "text-zinc-400"
+                }
+              />
+              <span className="font-medium">تحليل الفئات والسلع</span>
             </button>
           </div>
 

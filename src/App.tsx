@@ -64,6 +64,7 @@ import {
   RotateCcw,
   Activity,
   Coins,
+  Layers,
 } from "lucide-react";
 import { signInWithGoogle, auth } from "./lib/firebase";
 
@@ -104,6 +105,7 @@ import DraftProducts from "./pages/DraftProducts";
 
 // Heavy Pages (Lazy loaded)
 const Analytics = lazy(() => import("./pages/Analytics"));
+const CategoryAnalysis = lazy(() => import("./pages/CategoryAnalysis"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const AuditLogs = lazy(() => import("./pages/AuditLogs"));
 const Invoices = lazy(() => import("./pages/Invoices"));
@@ -203,6 +205,7 @@ function AppContent() {
     { id: "inventory", label: t("inventory"), icon: ClipboardCheck },
     { id: "invoices", label: t("sales_reports") || "تقارير المبيعات", icon: Coins },
     { id: "reports", label: t("reports"), icon: BarChart3 },
+    { id: "category-analysis", label: "تحليل الفئات والسلع", icon: Layers },
 
     // Top standalone tabs
     ...(settings.showShoppingList !== false
@@ -240,6 +243,7 @@ function AppContent() {
       "inventory",
       "invoices",
       "reports",
+      "category-analysis",
     ].includes(tab.id),
   );
   const toolbarTabs = allTabs.filter((tab) =>
@@ -259,6 +263,7 @@ function AppContent() {
         "invoices",
         "expenses",
         "reports",
+        "category-analysis",
       ].includes(tab.id),
   );
 
@@ -483,6 +488,9 @@ function AppContent() {
                 </div>
                 <div className={activeTab === "reports" ? "block" : "hidden"}>
                   {mountedTabs.has("reports") && <Analytics />}
+                </div>
+                <div className={activeTab === "category-analysis" ? "block" : "hidden"}>
+                  {mountedTabs.has("category-analysis") && <CategoryAnalysis />}
                 </div>
                 <div className={activeTab === "expenses" ? "block" : "hidden"}>
                   {mountedTabs.has("expenses") && <Expenses />}
