@@ -98,8 +98,16 @@ export function SupplierCard({
                   </span>
                   
                   {uploadedReports.map((report, idx) => {
-                    const normalizeName = (name: string) => name.trim().replace(/أ|إ|آ/g, "ا").replace(/ة/g, "ه").replace(/ي/g, "ى").replace(/\s+/g, " ");
-                    const val = report.data[s.name] ?? report.data[normalizeName(s.name)] ?? 0;
+                    const normalizeName = (name: string) => (name || '').trim().toLowerCase().replace(/[أإآٱ]/g, "ا").replace(/ة/g, "ه").replace(/ي/g, "ى").replace(/[\u064B-\u065F]/g, "").replace(/\s+/g, " ");
+                    const sNorm = normalizeName(s.name);
+                    let val = report.data[s.name] ?? report.data[s.name?.trim()] ?? report.data[sNorm] ?? report.data[s.name?.toLowerCase()?.trim()];
+                    if (val === undefined && report.data) {
+                      const matchedKey = Object.keys(report.data).find(k => normalizeName(k) === sNorm);
+                      if (matchedKey) {
+                        val = report.data[matchedKey];
+                      }
+                    }
+                    val = val ?? 0;
                     const diff = (s.totalPaid || 0) - val;
                     const match = report.name.match(/\((\d+)\)/);
                     const shortName = match ? match[0] : `(${idx + 1})`;

@@ -44,14 +44,14 @@ export function SupplierCyclesModal({
 
   const handleExportCycleToExcel = (cycle: SupplierCycle) => {
     const headers = ['المورد', 'نوع البضاعة', 'عدد الفواتير', 'إجمالي المشتريات'];
-    const wsData = [headers];
+    const wsData: any[][] = [headers];
 
     (cycle.supplierBreakdown || []).forEach(item => {
       wsData.push([
         item.supplierName,
         item.typeOfGoods || '-',
-        item.count?.toString() || '1',
-        item.amount?.toString() || '0'
+        item.count || 1,
+        roundMoney(item.amount || 0)
       ]);
     });
 

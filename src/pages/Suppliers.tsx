@@ -401,6 +401,45 @@ export default function Suppliers() {
     }
   };
 
+  // Utility to parse money numbers from strings/numbers
+  const parseMoneyNumber = (val: any): number => {
+    if (val === null || val === undefined) return 0;
+    if (typeof val === 'number') return isNaN(val) ? 0 : val;
+    let str = String(val).trim();
+    if (!str) return 0;
+    str = str.replace(/[^\d.,-]/g, '').trim();
+    if (!str) return 0;
+
+    if (str.includes(',') && str.includes('.')) {
+      if (str.lastIndexOf(',') > str.lastIndexOf('.')) {
+        str = str.replace(/\./g, '').replace(',', '.');
+      } else {
+        str = str.replace(/,/g, '');
+      }
+    } else if (str.includes(',')) {
+      const parts = str.split(',');
+      if (parts.length === 2 && parts[1].length <= 3) {
+        str = str.replace(',', '.');
+      } else {
+        str = str.replace(/,/g, '');
+      }
+    }
+
+    const num = parseFloat(str);
+    return isNaN(num) ? 0 : num;
+  };
+
+  const normalizeSupplierName = (name: string) => {
+    return (name || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[أإآٱ]/g, 'ا')
+      .replace(/ة/g, 'ه')
+      .replace(/ي/g, 'ى')
+      .replace(/[\u064B-\u065F]/g, '')
+      .replace(/\s+/g, ' ');
+  };
+
   const handleImportCycleFromExcel = async (file: File) => {
     if (!user) return;
     try {
@@ -415,26 +454,110 @@ export default function Suppliers() {
         return;
       }
 
-      const breakdown: { supplierId: string; supplierName: string; amount: number; count: number; typeOfGoods?: string }[] = [];
-      let totalAmount = 0;
+      // Detect header columns
+      let headerRowIdx = -1;
+      let nameColIdx = -1;
+      let amountColIdx = -1;
+      let goodsColIdx = -1;
+      let countColIdx = -1;
 
-      for (let i = 1; i < data.length; i++) {
-        const row = data[i];
-        if (!row || row.length === 0) continue;
-        const name = String(row[0] || '').trim();
-        const rawAmount = String(row[1] || row[3] || '0').replace(/[^\d.-]/g, '');
-        const amount = parseFloat(rawAmount) || 0;
-        if (name && amount > 0) {
-          totalAmount += amount;
-          breakdown.push({
-            supplierId: '',
-            supplierName: name,
-            amount: roundMoney(amount),
-            count: 1,
-            typeOfGoods: row[1] && isNaN(Number(row[1])) ? String(row[1]) : 'بضاعة عامة'
-          });
+      for (let r = 0; r < Math.min(data.length, 5); r++) {
+        const row = data[r];
+        if (!row || !Array.isArray(row)) continue;
+
+        let candName = -1;
+        let candAmount = -1;
+        let candGoods = -1;
+        let candCount = -1;
+
+        for (let c = 0; c < row.length; c++) {
+          const cell = String(row[c] || '').trim().toLowerCase();
+          if (!cell) continue;
+
+          if (/مورد|اسم المورد|اسم_المورد|المزوّد|supplier|vendor|provider|client/i.test(cell) || cell === 'الاسم' || cell === 'name') {
+            candName = c;
+          } else if (/إجمالي المشتريات|اجمالي المشتريات|إجمالي المعاملات|اجمالي المعاملات|إجمالي|اجمالي|مشتريات|المبلغ|مبلغ|القيمة|قيمة|المجموع|مجموع|صافي|الصافي|total|amount|purchases|paid|sum/i.test(cell)) {
+            if (candAmount === -1 || /إجمالي المشتريات|اجمالي المشتريات/i.test(cell)) {
+              candAmount = c;
+            }
+          } else if (/نوع البضاعة|نوع_البضاعة|البضاعة|السلعة|الصنف|goods|type|category/i.test(cell)) {
+            candGoods = c;
+          } else if (/عدد الفواتير|عدد المعاملات|عدد الدفعات|العدد|فواتير|معاملات|count|invoices|txs/i.test(cell)) {
+            candCount = c;
+          }
+        }
+
+        if (candName !== -1 || candAmount !== -1) {
+          headerRowIdx = r;
+          nameColIdx = candName;
+          amountColIdx = candAmount;
+          goodsColIdx = candGoods;
+          countColIdx = candCount;
+          break;
         }
       }
+
+      const breakdownMap = new Map<string, { supplierId: string; supplierName: string; amount: number; count: number; typeOfGoods?: string }>();
+      let totalAmount = 0;
+      const startRow = headerRowIdx !== -1 ? headerRowIdx + 1 : 0;
+
+      for (let i = startRow; i < data.length; i++) {
+        const row = data[i];
+        if (!row || !Array.isArray(row) || row.length === 0) continue;
+
+        let name = '';
+        let amount = 0;
+        let typeOfGoods = 'بضاعة عامة';
+        let count = 1;
+
+        if (nameColIdx !== -1 && amountColIdx !== -1) {
+          name = String(row[nameColIdx] || '').trim();
+          amount = parseMoneyNumber(row[amountColIdx]);
+          if (goodsColIdx !== -1 && row[goodsColIdx]) {
+            typeOfGoods = String(row[goodsColIdx]).trim() || 'بضاعة عامة';
+          }
+          if (countColIdx !== -1 && row[countColIdx]) {
+            count = parseInt(String(row[countColIdx])) || 1;
+          }
+        } else {
+          // Fallback based on column length
+          if (row.length >= 4) {
+            name = String(row[0] || '').trim();
+            typeOfGoods = String(row[1] || 'بضاعة عامة').trim();
+            count = parseInt(String(row[2])) || 1;
+            amount = parseMoneyNumber(row[3]);
+          } else if (row.length === 2) {
+            name = String(row[0] || '').trim();
+            amount = parseMoneyNumber(row[1]);
+          } else if (row.length === 3) {
+            name = String(row[0] || '').trim();
+            typeOfGoods = isNaN(Number(row[1])) ? String(row[1]).trim() : 'بضاعة عامة';
+            amount = parseMoneyNumber(row[2]) || parseMoneyNumber(row[1]);
+          }
+        }
+
+        if (/^(المجموع|إجمالي|اجمالي|total|sum)$/i.test(name)) continue;
+
+        if (name && amount > 0) {
+          totalAmount += amount;
+          const normKey = normalizeSupplierName(name);
+          const existing = breakdownMap.get(normKey);
+          if (existing) {
+            existing.amount = roundMoney(existing.amount + amount);
+            existing.count += count;
+          } else {
+            breakdownMap.set(normKey, {
+              supplierId: '',
+              supplierName: name,
+              amount: roundMoney(amount),
+              count,
+              typeOfGoods: typeOfGoods || 'بضاعة عامة'
+            });
+          }
+        }
+      }
+
+      const breakdown = Array.from(breakdownMap.values());
 
       if (breakdown.length === 0) {
         showToast('لم يتم العثور على موردين بمبالغ صالحة في الملف', 'error');
@@ -446,7 +569,7 @@ export default function Suppliers() {
         startDate: new Date().toISOString(),
         endDate: new Date().toISOString(),
         totalAmount: roundMoney(totalAmount),
-        transactionCount: breakdown.length,
+        transactionCount: breakdown.reduce((sum, b) => sum + (b.count || 1), 0),
         supplierCount: breakdown.length,
         supplierBreakdown: breakdown,
         createdAt: serverTimestamp()
@@ -577,17 +700,19 @@ export default function Suppliers() {
     // Define headers
     const headers = [
       'المورد',
+      'نوع البضاعة',
       'إجمالي المشتريات'
     ];
 
     // Create rows
-    const wsData = [];
+    const wsData: any[][] = [];
     wsData.push(headers);
     
     filteredSuppliers.forEach((s) => {
       wsData.push([
         s.name || '',
-        s.totalPaid || 0
+        s.typeOfGoods || '-',
+        roundMoney(s.totalPaid || 0)
       ]);
     });
 
@@ -606,87 +731,146 @@ export default function Suppliers() {
     showToast('تم تصدير Excel بنجاح', 'success');
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const bstr = evt.target?.result;
-        const wb = xlsx.read(bstr, { type: 'binary' });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const data = xlsx.utils.sheet_to_json<string[]>(ws, { header: 1 });
+    try {
+      const buffer = await file.arrayBuffer();
+      const wb = xlsx.read(buffer, { type: 'array' });
+      const wsname = wb.SheetNames[0];
+      const ws = wb.Sheets[wsname];
+      const data = xlsx.utils.sheet_to_json<any[]>(ws, { header: 1 });
 
-        if (data.length < 2) {
-          showToast('الملف فارغ أو لا يحتوي على بيانات صحيحة', 'error');
-          return;
-        }
-        const normalizeName = (name: string) => name.trim().replace(/أ|إ|آ/g, "ا").replace(/ة/g, "ه").replace(/ي/g, "ى").replace(/\s+/g, " ");
-        const parseNumber = (val: string) => {
-          let str = val.replace(/\s/g, "");
-          if (str.includes(",") && !str.includes(".")) {
-            str = str.replace(",", ".");
-          } else if (str.includes(",") && str.includes(".")) {
-            str = str.replace(/,/g, "");
-          }
-          return parseFloat(str) || 0;
-        };
-        const reportData: Record<string, number> = {};
-        
-        // Skip header row
-        for (let i = 1; i < data.length; i++) {
-          const row = data[i];
-          if (!row || row.length < 2) continue;
-          
-          let col0 = row[0]?.toString() || "";
-          let col1 = row[1]?.toString() || "";
-          
-          const isNumber = (str: string) => /^[\d\s.,-]+$/.test(str.trim()) && str.trim().length > 0;
-          
-          let supplierName = "";
-          let amount = 0;
-          
-          if (isNumber(col1) && !isNumber(col0)) {
-            supplierName = col0;
-            amount = parseNumber(col1);
-          } else if (isNumber(col0) && !isNumber(col1)) {
-            supplierName = col1;
-            amount = parseNumber(col0);
-          } else {
-            supplierName = col0;
-            amount = parseNumber(col1);
-          }
-          
-          if (supplierName.trim()) {
-            reportData[supplierName.trim()] = amount;
-            reportData[normalizeName(supplierName)] = amount;
-          }
-        }
-        const newReport = {
-          id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-          name: file.name.replace('.xlsx', '').replace('.csv', ''),
-          data: reportData
-        };
-
-        if (uploadedReports.length >= 3) {
-           showToast('يمكنك مقارنة 3 تقارير كحد أقصى', 'error');
-           return;
-        }
-
-        setUploadedReports(prev => [...prev, newReport]);
-        showToast('تم رفع التقرير بنجاح', 'success');
-      } catch (err) {
-        console.error(err);
-        showToast('حدث خطأ أثناء قراءة الملف', 'error');
+      if (!data || data.length < 2) {
+        showToast('الملف فارغ أو لا يحتوي على بيانات صحيحة', 'error');
+        return;
       }
-    };
-    reader.readAsBinaryString(file);
-    
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+
+      // 1. Detect header columns from the first few rows
+      let headerRowIdx = -1;
+      let nameColIdx = -1;
+      let amountColIdx = -1;
+
+      for (let r = 0; r < Math.min(data.length, 5); r++) {
+        const row = data[r];
+        if (!row || !Array.isArray(row)) continue;
+
+        let candName = -1;
+        let candAmount = -1;
+
+        for (let c = 0; c < row.length; c++) {
+          const raw = String(row[c] || '').trim().toLowerCase();
+          if (!raw) continue;
+
+          // Check for supplier name header
+          if (/مورد|اسم المورد|اسم_المورد|المزوّد|supplier|vendor|provider/i.test(raw) || raw === 'الاسم' || raw === 'name') {
+            candName = c;
+          }
+          // Check for amount header
+          else if (/إجمالي المشتريات|اجمالي المشتريات|إجمالي المعاملات|اجمالي المعاملات|إجمالي|اجمالي|مشتريات|المبلغ|مبلغ|القيمة|قيمة|المجموع|مجموع|صافي|الصافي|total|amount|purchases|paid|sum/i.test(raw)) {
+            // Prioritize explicit purchases total header
+            if (candAmount === -1 || /إجمالي المشتريات|اجمالي المشتريات|إجمالي المعاملات/i.test(raw)) {
+              candAmount = c;
+            }
+          }
+        }
+
+        if (candName !== -1 || candAmount !== -1) {
+          headerRowIdx = r;
+          nameColIdx = candName;
+          amountColIdx = candAmount;
+          break;
+        }
+      }
+
+      const reportData: Record<string, number> = {};
+      const startRow = headerRowIdx !== -1 ? headerRowIdx + 1 : 0;
+      let parsedCount = 0;
+
+      for (let i = startRow; i < data.length; i++) {
+        const row = data[i];
+        if (!row || !Array.isArray(row) || row.length === 0) continue;
+
+        let supplierName = '';
+        let amount = 0;
+
+        if (nameColIdx !== -1 && amountColIdx !== -1) {
+          supplierName = String(row[nameColIdx] || '').trim();
+          amount = parseMoneyNumber(row[amountColIdx]);
+        } else {
+          // Dynamic structural fallback
+          if (row.length >= 4) {
+            // Cycle export format: [Name, TypeOfGoods, Count, TotalAmount]
+            supplierName = String(row[0] || '').trim();
+            amount = parseMoneyNumber(row[3]) || parseMoneyNumber(row[row.length - 1]);
+          } else if (row.length === 2) {
+            // Simple format: [Name, TotalAmount]
+            const col0Str = String(row[0] || '').trim();
+            const col1Str = String(row[1] || '').trim();
+            const isCol0Num = /^[\d\s.,-]+$/.test(col0Str) && col0Str.length > 0;
+            const isCol1Num = /^[\d\s.,-]+$/.test(col1Str) && col1Str.length > 0;
+
+            if (isCol1Num && !isCol0Num) {
+              supplierName = col0Str;
+              amount = parseMoneyNumber(row[1]);
+            } else if (isCol0Num && !isCol1Num) {
+              supplierName = col1Str;
+              amount = parseMoneyNumber(row[0]);
+            } else {
+              supplierName = col0Str;
+              amount = parseMoneyNumber(row[1]);
+            }
+          } else if (row.length === 3) {
+            // [Name, Goods, Amount] or [Name, Count, Amount]
+            supplierName = String(row[0] || '').trim();
+            amount = parseMoneyNumber(row[2]) || parseMoneyNumber(row[1]);
+          } else if (row.length >= 5) {
+            // [Name, Goods, Amount, Date, Note]
+            supplierName = String(row[0] || '').trim();
+            amount = parseMoneyNumber(row[2]) || parseMoneyNumber(row[1]);
+          }
+        }
+
+        // Skip non-supplier summary rows
+        if (/^(المجموع|إجمالي|اجمالي|total|sum)$/i.test(supplierName)) {
+          continue;
+        }
+
+        if (supplierName) {
+          const currentTotal = roundMoney((reportData[supplierName] || 0) + amount);
+          reportData[supplierName] = currentTotal;
+          reportData[normalizeSupplierName(supplierName)] = currentTotal;
+          reportData[supplierName.trim().toLowerCase()] = currentTotal;
+          if (amount > 0) parsedCount++;
+        }
+      }
+
+      if (Object.keys(reportData).length === 0) {
+        showToast('لم يتم العثور على موردين أو مبالغ في الملف', 'error');
+        return;
+      }
+
+      const newReport = {
+        id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
+        name: file.name.replace(/\.(xlsx|xls|csv)$/i, ''),
+        data: reportData
+      };
+
+      if (uploadedReports.length >= 3) {
+        showToast('يمكنك مقارنة 3 تقارير كحد أقصى', 'error');
+        return;
+      }
+
+      setUploadedReports(prev => [...prev, newReport]);
+      showToast(`تم رفع التقرير وتفعيل مقارنة ${parsedCount} مورد بنجاح`, 'success');
+    } catch (err) {
+      console.error("handleFileUpload error:", err);
+      showToast('حدث خطأ أثناء قراءة الملف', 'error');
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
