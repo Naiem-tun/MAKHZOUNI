@@ -14,6 +14,7 @@ export type TimeHorizon = 'cycle' | '3months' | '6months' | 'all';
 
 export type AnalyticsSubTab = 
   | 'diagnostic' 
+  | 'folio'
   | 'overview' 
   | 'categories' 
   | 'velocity' 

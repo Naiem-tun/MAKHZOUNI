@@ -7,7 +7,6 @@ import {
   Package, 
   AlertTriangle, 
   TrendingUp, 
-  TrendingDown,
   Wallet, 
   Plus, 
   ScanBarcode,
@@ -39,6 +38,7 @@ import { logAudit } from '../lib/auditLogger';
 import { PrintPurchasesModal } from '../components/dashboard/PrintPurchasesModal';
 import { DashboardCarousel } from '../components/dashboard/DashboardCarousel';
 import { PurchaseVarianceModal } from '../components/dashboard/PurchaseVarianceModal';
+import { PurchaseVarianceFolioCard } from '../components/dashboard/PurchaseVarianceFolioCard';
 import { calculatePurchaseVariance } from '../lib/purchaseVarianceCalculator';
 
 import { useTranslation } from 'react-i18next';
@@ -515,106 +515,17 @@ const Dashboard = memo(() => {
         </div>
       </div>
 
-      {/* SECTION 1.5: PURCHASE PRICE VARIANCE CARD (COLLAPSIBLE / EXPANDABLE) */}
-      {isVarianceCardCollapsed ? (
-        <div 
-          onClick={() => toggleVarianceCardCollapsed()}
-          className="cursor-pointer select-none rounded-xl px-4 py-3 border border-zinc-200 dark:border-zinc-700/80 bg-white dark:bg-zinc-800/90 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-650 transition-all text-right flex items-center justify-between gap-3"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="h-7 w-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 dark:text-zinc-400 shrink-0">
-              <TrendingDown size={15} />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block leading-tight">
-                تحليل فروقات شراء المخزون
-              </span>
-              <span className="text-[10px] text-zinc-400 hidden sm:inline">
-                (مطوي لتجنب الألوان السلبية)
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {purchaseVarianceAnalysis.affectedProductsCount > 0 && (
-              <span className="font-mono tabular-nums text-[10px] font-bold text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md">
-                {purchaseVarianceAnalysis.affectedProductsCount} أصناف متأثرة
-              </span>
-            )}
-            <button 
-              type="button"
-              className="flex items-center gap-1 text-[11px] font-bold text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 px-2.5 py-1 rounded-lg transition-colors"
-            >
-              <span>إظهار</span>
-              <ChevronDown size={14} />
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div 
-          className="rounded-xl p-4 sm:p-5 border border-zinc-200 dark:border-zinc-700/80 bg-white dark:bg-zinc-800/90 shadow-xs transition-all relative overflow-hidden text-right"
-        >
-          {/* Subtle accent indicator line on top */}
-          <div className="absolute top-0 right-0 left-0 h-1 bg-zinc-300 dark:bg-zinc-700" />
-
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-700 dark:text-zinc-300 shrink-0">
-                <TrendingDown size={16} />
-              </div>
-              <div>
-                <span className="text-xs font-bold text-zinc-900 dark:text-white block leading-tight">
-                  إجمالي فرق الشراء بالمخزون
-                </span>
-                <span className="text-[10px] text-zinc-400 font-medium">
-                  مقارنةً بأرخص سعر شراء لنفس الصنف
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setIsVarianceModalOpen(true)}
-                className="flex items-center gap-1 text-[11px] font-bold text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-950/40 border border-brand-200/80 dark:border-brand-900/50 px-2.5 py-1 rounded-lg hover:bg-brand-100 dark:hover:bg-brand-900/50 transition-colors"
-              >
-                <span>التفاصيل</span>
-                <ChevronDown size={13} className="-rotate-90 rtl:rotate-90" />
-              </button>
-              <button
-                type="button"
-                onClick={toggleVarianceCardCollapsed}
-                className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-                title="طي البطاقة"
-              >
-                <ChevronUp size={16} />
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-baseline justify-between gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-700/50">
-            <div>
-              <div className="text-2xl sm:text-3xl font-black font-mono tabular-nums text-zinc-900 dark:text-white tracking-tight leading-none">
-                {!showFinancials ? '••••••' : formatCurrency(purchaseVarianceAnalysis.totalPurchasesLoss, settings.currency, language)}
-              </div>
-            </div>
-
-            <div className="text-left space-y-0.5">
-              <div className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 flex items-center justify-end gap-1.5">
-                <span>توفير الأرخص (للعلم):</span>
-                <span className="font-mono tabular-nums font-bold text-emerald-600 dark:text-emerald-400">
-                  {!showFinancials ? '••••••' : formatCurrency(purchaseVarianceAnalysis.totalCheapestBatchSavings, settings.currency, language)}
-                </span>
-              </div>
-              {purchaseVarianceAnalysis.affectedProductsCount > 0 && (
-                <div className="text-[10px] text-zinc-400 dark:text-zinc-500">
-                  <span className="font-bold text-zinc-700 dark:text-zinc-300 font-mono tabular-nums">{purchaseVarianceAnalysis.affectedProductsCount}</span> أصناف متأثرة
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* SECTION 1.5: PURCHASE PRICE VARIANCE ENTRY PANEL (FOLIO STYLE WITH TABLE) */}
+      <PurchaseVarianceFolioCard
+        analysis={purchaseVarianceAnalysis}
+        currency={settings.currency}
+        language={language}
+        showFinancials={showFinancials}
+        darkMode={Boolean(settings.darkMode)}
+        isCollapsed={isVarianceCardCollapsed}
+        onToggleCollapse={toggleVarianceCardCollapsed}
+        onOpenModal={() => setIsVarianceModalOpen(true)}
+      />
 
       <div className="px-0.5 space-y-6 mt-6">
         {/* SECTION 2: FINANCIAL SUMMARY (COMPACT GRID) */}
@@ -823,6 +734,8 @@ const Dashboard = memo(() => {
         analysis={purchaseVarianceAnalysis}
         currency={settings.currency}
         language={language}
+        darkMode={Boolean(settings.darkMode)}
+        showFinancials={showFinancials}
       />
     </div>
   );

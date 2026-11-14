@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { collection, query, orderBy, limit, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
-import { safeParseDate } from '../lib/utils';
+import { safeParseDate, sanitizeProduct } from '../lib/utils';
 import { InventoryAnalytics } from '../components/inventory/InventoryAnalytics';
 import { Supplier, SupplierTransaction, Debt } from '../types';
 
@@ -34,7 +34,7 @@ export default function Analytics() {
       // Products Listener
       const productsPath = `users/${uid}/products`;
       unsubProducts = onSnapshot(collection(db, productsPath), (snap) => {
-        setProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setProducts(snap.docs.map(doc => sanitizeProduct({ id: doc.id, ...doc.data() })));
       });
 
       // Reports Listener
@@ -96,22 +96,11 @@ export default function Analytics() {
   }
 
   return (
-    <div className="space-y-6 pb-24">
-      {/* Header */}
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-black text-zinc-900 dark:text-white">{t('reports') || 'التقارير والتحليلات'}</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            تحليل الاستهلاك الحقيقي، سرعة نفاد الرفوف، حركة المشتريات اليومية، ومردودية الأقسام
-          </p>
-        </div>
-      </header>
-
-      {/* Main Intelligent Inventory & Daily Purchases View */}
+    <div className="pb-24">
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        className="space-y-6"
+        transition={{ duration: 0.18 }}
       >
         <InventoryAnalytics
           inventoryReports={inventoryReports}

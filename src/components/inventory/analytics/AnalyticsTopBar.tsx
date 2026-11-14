@@ -385,6 +385,7 @@ export const AnalyticsTopBar: React.FC<AnalyticsTopBarProps> = ({
       <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-zinc-200 dark:border-zinc-800 scrollbar-none">
         {[
           { id: 'diagnostic', label: 'مسار النمو وتشخيص المتجر 🧭', icon: Award },
+          { id: 'folio', label: 'التقرير البصري (Folio) 📊', icon: Sparkles },
           { id: 'overview', label: 'الخلاصة المالية للجرد', icon: DollarSign },
           { id: 'categories', label: 'مردودية الأقسام ورأس المال', icon: PieChartIcon },
           { id: 'velocity', label: 'سرعة الدوران والأصناف الراكدة', icon: Zap },
@@ -399,7 +400,7 @@ export const AnalyticsTopBar: React.FC<AnalyticsTopBarProps> = ({
             <button
               key={tab.id}
               onClick={() => setSubTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs md:text-sm whitespace-nowrap transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs md:text-sm whitespace-nowrap shrink-0 transition-all cursor-pointer ${
                 isActive
                   ? 'bg-brand-500 text-white shadow-sm'
                   : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800'
