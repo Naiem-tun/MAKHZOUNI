@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Barcode, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../AppContext';
+import { useFolioTheme } from '../folio/FolioPageChrome';
 
 // --- GLOBAL CAMERA TRACKER ---
 const globalActiveStreams = new Set<MediaStream>();
@@ -64,9 +65,10 @@ interface BarcodeScannerProps {
   tabId?: string;
 }
 
-export function BarcodeScanner({ isOpen, onClose, onScan, title, inline = false, continuous = false, tabId }: BarcodeScannerProps) {
+export function BarcodeScanner({ isOpen, onClose, onScan, title, inline = false, continuous = false }: BarcodeScannerProps) {
   const { t } = useTranslation();
-  const { activeTab } = useAppContext();
+  const { activeTab, settings } = useAppContext();
+  const { theme } = useFolioTheme(Boolean(settings?.darkMode), settings?.folioThemeId);
   const displayTitle = title || t('scan_barcode_title');
   const [error, setError] = useState<string | null>(null);
   
@@ -288,23 +290,28 @@ export function BarcodeScanner({ isOpen, onClose, onScan, title, inline = false,
 
   const scannerContent = (
     <div className={`relative w-full ${inline ? 'h-full' : 'aspect-square'} bg-black flex items-center justify-center overflow-hidden`}>
-      <div 
-        ref={scannerWrapperRef} 
-        className={`absolute inset-0 w-full h-full ${error ? 'opacity-0 pointer-events-none' : 'opacity-100'}`} 
+      <div
+        ref={scannerWrapperRef}
+        className={`absolute inset-0 w-full h-full ${error ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
       />
 
       {error && (
         <div className="relative z-50 flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mb-3 border border-red-500/30">
-            <AlertCircle size={24} className="text-red-400" />
+          <div
+            className="w-12 h-12 border flex items-center justify-center mb-3"
+            style={{ backgroundColor: theme.surface, borderColor: theme.negative, color: theme.negative }}
+          >
+            <AlertCircle size={22} />
           </div>
-          <h3 className="text-lg font-bold text-white mb-2">فشل تشغيل الكاميرا</h3>
-          <p className="text-red-200/80 text-xs mb-4 leading-relaxed">
+          <h3 className="text-base font-black text-white mb-2">فشل تشغيل الكاميرا</h3>
+          <p className="text-zinc-300 text-xs mb-4 leading-relaxed">
             {error}
           </p>
-          <button 
+          <button
+            type="button"
             onClick={onClose}
-            className="px-6 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-xl transition-colors text-sm"
+            className="px-6 py-2 border font-bold text-xs cursor-pointer"
+            style={{ backgroundColor: theme.negative, borderColor: theme.negative, color: '#FFFFFF' }}
           >
             إغلاق
           </button>
@@ -315,13 +322,16 @@ export function BarcodeScanner({ isOpen, onClose, onScan, title, inline = false,
 
   if (inline) {
     return (
-      <div className={`flex flex-col h-full bg-black rounded-lg overflow-hidden relative ${!isOpen ? 'pointer-events-none opacity-0' : ''}`}>
+      <div className={`flex flex-col h-full bg-black border overflow-hidden relative ${!isOpen ? 'pointer-events-none opacity-0' : ''}`} style={{ borderColor: theme.border }}>
         <div className="absolute top-2 right-2 z-10 flex gap-2">
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 bg-black/50 hover:bg-black/70 rounded-full text-white backdrop-blur-sm transition-colors"
+            aria-label="إغلاق"
+            className="p-1.5 border text-white bg-black/70 hover:bg-black cursor-pointer"
+            style={{ borderColor: theme.border }}
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
         {scannerContent}
@@ -332,40 +342,51 @@ export function BarcodeScanner({ isOpen, onClose, onScan, title, inline = false,
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-sm"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs"
+          dir="rtl"
           onClick={onClose}
         >
           <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
+            initial={{ scale: 0.96, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
+            exit={{ scale: 0.96, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col"
+            className="border shadow-2xl w-full max-w-sm overflow-hidden flex flex-col"
+            style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }}
           >
             {/* Header */}
-            <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-800/50">
-              <h3 className="font-bold text-lg text-zinc-900 dark:text-white flex items-center gap-2">
-                <Barcode size={20} className="text-brand-500" />
-                {displayTitle}
+            <div
+              className="px-4 py-3 border-b flex justify-between items-center"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+            >
+              <h3 className="font-black text-sm sm:text-base flex items-center gap-2" style={{ color: theme.text }}>
+                <Barcode size={18} style={{ color: theme.accent }} />
+                <span>{displayTitle}</span>
               </h3>
               <button
+                type="button"
                 onClick={onClose}
-                className="p-2 bg-white dark:bg-zinc-800 rounded-full text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 shadow-sm transition-colors"
+                aria-label="إغلاق"
+                className="p-1.5 border cursor-pointer"
+                style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.text }}
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
             {scannerContent}
-            
+
             {/* Footer / Hint */}
             {!error && (
-              <div className="bg-zinc-50 dark:bg-zinc-800/50 p-3 text-center border-t border-zinc-100 dark:border-zinc-800">
-                <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400">
+              <div
+                className="p-3 text-center border-t"
+                style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+              >
+                <p className="text-xs font-bold" style={{ color: theme.textMuted }}>
                   {t('scan_barcode_hint')}
                 </p>
               </div>

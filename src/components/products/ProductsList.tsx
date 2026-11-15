@@ -1,6 +1,8 @@
 import React from 'react';
 import { Product } from '../../types';
 import { ProductCard } from './ProductCard';
+import { FolioTheme } from '../inventory/analytics/folio/folioTypes';
+import { resolveFolioTheme } from '../folio/FolioPageChrome';
 
 interface ProductsListProps {
   products: Product[];
@@ -9,6 +11,7 @@ interface ProductsListProps {
   onEdit: (product: Product) => void;
   onAddQuantity: (product: Product) => void;
   onCardClick?: (product: Product) => void;
+  theme?: FolioTheme;
 }
 
 export const ProductsList: React.FC<ProductsListProps> = ({
@@ -17,10 +20,31 @@ export const ProductsList: React.FC<ProductsListProps> = ({
   showPosStock,
   onEdit,
   onAddQuantity,
-  onCardClick
+  onCardClick,
+  theme,
 }) => {
+  const activeTheme = theme || resolveFolioTheme(false);
+
+  if (products.length === 0) {
+    return (
+      <div
+        className="border p-10 text-center text-xs font-bold"
+        style={{
+          backgroundColor: activeTheme.surface,
+          borderColor: activeTheme.border,
+          color: activeTheme.textMuted,
+        }}
+      >
+        لا توجد منتجات مطابقة للتصفية الحالية.
+      </div>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+    <div
+      className="border divide-y"
+      style={{ backgroundColor: activeTheme.surface, borderColor: activeTheme.border }}
+    >
       {products.map((p, idx) => (
         <ProductCard
           key={p.id}
@@ -31,6 +55,7 @@ export const ProductsList: React.FC<ProductsListProps> = ({
           onEdit={onEdit}
           onAddQuantity={onAddQuantity}
           onCardClick={onCardClick}
+          theme={activeTheme}
         />
       ))}
     </div>

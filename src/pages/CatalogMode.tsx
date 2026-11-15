@@ -3,18 +3,20 @@ import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
 import { useTranslation } from 'react-i18next';
-import { Search, Lock, Boxes, Package, AlertCircle, ScanLine, ArrowRightLeft, Folder, ChevronRight, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Search, Lock, Boxes, Package, AlertCircle, ScanLine, ArrowRightLeft, Folder, ArrowLeft } from 'lucide-react';
 import { formatCurrency, safeParseFloat } from '../lib/utils';
 import { BarcodeScanner } from '../components/common/BarcodeScanner';
 import { ProductImage } from '../components/products/ProductImage';
 import { useCategories, categoryIcons } from '../hooks/useCategories';
 import { Product } from '../types';
+import { useFolioTheme } from '../components/folio/FolioPageChrome';
 
 export default function CatalogMode() {
   const { user, settings, setIsCatalogMode, showToast } = useAppContext();
   const { t } = useTranslation();
   const { categories: appCategories } = useCategories();
-  
+  const { theme } = useFolioTheme(Boolean(settings.darkMode), settings.folioThemeId);
+
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
@@ -23,41 +25,41 @@ export default function CatalogMode() {
   const [displayMode, setDisplayMode] = useState<'piece' | 'box'>('piece');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  
+
   useEffect(() => {
     if (!user) return;
     const q = query(collection(db, `users/${user.uid}/products`), orderBy('name'));
     const unsub = onSnapshot(q, (snap) => {
-      setProducts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
+      setProducts(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Product)));
     });
     return unsub;
   }, [user]);
 
   const categories = useMemo(() => {
-    const cats = new Set(products.map(p => p.category || 'other'));
+    const cats = new Set(products.map((p) => p.category || 'other'));
     return Array.from(cats);
   }, [products]);
 
   const filteredProducts = useMemo(() => {
     if (searchQuery) {
-      const lowerQuery = (searchQuery || "").toLowerCase();
-      return products.filter(p => 
-        (p.name || "").toLowerCase().includes(lowerQuery) || 
-        (p.barcode && p.barcode.includes(lowerQuery)) ||
-        (p.aliases || []).some(a => (a || "").toLowerCase().includes(lowerQuery)) ||
-        (p.category && p.category.toLowerCase().includes(lowerQuery)) ||
-        (t(`cat_${p.category || 'other'}`).toLowerCase().includes(lowerQuery))
+      const lowerQuery = (searchQuery || '').toLowerCase();
+      return products.filter(
+        (p) =>
+          (p.name || '').toLowerCase().includes(lowerQuery) ||
+          (p.barcode && p.barcode.includes(lowerQuery)) ||
+          (p.aliases || []).some((a) => (a || '').toLowerCase().includes(lowerQuery)) ||
+          (p.category && p.category.toLowerCase().includes(lowerQuery)) ||
+          t(`cat_${p.category || 'other'}`).toLowerCase().includes(lowerQuery),
       );
     }
     if (selectedCategory) {
-      return products.filter(p => (p.category || 'other') === selectedCategory);
+      return products.filter((p) => (p.category || 'other') === selectedCategory);
     }
     return products;
   }, [products, searchQuery, selectedCategory, t]);
 
   const handleExitRequest = () => {
     if (!settings.catalogPin) {
-      // If no PIN is configured, just exit
       setIsCatalogMode(false);
       return;
     }
@@ -72,7 +74,7 @@ export default function CatalogMode() {
         setIsVerifying(false);
         setIsExitModalOpen(false);
         setIsCatalogMode(false);
-      }, 500); // Small satisfying delay
+      }, 400);
     } else {
       showToast(t('invalid_pin') || 'الرمز السري غير صحيح', 'error');
       setPinInput('');
@@ -80,153 +82,212 @@ export default function CatalogMode() {
   };
 
   return (
-    <div className="h-[100dvh] relative flex flex-col overflow-hidden bg-[#F5F8FA] dark:bg-[#0F172A]" dir={settings.language === 'ar' ? 'rtl' : 'ltr'}>
-      {/* Ambient Artistic Background */}
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-[#7C94B8]/40 to-[#2A4D88]/10 blur-[100px]" />
-        <div className="absolute bottom-[-10%] right-[-5%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-tl from-[#2A4D88]/20 to-[#B1BBC8]/20 blur-[120px]" />
-        <div className="absolute top-[20%] right-[10%] w-[40vw] h-[40vw] rounded-full bg-[#D9D9D8]/40 dark:bg-[#1E293B]/60 blur-[90px]" />
-        <div className="absolute inset-0 bg-white/30 dark:bg-black/30" />
-        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%232A4D88' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }} />
-      </div>
-
-      {/* Header */}
-      <header className="order-last sticky bottom-0 z-30 mt-auto bg-white/80 dark:bg-[#0F172A]/80 backdrop-blur-md border-t border-[#D9D9D8]/50 dark:border-[#1E293B] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center gap-4">
-        <div className="flex-1 max-w-2xl mx-auto flex items-center gap-3">
+    <div
+      className="h-[100dvh] relative flex flex-col overflow-hidden"
+      style={{ backgroundColor: theme.bg, color: theme.text }}
+      dir={settings.language === 'ar' ? 'rtl' : 'ltr'}
+    >
+      {/* Bottom Control Bar */}
+      <header
+        className="order-last sticky bottom-0 z-30 mt-auto border-t px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center gap-3"
+        style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+      >
+        <div className="flex-1 max-w-2xl mx-auto flex items-center gap-2.5">
           {selectedCategory && !searchQuery && (
             <button
+              type="button"
               onClick={() => setSelectedCategory(null)}
-              className="h-12 w-12 shrink-0 flex items-center justify-center rounded-xl bg-white dark:bg-[#1E293B] border border-[#D9D9D8] dark:border-[#334155] text-[#7C94B8] hover:text-[#2A4D88] dark:text-[#B1BBC8] dark:hover:text-white transition-colors shadow-sm"
+              className="h-11 w-11 shrink-0 flex items-center justify-center border transition-colors cursor-pointer"
+              style={{
+                backgroundColor: theme.surfaceMuted,
+                borderColor: theme.border,
+                color: theme.text,
+              }}
             >
-              <ArrowLeft size={24} className={settings.language === 'ar' ? 'rotate-180' : ''} />
+              <ArrowLeft size={20} className={settings.language === 'ar' ? 'rotate-180' : ''} />
             </button>
           )}
 
-          <div className="relative flex-1 group">
-            <Search className={`absolute ${settings.language === 'ar' ? 'right-3.5' : 'left-3.5'} top-1/2 -translate-y-1/2 text-[#B1BBC8] group-focus-within:text-[#7C94B8] transition-colors`} size={20} />
+          <div className="relative flex-1">
+            <Search
+              className={`absolute ${settings.language === 'ar' ? 'right-3.5' : 'left-3.5'} top-1/2 -translate-y-1/2`}
+              size={18}
+              style={{ color: theme.textMuted }}
+            />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('search_products') || 'ابحث عن منتج...'}
-              className={`w-full h-12 bg-white dark:bg-[#1E293B] border border-[#D9D9D8] dark:border-[#334155] rounded-xl ${settings.language === 'ar' ? 'pr-11 pl-12' : 'pl-11 pr-12'} text-[#2A4D88] dark:text-white placeholder:text-[#B1BBC8]/70 focus:outline-none focus:ring-4 focus:ring-[#7C94B8]/20 focus:border-[#7C94B8] transition-colors text-lg font-medium shadow-sm`}
+              className={`w-full h-11 border ${settings.language === 'ar' ? 'pr-10 pl-11' : 'pl-10 pr-11'} text-sm sm:text-base font-medium outline-none transition-colors`}
+              style={{
+                backgroundColor: theme.bg,
+                borderColor: theme.border,
+                color: theme.text,
+              }}
             />
             <button
+              type="button"
               onClick={() => setIsScannerOpen(true)}
-              className={`absolute ${settings.language === 'ar' ? 'left-1.5' : 'right-1.5'} top-1/2 -translate-y-1/2 h-9 w-9 flex items-center justify-center text-[#B1BBC8] hover:text-[#2A4D88] dark:hover:text-white transition-colors rounded-lg hover:bg-[#F5F8FA] dark:hover:bg-[#334155]/50`}
+              className={`absolute ${settings.language === 'ar' ? 'left-1.5' : 'right-1.5'} top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center border transition-colors cursor-pointer`}
+              style={{
+                backgroundColor: theme.surfaceMuted,
+                borderColor: theme.border,
+                color: theme.textMuted,
+              }}
             >
-              <ScanLine size={18} />
+              <ScanLine size={16} />
             </button>
           </div>
+
           <button
-            onClick={() => setDisplayMode(prev => prev === 'piece' ? 'box' : 'piece')}
-            className={`h-12 px-5 shrink-0 rounded-xl font-bold transition-colors flex items-center gap-2 border shadow-sm ${
-              displayMode === 'box'
-                ? 'bg-gradient-to-br from-[#2A4D88] to-[#1e3b6e] border-[#2A4D88] text-white shadow-md shadow-[#2A4D88]/20'
-                : 'bg-white dark:bg-[#1E293B] border-[#D9D9D8] dark:border-[#334155] text-[#7C94B8] dark:text-[#B1BBC8] hover:border-[#B1BBC8] hover:text-[#2A4D88] dark:hover:text-white'
-            }`}
+            type="button"
+            onClick={() => setDisplayMode((prev) => (prev === 'piece' ? 'box' : 'piece'))}
+            className="h-11 px-4 shrink-0 font-bold text-xs sm:text-sm transition-colors flex items-center gap-2 border cursor-pointer"
+            style={{
+              backgroundColor: displayMode === 'box' ? theme.text : theme.surfaceMuted,
+              borderColor: displayMode === 'box' ? theme.text : theme.border,
+              color: displayMode === 'box' ? theme.surface : theme.text,
+            }}
           >
-            {displayMode === 'box' ? <Boxes size={20} /> : <Package size={20} />}
-            <span className="hidden sm:inline">{displayMode === 'box' ? (t('box') || 'كرتونة') : (t('piece') || 'قطعة')}</span>
+            {displayMode === 'box' ? <Boxes size={18} /> : <Package size={18} />}
+            <span className="hidden sm:inline">
+              {displayMode === 'box' ? t('box') || 'كرتونة' : t('piece') || 'قطعة'}
+            </span>
           </button>
-          <button 
+
+          <button
+            type="button"
             onClick={handleExitRequest}
-            className="h-12 px-4 shrink-0 bg-white/50 dark:bg-[#1E293B]/50 backdrop-blur-sm border border-[#D9D9D8] dark:border-[#334155] rounded-xl text-[#B1BBC8] hover:text-[#2A4D88] dark:text-[#B1BBC8] dark:hover:text-white transition-colors flex items-center justify-center shadow-sm hover:bg-white"
+            className="h-11 px-3.5 shrink-0 border transition-colors flex items-center justify-center cursor-pointer"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+              color: theme.textMuted,
+            }}
             title={t('exit_catalog') || 'خروج من وضع الكتالوج'}
           >
-            <Lock size={20} />
+            <Lock size={18} />
           </button>
         </div>
       </header>
 
       {/* Main Catalog Area */}
       <main className="relative z-10 flex-1 overflow-y-auto p-4 md:p-8">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className="pb-4 border-b flex items-end justify-between" style={{ borderColor: theme.border }}>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-xs font-bold">
+                <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
+                  01
+                </span>
+                <span className="tracking-wider uppercase font-mono" style={{ color: theme.textMuted }}>
+                  CATALOG · SHOWROOM
+                </span>
+              </div>
+              <h1 className="text-2xl font-black tracking-tight">
+                {settings?.storeName || t('catalog') || 'كتالوج المنتجات'}
+              </h1>
+            </div>
+            {selectedCategory && (
+              <span className="text-xs font-bold" style={{ color: theme.accent }}>
+                {t(`cat_${selectedCategory}`) || selectedCategory}
+              </span>
+            )}
+          </div>
+
           {!searchQuery && !selectedCategory ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {categories.map((category) => (
                 <button
                   key={category}
+                  type="button"
                   onClick={() => setSelectedCategory(category)}
-                  className="bg-white dark:bg-[#1E293B] rounded-[24px] border border-[#D9D9D8] dark:border-[#334155] overflow-hidden shadow-sm hover:border-[#7C94B8] dark:hover:border-[#7C94B8]/50 transition-colors group flex flex-col text-right"
+                  className="border p-5 transition-colors flex flex-col items-center justify-center gap-3 text-center cursor-pointer"
+                  style={{ backgroundColor: theme.surface, borderColor: theme.border }}
                 >
-                  <div className="p-6 flex flex-col items-center justify-center gap-4 text-center">
-                    <div className="w-16 h-16 flex items-center justify-center">
-                      <Folder size={48} strokeWidth={1.5} className="text-[#2A4D88] dark:text-[#7C94B8]" />
-                    </div>
-                    <span className="font-bold text-xl text-[#2A4D88] dark:text-white group-hover:text-[#1e3b6e] transition-colors">
-                      {t(`cat_${category}`) || category || t('cat_other')}
-                    </span>
-                    <span className="text-sm font-medium text-[#7C94B8] bg-[#F5F8FA] dark:bg-[#0F172A] px-3 py-1 rounded-full">
-                      {products.filter(p => (p.category || 'other') === category).length} {t('products') || 'منتجات'}
-                    </span>
-                  </div>
+                  <Folder size={36} strokeWidth={1.4} style={{ color: theme.accent }} />
+                  <span className="font-black text-base">
+                    {t(`cat_${category}`) || category || t('cat_other')}
+                  </span>
+                  <span className="text-xs font-mono tabular-nums" style={{ color: theme.textMuted }}>
+                    {products.filter((p) => (p.category || 'other') === category).length} {t('products') || 'منتجات'}
+                  </span>
                 </button>
               ))}
             </div>
           ) : filteredProducts.length === 0 ? (
-           <div className="flex flex-col items-center justify-center p-12 text-zinc-400 text-center space-y-4">
-             <AlertCircle size={48} className="opacity-20" />
-             <p className="text-lg">{t('no_products') || 'لا توجد منتجات'}</p>
-           </div>
+            <div
+              className="flex flex-col items-center justify-center p-14 border text-center space-y-3"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+            >
+              <AlertCircle size={36} className="opacity-30" />
+              <p className="text-sm font-bold" style={{ color: theme.textMuted }}>
+                {t('no_products') || 'لا توجد منتجات'}
+              </p>
+            </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
               {filteredProducts.map((product) => (
                 <div
                   key={product.id}
-                  className="bg-white dark:bg-[#1E293B] rounded-[20px] border border-[#D9D9D8] dark:border-[#334155] overflow-hidden shadow-sm hover:border-[#7C94B8] dark:hover:border-[#7C94B8]/50 transition-colors group flex flex-col"
+                  className="border overflow-hidden flex flex-col"
+                  style={{ backgroundColor: theme.surface, borderColor: theme.border }}
                 >
-                  { (product.hasLocalImage || product.hasCloudImage) && (
-                    <div className="h-48 w-full border-b border-[#D9D9D8]/50 dark:border-[#334155]/50 overflow-hidden">
-                      <ProductImage 
-                        productId={product.id} 
+                  {(product.hasLocalImage || product.hasCloudImage) && (
+                    <div className="h-44 w-full border-b overflow-hidden" style={{ borderColor: theme.border }}>
+                      <ProductImage
+                        productId={product.id}
                         hasLocalImage={product.hasLocalImage}
                         hasCloudImage={product.hasCloudImage}
-                        FallbackIcon={categoryIcons[appCategories.find(c => c.name === product.category)?.icon || 'Package'] || Package}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                        FallbackIcon={
+                          categoryIcons[appCategories.find((c) => c.name === product.category)?.icon || 'Package'] ||
+                          Package
+                        }
+                        className="w-full h-full object-cover"
                       />
                     </div>
                   )}
-                  <div className="p-4 sm:p-5 flex-1 flex flex-col">
-                    <h3 className="text-base sm:text-lg font-bold text-[#2A4D88] dark:text-[#E2E8F0] line-clamp-2 leading-tight mb-2 group-hover:text-[#1e3b6e] dark:group-hover:text-white transition-colors">
-                        {product.name}
-                    </h3>
-                    
-                    {product.barcode ? (
-                      <div className="flex items-center gap-1.5 text-xs text-[#7C94B8] mb-4 bg-[#F5F8FA] dark:bg-[#0F172A]/50 px-2.5 py-1 rounded-md inline-flex self-start border border-[#F5F8FA] dark:border-[#0F172A]/50 group-hover:border-[#D9D9D8] dark:group-hover:border-[#334155] transition-colors">
-                        <ScanLine size={12} />
-                        <span className="font-mono tracking-wider">{product.barcode}</span>
+                  <div className="p-4 flex-1 flex flex-col justify-between gap-3">
+                    <div className="space-y-1.5">
+                      <h3 className="text-sm sm:text-base font-black line-clamp-2 leading-snug">{product.name}</h3>
+                      <div className="flex items-center gap-1.5 text-[11px] font-mono" style={{ color: theme.textMuted }}>
+                        <ScanLine size={11} />
+                        <span>{product.barcode || '---'}</span>
                       </div>
-                    ) : (
-                      <div className="flex items-center gap-1.5 text-xs text-[#7C94B8]/50 mb-4 px-2.5 py-1 rounded-md inline-flex self-start border border-dashed border-[#D9D9D8]/50 dark:border-[#334155]/50 group-hover:border-[#7C94B8]/40 transition-colors">
-                        <ScanLine size={12} className="opacity-50" />
-                        <span className="font-mono tracking-wider opacity-50">- - -</span>
-                      </div>
-                    )}
-                    
-                    <div className="mt-auto space-y-3">
-                      <div className="flex items-center justify-between pt-4 border-t border-[#D9D9D8]/50 dark:border-[#334155]/50 group-hover:border-[#D9D9D8] dark:group-hover:border-[#334155] transition-colors">
-                        <div className={`flex flex-col`}>
-                          <div className={`flex items-center gap-1.5 transition-colors ${displayMode === 'box' && product.piecesPerBox && Number(product.piecesPerBox) > 1 ? 'text-[#2A4D88] dark:text-[#7C94B8]' : 'text-[#7C94B8] dark:text-[#B1BBC8]'}`}>
-                            {displayMode === 'box' && product.piecesPerBox && Number(product.piecesPerBox) > 1 ? <Boxes size={16} /> : <Package size={16} />}
-                            <span className="text-xs sm:text-sm font-medium tracking-wide">
-                              {displayMode === 'box' && product.piecesPerBox && Number(product.piecesPerBox) > 1 ? (
-                                <>
-                                  {t('box') || 'كرتونة'}
-                                  <span className="opacity-70 ml-1">{`(${product.piecesPerBox})`}</span>
-                                </>
-                              ) : (
-                                t('piece') || 'قطعة'
-                              )}
+                    </div>
+
+                    <div
+                      className="flex items-center justify-between pt-3 border-t"
+                      style={{ borderColor: theme.border }}
+                    >
+                      <div className="flex items-center gap-1 text-xs font-bold" style={{ color: theme.textMuted }}>
+                        {displayMode === 'box' && product.piecesPerBox && Number(product.piecesPerBox) > 1 ? (
+                          <>
+                            <Boxes size={14} />
+                            <span>
+                              {t('box') || 'كرتونة'} ({product.piecesPerBox})
                             </span>
-                          </div>
-                        </div>
-                        <span className={`font-black text-xl sm:text-2xl tracking-tight text-[#2A4D88] dark:text-[#F1F5F9]`}>
-                          {displayMode === 'box' && product.piecesPerBox && Number(product.piecesPerBox) > 1
-                            ? formatCurrency(safeParseFloat(product.sellingPrice) * Number(product.piecesPerBox), settings.currency)
-                            : formatCurrency(safeParseFloat(product.sellingPrice), settings.currency)}
-                        </span>
+                          </>
+                        ) : (
+                          <>
+                            <Package size={14} />
+                            <span>{t('piece') || 'قطعة'}</span>
+                          </>
+                        )}
                       </div>
+                      <span
+                        className="font-mono font-black text-base sm:text-lg tabular-nums"
+                        dir="ltr"
+                        style={{ color: theme.accent }}
+                      >
+                        {displayMode === 'box' && product.piecesPerBox && Number(product.piecesPerBox) > 1
+                          ? formatCurrency(
+                              safeParseFloat(product.sellingPrice) * Number(product.piecesPerBox),
+                              settings.currency,
+                            )
+                          : formatCurrency(safeParseFloat(product.sellingPrice), settings.currency)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -238,67 +299,69 @@ export default function CatalogMode() {
 
       {/* Exit PIN Modal */}
       {isExitModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div 
-              className="absolute inset-0 bg-[#0F172A]/40 dark:bg-[#0F172A]/80 backdrop-blur-md"
-              onClick={() => setIsExitModalOpen(false)}
-            />
-            <div 
-              className="bg-white dark:bg-[#1E293B] w-full max-w-sm rounded-[24px] shadow-2xl border border-[#D9D9D8] dark:border-[#334155] p-8 relative z-10 overflow-hidden"
-            >
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-[#F5F8FA] dark:bg-[#0F172A] rounded-full flex items-center justify-center mx-auto mb-4 text-[#2A4D88] dark:text-[#7C94B8] border border-[#D9D9D8] dark:border-[#334155]">
-                   <Lock size={28} className="ml-1" />
-                </div>
-                <h2 className="text-2xl font-bold text-[#2A4D88] dark:text-white mb-2 tracking-tight">
-                  {t('exit_catalog_mode') || 'خروج من وضع الكتالوج'}
-                </h2>
-                <p className="text-sm font-medium text-[#7C94B8] dark:text-[#B1BBC8]">
-                   {t('enter_pin_to_exit') || 'أدخل الرمز السري للعودة'}
-                </p>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setIsExitModalOpen(false)} />
+          <div
+            className="w-full max-w-sm border shadow-2xl p-6 relative z-10 overflow-hidden space-y-5"
+            style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
+          >
+            <div className="text-center space-y-2">
+              <div
+                className="w-12 h-12 border flex items-center justify-center mx-auto"
+                style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.accent }}
+              >
+                <Lock size={22} />
               </div>
+              <h2 className="text-lg font-black">{t('exit_catalog_mode') || 'خروج من وضع الكتالوج'}</h2>
+              <p className="text-xs font-medium" style={{ color: theme.textMuted }}>
+                {t('enter_pin_to_exit') || 'أدخل الرمز السري للعودة'}
+              </p>
+            </div>
 
-              <div className="space-y-5">
-                <input
-                  type="password"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={4}
-                  value={pinInput}
-                  onChange={(e) => setPinInput(e.target.value.replace(/[^0-9]/g, ''))}
-                  onKeyDown={(e) => e.key === 'Enter' && verifyPinAndExit()}
-                  placeholder="****"
-                  autoFocus
-                  className="w-full h-14 bg-[#F5F8FA] dark:bg-[#0F172A] border border-[#D9D9D8] dark:border-[#334155] rounded-xl text-center text-3xl tracking-[1em] font-mono text-[#2A4D88] dark:text-white focus:outline-none focus:ring-4 focus:ring-[#7C94B8]/30 focus:border-[#7C94B8] transition-all shadow-inner"
-                />
-                
-                <div className="flex gap-3">
-                  <button 
-                    onClick={() => setIsExitModalOpen(false)}
-                    className="flex-1 h-12 rounded-xl text-[#7C94B8] dark:text-[#B1BBC8] font-bold transition-all hover:bg-[#F5F8FA] dark:hover:bg-[#334155]/50 border border-transparent hover:border-[#D9D9D8] dark:hover:border-[#334155]"
-                  >
-                    {t('cancel')}
-                  </button>
-                  <button 
-                    onClick={verifyPinAndExit}
-                    disabled={pinInput.length < 4 || isVerifying}
-                    className="flex-1 h-12 rounded-xl bg-gradient-to-br from-[#2A4D88] to-[#1e3b6e] text-white font-bold transition-all hover:opacity-90 hover:shadow-md hover:shadow-[#2A4D88]/20 disabled:opacity-50 flex items-center justify-center gap-2 border border-[#2A4D88]"
-                  >
-                    {isVerifying ? (
-                      <div className="animate-spin">
-                        <ArrowRightLeft size={20} />
-                      </div>
-                    ) : (
-                      t('confirm')
-                    )}
-                  </button>
-                </div>
+            <div className="space-y-4">
+              <input
+                type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={4}
+                value={pinInput}
+                onChange={(e) => setPinInput(e.target.value.replace(/[^0-9]/g, ''))}
+                onKeyDown={(e) => e.key === 'Enter' && verifyPinAndExit()}
+                placeholder="****"
+                autoFocus
+                className="w-full h-12 border text-center text-2xl tracking-[0.8em] font-mono outline-none"
+                style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }}
+              />
+
+              <div className="flex gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsExitModalOpen(false)}
+                  className="flex-1 h-11 border text-xs font-bold cursor-pointer"
+                  style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.text }}
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="button"
+                  onClick={verifyPinAndExit}
+                  disabled={pinInput.length < 4 || isVerifying}
+                  className="flex-1 h-11 text-white text-xs font-bold disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                  style={{ backgroundColor: theme.accent }}
+                >
+                  {isVerifying ? (
+                    <ArrowRightLeft size={18} className="animate-spin" />
+                  ) : (
+                    t('confirm')
+                  )}
+                </button>
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-      <BarcodeScanner 
+      <BarcodeScanner
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
         onScan={(code) => {

@@ -4,11 +4,13 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../AppContext';
 import { useSupplierSession } from '../hooks/useSupplierSession';
+import { useFolioTheme } from './folio/FolioPageChrome';
 
 export function SupplierSelector() {
-  const { user, setActiveSupplier } = useAppContext();
+  const { user, settings, setActiveSupplier } = useAppContext();
   const { t } = useTranslation();
-  
+  const { theme } = useFolioTheme(Boolean(settings?.darkMode), settings?.folioThemeId);
+
   const {
     supplierSearchQuery,
     setSupplierSearchQuery,
@@ -17,7 +19,6 @@ export function SupplierSelector() {
     filteredSuppliers
   } = useSupplierSession(user);
 
-  // Expose event listener
   React.useEffect(() => {
     const handleOpen = () => setIsSupplierSelectorOpen(true);
     window.addEventListener('open-supplier-selector', handleOpen);
@@ -27,77 +28,125 @@ export function SupplierSelector() {
   return (
     <AnimatePresence>
       {isSupplierSelectorOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }} 
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4" dir="rtl">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             onClick={() => {
               setIsSupplierSelectorOpen(false);
               window.dispatchEvent(new CustomEvent('supplier-selector-closed'));
-            }} 
-            className="absolute inset-0 bg-zinc-950/40 backdrop-blur-sm" 
+            }}
+            className="absolute inset-0 bg-black/60 backdrop-blur-xs"
           />
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: 10 }} 
-            animate={{ opacity: 1, scale: 1, y: 0 }} 
-            exit={{ opacity: 0, scale: 0.95, y: 10 }} 
-            className="relative w-full max-w-sm rounded-lg bg-white p-8 dark:bg-zinc-900 shadow-2xl border border-zinc-100 dark:border-zinc-800"
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 10 }}
+            className="relative w-full max-w-sm border shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }}
           >
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-xl font-black text-zinc-900 dark:text-white">{t('select_supplier')}</h2>
-              <button 
+            {/* Header */}
+            <div
+              className="px-4 py-3.5 sm:px-5 border-b flex items-center justify-between gap-3 shrink-0"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+            >
+              <div className="space-y-0.5">
+                <div className="text-[10px] font-bold font-mono tabular-nums" style={{ color: theme.accent }}>
+                  01 · بدء حصة توريد
+                </div>
+                <h2 className="text-base sm:text-lg font-black" style={{ color: theme.text }}>
+                  {t('select_supplier')}
+                </h2>
+              </div>
+              <button
+                type="button"
                 onClick={() => {
                   setIsSupplierSelectorOpen(false);
                   window.dispatchEvent(new CustomEvent('supplier-selector-closed'));
                 }}
-                className="h-10 w-10 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 dark:bg-zinc-800"
+                aria-label="إغلاق"
+                className="p-1.5 border cursor-pointer"
+                style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.text }}
               >
-                <X size={20} />
+                <X size={16} />
               </button>
             </div>
 
-            <div className="mb-4 relative">
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center justify-center pointer-events-none">
-                <Search size={16} className="text-zinc-400" />
+            <div className="p-4 sm:p-5 space-y-3 min-h-0 overflow-y-auto">
+              {/* Search */}
+              <div
+                className="flex items-center gap-2 px-3 py-2 border"
+                style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+              >
+                <Search size={15} style={{ color: theme.textMuted }} />
+                <input
+                  type="text"
+                  placeholder={t('search')}
+                  value={supplierSearchQuery}
+                  onChange={(e) => setSupplierSearchQuery(e.target.value)}
+                  className="w-full bg-transparent text-xs sm:text-sm outline-none"
+                  style={{ color: theme.text }}
+                />
               </div>
-              <input
-                type="text"
-                placeholder={t('search')}
-                value={supplierSearchQuery}
-                onChange={(e) => setSupplierSearchQuery(e.target.value)}
-                className="w-full bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/50 rounded-lg py-3 pr-10 pl-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              />
-            </div>
 
-            <div className="max-h-[400px] overflow-y-auto pr-2 space-y-2 no-scrollbar">
-              {filteredSuppliers.length === 0 ? (
-                <div className="py-8 text-center text-zinc-400 font-bold">{t('no_suppliers_found')}</div>
-              ) : (
-                filteredSuppliers.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => {
-                      setActiveSupplier({ id: s.id!, name: s.name, visitDays: s.visitDays });
-                      setIsSupplierSelectorOpen(false);
-                    }}
-                    className="w-full flex items-center gap-4 p-4 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 hover:bg-brand-50 dark:hover:bg-brand-900/10 hover:text-brand-600 transition-all text-right border border-transparent hover:border-brand-100 group"
+              {/* List */}
+              <div className="max-h-[380px] overflow-y-auto space-y-2">
+                {filteredSuppliers.length === 0 ? (
+                  <div
+                    className="py-10 border text-center text-xs font-bold"
+                    style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.textMuted }}
                   >
-                    <div className="h-12 w-12 rounded-lg bg-white dark:bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-brand-600 group-hover:scale-110 transition-all">
-                      <Truck size={20} />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="font-bold text-zinc-900 dark:text-white group-hover:text-brand-600">{s.name}</p>
-                        {s.visitDays?.includes(new Date().getDay()) && (
-                          <span className="text-[10px] font-black text-brand-600 bg-brand-50 dark:bg-brand-900/40 px-1.5 py-0.5 rounded-lg">{t('visits_today')}</span>
-                        )}
-                      </div>
-                      <p className="text-xs text-zinc-400 font-mono">{s.typeOfGoods}</p>
-                    </div>
-                  </button>
-                ))
-              )}
+                    {t('no_suppliers_found')}
+                  </div>
+                ) : (
+                  filteredSuppliers.map((s) => {
+                    const isVisitToday = s.visitDays?.includes(new Date().getDay());
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveSupplier({ id: s.id!, name: s.name, visitDays: s.visitDays });
+                          setIsSupplierSelectorOpen(false);
+                        }}
+                        className="w-full flex items-center gap-3 p-3.5 border transition-colors text-right cursor-pointer"
+                        style={{
+                          backgroundColor: theme.surface,
+                          borderColor: isVisitToday ? theme.accent : theme.border,
+                          borderRight: isVisitToday ? `3px solid ${theme.accent}` : undefined,
+                          color: theme.text,
+                        }}
+                      >
+                        <div
+                          className="h-10 w-10 border flex items-center justify-center shrink-0"
+                          style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.accent }}
+                        >
+                          <Truck size={18} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-black text-sm truncate" style={{ color: theme.text }}>{s.name}</p>
+                            {isVisitToday && (
+                              <span
+                                className="text-[10px] font-black px-1.5 py-0.5 border shrink-0"
+                                style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.accent, color: theme.accent }}
+                              >
+                                {t('visits_today')}
+                              </span>
+                            )}
+                          </div>
+                          {s.typeOfGoods && (
+                            <p className="text-[11px] font-mono truncate mt-0.5" style={{ color: theme.textMuted }}>
+                              {s.typeOfGoods}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
             </div>
           </motion.div>
         </div>

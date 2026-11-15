@@ -8,6 +8,7 @@ import {
 import { Supplier, SupplierTransaction } from '../../types';
 import { formatCurrency, formatAppDate, roundMoney, safeParseDate } from '../../lib/utils';
 import * as xlsx from 'xlsx';
+import { useFolioTheme } from '../folio/FolioPageChrome';
 
 interface SupplierActiveCycleDetailsModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ export function SupplierActiveCycleDetailsModal({
   settings,
 }: SupplierActiveCycleDetailsModalProps) {
   const { t } = useTranslation();
+  const { theme } = useFolioTheme(Boolean(settings?.darkMode), settings?.folioThemeId);
   const [activeTab, setActiveTab] = useState<'suppliers' | 'transactions'>('suppliers');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -201,38 +203,50 @@ export function SupplierActiveCycleDetailsModal({
           animate={{ opacity: 1 }} 
           exit={{ opacity: 0 }} 
           onClick={onClose} 
-          className="absolute inset-0 bg-zinc-950/70 backdrop-blur-sm" 
+          className="absolute inset-0 bg-black/60 backdrop-blur-xs" 
         />
         
         <motion.div 
-          initial={{ opacity: 0, scale: 0.96, y: 15 }} 
+          initial={{ opacity: 0, scale: 0.96, y: 12 }} 
           animate={{ opacity: 1, scale: 1, y: 0 }} 
-          exit={{ opacity: 0, scale: 0.96, y: 15 }} 
-          className="relative w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-lg shadow-2xl border border-zinc-200/80 dark:border-zinc-800 flex flex-col max-h-[90vh] overflow-hidden z-10"
+          exit={{ opacity: 0, scale: 0.96, y: 12 }} 
+          className="relative w-full max-w-2xl max-h-[90vh] border shadow-2xl flex flex-col overflow-hidden z-10"
+          style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }}
           dir="rtl"
         >
           {/* Header */}
-          <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-3 bg-zinc-50/50 dark:bg-zinc-900/50">
-            <div className="flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center">
-                <ArrowLeftRight size={18} />
-              </div>
-              <div>
-                <h2 className="text-base font-black text-zinc-900 dark:text-white leading-tight">
+          <div
+            className="p-4 sm:p-5 border-b flex items-center justify-between gap-3 shrink-0"
+            style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span
+                className="text-[11px] font-mono font-bold tabular-nums px-2 py-0.5 border shrink-0"
+                style={{
+                  color: theme.accent,
+                  borderColor: `${theme.accent}45`,
+                  backgroundColor: `${theme.accent}12`
+                }}
+              >
+                01
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-base font-black leading-tight truncate" style={{ color: theme.text }}>
                   تفاصيل المعاملات مع الموردين
                 </h2>
-                <p className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 mt-0.5">
+                <p className="text-[11px] font-bold mt-0.5 truncate" style={{ color: theme.textMuted }}>
                   الدورة الحالية النشطة
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               {activeTransactions.length > 0 && (
                 <button
                   type="button"
                   onClick={handleExportExcel}
-                  className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all"
+                  className="px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 transition-opacity hover:opacity-90 cursor-pointer"
+                  style={{ backgroundColor: theme.positive, color: '#FFFFFF' }}
                   title="تصدير إلى Excel"
                 >
                   <FileSpreadsheet size={14} />
@@ -241,7 +255,12 @@ export function SupplierActiveCycleDetailsModal({
               )}
               <button 
                 onClick={onClose}
-                className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                className="p-1.5 border transition-colors cursor-pointer"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                  color: theme.text
+                }}
               >
                 <X size={18} />
               </button>
@@ -249,32 +268,34 @@ export function SupplierActiveCycleDetailsModal({
           </div>
 
           {/* Quick Metrics Bar */}
-          <div className="p-4 bg-zinc-50 dark:bg-zinc-850/40 border-b border-zinc-100 dark:border-zinc-800">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              <div className="p-3 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800 shadow-sm">
-                <span className="text-[10px] font-bold text-zinc-400 block mb-1">إجمالي المبالغ</span>
-                <span className="text-base sm:text-lg font-black text-brand-600 dark:text-brand-400 tracking-tight block">
+          <div className="border-b shrink-0" style={{ backgroundColor: theme.surface, borderColor: theme.border }}>
+            <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-x-reverse divide-y sm:divide-y-0" style={{ borderColor: theme.border }}>
+              <div className="p-3" style={{ borderColor: theme.border }}>
+                <span className="text-[10px] font-bold block mb-0.5" style={{ color: theme.textMuted }}>إجمالي المبالغ</span>
+                <span className="text-sm sm:text-base font-mono font-black tabular-nums block" style={{ color: theme.accent }}>
                   {formatMoney(grandTotal)}
                 </span>
               </div>
 
-              <div className="p-3 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800 shadow-sm">
-                <span className="text-[10px] font-bold text-zinc-400 block mb-1">عدد العمليات</span>
-                <span className="text-base sm:text-lg font-black text-zinc-900 dark:text-white block">
-                  {activeTransactions.length} <span className="text-xs font-normal text-zinc-400">عملية</span>
+              <div className="p-3" style={{ borderColor: theme.border }}>
+                <span className="text-[10px] font-bold block mb-0.5" style={{ color: theme.textMuted }}>عدد العمليات</span>
+                <span className="text-sm sm:text-base font-mono font-black tabular-nums block" style={{ color: theme.text }}>
+                  {activeTransactions.length}{' '}
+                  <span className="text-xs font-sans font-normal" style={{ color: theme.textMuted }}>عملية</span>
                 </span>
               </div>
 
-              <div className="p-3 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800 shadow-sm">
-                <span className="text-[10px] font-bold text-zinc-400 block mb-1">الموردين النشطين</span>
-                <span className="text-base sm:text-lg font-black text-zinc-900 dark:text-white block">
-                  {activeSuppliersCount} <span className="text-xs font-normal text-zinc-400">/ {suppliers.length}</span>
+              <div className="p-3" style={{ borderColor: theme.border }}>
+                <span className="text-[10px] font-bold block mb-0.5" style={{ color: theme.textMuted }}>الموردين النشطين</span>
+                <span className="text-sm sm:text-base font-mono font-black tabular-nums block" style={{ color: theme.text }}>
+                  {activeSuppliersCount}{' '}
+                  <span className="text-xs font-normal" style={{ color: theme.textMuted }}>/ {suppliers.length}</span>
                 </span>
               </div>
 
-              <div className="p-3 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800 shadow-sm">
-                <span className="text-[10px] font-bold text-zinc-400 block mb-1">متوسط العملية</span>
-                <span className="text-base sm:text-lg font-black text-zinc-900 dark:text-white block">
+              <div className="p-3" style={{ borderColor: theme.border }}>
+                <span className="text-[10px] font-bold block mb-0.5" style={{ color: theme.textMuted }}>متوسط العملية</span>
+                <span className="text-sm sm:text-base font-mono font-black tabular-nums block" style={{ color: theme.text }}>
                   {formatMoney(avgTransaction)}
                 </span>
               </div>
@@ -282,16 +303,23 @@ export function SupplierActiveCycleDetailsModal({
           </div>
 
           {/* Tab Controls & Search */}
-          <div className="p-3 border-b border-zinc-100 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-            <div className="flex rounded-lg bg-zinc-100 dark:bg-zinc-800 p-0.5 self-start">
+          <div
+            className="p-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shrink-0"
+            style={{ backgroundColor: theme.bg, borderColor: theme.border }}
+          >
+            <div
+              className="flex border p-0.5 self-start gap-0.5"
+              style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }}
+            >
               <button
                 type="button"
                 onClick={() => setActiveTab('suppliers')}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  activeTab === 'suppliers' 
-                    ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm' 
-                    : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                }`}
+                className="px-3 py-1.5 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+                style={
+                  activeTab === 'suppliers'
+                    ? { backgroundColor: theme.accent, color: theme.accentText }
+                    : { backgroundColor: 'transparent', color: theme.textMuted }
+                }
               >
                 <Truck size={14} />
                 <span>حسب الموردين ({supplierBreakdown.length})</span>
@@ -299,11 +327,12 @@ export function SupplierActiveCycleDetailsModal({
               <button
                 type="button"
                 onClick={() => setActiveTab('transactions')}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  activeTab === 'transactions' 
-                    ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-sm' 
-                    : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                }`}
+                className="px-3 py-1.5 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+                style={
+                  activeTab === 'transactions'
+                    ? { backgroundColor: theme.accent, color: theme.accentText }
+                    : { backgroundColor: 'transparent', color: theme.textMuted }
+                }
               >
                 <Layers size={14} />
                 <span>سجل العمليات ({activeTransactions.length})</span>
@@ -316,13 +345,19 @@ export function SupplierActiveCycleDetailsModal({
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="بحث في التفاصيل..."
-                className="w-full sm:w-48 px-3 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="w-full sm:w-52 px-3 py-1.5 text-xs border outline-none"
+                style={{
+                  backgroundColor: theme.surface,
+                  borderColor: theme.border,
+                  color: theme.text
+                }}
               />
               {searchTerm && (
                 <button
                   type="button"
                   onClick={() => setSearchTerm('')}
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 cursor-pointer"
+                  style={{ color: theme.textMuted }}
                 >
                   <X size={12} />
                 </button>
@@ -331,12 +366,12 @@ export function SupplierActiveCycleDetailsModal({
           </div>
 
           {/* Modal Body / Tab Contents */}
-          <div className="p-4 overflow-y-auto flex-1 space-y-3">
+          <div className="p-4 min-h-0 overflow-y-auto space-y-3">
             {activeTransactions.length === 0 ? (
-              <div className="text-center py-12 text-zinc-400">
-                <ArrowLeftRight size={36} className="mx-auto mb-2 opacity-30" />
-                <p className="text-xs font-bold">لا توجد معاملات مسجلة في الدورة الحالية</p>
-                <p className="text-[11px] text-zinc-500 mt-1">عند تسجيل أي عملية دفع أو شراء ستظهر تفاصيلها هنا تلقائياً.</p>
+              <div className="text-center py-12" style={{ color: theme.textMuted }}>
+                <ArrowLeftRight size={34} className="mx-auto mb-2 opacity-40" />
+                <p className="text-xs font-bold" style={{ color: theme.text }}>لا توجد معاملات مسجلة في الدورة الحالية</p>
+                <p className="text-[11px] mt-1">عند تسجيل أي عملية دفع أو شراء ستظهر تفاصيلها هنا تلقائياً.</p>
               </div>
             ) : activeTab === 'suppliers' ? (
               /* Breakdown by Supplier */
@@ -346,32 +381,33 @@ export function SupplierActiveCycleDetailsModal({
                   return (
                     <div 
                       key={item.supplierId} 
-                      className="p-3 rounded-lg border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-brand-300 dark:hover:border-brand-700 transition-all shadow-sm"
+                      className="p-3 border transition-colors"
+                      style={{ backgroundColor: theme.surface, borderColor: theme.border }}
                     >
-                      <div className="flex items-center justify-between gap-3 mb-1.5">
+                      <div className="flex items-center justify-between gap-3 mb-2">
                         <div className="min-w-0">
-                          <span className="font-black text-sm text-zinc-900 dark:text-white block truncate">
+                          <span className="font-black text-sm block truncate" style={{ color: theme.text }}>
                             {item.supplierName}
                           </span>
-                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                          <span className="text-[10px]" style={{ color: theme.textMuted }}>
                             {item.typeOfGoods || 'بضاعة عامة'} • {item.count} عمليات مسجلة
                           </span>
                         </div>
                         <div className="text-left shrink-0">
-                          <span className="font-black text-sm text-brand-600 dark:text-brand-400 block" dir="ltr">
+                          <span className="font-mono font-black text-sm tabular-nums block" style={{ color: theme.accent }} dir="ltr">
                             {formatMoney(item.amount)}
                           </span>
-                          <span className="text-[10px] font-bold text-zinc-400">
+                          <span className="text-[10px] font-mono font-bold tabular-nums" style={{ color: theme.textMuted }}>
                             {percent}% من الإجمالي
                           </span>
                         </div>
                       </div>
 
                       {/* Percentage progress bar */}
-                      <div className="w-full h-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+                      <div className="w-full h-1.5 overflow-hidden" style={{ backgroundColor: theme.surfaceMuted }}>
                         <div 
-                          className="h-full bg-brand-500 rounded-full transition-all duration-300" 
-                          style={{ width: `${Math.min(percent, 100)}%` }} 
+                          className="h-full transition-all duration-300" 
+                          style={{ width: `${Math.min(percent, 100)}%`, backgroundColor: theme.accent }} 
                         />
                       </div>
                     </div>
@@ -384,24 +420,35 @@ export function SupplierActiveCycleDetailsModal({
                 {groupedTransactions.map((group) => (
                   <div 
                     key={group.dateKey} 
-                    className="border border-zinc-200/80 dark:border-zinc-800 rounded-lg overflow-hidden bg-white dark:bg-zinc-900 shadow-sm"
+                    className="border overflow-hidden"
+                    style={{ backgroundColor: theme.surface, borderColor: theme.border }}
                   >
                     {/* Date Header */}
-                    <div className="px-3.5 py-2 bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1.5 font-black text-zinc-800 dark:text-zinc-200">
-                        <Calendar size={13} className="text-brand-500" />
+                    <div
+                      className="px-3.5 py-2 border-b flex items-center justify-between text-xs"
+                      style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }}
+                    >
+                      <div className="flex items-center gap-1.5 font-black" style={{ color: theme.text }}>
+                        <Calendar size={13} style={{ color: theme.accent }} />
                         <span>{group.dateLabel}</span>
-                        <span className="text-[10px] font-bold text-zinc-400 bg-zinc-200/60 dark:bg-zinc-700/60 px-1.5 py-0.2 rounded mr-1">
+                        <span
+                          className="text-[10px] font-mono font-bold tabular-nums px-1.5 py-0.5 border mr-1"
+                          style={{
+                            backgroundColor: theme.bg,
+                            borderColor: theme.border,
+                            color: theme.textMuted
+                          }}
+                        >
                           {group.txs.length}
                         </span>
                       </div>
-                      <div className="font-black text-brand-600 dark:text-brand-400" dir="ltr">
+                      <div className="font-mono font-black tabular-nums" style={{ color: theme.accent }} dir="ltr">
                         {formatMoney(group.dayTotal)}
                       </div>
                     </div>
 
                     {/* Transactions for this day */}
-                    <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                    <div className="divide-y" style={{ borderColor: theme.border }}>
                       {group.txs.map((tx, idx) => {
                         const s = tx.supplierId ? supplierMap.get(tx.supplierId) : null;
                         const parsedDate = safeParseDate(tx.date || tx.updatedAt);
@@ -410,14 +457,18 @@ export function SupplierActiveCycleDetailsModal({
                           : '';
 
                         return (
-                          <div key={tx.id || idx} className="p-3 flex items-center justify-between gap-3 hover:bg-zinc-50/60 dark:hover:bg-zinc-800/40 transition-colors">
+                          <div
+                            key={tx.id || idx}
+                            className="p-3 flex items-center justify-between gap-3 transition-colors"
+                            style={{ borderColor: theme.border }}
+                          >
                             <div className="min-w-0">
-                              <span className="font-bold text-xs text-zinc-900 dark:text-white block truncate">
+                              <span className="font-bold text-xs block truncate" style={{ color: theme.text }}>
                                 {s?.name || 'مورد غير محدد'}
                               </span>
-                              <div className="flex items-center gap-2 text-[10px] text-zinc-400 mt-0.5">
+                              <div className="flex items-center gap-2 text-[10px] mt-0.5" style={{ color: theme.textMuted }}>
                                 {timeStr && (
-                                  <span className="flex items-center gap-1 font-mono text-zinc-500 dark:text-zinc-400">
+                                  <span className="flex items-center gap-1 font-mono tabular-nums">
                                     <Clock size={10} />
                                     {timeStr}
                                   </span>
@@ -425,7 +476,14 @@ export function SupplierActiveCycleDetailsModal({
                                 {tx.note && (
                                   <>
                                     <span>•</span>
-                                    <span className="truncate max-w-[180px] text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
+                                    <span
+                                      className="truncate max-w-[180px] border px-1.5 py-0.5"
+                                      style={{
+                                        backgroundColor: theme.surfaceMuted,
+                                        borderColor: theme.border,
+                                        color: theme.textMuted
+                                      }}
+                                    >
                                       {tx.note}
                                     </span>
                                   </>
@@ -433,7 +491,7 @@ export function SupplierActiveCycleDetailsModal({
                               </div>
                             </div>
 
-                            <div className="text-left shrink-0 font-black text-xs text-zinc-900 dark:text-white" dir="ltr">
+                            <div className="text-left shrink-0 font-mono font-black tabular-nums text-xs" style={{ color: theme.text }} dir="ltr">
                               {formatMoney(tx.amount || 0)}
                             </div>
                           </div>
@@ -447,15 +505,23 @@ export function SupplierActiveCycleDetailsModal({
           </div>
 
           {/* Footer */}
-          <div className="p-3 sm:p-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-3 bg-zinc-50/50 dark:bg-zinc-900/50">
-            <span className="text-[11px] font-bold text-zinc-400">
+          <div
+            className="p-3 sm:p-4 border-t flex items-center justify-between gap-3 shrink-0"
+            style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+          >
+            <span className="text-[11px] font-mono font-bold tabular-nums" style={{ color: theme.textMuted }}>
               إجمالي {activeTransactions.length} عملية عبر {activeSuppliersCount} موردين
             </span>
 
             <button 
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-bold transition-colors active:scale-95"
+              className="px-4 py-2 border text-xs font-bold transition-colors cursor-pointer"
+              style={{
+                backgroundColor: theme.surfaceMuted,
+                borderColor: theme.border,
+                color: theme.text
+              }}
             >
               {t('close') || 'إغلاق'}
             </button>

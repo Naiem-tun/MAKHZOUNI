@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import * as xlsx from 'xlsx';
 import { formatCurrency, cn } from '../../lib/utils';
 import { useAppContext } from '../../AppContext';
+import { useFolioTheme } from '../folio/FolioPageChrome';
 
 interface InventoryCompareModalProps {
   show: boolean;
@@ -18,6 +19,7 @@ type CompareMode = 'quantity' | 'sold' | 'profit' | 'capital';
 export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ show, onClose, products = [] }) => {
   const { t } = useTranslation();
   const { settings, showToast } = useAppContext();
+  const { theme } = useFolioTheme(Boolean(settings?.darkMode), settings?.folioThemeId);
 
   const calculateCapital = (item: any, qty: number) => {
     let cost = 0;
@@ -320,41 +322,74 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
   return (
     <AnimatePresence>
       {show && (
-        <div className="fixed inset-0 z-[100] flex flex-col bg-zinc-50 dark:bg-zinc-950 overflow-hidden">
+        <div
+          className="fixed inset-0 z-[100] flex flex-col overflow-hidden"
+          style={{ backgroundColor: theme.bg, color: theme.text }}
+          dir="rtl"
+        >
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
+            exit={{ opacity: 0, y: 16 }}
             className="flex flex-col w-full h-full"
           >
-            <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-white dark:bg-zinc-900 shadow-sm z-10 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center text-brand-600">
-                  <FileSpreadsheet size={20} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg text-zinc-900 dark:text-white">مقارنة الجرد الذكية</h3>
-                  <p className="text-xs text-zinc-500">مقارنة المبيعات، الأرباح، والكميات بين جردين</p>
+            {/* Header */}
+            <div
+              className="px-4 py-3 sm:px-6 sm:py-4 border-b flex justify-between items-center z-10 shrink-0"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span
+                  className="text-[11px] font-mono font-bold tabular-nums px-2 py-0.5 border shrink-0"
+                  style={{
+                    color: theme.accent,
+                    borderColor: `${theme.accent}45`,
+                    backgroundColor: `${theme.accent}12`
+                  }}
+                >
+                  01
+                </span>
+                <div className="min-w-0">
+                  <h3 className="font-black text-base sm:text-lg truncate" style={{ color: theme.text }}>
+                    مقارنة الجرد الذكية
+                  </h3>
+                  <p className="text-[11px] truncate" style={{ color: theme.textMuted }}>
+                    مقارنة المبيعات، الأرباح، والكميات بين جردين
+                  </p>
                 </div>
               </div>
               <button 
                 onClick={onClose}
-                className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                className="p-1.5 border transition-colors cursor-pointer shrink-0"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                  color: theme.text
+                }}
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto flex-1">
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1">
               {!comparisonResult ? (
-                <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                <div className="flex flex-col items-center justify-center py-10 px-4 text-center max-w-lg mx-auto">
                   {!file1Items ? (
                     <>
-                      <div className="w-20 h-20 bg-brand-50 border border-brand-100 dark:bg-brand-900/20 dark:border-brand-800 rounded-full flex items-center justify-center text-brand-600 dark:text-brand-400 mb-6 shadow-sm">
-                        <Upload size={32} />
+                      <div
+                        className="w-16 h-16 border flex items-center justify-center mb-5"
+                        style={{
+                          backgroundColor: `${theme.accent}12`,
+                          borderColor: `${theme.accent}45`,
+                          color: theme.accent
+                        }}
+                      >
+                        <Upload size={28} />
                       </div>
-                      <h4 className="text-xl font-bold mb-2">استيراد الجرد 1 (القديم)</h4>
-                      <p className="text-sm text-zinc-500 mb-8 max-w-sm">
+                      <h4 className="text-lg font-black mb-2" style={{ color: theme.text }}>
+                        استيراد الجرد 1 (القديم)
+                      </h4>
+                      <p className="text-xs sm:text-sm mb-6 max-w-sm" style={{ color: theme.textMuted }}>
                         قم برفع ملف Excel الخاص بالجرد الأول ليكون نقطة البداية للمقارنة.
                       </p>
                       
@@ -370,12 +405,13 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
                         />
                         <button 
                           disabled={comparing}
-                          className="px-8 py-3.5 bg-brand-600 text-white rounded-lg font-bold flex items-center gap-2 hover:bg-brand-700 transition-colors shadow-lg shadow-brand-500/20 disabled:opacity-70 disabled:cursor-not-allowed"
+                          className="px-7 py-3 font-bold text-xs sm:text-sm flex items-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                          style={{ backgroundColor: theme.accent, color: theme.accentText }}
                         >
                           {comparing ? (
                             <div className="w-5 h-5 border-2 border-white/30 border-t-white animate-spin rounded-full" />
                           ) : (
-                            <FileSpreadsheet size={20} />
+                            <FileSpreadsheet size={18} />
                           )}
                           <span>اختيار ملف Excel الأول</span>
                         </button>
@@ -383,27 +419,43 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
                     </>
                   ) : (
                     <>
-                      <div className="flex items-center justify-center gap-4 mb-8 w-full max-w-md mx-auto">
-                         <div className="flex-1 bg-brand-50 dark:bg-brand-900/20 border border-brand-200 dark:border-brand-800 rounded-lg p-3 flex flex-col items-center justify-center relative overflow-hidden">
-                           <div className="absolute top-0 right-0 w-8 h-8 bg-brand-100 dark:bg-brand-800/50 rounded-bl-lg flex items-center justify-center text-brand-600 dark:text-brand-400">
-                             <CheckCircle2 size={16} />
-                           </div>
-                           <FileSpreadsheet size={24} className="text-brand-600 dark:text-brand-400 mb-2 opacity-50" />
-                           <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200 truncate w-full text-center px-4" title={file1Name}>{file1Name}</span>
-                           <span className="text-[10px] text-zinc-500 mt-1">الجرد 1 (تم الرفع)</span>
-                         </div>
-                         <div className="text-zinc-300 dark:text-zinc-700">
-                           <Minus size={24} />
-                         </div>
-                         <div className="flex-1 bg-zinc-50 dark:bg-zinc-800/50 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg p-3 flex flex-col items-center justify-center">
-                           <Upload size={24} className="text-zinc-400 mb-2" />
-                           <span className="text-sm font-bold text-zinc-500">جاري الانتظار...</span>
-                           <span className="text-[10px] text-zinc-400 mt-1">الجرد 2</span>
-                         </div>
+                      <div className="flex items-center justify-center gap-3 mb-7 w-full">
+                        <div
+                          className="flex-1 border p-3 flex flex-col items-center justify-center relative overflow-hidden"
+                          style={{
+                            backgroundColor: `${theme.positive}10`,
+                            borderColor: `${theme.positive}45`
+                          }}
+                        >
+                          <div
+                            className="absolute top-0 right-0 w-7 h-7 flex items-center justify-center"
+                            style={{ backgroundColor: `${theme.positive}20`, color: theme.positive }}
+                          >
+                            <CheckCircle2 size={15} />
+                          </div>
+                          <FileSpreadsheet size={22} className="mb-1.5 opacity-70" style={{ color: theme.positive }} />
+                          <span className="text-xs sm:text-sm font-bold truncate w-full text-center px-3" title={file1Name} style={{ color: theme.text }}>
+                            {file1Name}
+                          </span>
+                          <span className="text-[10px] mt-1" style={{ color: theme.textMuted }}>الجرد 1 (تم الرفع)</span>
+                        </div>
+                        <div style={{ color: theme.textMuted }}>
+                          <Minus size={20} />
+                        </div>
+                        <div
+                          className="flex-1 border border-dashed p-3 flex flex-col items-center justify-center"
+                          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                        >
+                          <Upload size={22} className="mb-1.5" style={{ color: theme.textMuted }} />
+                          <span className="text-xs sm:text-sm font-bold" style={{ color: theme.textMuted }}>جاري الانتظار...</span>
+                          <span className="text-[10px] mt-1" style={{ color: theme.textMuted }}>الجرد 2</span>
+                        </div>
                       </div>
 
-                      <h4 className="text-xl font-bold mb-2">استيراد الجرد 2 (الحديث)</h4>
-                      <p className="text-sm text-zinc-500 mb-8 max-w-sm">
+                      <h4 className="text-lg font-black mb-2" style={{ color: theme.text }}>
+                        استيراد الجرد 2 (الحديث)
+                      </h4>
+                      <p className="text-xs sm:text-sm mb-6 max-w-sm" style={{ color: theme.textMuted }}>
                         قم برفع ملف Excel الخاص بالجرد الثاني لمقارنته مع الجرد الأول الذي قمت برفعه.
                       </p>
                       
@@ -419,12 +471,13 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
                         />
                         <button 
                           disabled={comparing}
-                          className="px-8 py-3.5 bg-brand-600 text-white rounded-lg font-bold flex items-center gap-2 hover:bg-brand-700 transition-colors shadow-lg shadow-brand-500/20 disabled:opacity-70 disabled:cursor-not-allowed"
+                          className="px-7 py-3 font-bold text-xs sm:text-sm flex items-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                          style={{ backgroundColor: theme.accent, color: theme.accentText }}
                         >
                           {comparing ? (
                             <div className="w-5 h-5 border-2 border-white/30 border-t-white animate-spin rounded-full" />
                           ) : (
-                            <FileSpreadsheet size={20} />
+                            <FileSpreadsheet size={18} />
                           )}
                           <span>اختيار ملف Excel الثاني</span>
                         </button>
@@ -432,7 +485,8 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
                       
                       <button 
                         onClick={resetState}
-                        className="mt-6 text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
+                        className="mt-5 text-xs font-bold underline cursor-pointer"
+                        style={{ color: theme.textMuted }}
                       >
                         إلغاء والبدء من جديد
                       </button>
@@ -440,85 +494,157 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
                   )}
                 </div>
               ) : (
-                <div className="flex flex-col h-full gap-4 pb-20">
+                <div className="flex flex-col h-full gap-4 pb-10">
                   
-                  {/* Overall Summary Card */}
+                  {/* Overall Summary Strip */}
                   {overallSummary && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2">
+                    <div
+                      className="grid grid-cols-1 sm:grid-cols-2 border divide-y sm:divide-y-0 sm:divide-x sm:divide-x-reverse"
+                      style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                    >
                       {/* Profit Summary */}
-                      <div className="bg-brand-50 dark:bg-brand-900/20 border border-brand-100 dark:border-brand-800 rounded-xl p-4 flex items-center justify-between">
+                      <div className="p-4 flex items-center justify-between" style={{ borderColor: theme.border }}>
                         <div>
-                          <div className="text-xs text-brand-600/80 dark:text-brand-400/80 font-bold mb-1">الفرق الإجمالي في الأرباح</div>
+                          <div className="text-[11px] font-bold mb-1" style={{ color: theme.textMuted }}>
+                            الفرق الإجمالي في الأرباح
+                          </div>
                           <div className="flex items-center gap-2">
-                            <div className={cn("font-black text-lg", overallSummary.profitDiff > 0 ? "text-emerald-600" : overallSummary.profitDiff < 0 ? "text-red-600" : "text-brand-700 dark:text-brand-300")}>
-                              {overallSummary.profitDiff > 0 ? '+' : ''}{formatCurrency(overallSummary.profitDiff, settings.currency, settings.language)}
+                            <div
+                              className="font-mono font-black text-base sm:text-lg tabular-nums"
+                              style={{
+                                color: overallSummary.profitDiff > 0
+                                  ? theme.positive
+                                  : overallSummary.profitDiff < 0
+                                  ? theme.negative
+                                  : theme.accent
+                              }}
+                              dir="ltr"
+                            >
+                              {overallSummary.profitDiff > 0 ? '+' : ''}
+                              {formatCurrency(overallSummary.profitDiff, settings.currency, settings.language)}
                             </div>
                             {overallSummary.profitDiff !== 0 && (
-                              <div className={cn("text-xs font-bold px-1.5 py-0.5 rounded-md flex items-center", overallSummary.profitDiff > 0 ? "bg-emerald-100/50 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" : "bg-red-100/50 text-red-700 dark:bg-red-500/20 dark:text-red-400")}>
+                              <span
+                                className="text-[11px] font-mono font-bold tabular-nums px-1.5 py-0.5 border"
+                                style={{
+                                  color: overallSummary.profitDiff > 0 ? theme.positive : theme.negative,
+                                  borderColor: overallSummary.profitDiff > 0 ? `${theme.positive}45` : `${theme.negative}45`,
+                                  backgroundColor: overallSummary.profitDiff > 0 ? `${theme.positive}12` : `${theme.negative}12`
+                                }}
+                                dir="ltr"
+                              >
                                 {overallSummary.profitDiff > 0 ? '+' : ''}{overallSummary.profitDiffPct.toFixed(1)}%
-                              </div>
+                              </span>
                             )}
                           </div>
                         </div>
-                        <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0", overallSummary.profitDiff > 0 ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20" : overallSummary.profitDiff < 0 ? "bg-red-100 text-red-600 dark:bg-red-500/20" : "bg-brand-100 text-brand-600 dark:bg-brand-500/20")}>
-                          {overallSummary.profitDiff > 0 ? <TrendingUp size={20} /> : overallSummary.profitDiff < 0 ? <TrendingDown size={20} /> : <Minus size={20} />}
+                        <div
+                          className="w-9 h-9 border flex items-center justify-center shrink-0"
+                          style={{
+                            borderColor: theme.border,
+                            backgroundColor: theme.surfaceMuted,
+                            color: overallSummary.profitDiff > 0
+                              ? theme.positive
+                              : overallSummary.profitDiff < 0
+                              ? theme.negative
+                              : theme.accent
+                          }}
+                        >
+                          {overallSummary.profitDiff > 0 ? <TrendingUp size={18} /> : overallSummary.profitDiff < 0 ? <TrendingDown size={18} /> : <Minus size={18} />}
                         </div>
                       </div>
 
                       {/* Capital Summary */}
-                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-4 flex items-center justify-between">
+                      <div className="p-4 flex items-center justify-between" style={{ borderColor: theme.border }}>
                         <div>
-                          <div className="text-xs text-blue-600/80 dark:text-blue-400/80 font-bold mb-1">الفرق الإجمالي في رأس المال (القيمة المتبقية)</div>
+                          <div className="text-[11px] font-bold mb-1" style={{ color: theme.textMuted }}>
+                            الفرق الإجمالي في رأس المال (القيمة المتبقية)
+                          </div>
                           <div className="flex items-center gap-2">
-                            <div className={cn("font-black text-lg", overallSummary.capitalDiff > 0 ? "text-emerald-600" : overallSummary.capitalDiff < 0 ? "text-red-600" : "text-blue-700 dark:text-blue-300")}>
-                              {overallSummary.capitalDiff > 0 ? '+' : ''}{formatCurrency(overallSummary.capitalDiff, settings.currency, settings.language)}
+                            <div
+                              className="font-mono font-black text-base sm:text-lg tabular-nums"
+                              style={{
+                                color: overallSummary.capitalDiff > 0
+                                  ? theme.positive
+                                  : overallSummary.capitalDiff < 0
+                                  ? theme.negative
+                                  : theme.accent
+                              }}
+                              dir="ltr"
+                            >
+                              {overallSummary.capitalDiff > 0 ? '+' : ''}
+                              {formatCurrency(overallSummary.capitalDiff, settings.currency, settings.language)}
                             </div>
                             {overallSummary.capitalDiff !== 0 && (
-                              <div className={cn("text-xs font-bold px-1.5 py-0.5 rounded-md flex items-center", overallSummary.capitalDiff > 0 ? "bg-emerald-100/50 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" : "bg-red-100/50 text-red-700 dark:bg-red-500/20 dark:text-red-400")}>
+                              <span
+                                className="text-[11px] font-mono font-bold tabular-nums px-1.5 py-0.5 border"
+                                style={{
+                                  color: overallSummary.capitalDiff > 0 ? theme.positive : theme.negative,
+                                  borderColor: overallSummary.capitalDiff > 0 ? `${theme.positive}45` : `${theme.negative}45`,
+                                  backgroundColor: overallSummary.capitalDiff > 0 ? `${theme.positive}12` : `${theme.negative}12`
+                                }}
+                                dir="ltr"
+                              >
                                 {overallSummary.capitalDiff > 0 ? '+' : ''}{overallSummary.capitalDiffPct.toFixed(1)}%
-                              </div>
+                              </span>
                             )}
                           </div>
                         </div>
-                        <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0", overallSummary.capitalDiff > 0 ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20" : overallSummary.capitalDiff < 0 ? "bg-red-100 text-red-600 dark:bg-red-500/20" : "bg-blue-100 text-blue-600 dark:bg-blue-500/20")}>
-                          {overallSummary.capitalDiff > 0 ? <TrendingUp size={20} /> : overallSummary.capitalDiff < 0 ? <TrendingDown size={20} /> : <Minus size={20} />}
+                        <div
+                          className="w-9 h-9 border flex items-center justify-center shrink-0"
+                          style={{
+                            borderColor: theme.border,
+                            backgroundColor: theme.surfaceMuted,
+                            color: overallSummary.capitalDiff > 0
+                              ? theme.positive
+                              : overallSummary.capitalDiff < 0
+                              ? theme.negative
+                              : theme.accent
+                          }}
+                        >
+                          {overallSummary.capitalDiff > 0 ? <TrendingUp size={18} /> : overallSummary.capitalDiff < 0 ? <TrendingDown size={18} /> : <Minus size={18} />}
                         </div>
                       </div>
                     </div>
                   )}
 
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-lg border border-zinc-100 dark:border-zinc-700">
+                  {/* Toolbar */}
+                  <div
+                    className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-3 border"
+                    style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                  >
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-                      <div className="flex items-center gap-1 sm:gap-2 bg-white dark:bg-zinc-900 p-1 rounded-lg border border-zinc-200 dark:border-zinc-700 shadow-sm overflow-x-auto w-full no-scrollbar">
-                        <button 
-                          onClick={() => setCompareMode('quantity')}
-                          className={cn("px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold rounded-md whitespace-nowrap transition-colors", compareMode === 'quantity' ? "bg-brand-50 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200")}
-                        >
-                          الكمية المتبقية
-                        </button>
-                        <button 
-                          onClick={() => setCompareMode('sold')}
-                          className={cn("px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold rounded-md whitespace-nowrap transition-colors", compareMode === 'sold' ? "bg-brand-50 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200")}
-                        >
-                          المباع
-                        </button>
-                        <button 
-                          onClick={() => setCompareMode('profit')}
-                          className={cn("px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold rounded-md whitespace-nowrap transition-colors", compareMode === 'profit' ? "bg-brand-50 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200")}
-                        >
-                          الربح
-                        </button>
-                        <button 
-                          onClick={() => setCompareMode('capital')}
-                          className={cn("px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold rounded-md whitespace-nowrap transition-colors", compareMode === 'capital' ? "bg-brand-50 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300" : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200")}
-                        >
-                          القيمة المتبقية
-                        </button>
+                      <div
+                        className="flex items-center gap-1 p-1 border overflow-x-auto w-full sm:w-auto no-scrollbar"
+                        style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }}
+                      >
+                        {(
+                          [
+                            { id: 'quantity', label: 'الكمية المتبقية' },
+                            { id: 'sold', label: 'المباع' },
+                            { id: 'profit', label: 'الربح' },
+                            { id: 'capital', label: 'القيمة المتبقية' }
+                          ] as const
+                        ).map(tab => (
+                          <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => setCompareMode(tab.id)}
+                            className="px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-colors cursor-pointer"
+                            style={
+                              compareMode === tab.id
+                                ? { backgroundColor: theme.accent, color: theme.accentText }
+                                : { backgroundColor: 'transparent', color: theme.textMuted }
+                            }
+                          >
+                            {tab.label}
+                          </button>
+                        ))}
                       </div>
                       
                       <div className="relative w-full sm:w-64">
-                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-zinc-400">
-                          <Search size={16} />
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none" style={{ color: theme.textMuted }}>
+                          <Search size={15} />
                         </div>
                         <input
                           title="Search query"
@@ -526,31 +652,53 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
                           placeholder="بحث باسم المنتج أو الباركود..."
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-lg py-2 pl-3 pr-10 focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all text-sm"
+                          className="w-full border py-2 pl-3 pr-9 outline-none transition-colors text-xs sm:text-sm"
+                          style={{
+                            backgroundColor: theme.bg,
+                            borderColor: theme.border,
+                            color: theme.text
+                          }}
                         />
                       </div>
                     </div>
                     
                     <button 
+                      type="button"
                       onClick={resetState}
-                      className="text-xs font-bold text-brand-600 hover:underline px-2 py-1 whitespace-nowrap self-end sm:self-auto shrink-0"
+                      className="text-xs font-bold px-3 py-1.5 border whitespace-nowrap self-end sm:self-auto shrink-0 cursor-pointer"
+                      style={{
+                        backgroundColor: theme.surfaceMuted,
+                        borderColor: theme.border,
+                        color: theme.accent
+                      }}
                     >
                       مقارنة ملفات أخرى
                     </button>
                   </div>
                   
-                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm flex-1 flex flex-col min-h-[500px]">
+                  {/* Table */}
+                  <div
+                    className="border overflow-hidden flex-1 flex flex-col min-h-[420px]"
+                    style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                  >
                     <div className="overflow-x-auto overflow-y-auto flex-1">
                       <table className="w-full text-xs sm:text-sm text-right relative">
-                        <thead className="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 sticky top-0 border-b border-zinc-200 dark:border-zinc-700 z-10 whitespace-nowrap shadow-sm">
+                        <thead
+                          className="sticky top-0 border-b z-10 whitespace-nowrap"
+                          style={{
+                            backgroundColor: theme.surfaceMuted,
+                            borderColor: theme.border,
+                            color: theme.textMuted
+                          }}
+                        >
                           <tr>
-                            <th className="py-3 px-2 sm:px-4 font-bold text-right">المنتج</th>
+                            <th className="py-3 px-3 sm:px-4 font-bold text-right">المنتج</th>
                             <th className="py-3 px-2 sm:px-4 text-center font-bold">الجرد 1</th>
                             <th className="py-3 px-2 sm:px-4 text-center font-bold">الجرد 2</th>
                             <th className="py-3 px-2 sm:px-4 text-center font-bold">الفرق</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                        <tbody className="divide-y" style={{ borderColor: theme.border }}>
                           {(() => {
                             let filteredResult = [...comparisonResult];
                             
@@ -577,7 +725,7 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
                             if (sortedResult.length === 0) {
                               return (
                                 <tr>
-                                  <td colSpan={4} className="py-8 text-center text-zinc-500">
+                                  <td colSpan={4} className="py-8 text-center" style={{ color: theme.textMuted }}>
                                     لا توجد منتجات مطابقة للبحث
                                   </td>
                                 </tr>
@@ -586,54 +734,97 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
 
                             return sortedResult.map((item: any, idx: number) => {
                               const { oldVal, newVal, diff, format, isNew, pct } = renderMetric(item);
-                            const isDeleted = item.deleted;
-                            
-                            return (
-                              <tr key={idx} className={cn("hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors", isDeleted && "opacity-60")}>
-                                <td className="py-3 px-2 sm:px-4">
-                                  <div className="font-bold text-zinc-900 dark:text-zinc-100">{item.name}</div>
-                                  <div className="text-[10px] text-zinc-400 mt-1 flex flex-wrap gap-1">
-                                    {isNew && <span className="text-brand-600 bg-brand-50 px-1.5 py-0.5 rounded font-medium">منتج جديد</span>}
-                                    {isDeleted && <span className="text-red-500 bg-red-50 px-1.5 py-0.5 rounded font-medium">غير متوفر حالياً</span>}
-                                    {compareMode === 'capital' && item.newQty > 0 && item.newSold === 0 && <span className="text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded font-medium">منتج راكد</span>}
-                                  </div>
-                                </td>
-                                <td className="py-3 px-2 sm:px-4 text-center font-medium text-zinc-500">
-                                  {isNew ? '—' : format(oldVal)}
-                                </td>
-                                <td className="py-3 px-2 sm:px-4 text-center font-bold text-zinc-900 dark:text-zinc-100">
-                                  {format(newVal)}
-                                </td>
-                                <td className="py-3 px-2 sm:px-4">
-                                  <div className="flex flex-col items-center justify-center gap-1">
-                                    <div className={cn(
-                                      "flex items-center justify-center gap-1 font-bold rounded-lg py-1 px-2 mx-auto w-fit whitespace-nowrap",
-                                      diff > 0 ? "text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-500/10" : 
-                                      diff < 0 ? "text-red-700 bg-red-50 dark:text-red-400 dark:bg-red-500/10" : 
-                                      "text-zinc-500 bg-zinc-50 dark:text-zinc-400 dark:bg-zinc-800"
-                                    )}>
-                                      {diff > 0 ? <TrendingUp size={14} /> : diff < 0 ? <TrendingDown size={14} /> : <Minus size={14} />}
-                                      <span dir="ltr">{diff > 0 ? '+' : ''}{format(diff)}</span>
+                              const isDeleted = item.deleted;
+                              const diffColor = diff > 0 ? theme.positive : diff < 0 ? theme.negative : theme.textMuted;
+                              
+                              return (
+                                <tr
+                                  key={idx}
+                                  className={cn("transition-colors", isDeleted && "opacity-60")}
+                                  style={{ borderColor: theme.border }}
+                                >
+                                  <td className="py-3 px-3 sm:px-4">
+                                    <div className="font-bold" style={{ color: theme.text }}>{item.name}</div>
+                                    <div className="text-[10px] mt-1 flex flex-wrap gap-1">
+                                      {isNew && (
+                                        <span
+                                          className="px-1.5 py-0.5 border font-bold"
+                                          style={{
+                                            color: theme.accent,
+                                            borderColor: `${theme.accent}40`,
+                                            backgroundColor: `${theme.accent}10`
+                                          }}
+                                        >
+                                          منتج جديد
+                                        </span>
+                                      )}
+                                      {isDeleted && (
+                                        <span
+                                          className="px-1.5 py-0.5 border font-bold"
+                                          style={{
+                                            color: theme.negative,
+                                            borderColor: `${theme.negative}40`,
+                                            backgroundColor: `${theme.negative}10`
+                                          }}
+                                        >
+                                          غير متوفر حالياً
+                                        </span>
+                                      )}
+                                      {compareMode === 'capital' && item.newQty > 0 && item.newSold === 0 && (
+                                        <span
+                                          className="px-1.5 py-0.5 border font-bold"
+                                          style={{
+                                            color: theme.neutral,
+                                            borderColor: `${theme.neutral}40`,
+                                            backgroundColor: `${theme.neutral}10`
+                                          }}
+                                        >
+                                          منتج راكد
+                                        </span>
+                                      )}
                                     </div>
-                                    {diff !== 0 && !isNew && !isDeleted && pct !== undefined && (
-                                      <div className={cn(
-                                        "text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center",
-                                        diff > 0 ? "text-emerald-600 bg-emerald-500/10" : "text-red-600 bg-red-500/10"
-                                      )}>
-                                        <span dir="ltr">{diff > 0 ? '+' : ''}{pct.toFixed(1)}%</span>
+                                  </td>
+                                  <td className="py-3 px-2 sm:px-4 text-center font-mono tabular-nums font-medium" style={{ color: theme.textMuted }}>
+                                    {isNew ? '—' : format(oldVal)}
+                                  </td>
+                                  <td className="py-3 px-2 sm:px-4 text-center font-mono tabular-nums font-bold" style={{ color: theme.text }}>
+                                    {format(newVal)}
+                                  </td>
+                                  <td className="py-3 px-2 sm:px-4">
+                                    <div className="flex flex-col items-center justify-center gap-1">
+                                      <div
+                                        className="flex items-center justify-center gap-1 font-mono font-bold tabular-nums border py-1 px-2 mx-auto w-fit whitespace-nowrap"
+                                        style={{
+                                          color: diffColor,
+                                          borderColor: diff === 0 ? theme.border : `${diffColor}45`,
+                                          backgroundColor: diff === 0 ? theme.surfaceMuted : `${diffColor}12`
+                                        }}
+                                      >
+                                        {diff > 0 ? <TrendingUp size={13} /> : diff < 0 ? <TrendingDown size={13} /> : <Minus size={13} />}
+                                        <span dir="ltr">{diff > 0 ? '+' : ''}{format(diff)}</span>
                                       </div>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          });
-                        })()}
+                                      {diff !== 0 && !isNew && !isDeleted && pct !== undefined && (
+                                        <span
+                                          className="text-[10px] font-mono font-bold tabular-nums"
+                                          style={{ color: diffColor }}
+                                          dir="ltr"
+                                        >
+                                          {diff > 0 ? '+' : ''}{pct.toFixed(1)}%
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            });
+                          })()}
                         </tbody>
                       </table>
                       
                       {comparisonResult.length === 0 && (
-                        <div className="p-8 text-center text-zinc-500">لم يتم العثور على منتجات للمقارنة</div>
+                        <div className="p-8 text-center" style={{ color: theme.textMuted }}>
+                          لم يتم العثور على منتجات للمقارنة
+                        </div>
                       )}
                     </div>
                   </div>
@@ -645,4 +836,4 @@ export const InventoryCompareModal: React.FC<InventoryCompareModalProps> = ({ sh
       )}
     </AnimatePresence>
   );
-}
+};

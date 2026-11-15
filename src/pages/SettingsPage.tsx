@@ -2,81 +2,63 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../AppContext';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Globe, 
-  Moon, 
-  Wallet, 
-  BookOpen, 
-  Database, 
-  LayoutList, 
-  LogOut,
+import {
+  Moon,
+  BookOpen,
+  Database,
+  LayoutList,
   ChevronLeft,
-  Download,
   Upload,
-  Clipboard,
   AlertCircle,
   CheckCircle2,
-  FileJson,
-  ArrowRight,
-  Plus,
   Trash2,
-  Package,
   Eye,
   Play,
-  Coffee,
   Truck,
-  Apple,
-  Milk,
-  Beef,
-  Cookie,
-  Fish,
-  Pizza,
-  GlassWater,
-  Cherry,
-  Candy,
-  IceCream,
-  Grape,
-  Banana,
-  Carrot,
-  Nut,
-  Cigarette,
-  Zap,
-  Heart,
-  Home,
-  ShoppingBag,
-  Printer,
-  Monitor,
-  Smartphone,
   Check,
   Percent,
   Lock,
-  Grid,
   FileDown,
   CloudUpload,
   Calculator,
   Sparkles,
   Palette,
-  Key,
   ShieldCheck,
-  KeyRound
+  KeyRound,
+  Monitor,
 } from 'lucide-react';
 import { PinSetupModal } from '../components/settings/PinSetupModal';
 import { auth, db } from '../lib/firebase';
-import { collection, getDocs, doc, setDoc, writeBatch, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
-import { handleFirestoreError } from '../lib/utils';
-import { OperationType } from '../types';
+import { collection, getDocs, writeBatch } from 'firebase/firestore';
 import { uploadCloudImage } from '../lib/cloudImages';
 import { getLocalImage } from '../lib/localImages';
-
-type View = 'main' | 'data' | 'guide' | 'categories';
-import { useCategories } from '../hooks/useCategories';
 import { CategoriesManager } from '../components/settings/CategoriesManager';
 import { GuideView } from '../components/settings/GuideView';
 import { DataManagement } from '../components/settings/DataManagement';
+import { FOLIO_THEMES } from '../components/inventory/analytics/folio/folioThemes';
+import {
+  setGlobalFolioTheme,
+  useFolioTheme,
+} from '../components/folio/FolioPageChrome';
+
+type View = 'main' | 'data' | 'guide' | 'categories';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
-  const { settings, updateSettings, toggleDarkMode, setLanguage, user, setIsCatalogMode, lockApp, showToast } = useAppContext();
+  const {
+    settings,
+    updateSettings,
+    toggleDarkMode,
+    user,
+    setIsCatalogMode,
+    lockApp,
+    showToast,
+  } = useAppContext();
+  const { theme } = useFolioTheme(
+    Boolean(settings.darkMode),
+    settings.folioThemeId,
+  );
+
   const [activeView, setActiveView] = useState<View>('main');
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [pinModalMode, setPinModalMode] = useState<'setup' | 'change' | 'disable'>('setup');
@@ -90,24 +72,33 @@ export default function SettingsPage() {
       setIsPinModalOpen(true);
     }
   };
+
   const [isClearDataModalOpen, setIsClearDataModalOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
-  const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info', msg: string } | null>(null);
+  const [status, setStatus] = useState<{
+    type: 'success' | 'error' | 'info';
+    msg: string;
+  } | null>(null);
 
   const [isSyncingOldImages, setIsSyncingOldImages] = useState(false);
-  const [syncProgress, setSyncProgress] = useState<{ current: number, total: number } | null>(null);
+  const [syncProgress, setSyncProgress] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
 
   const handleSyncOldImages = async () => {
     if (!user) return;
     setIsSyncingOldImages(true);
     setSyncProgress(null);
     try {
-      const productsSnapshot = await getDocs(collection(db, `users/${user.uid}/products`));
-      const productsToSync = productsSnapshot.docs.filter(doc => {
-        const data = doc.data();
+      const productsSnapshot = await getDocs(
+        collection(db, `users/${user.uid}/products`),
+      );
+      const productsToSync = productsSnapshot.docs.filter((docSnap) => {
+        const data = docSnap.data();
         return data.hasLocalImage && !data.hasCloudImage;
       });
 
@@ -152,44 +143,44 @@ export default function SettingsPage() {
 
   const handleClearAllData = async () => {
     if (!user) return;
-    
+
     if (deletePassword !== (settings.deleteDataPassword || '1234')) {
       setPasswordError('كلمة السر غير صحيحة');
       return;
     }
 
-    setIsClearDataModalOpen(false); // Close first so UI is unblocked
+    setIsClearDataModalOpen(false);
     setDeletePassword('');
     setPasswordError('');
-    setStatus({ type: 'success', msg: t('clear_data_success') }); // Optimistically show success
+    setStatus({ type: 'success', msg: t('clear_data_success') });
     setIsClearing(true);
-    
+
     try {
       const colNames = [
-        'products', 
-        'suppliers', 
-        'debts', 
-        'categories', 
-        'transactions', 
-        'supplierTransactions', 
+        'products',
+        'suppliers',
+        'debts',
+        'categories',
+        'transactions',
+        'supplierTransactions',
         'expenses',
         'reports',
         'purchases',
         'inventories',
-        'smart_list'
+        'smart_list',
       ];
       for (const colName of colNames) {
-        let snapshot = await getDocs(collection(db, `users/${user.uid}/${colName}`));
-        // Firestore batch max is 500, simple approach for client
-        for(let i = 0; i < snapshot.docs.length; i += 500) {
-            const batch = writeBatch(db);
-            const chunk = snapshot.docs.slice(i, i + 500);
-            chunk.forEach(d => batch.delete(d.ref));
-            await batch.commit();
+        const snapshot = await getDocs(
+          collection(db, `users/${user.uid}/${colName}`),
+        );
+        for (let i = 0; i < snapshot.docs.length; i += 500) {
+          const batch = writeBatch(db);
+          const chunk = snapshot.docs.slice(i, i + 500);
+          chunk.forEach((d) => batch.delete(d.ref));
+          await batch.commit();
         }
       }
-      
-      // Also clear settings locally
+
       await updateSettings({ deletedCategories: [] });
     } catch (err) {
       console.error(err);
@@ -200,9 +191,24 @@ export default function SettingsPage() {
   };
 
   const menuItems = [
-    { id: 'guide', label: t('user_guide'), subtitle: t('learn_store_management'), icon: BookOpen, color: 'text-brand-500' },
-    { id: 'categories', label: t('manage_categories'), subtitle: t('add_remove_categories'), icon: LayoutList, color: 'text-zinc-500' },
-    { id: 'data', label: t('data_export'), subtitle: t('export_import_data'), icon: Database, color: 'text-zinc-500' },
+    {
+      id: 'guide',
+      label: t('user_guide'),
+      subtitle: t('learn_store_management'),
+      icon: BookOpen,
+    },
+    {
+      id: 'categories',
+      label: t('manage_categories'),
+      subtitle: t('add_remove_categories'),
+      icon: LayoutList,
+    },
+    {
+      id: 'data',
+      label: t('data_export'),
+      subtitle: t('export_import_data'),
+      icon: Database,
+    },
   ];
 
   const [tempSettings, setTempSettings] = useState({
@@ -218,6 +224,7 @@ export default function SettingsPage() {
     cycleEndDay: settings.cycleEndDay || 18,
   });
   const [isSaving, setIsSaving] = useState(false);
+
   const handleSaveStoreSettings = async () => {
     setIsSaving(true);
     try {
@@ -234,19 +241,24 @@ export default function SettingsPage() {
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) { // 2MB max
-        setStatus({ type: 'error', msg: 'حجم الصورة كبير جداً. يرجى اختيار صورة أصغر من 2 ميجابايت' });
+      if (file.size > 2 * 1024 * 1024) {
+        setStatus({
+          type: 'error',
+          msg: 'حجم الصورة كبير جداً. يرجى اختيار صورة أصغر من 2 ميجابايت',
+        });
         setTimeout(() => setStatus(null), 3000);
         return;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setTempSettings({ ...tempSettings, receiptLogo: reader.result as string });
+        setTempSettings({
+          ...tempSettings,
+          receiptLogo: reader.result as string,
+        });
       };
       reader.readAsDataURL(file);
     }
   };
-
 
   if (activeView === 'categories') {
     return <CategoriesManager onBack={() => setActiveView('main')} />;
@@ -260,102 +272,292 @@ export default function SettingsPage() {
     return <DataManagement onBack={() => setActiveView('main')} />;
   }
 
+  const renderSwitch = (active: boolean, onClick: () => void) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className="relative h-7 w-12 border transition-colors shrink-0 cursor-pointer"
+      style={{
+        backgroundColor: active ? theme.accent : theme.surfaceMuted,
+        borderColor: active ? theme.accent : theme.border,
+      }}
+    >
+      <motion.div
+        animate={{ x: active ? 21 : 3 }}
+        transition={{ type: 'spring', stiffness: 500, damping: 32 }}
+        className="absolute left-0 top-1 h-4.5 w-4.5"
+        style={{
+          backgroundColor: active ? theme.surface : theme.textMuted,
+        }}
+      />
+    </button>
+  );
+
   return (
-    <div className="space-y-8">
-      <header className="flex items-center justify-between">
-        <div className="text-right">
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('settings')}</h1>
-          <p className="text-zinc-500 dark:text-zinc-400">{t('customize_experience')}</p>
-        </div>
-
-        {/* Account Card */}
-        <div 
-          onClick={() => setIsLogoutModalOpen(true)}
-          className="p-2 rounded-lg bg-white border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 shadow-sm flex items-center gap-3 cursor-pointer active:scale-95 transition-all"
+    <div
+      dir="rtl"
+      className="min-h-screen pb-24 transition-colors"
+      style={{ backgroundColor: theme.bg, color: theme.text }}
+    >
+      <div className="max-w-5xl mx-auto space-y-6">
+        {/* FOLIO EDITORIAL HEADER */}
+        <header
+          className="border-b pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-3 text-right"
+          style={{ borderColor: theme.border }}
         >
-          <div className="text-left">
-            <p className="text-[9px] text-zinc-400 font-bold mb-0.5 leading-none uppercase">{t('linked_account')}</p>
-            <p className="text-[11px] font-black text-zinc-800 dark:text-zinc-200 truncate max-w-[100px]">
-              {user?.email || user?.phoneNumber}
-            </p>
-          </div>
-          {user?.photoURL ? (
-            <img 
-              src={user.photoURL} 
-              alt="Profile" 
-              className="w-10 h-10 rounded-lg object-cover border-2 border-brand-50"
-              referrerPolicy="no-referrer"
-            />
-          ) : (
-            <div className="w-10 h-10 rounded-lg bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-brand-600 dark:text-brand-400 font-black text-xs border-2 border-brand-50 dark:border-brand-900/50">
-              {(user?.email || user?.displayName || '?')[0].toUpperCase()}
-            </div>
-          )}
-        </div>
-      </header>
-
-      <div className="space-y-4">
-        {/* Store Settings Form */}
-        <section className="p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-6">
-          {status && (
-            <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`p-3 rounded-lg flex items-center gap-2 text-xs font-bold ${
-                status.type === 'success' 
-                  ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' 
-                  : status.type === 'info'
-                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20'
-                    : 'bg-rose-50 text-rose-600 dark:bg-rose-900/20'
-              }`}
+          <div className="space-y-1 min-w-0">
+            <div
+              className="flex items-center gap-2 text-xs font-bold"
+              style={{ color: theme.textMuted }}
             >
-              {status.type === 'success' ? <CheckCircle2 size={16} /> : status.type === 'info' ? <AlertCircle size={16} /> : <AlertCircle size={16} />}
-              {status.msg}
-            </motion.div>
-          )}
+              <span className="font-mono" style={{ color: theme.accent }}>
+                FOLIO · SETTINGS
+              </span>
+              <span aria-hidden="true">·</span>
+              <span>{t('customize_experience')}</span>
+            </div>
+            <h1
+              className="text-2xl sm:text-3xl font-black tracking-tight"
+              style={{ color: theme.text }}
+            >
+              {t('settings')}
+            </h1>
+          </div>
 
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-zinc-500 mr-2">{t('store_name')}</label>
-              <input 
-                type="text"
-                value={tempSettings.storeName}
-                onChange={(e) => setTempSettings(prev => ({ ...prev, storeName: e.target.value }))}
-                placeholder={t('store_name_placeholder')}
-                className="w-full h-12 px-4 rounded-lg bg-zinc-50 dark:bg-zinc-800 border-none text-sm font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center"
-              />
-            </div>            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-zinc-500 mr-2">{t('currency')}</label>
-              <input 
-                type="text" 
-                value={tempSettings.currency}
-                onChange={(e) => setTempSettings(prev => ({ ...prev, currency: e.target.value }))}
-                placeholder={t('currency_placeholder')}
-                className="w-full h-12 px-4 rounded-lg bg-zinc-50 dark:bg-zinc-800 border-none text-sm font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center"
-              />
+          {/* Account Card */}
+          <button
+            type="button"
+            onClick={() => setIsLogoutModalOpen(true)}
+            className="p-2 border flex items-center gap-3 cursor-pointer active:scale-[0.98] transition-colors self-start sm:self-auto"
+            style={{
+              backgroundColor: theme.surface,
+              borderColor: theme.border,
+            }}
+          >
+            <div className="text-left">
+              <p
+                className="text-[10px] font-bold leading-none mb-1"
+                style={{ color: theme.textMuted }}
+              >
+                {t('linked_account')}
+              </p>
+              <p
+                className="text-xs font-black truncate max-w-[140px]"
+                style={{ color: theme.text }}
+              >
+                {user?.email || user?.phoneNumber}
+              </p>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-zinc-500 mr-2">{t('catalog_pin') || 'رمز وضع الكتالوج'}</label>
-              <input 
-                type="text" 
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={4}
-                value={tempSettings.catalogPin}
-                onChange={(e) => setTempSettings(prev => ({ ...prev, catalogPin: e.target.value.replace(/[^0-9]/g, '') }))}
-                placeholder="0000"
-                className="w-full h-12 px-4 rounded-lg bg-zinc-50 dark:bg-zinc-800 border-none text-sm font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center tracking-[0.5em]"
+            {user?.photoURL ? (
+              <img
+                src={user.photoURL}
+                alt="Profile"
+                className="w-9 h-9 object-cover border"
+                style={{ borderColor: theme.border }}
+                referrerPolicy="no-referrer"
               />
+            ) : (
+              <div
+                className="w-9 h-9 border flex items-center justify-center font-black text-xs"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                  color: theme.accent,
+                }}
+              >
+                {(user?.email || user?.displayName || '?')[0].toUpperCase()}
+              </div>
+            )}
+          </button>
+        </header>
+
+        {status && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-3.5 border flex items-center gap-2 text-xs font-bold"
+            style={{
+              backgroundColor: theme.surface,
+              borderColor:
+                status.type === 'success'
+                  ? theme.positive
+                  : status.type === 'error'
+                    ? theme.negative
+                    : theme.accent,
+              color:
+                status.type === 'success'
+                  ? theme.positive
+                  : status.type === 'error'
+                    ? theme.negative
+                    : theme.accent,
+            }}
+          >
+            {status.type === 'success' ? (
+              <CheckCircle2 size={16} />
+            ) : (
+              <AlertCircle size={16} />
+            )}
+            <span>{status.msg}</span>
+          </motion.div>
+        )}
+
+        {/* 01: STORE CONFIGURATION */}
+        <section
+          className="border text-right"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
+          <div
+            className="px-4 py-2.5 border-b flex items-center gap-2 text-xs font-bold"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+            }}
+          >
+            <span className="font-mono" style={{ color: theme.accent }}>
+              01
+            </span>
+            <span style={{ color: theme.text }}>إعدادات المتجر والدورة المالية</span>
+          </div>
+
+          <div className="p-4 sm:p-5 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div className="space-y-1.5">
+                <label
+                  className="text-xs font-bold block"
+                  style={{ color: theme.textMuted }}
+                >
+                  {t('store_name')}
+                </label>
+                <input
+                  type="text"
+                  value={tempSettings.storeName}
+                  onChange={(e) =>
+                    setTempSettings((prev) => ({
+                      ...prev,
+                      storeName: e.target.value,
+                    }))
+                  }
+                  placeholder={t('store_name_placeholder')}
+                  className="w-full h-11 px-3 border text-sm font-bold text-center outline-none"
+                  style={{
+                    backgroundColor: theme.bg,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  }}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label
+                  className="text-xs font-bold block"
+                  style={{ color: theme.textMuted }}
+                >
+                  {t('currency')}
+                </label>
+                <input
+                  type="text"
+                  value={tempSettings.currency}
+                  onChange={(e) =>
+                    setTempSettings((prev) => ({
+                      ...prev,
+                      currency: e.target.value,
+                    }))
+                  }
+                  placeholder={t('currency_placeholder')}
+                  className="w-full h-11 px-3 border text-sm font-bold text-center outline-none"
+                  style={{
+                    backgroundColor: theme.bg,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  }}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label
+                  className="text-xs font-bold block"
+                  style={{ color: theme.textMuted }}
+                >
+                  {t('catalog_pin') || 'رمز وضع الكتالوج'}
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={4}
+                  value={tempSettings.catalogPin}
+                  onChange={(e) =>
+                    setTempSettings((prev) => ({
+                      ...prev,
+                      catalogPin: e.target.value.replace(/[^0-9]/g, ''),
+                    }))
+                  }
+                  placeholder="0000"
+                  className="w-full h-11 px-3 border text-sm font-mono font-bold text-center tracking-[0.5em] outline-none"
+                  style={{
+                    backgroundColor: theme.bg,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  }}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label
+                  className="text-xs font-bold block"
+                  style={{ color: theme.textMuted }}
+                >
+                  كلمة سر حذف البيانات
+                </label>
+                <input
+                  type="password"
+                  value={tempSettings.deleteDataPassword}
+                  onChange={(e) =>
+                    setTempSettings((prev) => ({
+                      ...prev,
+                      deleteDataPassword: e.target.value,
+                    }))
+                  }
+                  placeholder="****"
+                  className="w-full h-11 px-3 border text-sm font-mono font-bold text-center tracking-[0.5em] outline-none"
+                  style={{
+                    backgroundColor: theme.bg,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  }}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-zinc-500 mr-2">تحديد الدورة المالية للحرفاء (بداية ونهاية الدورة)</label>
-              <div className="grid grid-cols-2 gap-2">
+
+            <div className="space-y-2 pt-2 border-t" style={{ borderColor: theme.border }}>
+              <label
+                className="text-xs font-bold block"
+                style={{ color: theme.textMuted }}
+              >
+                تحديد الدورة المالية للحرفاء (بداية ونهاية الدورة)
+              </label>
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <span className="text-[10px] font-semibold text-zinc-400 mr-1">يوم البداية:</span>
+                  <span
+                    className="text-[11px] font-bold block"
+                    style={{ color: theme.textMuted }}
+                  >
+                    يوم البداية
+                  </span>
                   <select
                     value={tempSettings.cycleStartDay}
-                    onChange={(e) => setTempSettings(prev => ({ ...prev, cycleStartDay: parseInt(e.target.value) || 18 }))}
-                    className="w-full h-11 px-3 rounded-lg bg-zinc-50 dark:bg-zinc-800 border-none text-xs font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center cursor-pointer"
+                    onChange={(e) =>
+                      setTempSettings((prev) => ({
+                        ...prev,
+                        cycleStartDay: parseInt(e.target.value) || 18,
+                      }))
+                    }
+                    className="w-full h-10 px-3 border text-xs font-bold text-center outline-none cursor-pointer"
+                    style={{
+                      backgroundColor: theme.bg,
+                      borderColor: theme.border,
+                      color: theme.text,
+                    }}
                   >
                     {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
                       <option key={day} value={day}>
@@ -366,11 +568,26 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <span className="text-[10px] font-semibold text-zinc-400 mr-1">يوم النهاية:</span>
+                  <span
+                    className="text-[11px] font-bold block"
+                    style={{ color: theme.textMuted }}
+                  >
+                    يوم النهاية
+                  </span>
                   <select
                     value={tempSettings.cycleEndDay}
-                    onChange={(e) => setTempSettings(prev => ({ ...prev, cycleEndDay: parseInt(e.target.value) || 18 }))}
-                    className="w-full h-11 px-3 rounded-lg bg-zinc-50 dark:bg-zinc-800 border-none text-xs font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center cursor-pointer"
+                    onChange={(e) =>
+                      setTempSettings((prev) => ({
+                        ...prev,
+                        cycleEndDay: parseInt(e.target.value) || 18,
+                      }))
+                    }
+                    className="w-full h-10 px-3 border text-xs font-bold text-center outline-none cursor-pointer"
+                    style={{
+                      backgroundColor: theme.bg,
+                      borderColor: theme.border,
+                      color: theme.text,
+                    }}
                   >
                     {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
                       <option key={day} value={day}>
@@ -380,157 +597,177 @@ export default function SettingsPage() {
                   </select>
                 </div>
               </div>
-              <p className="text-[10px] text-zinc-400 mr-2">تبدأ الدورة من يوم {tempSettings.cycleStartDay} وتغلق يوم {tempSettings.cycleEndDay} من الشهر القادم.</p>
+              <p className="text-[11px]" style={{ color: theme.textMuted }}>
+                تبدأ الدورة من يوم {tempSettings.cycleStartDay} وتغلق يوم{' '}
+                {tempSettings.cycleEndDay} من الشهر القادم.
+              </p>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-zinc-500 mr-2">كلمة سر حذف البيانات</label>
-              <input 
-                type="password"
-                value={tempSettings.deleteDataPassword}
-                onChange={(e) => setTempSettings(prev => ({ ...prev, deleteDataPassword: e.target.value }))}
-                placeholder="****"
-                className="w-full h-12 px-4 rounded-lg bg-zinc-50 dark:bg-zinc-800 border-none text-sm font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-500/20 text-center tracking-[0.5em]"
-              />
-            </div>
-          </div>
 
-          <button 
-            onClick={handleSaveStoreSettings}
-            disabled={isSaving}
-            className="w-full h-14 rounded-lg bg-brand-600 text-white font-black shadow-lg shadow-brand-500/20 flex items-center justify-center transition-all hover:bg-brand-700 active:scale-[0.98] disabled:opacity-50"
-          >
-            {isSaving ? t('saving') : t('save')}
-          </button>
-        </section>
-
-        {/* Display / UI Settings Group */}
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800 shadow-sm divide-y divide-zinc-100 dark:divide-zinc-800">
-          <div className="px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 text-right">
-            <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400">المظهر والعرض</h3>
-          </div>
-          
-          {/* Dark Mode Toggle */}
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
-                <Moon size={20} />
-              </div>
-              <div className="text-right">
-                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">{t('dark_mode')}</h3>
-                <p className="text-[11px] text-zinc-400 mt-0.5">{t('change_app_appearance')}</p>
-              </div>
-            </div>
-            <button 
-              onClick={toggleDarkMode}
-              className={`relative h-7 w-12 rounded-full transition-colors ${settings.darkMode ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
+            <button
+              type="button"
+              onClick={handleSaveStoreSettings}
+              disabled={isSaving}
+              className="w-full h-11 border text-xs font-black flex items-center justify-center transition-opacity disabled:opacity-50 cursor-pointer"
+              style={{
+                backgroundColor: theme.text,
+                color: theme.surface,
+                borderColor: theme.text,
+              }}
             >
-              <motion.div 
-                animate={{ x: settings.darkMode ? 20 : 4 }}
-                className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
-              />
+              {isSaving ? t('saving') : t('save')}
             </button>
           </div>
+        </section>
 
-          {/* Color Theme Selector */}
-          <div className="flex flex-col p-4 bg-zinc-50/50 dark:bg-zinc-800/20">
-            <div className="flex items-center gap-4 mb-3">
-              <div className="h-10 w-10 rounded-xl bg-zinc-100 flex items-center justify-center text-zinc-500 dark:bg-zinc-800 dark:text-zinc-300">
-                <Palette size={20} />
+        {/* 02: UNIFIED THEME & DISPLAY SETTINGS */}
+        <section
+          className="border text-right divide-y"
+          style={{
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
+          }}
+        >
+          <div
+            className="px-4 py-2.5 flex items-center justify-between text-xs font-bold"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <span className="font-mono" style={{ color: theme.accent }}>
+                02
+              </span>
+              <span style={{ color: theme.text }}>المظهر والعرض الموحد</span>
+            </div>
+            <span className="font-mono text-[11px]" style={{ color: theme.textMuted }}>
+              {theme.name}
+            </span>
+          </div>
+
+          {/* Dark Mode Toggle */}
+          <div
+            className="flex items-center justify-between p-4"
+            style={{ borderColor: theme.border }}
+          >
+            <div className="flex items-center gap-3.5">
+              <div
+                className="h-10 w-10 border flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                  color: theme.accent,
+                }}
+              >
+                <Moon size={18} />
               </div>
-              <div className="text-right">
-                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">سمة ألوان التطبيق</h3>
-                <p className="text-[11px] text-zinc-400 mt-0.5">اختر لوحة الألوان الأساسية التي تناسب هوية متجرك</p>
+              <div>
+                <h3 className="text-sm font-black" style={{ color: theme.text }}>
+                  {t('dark_mode')}
+                </h3>
+                <p className="text-[11px] mt-0.5" style={{ color: theme.textMuted }}>
+                  {t('change_app_appearance')}
+                </p>
+              </div>
+            </div>
+            {renderSwitch(Boolean(settings.darkMode), toggleDarkMode)}
+          </div>
+
+          {/* Unified Folio Theme Switcher (Single source of truth for entire app) */}
+          <div
+            className="p-4 sm:p-5 space-y-3.5"
+            style={{ backgroundColor: theme.bg, borderColor: theme.border }}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className="h-10 w-10 border flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: theme.surface,
+                  borderColor: theme.border,
+                  color: theme.accent,
+                }}
+              >
+                <Palette size={18} />
+              </div>
+              <div>
+                <h3 className="text-sm font-black" style={{ color: theme.text }}>
+                  مظهر التطبيق الموحد (Theme)
+                </h3>
+                <p className="text-[11px] mt-0.5" style={{ color: theme.textMuted }}>
+                  اختر السمة التصميمية الموحدة التي تُطبَّق فورياً على جميع صفحات المتجر والجداول والرسومات
+                </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 mt-1">
-              {[
-                { 
-                  id: 'navy', 
-                  name: 'الأزرق البترولي', 
-                  desc: 'الرسمي الكلاسيكي', 
-                  color: '#023859', 
-                  bgLight: '#F4F7FB',
-                  bgDark: '#0B1121' 
-                },
-                { 
-                  id: 'harbor', 
-                  name: 'أزرق الميناء (Harbor)', 
-                  desc: 'البحري الفخم', 
-                  color: '#134C65', 
-                  bgLight: '#F0F4F8',
-                  bgDark: '#0A131C' 
-                },
-                { 
-                  id: 'sage', 
-                  name: 'أخضر المريمية (Sage)', 
-                  desc: 'طبيعي مهدئ للعين', 
-                  color: '#4E635E', 
-                  bgLight: '#F2F5F3',
-                  bgDark: '#0E1513' 
-                },
-                { 
-                  id: 'charcoal', 
-                  name: 'الكحلي الفحمي (Charcoal)', 
-                  desc: 'مينيمال عصري ونظيف', 
-                  color: '#1E2837', 
-                  bgLight: '#F7F8FA',
-                  bgDark: '#0F1115' 
-                },
-                { 
-                  id: 'amethyst', 
-                  name: 'البنفسجي الدافئ (Amethyst)', 
-                  desc: 'تقني هادئ ومتناسق', 
-                  color: '#552D77', 
-                  bgLight: '#F7F4F9',
-                  bgDark: '#130F19' 
-                },
-              ].map((theme) => {
-                const currentTheme = settings.colorTheme || 'navy';
-                const isSelected = currentTheme === theme.id;
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+              {FOLIO_THEMES.map((item) => {
+                const isSelected = theme.id === item.id;
                 return (
                   <button
-                    key={theme.id}
+                    key={item.id}
                     type="button"
                     onClick={() => {
-                      updateSettings({ colorTheme: theme.id as any });
-                      showToast(`تم تفعيل: ${theme.name}`, 'info');
+                      setGlobalFolioTheme(item.id);
+                      updateSettings({
+                        folioThemeId: item.id,
+                        darkMode: item.isDark,
+                      });
+                      showToast(`تم تطبيق المظهر: ${item.name}`, 'info');
                     }}
-                    className={`relative flex items-center gap-2.5 p-3 rounded-xl border text-right transition-all cursor-pointer active:scale-95 ${
-                      isSelected
-                        ? 'border-brand-600 bg-white dark:bg-zinc-800 shadow-sm ring-2 ring-brand-500/20'
-                        : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
-                    }`}
+                    className="p-3 border text-right transition-colors cursor-pointer flex flex-col gap-2.5"
+                    style={{
+                      backgroundColor: isSelected ? theme.surface : item.surface,
+                      borderColor: isSelected ? theme.accent : item.border,
+                      color: item.text,
+                    }}
                   >
-                    {/* Dual Swatch Circle: Primary Color + App Background Color */}
-                    <div 
-                      className="w-7 h-7 rounded-full shrink-0 relative overflow-hidden border border-zinc-200 dark:border-zinc-700 shadow-xs flex items-center justify-center"
-                      title={`${theme.name} - الأساسي والخلفية`}
-                    >
-                      <div className="absolute inset-0 flex">
-                        <div 
-                          className="w-1/2 h-full" 
-                          style={{ backgroundColor: theme.color }} 
-                          title="اللون الأساسي"
-                        />
-                        <div 
-                          className="w-1/2 h-full border-r border-black/10 dark:border-white/10" 
-                          style={{ backgroundColor: settings.darkMode ? theme.bgDark : theme.bgLight }} 
-                          title="خلفية التطبيق"
-                        />
-                      </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className="text-xs font-black truncate"
+                        style={{ color: item.text }}
+                      >
+                        {item.name}
+                      </span>
                       {isSelected && (
-                        <div className="relative z-10 w-4 h-4 rounded-full bg-black/50 backdrop-blur-xs flex items-center justify-center">
-                          <Check size={11} strokeWidth={3} className="text-white" />
-                        </div>
+                        <span
+                          className="w-5 h-5 flex items-center justify-center shrink-0"
+                          style={{
+                            backgroundColor: theme.accent,
+                            color: theme.surface,
+                          }}
+                        >
+                          <Check size={12} strokeWidth={3} />
+                        </span>
                       )}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">
-                        {theme.name}
-                      </div>
-                      <div className="text-[10px] text-zinc-400 truncate">
-                        {theme.desc}
+
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className="text-[10px] font-bold"
+                        style={{ color: item.textMuted }}
+                      >
+                        {item.isDark ? 'وضع ليلي' : 'وضع نهاري'}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <span
+                          className="w-4 h-3 border"
+                          style={{ backgroundColor: item.bg, borderColor: item.border }}
+                        />
+                        <span
+                          className="w-4 h-3 border"
+                          style={{
+                            backgroundColor: item.surface,
+                            borderColor: item.border,
+                          }}
+                        />
+                        <span
+                          className="w-4 h-3"
+                          style={{ backgroundColor: item.accent }}
+                        />
+                        <span
+                          className="w-4 h-3"
+                          style={{ backgroundColor: item.series[1] || item.positive }}
+                        />
                       </div>
                     </div>
                   </button>
@@ -540,46 +777,59 @@ export default function SettingsPage() {
           </div>
 
           {/* Sync Images Toggle */}
-          <div className="flex flex-col p-4 border-b border-zinc-100 dark:border-zinc-800">
+          <div className="p-4 space-y-3" style={{ borderColor: theme.border }}>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
-                  <Database size={20} />
+              <div className="flex items-center gap-3.5">
+                <div
+                  className="h-10 w-10 border flex items-center justify-center shrink-0"
+                  style={{
+                    backgroundColor: theme.surfaceMuted,
+                    borderColor: theme.border,
+                    color: theme.textMuted,
+                  }}
+                >
+                  <Database size={18} />
                 </div>
-                <div className="text-right">
-                  <h3 className="text-sm font-bold text-zinc-900 dark:text-white">مزامنة الصور سحابياً</h3>
-                  <p className="text-[11px] text-zinc-400 mt-0.5">حفظ الصور في السحابة لتنزيلها على أجهزة أخرى</p>
+                <div>
+                  <h3 className="text-sm font-black" style={{ color: theme.text }}>
+                    مزامنة الصور سحابياً
+                  </h3>
+                  <p className="text-[11px] mt-0.5" style={{ color: theme.textMuted }}>
+                    حفظ الصور في السحابة لتنزيلها على أجهزة أخرى
+                  </p>
                 </div>
               </div>
-              <button 
-                onClick={() => updateSettings({ syncImages: !(settings.syncImages ?? false) })}
-                className={`relative h-7 w-12 rounded-full transition-colors ${(settings.syncImages ?? false) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
-              >
-                <motion.div 
-                  animate={{ x: (settings.syncImages ?? false) ? 20 : 4 }}
-                  className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
-                />
-              </button>
+              {renderSwitch(Boolean(settings.syncImages ?? false), () =>
+                updateSettings({ syncImages: !(settings.syncImages ?? false) }),
+              )}
             </div>
-            
-            {/* Bulk Sync Button */}
+
             {(settings.syncImages ?? false) && (
-              <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800/50">
+              <div className="pt-3 border-t" style={{ borderColor: theme.border }}>
                 <button
+                  type="button"
                   onClick={handleSyncOldImages}
                   disabled={isSyncingOldImages}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-brand-50 hover:bg-brand-100 dark:bg-brand-900/20 dark:hover:bg-brand-900/40 text-brand-600 dark:text-brand-400 rounded-lg text-[13px] font-bold transition-colors disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 border text-xs font-bold transition-colors disabled:opacity-50 cursor-pointer"
+                  style={{
+                    backgroundColor: theme.surfaceMuted,
+                    borderColor: theme.border,
+                    color: theme.accent,
+                  }}
                 >
                   {isSyncingOldImages ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-current rounded-full border-t-transparent animate-spin" />
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent animate-spin" />
                       <span>
-                        جاري المزامنة {syncProgress ? `(${syncProgress.current}/${syncProgress.total})` : '...'}
+                        جاري المزامنة{' '}
+                        {syncProgress
+                          ? `(${syncProgress.current}/${syncProgress.total})`
+                          : '...'}
                       </span>
                     </>
                   ) : (
                     <>
-                      <CloudUpload size={16} />
+                      <CloudUpload size={15} />
                       <span>مزامنة الصور القديمة إلى السحابة</span>
                     </>
                   )}
@@ -589,114 +839,184 @@ export default function SettingsPage() {
           </div>
 
           {/* Financials Toggle */}
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
-                <Eye size={20} />
+          <div
+            className="flex items-center justify-between p-4"
+            style={{ borderColor: theme.border }}
+          >
+            <div className="flex items-center gap-3.5">
+              <div
+                className="h-10 w-10 border flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                  color: theme.textMuted,
+                }}
+              >
+                <Eye size={18} />
               </div>
-              <div className="text-right">
-                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">{t('financial_stats')}</h3>
-                <p className="text-[11px] text-zinc-400 mt-0.5">{t('show_financial_data')}</p>
+              <div>
+                <h3 className="text-sm font-black" style={{ color: theme.text }}>
+                  {t('financial_stats')}
+                </h3>
+                <p className="text-[11px] mt-0.5" style={{ color: theme.textMuted }}>
+                  {t('show_financial_data')}
+                </p>
               </div>
             </div>
-            <button 
-              onClick={() => updateSettings({ showFinancials: !(settings.showFinancials ?? true) })}
-              className={`relative h-7 w-12 rounded-full transition-colors ${(settings.showFinancials ?? true) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
-            >
-              <motion.div 
-                animate={{ x: (settings.showFinancials ?? true) ? 20 : 4 }}
-                className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
-              />
-            </button>
+            {renderSwitch(Boolean(settings.showFinancials ?? true), () =>
+              updateSettings({
+                showFinancials: !(settings.showFinancials ?? true),
+              }),
+            )}
           </div>
 
           {/* Floating Totals Toggle */}
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
-                <LayoutList size={20} />
+          <div
+            className="flex items-center justify-between p-4"
+            style={{ borderColor: theme.border }}
+          >
+            <div className="flex items-center gap-3.5">
+              <div
+                className="h-10 w-10 border flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                  color: theme.textMuted,
+                }}
+              >
+                <LayoutList size={18} />
               </div>
-              <div className="text-right">
-                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">{t('show_floating_totals')}</h3>
-                <p className="text-[11px] text-zinc-400 mt-0.5">{t('show_floating_totals')}</p>
+              <div>
+                <h3 className="text-sm font-black" style={{ color: theme.text }}>
+                  {t('show_floating_totals')}
+                </h3>
+                <p className="text-[11px] mt-0.5" style={{ color: theme.textMuted }}>
+                  {t('show_floating_totals')}
+                </p>
               </div>
             </div>
-            <button 
-              onClick={() => updateSettings({ showFloatingTotals: !(settings.showFloatingTotals ?? true) })}
-              className={`relative h-7 w-12 rounded-full transition-colors ${(settings.showFloatingTotals ?? true) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
-            >
-              <motion.div 
-                animate={{ x: (settings.showFloatingTotals ?? true) ? 20 : 4 }}
-                className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
-              />
-            </button>
+            {renderSwitch(Boolean(settings.showFloatingTotals ?? true), () =>
+              updateSettings({
+                showFloatingTotals: !(settings.showFloatingTotals ?? true),
+              }),
+            )}
           </div>
 
           {/* Supplier Session Button Toggle */}
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
-                <Play size={20} />
+          <div
+            className="flex items-center justify-between p-4"
+            style={{ borderColor: theme.border }}
+          >
+            <div className="flex items-center gap-3.5">
+              <div
+                className="h-10 w-10 border flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                  color: theme.textMuted,
+                }}
+              >
+                <Play size={18} />
               </div>
-              <div className="text-right">
-                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">{t('show_supplier_session_button')}</h3>
-                <p className="text-[11px] text-zinc-400 mt-0.5">{t('show_supplier_session_button')}</p>
+              <div>
+                <h3 className="text-sm font-black" style={{ color: theme.text }}>
+                  {t('show_supplier_session_button')}
+                </h3>
+                <p className="text-[11px] mt-0.5" style={{ color: theme.textMuted }}>
+                  {t('show_supplier_session_button')}
+                </p>
               </div>
             </div>
-            <button 
-              onClick={() => updateSettings({ showSupplierSessionButton: !(settings.showSupplierSessionButton ?? true) })}
-              className={`relative h-7 w-12 rounded-full transition-colors ${(settings.showSupplierSessionButton ?? true) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
-            >
-              <motion.div 
-                animate={{ x: (settings.showSupplierSessionButton ?? true) ? 20 : 4 }}
-                className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
-              />
-            </button>
+            {renderSwitch(Boolean(settings.showSupplierSessionButton ?? true), () =>
+              updateSettings({
+                showSupplierSessionButton: !(
+                  settings.showSupplierSessionButton ?? true
+                ),
+              }),
+            )}
           </div>
-        </div>
+        </section>
 
-        {/* Security & App PIN Group */}
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800 shadow-sm divide-y divide-zinc-100 dark:divide-zinc-800">
-          <div className="px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 text-right flex items-center justify-between">
-            <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400">حماية التطبيق (رمز PIN)</h3>
+        {/* 03: SECURITY & APP PIN */}
+        <section
+          className="border text-right divide-y"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
+          <div
+            className="px-4 py-2.5 flex items-center justify-between text-xs font-bold"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <span className="font-mono" style={{ color: theme.accent }}>
+                03
+              </span>
+              <span style={{ color: theme.text }}>حماية التطبيق (رمز PIN)</span>
+            </div>
             {settings.appPinEnabled && settings.appPin && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                <ShieldCheck size={12} />
-                مفعل
+              <span
+                className="inline-flex items-center gap-1 text-[11px] font-black"
+                style={{ color: theme.positive }}
+              >
+                <ShieldCheck size={13} />
+                <span>مفعل</span>
               </span>
             )}
           </div>
 
-          {/* Toggle PIN */}
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-4">
-              <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${settings.appPinEnabled && settings.appPin ? 'bg-brand-50 text-brand-600 dark:bg-brand-900/30 dark:text-brand-400' : 'bg-zinc-50 text-zinc-400 dark:bg-zinc-800'}`}>
-                <ShieldCheck size={20} />
+          <div
+            className="flex items-center justify-between p-4"
+            style={{ borderColor: theme.border }}
+          >
+            <div className="flex items-center gap-3.5">
+              <div
+                className="h-10 w-10 border flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                  color:
+                    settings.appPinEnabled && settings.appPin
+                      ? theme.accent
+                      : theme.textMuted,
+                }}
+              >
+                <ShieldCheck size={18} />
               </div>
-              <div className="text-right">
-                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">قفل التطبيق برمز سري (4 أرقام)</h3>
-                <p className="text-[11px] text-zinc-400 mt-0.5">طلب رمز PIN المكون من 4 أرقام عند فتح التطبيق لحماية الخصوصية</p>
+              <div>
+                <h3 className="text-sm font-black" style={{ color: theme.text }}>
+                  قفل التطبيق برمز سري (4 أرقام)
+                </h3>
+                <p className="text-[11px] mt-0.5" style={{ color: theme.textMuted }}>
+                  طلب رمز PIN المكون من 4 أرقام عند فتح التطبيق لحماية الخصوصية
+                </p>
               </div>
             </div>
-            <button 
-              onClick={handleTogglePin}
-              className={`relative h-7 w-12 rounded-full transition-colors ${(settings.appPinEnabled && settings.appPin) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
-            >
-              <motion.div 
-                animate={{ x: (settings.appPinEnabled && settings.appPin) ? 20 : 4 }}
-                className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
-              />
-            </button>
+            {renderSwitch(
+              Boolean(settings.appPinEnabled && settings.appPin),
+              handleTogglePin,
+            )}
           </div>
 
-          {/* If enabled: Options */}
           {settings.appPinEnabled && settings.appPin && (
-            <div className="p-4 bg-zinc-50/50 dark:bg-zinc-800/30 space-y-3">
+            <div
+              className="p-4 space-y-3"
+              style={{ backgroundColor: theme.bg, borderColor: theme.border }}
+            >
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => { setPinModalMode('change'); setIsPinModalOpen(true); }}
-                  className="flex-1 min-w-[140px] h-10 px-3 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center justify-center gap-2 shadow-sm transition-all"
+                  onClick={() => {
+                    setPinModalMode('change');
+                    setIsPinModalOpen(true);
+                  }}
+                  className="flex-1 min-w-[140px] h-10 px-3 border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer"
+                  style={{
+                    backgroundColor: theme.surface,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  }}
                 >
                   <KeyRound size={15} />
                   <span>تغيير الرمز السري</span>
@@ -705,16 +1025,23 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={lockApp}
-                  className="flex-1 min-w-[140px] h-10 px-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm shadow-brand-500/20 transition-all"
+                  className="flex-1 min-w-[140px] h-10 px-3 border text-xs font-black flex items-center justify-center gap-2 cursor-pointer"
+                  style={{
+                    backgroundColor: theme.text,
+                    color: theme.surface,
+                    borderColor: theme.text,
+                  }}
                 >
                   <Lock size={15} />
                   <span>قفل التطبيق الآن</span>
                 </button>
               </div>
 
-              {/* Auto-Lock Inactivity Setting */}
-              <div className="pt-2 border-t border-zinc-200/60 dark:border-zinc-700/60 text-right space-y-1.5">
-                <label className="text-[11px] font-bold text-zinc-600 dark:text-zinc-300">
+              <div className="pt-2 border-t space-y-1.5" style={{ borderColor: theme.border }}>
+                <label
+                  className="text-[11px] font-bold block"
+                  style={{ color: theme.textMuted }}
+                >
                   القفل التلقائي عند الخمول:
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5" dir="rtl">
@@ -723,401 +1050,691 @@ export default function SettingsPage() {
                     { value: 1, label: 'بعد دقيقة' },
                     { value: 5, label: 'بعد 5 دقائق' },
                     { value: 15, label: 'بعد 15 دقيقة' },
-                  ].map(opt => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => updateSettings({ autoLockTimeout: opt.value })}
-                      className={`h-9 px-2 text-[11px] font-bold rounded-lg transition-all ${
-                        (settings.autoLockTimeout ?? 0) === opt.value
-                          ? 'bg-brand-600 text-white shadow-sm'
-                          : 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
+                  ].map((opt) => {
+                    const active = (settings.autoLockTimeout ?? 0) === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() =>
+                          updateSettings({ autoLockTimeout: opt.value })
+                        }
+                        className="h-9 px-2 border text-[11px] font-bold transition-colors cursor-pointer"
+                        style={
+                          active
+                            ? {
+                                backgroundColor: theme.text,
+                                color: theme.surface,
+                                borderColor: theme.text,
+                              }
+                            : {
+                                backgroundColor: theme.surface,
+                                color: theme.text,
+                                borderColor: theme.border,
+                              }
+                        }
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
           )}
-        </div>
+        </section>
 
-        {/* Application Config Group */}
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800 shadow-sm divide-y divide-zinc-100 dark:divide-zinc-800">
-          <div className="px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 text-right">
-            <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400">إعدادات التطبيق</h3>
+        {/* 04: APPLICATION CONFIGURATION */}
+        <section
+          className="border text-right divide-y"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
+          <div
+            className="px-4 py-2.5 flex items-center gap-2 text-xs font-bold"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+            }}
+          >
+            <span className="font-mono" style={{ color: theme.accent }}>
+              04
+            </span>
+            <span style={{ color: theme.text }}>إعدادات التشغيل والعمليات</span>
           </div>
 
-          {/* Smart Price Audit Toggle */}
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
-                <Sparkles size={20} className="text-amber-500" />
+          <div
+            className="flex items-center justify-between p-4"
+            style={{ borderColor: theme.border }}
+          >
+            <div className="flex items-center gap-3.5">
+              <div
+                className="h-10 w-10 border flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                  color: theme.accent,
+                }}
+              >
+                <Sparkles size={18} />
               </div>
-              <div className="text-right">
-                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">التدقيق الذكي للأسعار والتنبيهات</h3>
-                <p className="text-[11px] text-zinc-400 mt-0.5">كشف أخطاء خلط سعر العلبة بالقطعة، البيع بخسارة، واقتراح التصحيح الفوري</p>
+              <div>
+                <h3 className="text-sm font-black" style={{ color: theme.text }}>
+                  التدقيق الذكي للأسعار والتنبيهات
+                </h3>
+                <p className="text-[11px] mt-0.5" style={{ color: theme.textMuted }}>
+                  كشف أخطاء خلط سعر العلبة بالقطعة، البيع بخسارة، واقتراح التصحيح الفوري
+                </p>
               </div>
             </div>
-            <button 
-              onClick={() => updateSettings({ enablePriceAudit: !(settings.enablePriceAudit ?? true) })}
-              className={`relative h-7 w-12 rounded-full transition-colors ${(settings.enablePriceAudit ?? true) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
-            >
-              <motion.div 
-                animate={{ x: (settings.enablePriceAudit ?? true) ? 20 : 4 }}
-                className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
-              />
-            </button>
+            {renderSwitch(Boolean(settings.enablePriceAudit ?? true), () =>
+              updateSettings({
+                enablePriceAudit: !(settings.enablePriceAudit ?? true),
+              }),
+            )}
           </div>
 
-          {/* Enable POS Toggle */}
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
-                <Calculator size={20} />
+          <div
+            className="flex items-center justify-between p-4"
+            style={{ borderColor: theme.border }}
+          >
+            <div className="flex items-center gap-3.5">
+              <div
+                className="h-10 w-10 border flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                  color: theme.textMuted,
+                }}
+              >
+                <Calculator size={18} />
               </div>
-              <div className="text-right">
-                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">نظام المبيعات (POS)</h3>
-                <p className="text-[11px] text-zinc-400 mt-0.5">تفعيل واجهة إنشاء فواتير المبيعات</p>
+              <div>
+                <h3 className="text-sm font-black" style={{ color: theme.text }}>
+                  نظام المبيعات (POS)
+                </h3>
+                <p className="text-[11px] mt-0.5" style={{ color: theme.textMuted }}>
+                  تفعيل واجهة إنشاء فواتير المبيعات
+                </p>
               </div>
             </div>
-            <button 
-              onClick={() => updateSettings({ enablePOS: !(settings.enablePOS ?? false) })}
-              className={`relative h-7 w-12 rounded-full transition-colors ${(settings.enablePOS ?? false) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
-            >
-              <motion.div 
-                animate={{ x: (settings.enablePOS ?? false) ? 20 : 4 }}
-                className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
-              />
-            </button>
+            {renderSwitch(Boolean(settings.enablePOS ?? false), () =>
+              updateSettings({ enablePOS: !(settings.enablePOS ?? false) }),
+            )}
           </div>
 
-          {/* POS Deduct Inventory Toggle */}
           <AnimatePresence>
             {(settings.enablePOS ?? false) && (
-              <motion.div 
+              <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden"
+                className="overflow-hidden divide-y"
+                style={{ borderColor: theme.border }}
               >
-                <div className="flex items-center justify-between p-4 bg-zinc-50/50 dark:bg-zinc-800/30">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-xl bg-white dark:bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-100 dark:border-zinc-800">
-                      <Database size={20} />
+                <div
+                  className="flex items-center justify-between p-4"
+                  style={{ backgroundColor: theme.bg, borderColor: theme.border }}
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div
+                      className="h-10 w-10 border flex items-center justify-center shrink-0"
+                      style={{
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                        color: theme.textMuted,
+                      }}
+                    >
+                      <Database size={18} />
                     </div>
-                    <div className="text-right">
-                      <h3 className="text-sm font-bold text-zinc-900 dark:text-white">خصم من المخزون</h3>
-                      <p className="text-[11px] text-zinc-400 mt-0.5">خصم كميات الفاتورة من مخزون المنتجات</p>
+                    <div>
+                      <h3 className="text-sm font-black" style={{ color: theme.text }}>
+                        خصم من المخزون
+                      </h3>
+                      <p className="text-[11px] mt-0.5" style={{ color: theme.textMuted }}>
+                        خصم كميات الفاتورة من مخزون المنتجات
+                      </p>
                     </div>
                   </div>
-                  <button 
-                    onClick={() => updateSettings({ posDeductInventory: !(settings.posDeductInventory ?? false) })}
-                    className={`relative h-7 w-12 rounded-full transition-colors ${(settings.posDeductInventory ?? false) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
-                  >
-                    <motion.div 
-                      animate={{ x: (settings.posDeductInventory ?? false) ? 20 : 4 }}
-                      className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
-                    />
-                  </button>
+                  {renderSwitch(Boolean(settings.posDeductInventory ?? false), () =>
+                    updateSettings({
+                      posDeductInventory: !(settings.posDeductInventory ?? false),
+                    }),
+                  )}
                 </div>
-                <div className="flex items-center justify-between p-4 bg-zinc-50/50 dark:bg-zinc-800/30 border-t border-zinc-100 dark:border-zinc-800/50">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-xl bg-white dark:bg-zinc-900 flex items-center justify-center text-zinc-400 border border-zinc-100 dark:border-zinc-800">
-                      <Monitor size={20} />
+
+                <div
+                  className="flex items-center justify-between p-4"
+                  style={{ backgroundColor: theme.bg, borderColor: theme.border }}
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div
+                      className="h-10 w-10 border flex items-center justify-center shrink-0"
+                      style={{
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                        color: theme.textMuted,
+                      }}
+                    >
+                      <Monitor size={18} />
                     </div>
-                    <div className="text-right">
-                      <h3 className="text-sm font-bold text-zinc-900 dark:text-white">إظهار زر مخزون الكاشير</h3>
-                      <p className="text-[11px] text-zinc-400 mt-0.5">عرض زر مخزون الكاشير في صفحة المنتجات</p>
+                    <div>
+                      <h3 className="text-sm font-black" style={{ color: theme.text }}>
+                        إظهار زر مخزون الكاشير
+                      </h3>
+                      <p className="text-[11px] mt-0.5" style={{ color: theme.textMuted }}>
+                        عرض زر مخزون الكاشير في صفحة المنتجات
+                      </p>
                     </div>
                   </div>
-                  <button 
-                    onClick={() => updateSettings({ showCashierStockButton: !(settings.showCashierStockButton ?? true) })}
-                    className={`relative h-7 w-12 rounded-full transition-colors ${(settings.showCashierStockButton ?? true) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
-                  >
-                    <motion.div 
-                      animate={{ x: (settings.showCashierStockButton ?? true) ? 20 : 4 }}
-                      className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
-                    />
-                  </button>
+                  {renderSwitch(
+                    Boolean(settings.showCashierStockButton ?? true),
+                    () =>
+                      updateSettings({
+                        showCashierStockButton: !(
+                          settings.showCashierStockButton ?? true
+                        ),
+                      }),
+                  )}
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Purchases Reports Toggle */}
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
-                <FileDown size={20} />
-              </div>
-              <div className="text-right">
-                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">تقارير العمليات</h3>
-                <p className="text-[11px] text-zinc-400 mt-0.5">طباعة تقارير المشتريات والموردين بصيغة PDF</p>
-              </div>
-            </div>
-            <button 
-              onClick={() => updateSettings({ enablePurchasesReports: !(settings.enablePurchasesReports ?? false) })}
-              className={`relative h-7 w-12 rounded-full transition-colors ${(settings.enablePurchasesReports ?? false) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
-            >
-              <motion.div 
-                animate={{ x: (settings.enablePurchasesReports ?? false) ? 20 : 4 }}
-                className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
-              />
-            </button>
-          </div>
-
-          {/* Require Supplier Session Toggle */}
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
-                <Truck size={20} />
-              </div>
-              <div className="text-right">
-                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">إلزامية حصة المورد</h3>
-                <p className="text-[11px] text-zinc-400 mt-0.5">إلزام فتح حصة مورد قبل إضافة كميات للمخزون</p>
-              </div>
-            </div>
-            <button 
-              onClick={() => updateSettings({ requireSupplierSession: !(settings.requireSupplierSession ?? false) })}
-              className={`relative h-7 w-12 rounded-full transition-colors ${(settings.requireSupplierSession ?? false) ? 'bg-brand-600' : 'bg-zinc-200 dark:bg-zinc-700'}`}
-            >
-              <motion.div 
-                animate={{ x: (settings.requireSupplierSession ?? false) ? 20 : 4 }}
-                className="absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm"
-              />
-            </button>
-          </div>
-
-          {/* Profit Calculation Method Toggle */}
-          <div className="p-4 flex flex-col gap-3">
-            <div className="flex justify-between items-center w-full">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-xl bg-zinc-50 flex items-center justify-center text-zinc-400 dark:bg-zinc-800">
-                  <Percent size={20} />
-                </div>
-                <div className="text-right flex-1">
-                  <h3 className="text-sm font-bold text-zinc-900 dark:text-white">{t('profit_calculation_method')}</h3>
-                  <p className="text-[11px] text-zinc-400 mt-0.5">{t('profit_calc_desc')}</p>
-                </div>
-              </div>
-            </div>
-            <div className="flex gap-2 w-full bg-zinc-50 dark:bg-zinc-900/50 p-1 rounded-lg">
-              <button
-                onClick={() => updateSettings({ profitCalculationMethod: 'markup' })}
-                className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${
-                  (settings.profitCalculationMethod || 'markup') === 'markup' 
-                    ? 'bg-white text-brand-600 shadow-sm dark:bg-zinc-800 dark:text-white' 
-                    : 'text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800/50'
-                }`}
+          <div
+            className="flex items-center justify-between p-4"
+            style={{ borderColor: theme.border }}
+          >
+            <div className="flex items-center gap-3.5">
+              <div
+                className="h-10 w-10 border flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                  color: theme.textMuted,
+                }}
               >
-                {t('profit_calc_markup')}
-              </button>
-              <button
-                onClick={() => updateSettings({ profitCalculationMethod: 'margin' })}
-                className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${
-                  settings.profitCalculationMethod === 'margin' 
-                    ? 'bg-white text-brand-600 shadow-sm dark:bg-zinc-800 dark:text-white' 
-                    : 'text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800/50'
-                }`}
-              >
-                {t('profit_calc_margin')}
-              </button>
+                <FileDown size={18} />
+              </div>
+              <div>
+                <h3 className="text-sm font-black" style={{ color: theme.text }}>
+                  تقارير العمليات
+                </h3>
+                <p className="text-[11px] mt-0.5" style={{ color: theme.textMuted }}>
+                  طباعة تقارير المشتريات والموردين بصيغة PDF
+                </p>
+              </div>
             </div>
+            {renderSwitch(
+              Boolean(settings.enablePurchasesReports ?? false),
+              () =>
+                updateSettings({
+                  enablePurchasesReports: !(
+                    settings.enablePurchasesReports ?? false
+                  ),
+                }),
+            )}
           </div>
-        </div>
 
-        {/* Invoice Customization Group */}
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800 shadow-sm divide-y divide-zinc-100 dark:divide-zinc-800">
-          <div className="px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 text-right">
-            <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400">تخصيص الفاتورة المطبوعة</h3>
+          <div
+            className="flex items-center justify-between p-4"
+            style={{ borderColor: theme.border }}
+          >
+            <div className="flex items-center gap-3.5">
+              <div
+                className="h-10 w-10 border flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                  color: theme.textMuted,
+                }}
+              >
+                <Truck size={18} />
+              </div>
+              <div>
+                <h3 className="text-sm font-black" style={{ color: theme.text }}>
+                  إلزامية حصة المورد
+                </h3>
+                <p className="text-[11px] mt-0.5" style={{ color: theme.textMuted }}>
+                  إلزام فتح حصة مورد قبل إضافة كميات للمخزون
+                </p>
+              </div>
+            </div>
+            {renderSwitch(Boolean(settings.requireSupplierSession ?? false), () =>
+              updateSettings({
+                requireSupplierSession: !(
+                  settings.requireSupplierSession ?? false
+                ),
+              }),
+            )}
           </div>
 
-          <div className="p-4 space-y-4">
-            <div className="space-y-2 text-right">
-              <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">عرض ورق الفاتورة المطبوعة</label>
-              <div className="flex gap-2 bg-zinc-50 dark:bg-zinc-800 p-1 rounded-xl border border-zinc-200 dark:border-zinc-700">
-                <button
-                  type="button"
-                  onClick={() => setTempSettings({ ...tempSettings, receiptPaperSize: '80mm' })}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-                    tempSettings.receiptPaperSize === '80mm' 
-                      ? 'bg-white text-brand-600 shadow-sm dark:bg-zinc-900 dark:text-white' 
-                      : 'text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800/50'
-                  }`}
-                >
-                  80 ملم (قياسي / طابعة مكتبية)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTempSettings({ ...tempSettings, receiptPaperSize: '58mm' })}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-                    tempSettings.receiptPaperSize === '58mm' 
-                      ? 'bg-white text-brand-600 shadow-sm dark:bg-zinc-900 dark:text-white' 
-                      : 'text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800/50'
-                  }`}
-                >
-                  58 ملم (صغير / طابعة محمولة)
-                </button>
+          <div className="p-4 space-y-3" style={{ borderColor: theme.border }}>
+            <div className="flex items-center gap-3.5">
+              <div
+                className="h-10 w-10 border flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                  color: theme.textMuted,
+                }}
+              >
+                <Percent size={18} />
+              </div>
+              <div>
+                <h3 className="text-sm font-black" style={{ color: theme.text }}>
+                  {t('profit_calculation_method')}
+                </h3>
+                <p className="text-[11px] mt-0.5" style={{ color: theme.textMuted }}>
+                  {t('profit_calc_desc')}
+                </p>
               </div>
             </div>
 
-            <div className="space-y-2 text-right">
-              <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">رسالة الشكر (تظهر أسفل الفاتورة)</label>
-              <input 
-                type="text" 
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: 'markup', label: t('profit_calc_markup') },
+                { id: 'margin', label: t('profit_calc_margin') },
+              ].map((m) => {
+                const active =
+                  (settings.profitCalculationMethod || 'markup') === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() =>
+                      updateSettings({
+                        profitCalculationMethod: m.id as 'markup' | 'margin',
+                      })
+                    }
+                    className="py-2.5 border text-xs font-bold transition-colors cursor-pointer"
+                    style={
+                      active
+                        ? {
+                            backgroundColor: theme.text,
+                            color: theme.surface,
+                            borderColor: theme.text,
+                          }
+                        : {
+                            backgroundColor: theme.bg,
+                            color: theme.text,
+                            borderColor: theme.border,
+                          }
+                    }
+                  >
+                    {m.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* 05: RECEIPT CUSTOMIZATION */}
+        <section
+          className="border text-right"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
+          <div
+            className="px-4 py-2.5 border-b flex items-center gap-2 text-xs font-bold"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+            }}
+          >
+            <span className="font-mono" style={{ color: theme.accent }}>
+              05
+            </span>
+            <span style={{ color: theme.text }}>تخصيص الفاتورة المطبوعة</span>
+          </div>
+
+          <div className="p-4 sm:p-5 space-y-4">
+            <div className="space-y-2">
+              <label
+                className="text-xs font-bold block"
+                style={{ color: theme.textMuted }}
+              >
+                عرض ورق الفاتورة المطبوعة
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: '80mm', label: '80 ملم (قياسي / طابعة مكتبية)' },
+                  { id: '58mm', label: '58 ملم (صغير / طابعة محمولة)' },
+                ].map((paper) => {
+                  const active = tempSettings.receiptPaperSize === paper.id;
+                  return (
+                    <button
+                      key={paper.id}
+                      type="button"
+                      onClick={() =>
+                        setTempSettings({
+                          ...tempSettings,
+                          receiptPaperSize: paper.id as '80mm' | '58mm',
+                        })
+                      }
+                      className="py-2.5 px-3 border text-xs font-bold transition-colors cursor-pointer"
+                      style={
+                        active
+                          ? {
+                              backgroundColor: theme.text,
+                              color: theme.surface,
+                              borderColor: theme.text,
+                            }
+                          : {
+                              backgroundColor: theme.bg,
+                              color: theme.text,
+                              borderColor: theme.border,
+                            }
+                      }
+                    >
+                      {paper.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label
+                className="text-xs font-bold block"
+                style={{ color: theme.textMuted }}
+              >
+                رسالة الشكر (تظهر أسفل الفاتورة)
+              </label>
+              <input
+                type="text"
                 value={tempSettings.receiptThankYouMessage ?? ''}
-                onChange={(e) => setTempSettings({ ...tempSettings, receiptThankYouMessage: e.target.value })}
+                onChange={(e) =>
+                  setTempSettings({
+                    ...tempSettings,
+                    receiptThankYouMessage: e.target.value,
+                  })
+                }
                 placeholder="مثال: شكراً لثقتكم بنا، نتمنى لكم يوماً سعيداً"
-                className="w-full text-right bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-500 outline-none dark:bg-zinc-800 dark:border-zinc-700 dark:text-white"
+                className="w-full text-right border px-3.5 py-2.5 text-sm outline-none"
+                style={{
+                  backgroundColor: theme.bg,
+                  borderColor: theme.border,
+                  color: theme.text,
+                }}
               />
             </div>
 
-            <div className="space-y-2 text-right">
-              <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">سياسة الاسترجاع أو ملاحظات إضافية</label>
-              <textarea 
+            <div className="space-y-1.5">
+              <label
+                className="text-xs font-bold block"
+                style={{ color: theme.textMuted }}
+              >
+                سياسة الاسترجاع أو ملاحظات إضافية
+              </label>
+              <textarea
                 value={tempSettings.receiptPolicy ?? ''}
-                onChange={(e) => setTempSettings({ ...tempSettings, receiptPolicy: e.target.value })}
+                onChange={(e) =>
+                  setTempSettings({
+                    ...tempSettings,
+                    receiptPolicy: e.target.value,
+                  })
+                }
                 placeholder="مثال: البضاعة المباعة لا ترد ولا تستبدل بعد 3 أيام..."
                 rows={3}
-                className="w-full text-right bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-500 outline-none resize-none dark:bg-zinc-800 dark:border-zinc-700 dark:text-white"
+                className="w-full text-right border px-3.5 py-2.5 text-sm outline-none resize-none"
+                style={{
+                  backgroundColor: theme.bg,
+                  borderColor: theme.border,
+                  color: theme.text,
+                }}
               />
             </div>
-            
-            <div className="space-y-2 text-right">
-              <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">شعار المتجر في الفاتورة (اختياري)</label>
+
+            <div className="space-y-2">
+              <label
+                className="text-xs font-bold block"
+                style={{ color: theme.textMuted }}
+              >
+                شعار المتجر في الفاتورة (اختياري)
+              </label>
               <div className="flex gap-2">
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={tempSettings.receiptLogo ?? ''}
-                  onChange={(e) => setTempSettings({ ...tempSettings, receiptLogo: e.target.value })}
+                  onChange={(e) =>
+                    setTempSettings({
+                      ...tempSettings,
+                      receiptLogo: e.target.value,
+                    })
+                  }
                   placeholder="رابط الصورة (أو ارفع من الجهاز)"
-                  className="w-full text-left bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-500 outline-none dark:bg-zinc-800 dark:border-zinc-700 dark:text-white"
+                  className="w-full text-left border px-3.5 py-2.5 text-sm outline-none font-mono"
+                  style={{
+                    backgroundColor: theme.bg,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  }}
                   dir="ltr"
                 />
-                <label className="flex-shrink-0 flex items-center justify-center bg-brand-50 hover:bg-brand-100 text-brand-600 rounded-xl px-4 cursor-pointer transition-colors dark:bg-brand-500/10 dark:hover:bg-brand-500/20" title="رفع صورة من الجهاز">
-                  <Upload size={20} />
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    className="hidden" 
+                <label
+                  className="flex-shrink-0 flex items-center justify-center border px-4 cursor-pointer transition-colors"
+                  style={{
+                    backgroundColor: theme.surfaceMuted,
+                    borderColor: theme.border,
+                    color: theme.accent,
+                  }}
+                  title="رفع صورة من الجهاز"
+                >
+                  <Upload size={18} />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
                     onChange={handleLogoUpload}
                   />
                 </label>
               </div>
               {tempSettings.receiptLogo && (
-                <div className="mt-2 relative p-2 border border-zinc-100 rounded-lg flex justify-center bg-white dark:bg-zinc-800 dark:border-zinc-700 group">
-                  <img src={tempSettings.receiptLogo} alt="Logo preview" className="max-h-20 object-contain rounded" onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/150x80?text=Invalid+Image' }} />
-                  <button 
-                    onClick={() => setTempSettings({ ...tempSettings, receiptLogo: '' })}
-                    className="absolute top-1 right-1 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg p-1.5 opacity-0 group-hover:opacity-100 transition-opacity dark:bg-red-500/10 dark:hover:bg-red-500/20"
+                <div
+                  className="mt-2 relative p-3 border flex justify-center group"
+                  style={{ backgroundColor: theme.bg, borderColor: theme.border }}
+                >
+                  <img
+                    src={tempSettings.receiptLogo}
+                    alt="Logo preview"
+                    className="max-h-20 object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        'https://placehold.co/150x80?text=Invalid+Image';
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setTempSettings({ ...tempSettings, receiptLogo: '' })
+                    }
+                    className="absolute top-2 right-2 border p-1.5 cursor-pointer"
+                    style={{
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                      color: theme.negative,
+                    }}
                     title="إزالة الشعار"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={14} />
                   </button>
                 </div>
               )}
             </div>
 
             <button
+              type="button"
               onClick={handleSaveStoreSettings}
               disabled={isSaving}
-              className="w-full mt-4 bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+              className="w-full py-3 border text-xs font-black flex items-center justify-center gap-2 transition-opacity disabled:opacity-50 cursor-pointer"
+              style={{
+                backgroundColor: theme.text,
+                color: theme.surface,
+                borderColor: theme.text,
+              }}
             >
-              {isSaving ? <span className="animate-spin text-xl">↻</span> : <Check size={20} />}
+              {isSaving ? (
+                <span className="animate-spin text-base">↻</span>
+              ) : (
+                <Check size={16} />
+              )}
               <span>حفظ إعدادات الفاتورة</span>
             </button>
           </div>
-        </div>
+        </section>
 
-
-        {/* Actions / Menu Items Group */}
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-100 dark:border-zinc-800 shadow-sm divide-y divide-zinc-100 dark:divide-zinc-800">
-          <div className="px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 text-right">
-            <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400">إجراءات وأدوات</h3>
+        {/* 06: ACTIONS & TOOLS */}
+        <section
+          className="border text-right divide-y"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
+          <div
+            className="px-4 py-2.5 flex items-center gap-2 text-xs font-bold"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+            }}
+          >
+            <span className="font-mono" style={{ color: theme.accent }}>
+              06
+            </span>
+            <span style={{ color: theme.text }}>إجراءات وأدوات النظام</span>
           </div>
 
-          {/* Catalog Mode Entry */}
           <button
+            type="button"
             onClick={() => setIsCatalogMode(true)}
-            className="w-full flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors text-right"
+            className="w-full flex items-center justify-between p-4 text-right transition-colors cursor-pointer"
+            style={{ borderColor: theme.border }}
           >
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center dark:bg-brand-900/30 dark:text-brand-400">
-                <Lock size={20} />
+            <div className="flex items-center gap-3.5">
+              <div
+                className="h-10 w-10 border flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                  color: theme.accent,
+                }}
+              >
+                <Lock size={18} />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-brand-600 dark:text-brand-400">{t('enter_catalog_mode') || 'الدخول لوضع الكتالوج'}</h3>
-                <p className="text-[11px] text-zinc-400 mt-0.5">{t('catalog_mode_desc') || 'يعرض المنتجات والأسعار للعملاء'}</p>
+                <h3 className="text-sm font-black" style={{ color: theme.accent }}>
+                  {t('enter_catalog_mode') || 'الدخول لوضع الكتالوج'}
+                </h3>
+                <p className="text-[11px] mt-0.5" style={{ color: theme.textMuted }}>
+                  {t('catalog_mode_desc') || 'يعرض المنتجات والأسعار للعملاء'}
+                </p>
               </div>
             </div>
-            <ChevronLeft className="text-zinc-400" size={18} />
+            <ChevronLeft size={16} style={{ color: theme.textMuted }} />
           </button>
 
-          {/* Other menu items */}
-          {menuItems.map((item, idx) => (
-            <button 
-              key={`menu-${item.id}-${idx}`} 
+          {menuItems.map((item) => (
+            <button
+              key={item.id}
+              type="button"
               onClick={() => setActiveView(item.id as View)}
-              className="group w-full flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors text-right"
+              className="w-full flex items-center justify-between p-4 text-right transition-colors cursor-pointer"
+              style={{ borderColor: theme.border }}
             >
-              <div className="flex items-center gap-4">
-                <div className={`h-10 w-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center ${item.color}`}>
-                  <item.icon size={20} />
+              <div className="flex items-center gap-3.5">
+                <div
+                  className="h-10 w-10 border flex items-center justify-center shrink-0"
+                  style={{
+                    backgroundColor: theme.surfaceMuted,
+                    borderColor: theme.border,
+                    color: theme.textMuted,
+                  }}
+                >
+                  <item.icon size={18} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-zinc-900 dark:text-white">{item.label}</h3>
-                  <p className="text-[11px] text-zinc-400 mt-0.5">{item.subtitle}</p>
+                  <h3 className="text-sm font-black" style={{ color: theme.text }}>
+                    {item.label}
+                  </h3>
+                  <p className="text-[11px] mt-0.5" style={{ color: theme.textMuted }}>
+                    {item.subtitle}
+                  </p>
                 </div>
               </div>
-              <ChevronLeft className="text-zinc-400 group-hover:text-brand-500 transition-transform group-hover:-translate-x-1" size={18} />
+              <ChevronLeft size={16} style={{ color: theme.textMuted }} />
             </button>
           ))}
-        </div>
+        </section>
 
-        {/* Danger Zone Group */}
-        <button 
+        {/* DANGER ZONE */}
+        <button
+          type="button"
           onClick={() => setIsClearDataModalOpen(true)}
-          className="w-full flex items-center justify-between p-6 rounded-lg text-white font-bold transition-all shadow-lg shadow-[#B34C36]/20 active:scale-95 mt-8"
-          style={{ backgroundColor: '#B34C36' }}
+          className="w-full flex items-center justify-between p-5 border font-black transition-opacity active:scale-[0.99] cursor-pointer"
+          style={{
+            backgroundColor: theme.negative,
+            borderColor: theme.negative,
+            color: theme.surface,
+          }}
         >
           <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-lg bg-white/20 flex items-center justify-center text-white">
-              <Trash2 size={24} />
+            <div
+              className="h-11 w-11 border flex items-center justify-center"
+              style={{ borderColor: 'rgba(255,255,255,0.35)' }}
+            >
+              <Trash2 size={20} />
             </div>
             <div className="text-right">
-              <h3 className="text-lg font-bold">{t('clear_store_data')}</h3>
-              <p className="text-xs text-white/70 mt-0.5">{t('delete_all_data')}</p>
+              <h3 className="text-base font-black">{t('clear_store_data')}</h3>
+              <p className="text-xs opacity-80 mt-0.5">{t('delete_all_data')}</p>
             </div>
           </div>
-          <ChevronLeft className="text-white/60" size={20} />
+          <ChevronLeft size={18} />
         </button>
-      </div>
 
-      <div className="text-center pt-8">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-50 text-brand-600 text-xs font-bold dark:bg-brand-950/20 dark:text-brand-400">
-          <span className="h-2 w-2 rounded-full bg-brand-600 animate-pulse" />
-          الإصدار {__APP_VERSION__} • مخزوني
+        {/* CLEAN FOLIO FOOTER (NO ANIMATED DOT / NO PILL) */}
+        <div className="text-center pt-4">
+          <span
+            className="inline-block px-3.5 py-1.5 border text-xs font-mono font-bold"
+            style={{
+              backgroundColor: theme.surface,
+              borderColor: theme.border,
+              color: theme.textMuted,
+            }}
+          >
+            الإصدار {__APP_VERSION__} · مخزوني
+          </span>
         </div>
       </div>
 
+      {/* Clear All Data Modal */}
       <AnimatePresence>
         {isClearDataModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsClearDataModalOpen(false)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 10 }} 
-              animate={{ opacity: 1, scale: 1, y: 0 }} 
-              exit={{ opacity: 0, scale: 0.95, y: 10 }} 
-              className="relative w-full max-w-[280px] rounded-lg bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsClearDataModalOpen(false)}
+              className="absolute inset-0 bg-black/55 backdrop-blur-xs"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              className="relative w-full max-w-xs border p-6 text-center shadow-2xl"
+              style={{
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+                color: theme.text,
+              }}
             >
-              <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-4 leading-relaxed">
-                {t('confirm_clear_all_data_desc')} <span className="text-[#B34C36]">{t('irreversible_action')}</span>
+              <p className="text-xs font-bold mb-4 leading-relaxed">
+                {t('confirm_clear_all_data_desc')}{' '}
+                <span style={{ color: theme.negative }}>
+                  {t('irreversible_action')}
+                </span>
               </p>
-              
-              <div className="mb-6">
-                <input 
+
+              <div className="mb-5">
+                <input
                   type="password"
                   placeholder="أدخل كلمة السر لتأكيد الحذف"
                   value={deletePassword}
@@ -1125,30 +1742,51 @@ export default function SettingsPage() {
                     setDeletePassword(e.target.value);
                     setPasswordError('');
                   }}
-                  className="w-full text-center px-4 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm font-bold text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#B34C36]"
+                  className="w-full text-center px-3 py-2.5 border text-sm font-bold outline-none"
+                  style={{
+                    backgroundColor: theme.bg,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  }}
                 />
                 {passwordError && (
-                  <p className="text-[#B34C36] text-xs font-bold mt-2">{passwordError}</p>
+                  <p
+                    className="text-xs font-bold mt-2"
+                    style={{ color: theme.negative }}
+                  >
+                    {passwordError}
+                  </p>
                 )}
               </div>
-              
+
               <div className="flex gap-2">
-                <button 
+                <button
+                  type="button"
                   onClick={handleClearAllData}
                   disabled={isClearing}
-                  className="flex-1 py-2.5 rounded-lg font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px] disabled:opacity-50"
-                  style={{ backgroundColor: '#B34C36' }}
+                  className="flex-1 py-2.5 border font-black text-xs disabled:opacity-50 cursor-pointer"
+                  style={{
+                    backgroundColor: theme.negative,
+                    borderColor: theme.negative,
+                    color: theme.surface,
+                  }}
                 >
                   {t('confirm')}
                 </button>
-                <button 
+                <button
+                  type="button"
                   onClick={() => {
                     setIsClearDataModalOpen(false);
                     setDeletePassword('');
                     setPasswordError('');
                   }}
                   disabled={isClearing}
-                  className="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-lg text-[12px] font-bold active:scale-95 transition-all"
+                  className="flex-1 py-2.5 border text-xs font-bold cursor-pointer"
+                  style={{
+                    backgroundColor: theme.surfaceMuted,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  }}
                 >
                   {t('cancel')}
                 </button>
@@ -1158,36 +1796,66 @@ export default function SettingsPage() {
         )}
       </AnimatePresence>
 
+      {/* Logout Modal */}
       <AnimatePresence>
         {isLogoutModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsLogoutModalOpen(false)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 10 }} 
-              animate={{ opacity: 1, scale: 1, y: 0 }} 
-              exit={{ opacity: 0, scale: 0.95, y: 10 }} 
-              className="relative w-full max-w-[280px] rounded-lg bg-white p-6 dark:bg-zinc-900 text-center shadow-2xl border border-zinc-100 dark:border-zinc-800"
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsLogoutModalOpen(false)}
+              className="absolute inset-0 bg-black/55 backdrop-blur-xs"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              className="relative w-full max-w-xs border p-6 text-center shadow-2xl"
+              style={{
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+                color: theme.text,
+              }}
             >
-              <div className="mb-4 pt-2">
-                <p className="text-[10px] font-black text-zinc-400 mb-0.5 uppercase tracking-wider">{t('current_account')}</p>
-                <p className="text-xs font-black text-zinc-900 dark:text-white truncate">{user?.email || user?.phoneNumber}</p>
+              <div className="mb-4 pt-1">
+                <p
+                  className="text-[10px] font-black mb-1"
+                  style={{ color: theme.textMuted }}
+                >
+                  {t('current_account')}
+                </p>
+                <p className="text-xs font-black truncate">
+                  {user?.email || user?.phoneNumber}
+                </p>
               </div>
 
-              <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
+              <p className="text-xs font-bold mb-5 leading-relaxed">
                 {t('confirm_logout_desc')}
               </p>
-              
+
               <div className="flex gap-2">
-                <button 
+                <button
+                  type="button"
                   onClick={() => auth.signOut()}
-                  className="flex-1 py-2.5 rounded-lg font-black text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95 text-[12px]"
-                  style={{ backgroundColor: '#B34C36' }}
+                  className="flex-1 py-2.5 border font-black text-xs cursor-pointer"
+                  style={{
+                    backgroundColor: theme.negative,
+                    borderColor: theme.negative,
+                    color: theme.surface,
+                  }}
                 >
                   {t('confirm_logout')}
                 </button>
-                <button 
+                <button
+                  type="button"
                   onClick={() => setIsLogoutModalOpen(false)}
-                  className="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-lg text-[12px] font-bold active:scale-95 transition-all"
+                  className="flex-1 py-2.5 border text-xs font-bold cursor-pointer"
+                  style={{
+                    backgroundColor: theme.surfaceMuted,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  }}
                 >
                   {t('cancel')}
                 </button>

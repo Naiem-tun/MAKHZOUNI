@@ -1,8 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
-import { CirclePlus } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Supplier } from '../../types';
+import { useAppContext } from '../../AppContext';
+import { useFolioTheme } from '../folio/FolioPageChrome';
 
 interface SupplierTransactionModalProps {
   isAddTxModalOpen: boolean;
@@ -22,87 +24,196 @@ export function SupplierTransactionModal({
   currency
 }: SupplierTransactionModalProps) {
   const { t } = useTranslation();
+  const { settings } = useAppContext();
+  const { theme } = useFolioTheme(Boolean(settings?.darkMode), settings?.folioThemeId);
 
   return (
     <AnimatePresence>
       {isAddTxModalOpen && selectedSupplier && (
-        <motion.div key="modal-add-tx" className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAddTxModalOpen(false)} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-lg bg-white p-8 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-12 w-12 rounded-lg bg-brand-50 dark:bg-brand-950/20 flex items-center justify-center text-brand-600">
-                <CirclePlus size={24} />
+        <motion.div
+          key="modal-add-tx"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
+          dir="rtl"
+        >
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsAddTxModalOpen(false)}
+            className="absolute inset-0 bg-black/60 backdrop-blur-xs"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 12 }}
+            className="relative w-full max-w-md border shadow-2xl overflow-hidden flex flex-col"
+            style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }}
+          >
+            {/* Header */}
+            <div
+              className="px-5 py-4 border-b flex items-center justify-between"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span
+                  className="text-[11px] font-mono font-bold tabular-nums px-2 py-0.5 border shrink-0"
+                  style={{
+                    color: theme.negative,
+                    borderColor: `${theme.negative}45`,
+                    backgroundColor: `${theme.negative}12`
+                  }}
+                >
+                  01
+                </span>
+                <div className="min-w-0">
+                  <h2 className="text-base sm:text-lg font-black truncate" style={{ color: theme.text }}>
+                    {t('record_payment')}
+                  </h2>
+                  <p className="text-[11px] truncate" style={{ color: theme.textMuted }}>
+                    {t('suppliers')}: {selectedSupplier.name}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-zinc-900 dark:text-white">{t('record_payment')}</h2>
-                <p className="text-xs text-zinc-500">{t('suppliers')}: {selectedSupplier.name}</p>
-              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddTxModalOpen(false)}
+                className="p-1.5 border transition-colors cursor-pointer shrink-0"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                  color: theme.text
+                }}
+              >
+                <X size={18} />
+              </button>
             </div>
-            <form onSubmit={handleAddTransaction} autoComplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-protonpass-ignore="true" className="space-y-4 text-right">
-              <div>
-                <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('purchase_price')}</label>
-            <div className="relative">
-              <input 
-                name="amount" 
-                type="number" 
-                step="0.001" 
-                inputMode="decimal"
-                autoComplete="one-time-code"
-                autoCorrect="off"
-                data-lpignore="true"
-                data-1p-ignore="true"
-                data-bwignore="true"
-                data-protonpass-ignore="true"
-                data-form-type="other"
-                placeholder="0.000" 
-                required 
-                className="w-full rounded-lg border bg-zinc-50 p-4 pr-12 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700 font-mono text-lg" 
-              />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-zinc-400">{currency}</span>
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('date')}</label>
-            <input 
-              name="date" 
-              type="date" 
-              autoComplete="one-time-code"
-              autoCorrect="off"
+
+            <form
+              onSubmit={handleAddTransaction}
+              autoComplete="off"
               data-lpignore="true"
               data-1p-ignore="true"
               data-bwignore="true"
               data-protonpass-ignore="true"
-              data-form-type="other"
-              defaultValue={new Date().toISOString().split('T')[0]} 
-              className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" 
-            />
-          </div>
-          <div>
-            <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('notes')}</label>
-            <input 
-              name="note" 
-              type="text"
-              autoComplete="one-time-code"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              data-lpignore="true"
-              data-1p-ignore="true"
-              data-bwignore="true"
-              data-protonpass-ignore="true"
-              data-form-type="other"
-              placeholder={t('record_payment_note_placeholder')} 
-              className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" 
-            />
-          </div>
-          <div className="flex gap-3 pt-4">
-            <button type="button" onClick={() => setIsAddTxModalOpen(false)} className="flex-1 rounded-lg bg-zinc-100 py-3 font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">{t('cancel')}</button>
-            <button type="submit" disabled={isSaving} className="flex-1 rounded-lg py-3 font-semibold text-white shadow-lg shadow-[#B34C36]/20 disabled:opacity-50" style={{ backgroundColor: '#B34C36' }}>
-              {isSaving ? t('saving') : t('confirm_payment')}
-            </button>
-          </div>
-        </form>
-      </motion.div>
+              className="flex flex-col"
+            >
+              <div className="p-5 space-y-4 text-right">
+                <div>
+                  <label className="text-xs font-bold mb-1.5 block" style={{ color: theme.textMuted }}>
+                    {t('purchase_price')}
+                  </label>
+                  <div
+                    className="flex items-center border overflow-hidden"
+                    style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                  >
+                    <input
+                      name="amount"
+                      type="number"
+                      step="0.001"
+                      inputMode="decimal"
+                      autoComplete="one-time-code"
+                      autoCorrect="off"
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-bwignore="true"
+                      data-protonpass-ignore="true"
+                      data-form-type="other"
+                      placeholder="0.000"
+                      required
+                      className="flex-1 bg-transparent p-3.5 text-right outline-none font-mono font-black tabular-nums text-lg"
+                      style={{ color: theme.text }}
+                    />
+                    <span
+                      className="px-3.5 py-3.5 border-r font-mono text-xs font-bold shrink-0"
+                      style={{
+                        backgroundColor: theme.surfaceMuted,
+                        borderColor: theme.border,
+                        color: theme.textMuted
+                      }}
+                    >
+                      {currency}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold mb-1.5 block" style={{ color: theme.textMuted }}>
+                    {t('date')}
+                  </label>
+                  <input
+                    name="date"
+                    type="date"
+                    autoComplete="one-time-code"
+                    autoCorrect="off"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
+                    data-protonpass-ignore="true"
+                    data-form-type="other"
+                    defaultValue={new Date().toISOString().split('T')[0]}
+                    className="w-full border p-3.5 text-right outline-none font-mono text-sm"
+                    style={{
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                      color: theme.text
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold mb-1.5 block" style={{ color: theme.textMuted }}>
+                    {t('notes')}
+                  </label>
+                  <input
+                    name="note"
+                    type="text"
+                    autoComplete="one-time-code"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
+                    data-protonpass-ignore="true"
+                    data-form-type="other"
+                    placeholder={t('record_payment_note_placeholder')}
+                    className="w-full border p-3.5 text-right outline-none text-sm"
+                    style={{
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                      color: theme.text
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div
+                className="px-5 py-4 border-t flex gap-3"
+                style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setIsAddTxModalOpen(false)}
+                  className="flex-1 py-3 border text-xs font-bold transition-colors cursor-pointer"
+                  style={{
+                    backgroundColor: theme.surfaceMuted,
+                    borderColor: theme.border,
+                    color: theme.text
+                  }}
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="flex-1 py-3 text-xs font-black text-white transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                  style={{ backgroundColor: theme.negative }}
+                >
+                  {isSaving ? t('saving') : t('confirm_payment')}
+                </button>
+              </div>
+            </form>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>

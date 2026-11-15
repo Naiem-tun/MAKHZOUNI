@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Lock, Delete, LogOut, ShieldCheck, KeyRound, AlertCircle, Sparkles } from 'lucide-react';
+import { Lock, Delete, LogOut, ShieldCheck, KeyRound, AlertCircle } from 'lucide-react';
 import { useAppContext } from '../../AppContext';
 import { Logo } from '../UI';
 import { auth } from '../../lib/firebase';
 import { signOut } from 'firebase/auth';
+import { useFolioTheme } from '../folio/FolioPageChrome';
 
 export const AppLockScreen: React.FC = () => {
   const { settings, unlockApp, showToast, user } = useAppContext();
+  const { theme } = useFolioTheme(Boolean(settings?.darkMode), settings?.folioThemeId);
   const [pin, setPin] = useState('');
   const [isError, setIsError] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -99,72 +101,67 @@ export const AppLockScreen: React.FC = () => {
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-[120] flex flex-col items-center justify-between bg-[var(--app-bg,#F4F7FB)] dark:bg-[var(--app-bg-dark,#0B1121)] text-zinc-900 dark:text-white px-4 py-8 select-none transition-colors duration-300 overflow-y-auto"
+    <div
+      className="fixed inset-0 z-[120] flex flex-col items-center justify-between px-4 py-8 select-none transition-colors duration-300 overflow-y-auto"
+      style={{ backgroundColor: theme.bg, color: theme.text }}
       dir="rtl"
     >
-      {/* Background Subtle Pattern */}
-      <div className="absolute inset-0 pointer-events-none opacity-40 dark:opacity-20 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:24px_24px]" />
-
       {/* Top Header & Store Branding */}
       <div className="relative z-10 flex flex-col items-center mt-2 sm:mt-6">
-        <motion.div 
-          initial={{ scale: 0.8, opacity: 0 }}
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.4 }}
+          transition={{ duration: 0.3 }}
           className="relative mb-3"
         >
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-white dark:bg-zinc-900 shadow-xl shadow-brand-500/10 dark:shadow-none border border-zinc-200/80 dark:border-zinc-800 flex items-center justify-center p-3 relative group">
+          <div
+            className="w-20 h-20 sm:w-24 sm:h-24 border flex items-center justify-center p-3 relative"
+            style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+          >
             <Logo className="w-full h-full" />
-            <div className="absolute -bottom-1 -right-1 bg-brand-600 text-white p-1.5 rounded-full shadow-md">
-              <Lock size={14} />
+            <div
+              className="absolute -bottom-1 -right-1 p-1.5 border"
+              style={{ backgroundColor: theme.accent, borderColor: theme.accent, color: theme.accentText }}
+            >
+              <Lock size={13} />
             </div>
           </div>
         </motion.div>
 
-        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-zinc-900 dark:text-white">
+        <h1 className="text-xl sm:text-2xl font-black tracking-tight" style={{ color: theme.text }}>
           {settings?.storeName || 'مخزوني'}
         </h1>
-        <p className="text-xs sm:text-sm font-semibold text-zinc-500 dark:text-zinc-400 mt-1">
+        <p className="text-xs sm:text-sm font-bold mt-1" style={{ color: theme.textMuted }}>
           أدخل رمز الدخول (4 أرقام) للمتابعة
         </p>
       </div>
 
-      {/* PIN Indicator Dots */}
+      {/* PIN Indicator */}
       <div className="relative z-10 flex flex-col items-center my-4 sm:my-6">
-        <motion.div 
+        <motion.div
           animate={isError ? { x: [-12, 12, -8, 8, -4, 4, 0] } : {}}
           transition={{ duration: 0.4 }}
           className="flex items-center gap-4 py-2"
         >
           {[0, 1, 2, 3].map((index) => {
             const isFilled = pin.length > index;
+            const dotColor = isError
+              ? theme.negative
+              : isSuccess
+                ? theme.positive
+                : isFilled
+                  ? theme.accent
+                  : theme.border;
             return (
               <motion.div
                 key={index}
                 initial={false}
-                animate={{
-                  scale: isFilled ? 1.15 : 1,
-                  backgroundColor: isError 
-                    ? '#EF4444' 
-                    : isSuccess 
-                    ? '#10B981' 
-                    : isFilled 
-                    ? '#2563EB' 
-                    : 'transparent',
-                  borderColor: isError 
-                    ? '#EF4444' 
-                    : isSuccess 
-                    ? '#10B981' 
-                    : isFilled 
-                    ? '#2563EB' 
-                    : 'currentColor',
+                animate={{ scale: isFilled ? 1.12 : 1 }}
+                className="w-4 h-4 sm:w-5 sm:h-5 border-2 transition-colors duration-150"
+                style={{
+                  backgroundColor: isFilled || isError || isSuccess ? dotColor : theme.surface,
+                  borderColor: dotColor,
                 }}
-                className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 transition-all duration-200 ${
-                  isFilled 
-                    ? 'border-brand-600 dark:border-brand-500' 
-                    : 'border-zinc-300 dark:border-zinc-700 bg-zinc-200/50 dark:bg-zinc-800/50'
-                }`}
               />
             );
           })}
@@ -177,7 +174,8 @@ export const AppLockScreen: React.FC = () => {
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 4 }}
-                className="text-xs font-bold text-red-500 dark:text-red-400 flex items-center gap-1.5"
+                className="text-xs font-bold flex items-center gap-1.5"
+                style={{ color: theme.negative }}
               >
                 <AlertCircle size={14} />
                 رمز PIN غير صحيح، حاول مجدداً
@@ -187,7 +185,8 @@ export const AppLockScreen: React.FC = () => {
               <motion.span
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5"
+                className="text-xs font-bold flex items-center gap-1.5"
+                style={{ color: theme.positive }}
               >
                 <ShieldCheck size={14} />
                 تم التحقق بنجاح...
@@ -199,48 +198,49 @@ export const AppLockScreen: React.FC = () => {
 
       {/* Touch Numeric Keypad */}
       <div className="relative z-10 w-full max-w-xs sm:max-w-sm flex flex-col items-center">
-        <div className="grid grid-cols-3 gap-3 sm:gap-4 w-full px-2" dir="ltr">
+        <div className="grid grid-cols-3 gap-2.5 sm:gap-3 w-full px-2" dir="ltr">
           {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
             <button
               key={digit}
               type="button"
               onClick={() => handleDigit(digit)}
               disabled={isSuccess}
-              className="h-14 sm:h-16 rounded-2xl bg-white dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-zinc-800 text-xl sm:text-2xl font-bold text-zinc-800 dark:text-zinc-100 shadow-sm hover:bg-zinc-100 dark:hover:bg-zinc-800/80 active:scale-95 active:bg-brand-50 dark:active:bg-brand-950/40 transition-all flex items-center justify-center select-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              className="h-14 sm:h-16 border text-xl sm:text-2xl font-mono font-black flex items-center justify-center select-none cursor-pointer transition-colors"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
             >
               {digit}
             </button>
           ))}
 
-          {/* Clear button */}
           <button
             type="button"
             onClick={handleClear}
             disabled={isSuccess || pin.length === 0}
-            className="h-14 sm:h-16 rounded-2xl bg-zinc-100/70 dark:bg-zinc-800/40 text-xs sm:text-sm font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200/80 dark:hover:bg-zinc-800 active:scale-95 transition-all flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+            className="h-14 sm:h-16 border text-xs sm:text-sm font-bold flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+            style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.textMuted }}
           >
             مسح الكل
           </button>
 
-          {/* 0 button */}
           <button
             type="button"
             onClick={() => handleDigit('0')}
             disabled={isSuccess}
-            className="h-14 sm:h-16 rounded-2xl bg-white dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-zinc-800 text-xl sm:text-2xl font-bold text-zinc-800 dark:text-zinc-100 shadow-sm hover:bg-zinc-100 dark:hover:bg-zinc-800/80 active:scale-95 active:bg-brand-50 dark:active:bg-brand-950/40 transition-all flex items-center justify-center select-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+            className="h-14 sm:h-16 border text-xl sm:text-2xl font-mono font-black flex items-center justify-center select-none cursor-pointer transition-colors"
+            style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
           >
             0
           </button>
 
-          {/* Delete backspace button */}
           <button
             type="button"
             onClick={handleDelete}
             disabled={isSuccess || pin.length === 0}
-            className="h-14 sm:h-16 rounded-2xl bg-zinc-100/70 dark:bg-zinc-800/40 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200/80 dark:hover:bg-zinc-800 active:scale-95 transition-all flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+            className="h-14 sm:h-16 border flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
+            style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.text }}
             title="حذف"
           >
-            <Delete size={22} />
+            <Delete size={20} />
           </button>
         </div>
 
@@ -249,7 +249,8 @@ export const AppLockScreen: React.FC = () => {
           <button
             type="button"
             onClick={() => setShowForgotModal(true)}
-            className="text-xs sm:text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 transition-colors py-1.5 px-3 rounded-lg hover:bg-brand-50 dark:hover:bg-brand-950/30 flex items-center gap-1.5"
+            className="text-xs sm:text-sm font-bold py-1.5 px-3 border flex items-center gap-1.5 cursor-pointer transition-colors"
+            style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.accent }}
           >
             <KeyRound size={14} />
             <span>نسيت رمز الدخول؟</span>
@@ -260,43 +261,49 @@ export const AppLockScreen: React.FC = () => {
       {/* Forgot PIN Modal */}
       <AnimatePresence>
         {showForgotModal && (
-          <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs">
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 max-w-sm w-full shadow-2xl text-right"
+              exit={{ scale: 0.96, opacity: 0 }}
+              className="border max-w-sm w-full shadow-2xl overflow-hidden text-right"
+              style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }}
               dir="rtl"
             >
-              <div className="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-4">
-                <KeyRound size={24} />
+              <div
+                className="px-4 py-3 border-b flex items-center gap-2 text-xs font-black"
+                style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.neutral }}
+              >
+                <KeyRound size={15} />
+                <span>استعادة أو إعادة تعيين الرمز السري</span>
               </div>
 
-              <h3 className="text-base font-bold text-zinc-900 dark:text-white mb-2">
-                استعادة أو إعادة تعيين الرمز السري
-              </h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed mb-6">
-                للحفاظ على أمان بيانات المتجر، في حال نسيان الرمز يمكنك تسجيل الخروج وإعادة تسجيل الدخول بحسابك 
-                ({user?.email || 'المسجل'}) لإعادة تعيين الرمز من الإعدادات.
-              </p>
+              <div className="p-5 space-y-5">
+                <p className="text-xs leading-relaxed" style={{ color: theme.textMuted }}>
+                  للحفاظ على أمان بيانات المتجر، في حال نسيان الرمز يمكنك تسجيل الخروج وإعادة تسجيل الدخول بحسابك (
+                  <strong style={{ color: theme.text }}>{user?.email || 'المسجل'}</strong>) لإعادة تعيين الرمز من الإعدادات.
+                </p>
 
-              <div className="flex flex-col gap-2.5">
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="w-full h-11 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-colors"
-                >
-                  <LogOut size={16} />
-                  <span>تسجيل الخروج وإعادة الدخول</span>
-                </button>
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="w-full h-11 border font-black text-xs flex items-center justify-center gap-2 cursor-pointer transition-opacity hover:opacity-90"
+                    style={{ backgroundColor: theme.negative, borderColor: theme.negative, color: '#FFFFFF' }}
+                  >
+                    <LogOut size={15} />
+                    <span>تسجيل الخروج وإعادة الدخول</span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => setShowForgotModal(false)}
-                  className="w-full h-11 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-bold text-xs transition-colors"
-                >
-                  العودة وإعادة المحاولة
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotModal(false)}
+                    className="w-full h-11 border font-bold text-xs cursor-pointer transition-colors"
+                    style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.text }}
+                  >
+                    العودة وإعادة المحاولة
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>

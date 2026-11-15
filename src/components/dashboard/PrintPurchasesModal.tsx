@@ -5,8 +5,9 @@ import { Transaction } from '../../types';
 import * as html2pdf from 'html2pdf.js';
 import { X, ExternalLink, Loader2 } from 'lucide-react';
 import { useAppContext } from '../../AppContext';
-import { collection, query, getDocs, orderBy, where, limit } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { useFolioTheme } from '../folio/FolioPageChrome';
 
 interface PrintPurchasesModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export function PrintPurchasesModal({
 }: PrintPurchasesModalProps) {
   const { t } = useTranslation();
   const { user, settings, showToast } = useAppContext();
+  const { theme } = useFolioTheme(Boolean(settings?.darkMode), settings?.folioThemeId);
   const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'all' | 'custom'>('week');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -200,21 +202,43 @@ export function PrintPurchasesModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div 
-        className="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-2xl shadow-xl overflow-hidden flex flex-col"
-        dir={settings.language === 'ar' ? 'rtl' : 'ltr'}
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4"
+      onClick={onClose}
+      dir={settings.language === 'ar' ? 'rtl' : 'ltr'}
+    >
+      <div
+        className="w-full max-w-sm border shadow-2xl overflow-hidden flex flex-col max-h-[92vh] transition-colors"
+        style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }}
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-800/50">
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-white">طباعة تقرير المشتريات</h2>
-          <button onClick={onClose} disabled={isPrinting} className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors text-zinc-500 dark:text-zinc-400">
-            <X size={20} />
+        <div
+          className="px-4 py-3.5 border-b flex justify-between items-center shrink-0"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
+          <div className="space-y-0.5">
+            <div className="text-[10px] font-bold font-mono tabular-nums" style={{ color: theme.accent }}>
+              01 · تصدير PDF
+            </div>
+            <h2 className="text-base sm:text-lg font-black" style={{ color: theme.text }}>
+              طباعة تقرير المشتريات
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isPrinting}
+            aria-label="إغلاق"
+            className="p-1.5 border cursor-pointer"
+            style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.text }}
+          >
+            <X size={16} />
           </button>
         </div>
-        
-        <div className="p-6 space-y-6">
+
+        <div className="p-5 space-y-5 overflow-y-auto">
           <div className="space-y-2">
-            <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">الفترة الزمنية</label>
+            <label className="text-xs font-black block" style={{ color: theme.textMuted }}>الفترة الزمنية</label>
             <div className="grid grid-cols-2 gap-2">
               {[
                 { id: 'today', label: 'مشتريات اليوم' },
@@ -222,97 +246,111 @@ export function PrintPurchasesModal({
                 { id: 'month', label: 'هذا الشهر' },
                 { id: 'all', label: 'كل المشتريات' },
                 { id: 'custom', label: 'فترة مخصصة' }
-              ].map(opt => (
-                <button
-                  key={opt.id}
-                  disabled={isPrinting}
-                  onClick={() => setPeriod(opt.id as any)}
-                  className={`py-3 px-2 rounded-xl text-xs font-bold transition-all border-2 ${
-                    period === opt.id 
-                      ? 'bg-brand-50 border-brand-500 text-brand-700 dark:bg-brand-500/10 dark:border-brand-500 dark:text-brand-400 shadow-sm'
-                      : 'bg-white border-zinc-100 text-zinc-500 hover:bg-zinc-50 hover:border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400'
-                  }`}
-                  style={opt.id === 'custom' ? { gridColumn: 'span 2' } : undefined}
-                >
-                  {opt.label}
-                </button>
-              ))}
+              ].map((opt) => {
+                const active = period === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    disabled={isPrinting}
+                    onClick={() => setPeriod(opt.id as any)}
+                    className="py-2.5 px-2 text-xs font-bold border transition-colors cursor-pointer"
+                    style={{
+                      gridColumn: opt.id === 'custom' ? 'span 2' : undefined,
+                      backgroundColor: active ? theme.accent : theme.surface,
+                      borderColor: active ? theme.accent : theme.border,
+                      color: active ? theme.accentText : theme.text,
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
             </div>
 
             {period === 'custom' && (
               <div className="grid grid-cols-2 gap-3 pt-2">
                 <div>
-                  <label className="block text-[10px] font-bold text-zinc-500 mb-1">من تاريخ</label>
+                  <label className="block text-[10px] font-bold mb-1" style={{ color: theme.textMuted }}>من تاريخ</label>
                   <input
                     type="date"
                     disabled={isPrinting}
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                     dir="ltr"
-                    className="w-full p-2 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-zinc-50 dark:bg-zinc-800 text-sm focus:ring-2 focus:ring-brand-500"
+                    className="w-full p-2 border text-xs font-mono outline-none"
+                    style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-zinc-500 mb-1">إلى تاريخ</label>
+                  <label className="block text-[10px] font-bold mb-1" style={{ color: theme.textMuted }}>إلى تاريخ</label>
                   <input
                     type="date"
                     disabled={isPrinting}
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     dir="ltr"
-                    className="w-full p-2 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-zinc-50 dark:bg-zinc-800 text-sm focus:ring-2 focus:ring-brand-500"
+                    className="w-full p-2 border text-xs font-mono outline-none"
+                    style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
                   />
                 </div>
               </div>
             )}
           </div>
-          
-          <div className="space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-            <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300 block mb-2">تصفية حسب المورد</label>
-            <div className="max-h-48 overflow-y-auto border border-zinc-200 dark:border-zinc-700 rounded-xl bg-white dark:bg-zinc-800/80 divide-y divide-zinc-100 dark:divide-zinc-700 shadow-sm">
-              <label className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                <span className="text-base font-bold text-zinc-700 dark:text-zinc-300">كل الموردين</span>
-                <input 
-                  type="radio" 
-                  name="supplier" 
-                  value="all" 
-                  checked={selectedSupplier === 'all'} 
-                  onChange={(e) => setSelectedSupplier(e.target.value)} 
+
+          <div className="space-y-2.5 pt-4 border-t" style={{ borderColor: theme.border }}>
+            <label className="text-xs font-black block" style={{ color: theme.textMuted }}>تصفية حسب المورد</label>
+            <div
+              className="max-h-44 overflow-y-auto border divide-y"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+            >
+              <label className="flex items-center justify-between p-3 cursor-pointer transition-colors" style={{ borderColor: theme.border }}>
+                <span className="text-xs sm:text-sm font-bold" style={{ color: theme.text }}>كل الموردين</span>
+                <input
+                  type="radio"
+                  name="supplier"
+                  value="all"
+                  checked={selectedSupplier === 'all'}
+                  onChange={(e) => setSelectedSupplier(e.target.value)}
                   disabled={isPrinting}
-                  className="w-5 h-5 accent-brand-600 cursor-pointer"
+                  className="w-4 h-4 cursor-pointer"
+                  style={{ accentColor: theme.accent }}
                 />
               </label>
               {Array.from(new Set(purchases.map(p => p.supplierName || 'مورد غير معروف'))).map(s => (
-                <label key={s} className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                  <span className="text-base font-bold text-zinc-700 dark:text-zinc-300">{s}</span>
-                  <input 
-                    type="radio" 
-                    name="supplier" 
-                    value={s} 
-                    checked={selectedSupplier === s} 
-                    onChange={(e) => setSelectedSupplier(e.target.value)} 
+                <label key={s} className="flex items-center justify-between p-3 cursor-pointer transition-colors" style={{ borderColor: theme.border }}>
+                  <span className="text-xs sm:text-sm font-bold" style={{ color: theme.text }}>{s}</span>
+                  <input
+                    type="radio"
+                    name="supplier"
+                    value={s}
+                    checked={selectedSupplier === s}
+                    onChange={(e) => setSelectedSupplier(e.target.value)}
                     disabled={isPrinting}
-                    className="w-5 h-5 accent-brand-600 cursor-pointer"
+                    className="w-4 h-4 cursor-pointer"
+                    style={{ accentColor: theme.accent }}
                   />
                 </label>
               ))}
             </div>
           </div>
-          
+
           <button
+            type="button"
             onClick={handlePrint}
             disabled={isPrinting || (period === 'custom' && (!startDate || !endDate))}
-            className="w-full py-4 rounded-xl font-black text-sm bg-brand-600 hover:bg-brand-700 text-white shadow-lg shadow-brand-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 border font-black text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-opacity hover:opacity-90"
+            style={{ backgroundColor: theme.accent, borderColor: theme.accent, color: theme.accentText }}
           >
             {isPrinting ? (
               <>
-                <Loader2 size={18} className="animate-spin" />
-                يتم التجهيز...
+                <Loader2 size={16} className="animate-spin" />
+                <span>يتم التجهيز...</span>
               </>
             ) : (
               <>
-                <ExternalLink size={18} />
-                توليد ملف PDF
+                <ExternalLink size={16} />
+                <span>توليد ملف PDF</span>
               </>
             )}
           </button>

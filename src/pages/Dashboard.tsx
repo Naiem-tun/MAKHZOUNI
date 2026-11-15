@@ -4,41 +4,33 @@ import { db } from '../lib/firebase';
 import { useAppContext } from '../AppContext';
 import { syncTracker } from '../lib/syncTracker';
 import { 
-  Package, 
-  AlertTriangle, 
-  TrendingUp, 
-  Wallet, 
   Plus, 
-  ScanBarcode,
   Truck,
   CreditCard,
   ChevronDown,
   ChevronUp,
-  History,
   ShoppingCart,
-  Receipt,
   FileDown,
-  ScanLine,
   Sun,
   Moon,
-  Clock,
-  ArrowDownToLine,
-  ArrowUpFromLine,
   Trash2,
   Check,
   X,
-  CopyPlus,
-  Ghost
+  Wallet,
+  Search,
+  ArrowUpLeft
 } from 'lucide-react';
-import { Card } from '../components/UI';
-import { cn, formatCurrency, safeParseFloat, safeDispatchEvent, safeParseDate, formatAppDate, cleanQuantity, formatQuantity, sanitizeProduct } from '../lib/utils';
+import { cn, formatCurrency, safeDispatchEvent, safeParseDate, formatAppDate, cleanQuantity, formatQuantity, sanitizeProduct } from '../lib/utils';
 import { Product, Transaction, OperationType, Supplier } from '../types';
 import { handleFirestoreError } from '../lib/utils';
-import { logAudit } from '../lib/auditLogger';
 import { PrintPurchasesModal } from '../components/dashboard/PrintPurchasesModal';
-import { DashboardCarousel } from '../components/dashboard/DashboardCarousel';
-import { PurchaseVarianceModal } from '../components/dashboard/PurchaseVarianceModal';
+import { PurchaseVarianceModal, matchesQuery } from '../components/dashboard/PurchaseVarianceModal';
 import { PurchaseVarianceFolioCard } from '../components/dashboard/PurchaseVarianceFolioCard';
+import {
+  FolioCategoriesAndSuppliers,
+  FolioPurchaseCurveChart,
+} from '../components/dashboard/DashboardFolioWidgets';
+import { useFolioTheme } from '../components/folio/FolioPageChrome';
 import { calculatePurchaseVariance } from '../lib/purchaseVarianceCalculator';
 
 import { useTranslation } from 'react-i18next';
@@ -87,7 +79,6 @@ const Dashboard = memo(() => {
       return cached ? JSON.parse(cached) : [];
     } catch { return []; }
   });
-  const [isMovementExpanded, setIsMovementExpanded] = useState(false);
   const [showDeletePurchases, setShowDeletePurchases] = useState(false);
   const [deletingPurchaseId, setDeletingPurchaseId] = useState<string | null>(null);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
@@ -100,6 +91,8 @@ const Dashboard = memo(() => {
     }
   });
   const [expandedPurchaseGroups, setExpandedPurchaseGroups] = useState<Record<string, boolean>>({});
+  const [purchaseSearch, setPurchaseSearch] = useState('');
+  const { theme } = useFolioTheme(Boolean(settings.darkMode), settings.folioThemeId);
 
   const toggleVarianceCardCollapsed = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -148,6 +141,16 @@ const Dashboard = memo(() => {
     // Return the latest 50 purchase groups (without truncating items inside each group)
     return Array.from(groupsMap.values()).slice(0, 50);
   }, [allPurchases, settings.language, t]);
+
+  const filteredPurchaseGroups = useMemo(() => {
+    const q = purchaseSearch.trim();
+    if (!q) return groupedPurchases;
+    return groupedPurchases.filter((g: any) => {
+      if (matchesQuery(g.supplierName, q)) return true;
+      if (g.invoiceNumber && matchesQuery(String(g.invoiceNumber), q)) return true;
+      return (g.items || []).some((item: any) => matchesQuery(item.productName, q));
+    });
+  }, [groupedPurchases, purchaseSearch]);
 
   useEffect(() => {
     if (!user) return;
@@ -474,255 +477,531 @@ const Dashboard = memo(() => {
   };
 
   return (
-    <div className="pb-24 space-y-6" dir="rtl">
-      <header className="flex items-center justify-between mb-4 pt-2 text-right">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-black tracking-tight text-zinc-900 dark:text-white">{t('dashboard')}</h1>
-          <div className="flex items-center gap-2 text-zinc-500">
-            {greeting.icon}
-            <p className="text-sm font-bold tracking-tight">{greeting.text}</p>
-          </div>
-        </div>
-        <div className="h-12 w-12 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 shadow-sm flex items-center justify-center text-brand-600 dark:text-brand-400">
-          <Clock size={20} />
-        </div>
-      </header>
-
-      {/* SECTION 1: MASTER HERO CARD (Modeled after screenshot dark blue cards) */}
-      <div className="relative p-7 rounded-lg bg-brand-800 dark:bg-zinc-900 text-white shadow-xl shadow-brand-900/10 dark:shadow-none overflow-hidden">
-        {/* Soft geometric background details */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-brand-400/10 rounded-full blur-2xl translate-y-1/3 -translate-x-1/4" />
-        
-        <div className="relative z-10 flex items-center gap-2 mb-2 text-brand-200 opacity-90 justify-start">
-          <TrendingUp size={16} className="text-emerald-400" />
-          <p className="text-xs font-bold uppercase tracking-wider">{t('inventory_value')}</p>
-        </div>
-        
-        <h2 className="relative z-10 text-4xl md:text-5xl font-black tracking-tight mb-8 text-right text-white">
-          {formatPrivateValue(stats.totalValue)}
-        </h2>
-
-        <div className="relative z-10 grid grid-cols-2 gap-3">
-          <div className="p-4 rounded-lg bg-white/10 dark:bg-white/5 backdrop-blur-md flex flex-col items-center">
-            <p className="text-2xl font-black tracking-tight mb-1">{stats.totalProducts}</p>
-            <p className="text-xs font-bold text-brand-200">{t('total_products')}</p>
-          </div>
-          <div className="p-4 rounded-lg bg-white/10 dark:bg-white/5 backdrop-blur-md flex flex-col items-center">
-            <p className="text-2xl font-black tracking-tight mb-1">{stats.lowStock}</p>
-            <p className="text-xs font-bold text-amber-300">{t('low_stock')}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* SECTION 1.5: PURCHASE PRICE VARIANCE ENTRY PANEL (FOLIO STYLE WITH TABLE) */}
-      <PurchaseVarianceFolioCard
-        analysis={purchaseVarianceAnalysis}
-        currency={settings.currency}
-        language={language}
-        showFinancials={showFinancials}
-        darkMode={Boolean(settings.darkMode)}
-        isCollapsed={isVarianceCardCollapsed}
-        onToggleCollapse={toggleVarianceCardCollapsed}
-        onOpenModal={() => setIsVarianceModalOpen(true)}
-      />
-
-      <div className="px-0.5 space-y-6 mt-6">
-        {/* SECTION 2: FINANCIAL SUMMARY (COMPACT GRID) */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { 
-              label: t('customer_debts'), 
-              value: stats.totalCustomerDebts, 
-              color: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400', 
-              icon: CreditCard,
-              onClick: () => setActiveTab('debts')
-            },
-            { 
-              label: t('supplier_debts'), 
-              value: stats.totalSupplierDebts, 
-              color: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400', 
-              icon: Truck,
-              onClick: () => setActiveTab('suppliers')
-            },
-            { 
-              label: t('expenses'), 
-              value: stats.totalExpenses, 
-              color: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400', 
-              icon: Wallet,
-              badge: t('waiting_label', 'بانتظار الجرد'),
-              onClick: () => setActiveTab('expenses')
-            },
-            { 
-              label: t('total_supplier_purchases'), 
-              value: stats.totalSupplierPurchasesValue, 
-              color: 'bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400', 
-              icon: ShoppingCart,
-              onClick: () => setActiveTab('suppliers')
-            },
-          ].map((item, idx) => (
-            <div 
-              key={idx} 
-              onClick={item.onClick}
-              className={cn(
-                "bg-white dark:bg-zinc-800/80 rounded-lg p-5 border border-zinc-100/80 dark:border-zinc-700/50 shadow-sm relative overflow-hidden group flex flex-col items-start transition-all",
-                item.onClick && "cursor-pointer hover:border-brand-300 dark:hover:border-brand-600/50 hover:shadow-md"
-              )}
-            >
-              <div className="flex items-center justify-between w-full mb-4">
-                <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center shrink-0", item.color)}>
-                  <item.icon size={18} />
-                </div>
-              </div>
-              <h3 className="text-lg font-black font-sans text-zinc-900 dark:text-white tracking-tight leading-none mb-1 text-right">
-                {formatPrivateValue(item.value)}
-              </h3>
-              <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider leading-none text-right">{item.label}</p>
+    <div
+      className="min-h-screen px-2.5 sm:px-5 pt-3 pb-24 transition-colors"
+      style={{ backgroundColor: theme.bg, color: theme.text }}
+      dir="rtl"
+    >
+      <div className="max-w-6xl mx-auto space-y-5">
+        {/* FOLIO EDITORIAL HEADER */}
+        <header
+          className="border-b pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-3 text-right"
+          style={{ borderColor: theme.border }}
+        >
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs font-bold" style={{ color: theme.textMuted }}>
+              <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
+                FOLIO
+              </span>
+              <span aria-hidden="true">·</span>
+              <span>لوحة المتابعة اليومية</span>
+              <span aria-hidden="true">·</span>
+              <span>{settings.storeName || 'مخزوني'}</span>
             </div>
-          ))}
-        </div>
-
-        {/* SECTION 3: DASHBOARD CAROUSEL */}
-        <DashboardCarousel stats={stats} formatPrivateValue={formatPrivateValue} />
-      </div>
-
-
-      {/* Recent Purchases List */}
-      <div className="space-y-4 text-right mt-8 pb-12">
-        <div className="flex items-center justify-between pr-2 mb-4">
-          <h2 className="text-sm font-black uppercase tracking-wider text-zinc-900 dark:text-white">{t('last_purchases')}</h2>
-          <div className="flex items-center gap-1">
-            {settings.enablePurchasesReports && (
-              <button 
-                onClick={() => setIsPrintModalOpen(true)}
-                className="p-2 rounded-lg transition-colors text-brand-600 hover:bg-brand-50 hover:text-brand-700 dark:text-brand-400 dark:hover:bg-brand-500/10 ml-2 shadow-sm border border-brand-100 dark:border-brand-500/20"
-                title="طباعة التقرير"
-              >
-                <i className="pl-1 text-xs font-bold font-sans not-italic">PDF</i>
-                <FileDown size={16} className="inline-block" />
-              </button>
-            )}
-            <button 
-              onClick={() => setShowDeletePurchases(!showDeletePurchases)}
-              className={cn(
-                "p-2 rounded-lg transition-colors",
-                showDeletePurchases 
-                  ? "bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400" 
-                  : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800"
-              )}
-              title={t('edit_purchases')}
+            <h1
+              className="text-2xl sm:text-3xl font-black tracking-tight"
+              style={{ color: theme.text }}
             >
-              <Trash2 size={16} />
+              {t('dashboard')}
+            </h1>
+            <div className="flex flex-wrap items-center gap-2 text-xs font-bold" style={{ color: theme.textMuted }}>
+              <span className="inline-flex items-center gap-1.5">
+                {greeting.icon}
+                <span>{greeting.text}</span>
+              </span>
+              <span aria-hidden="true">·</span>
+              <span>
+                مشتريات اليوم:{' '}
+                <strong className="font-mono tabular-nums" style={{ color: theme.text }}>
+                  {formatPrivateValue(stats.todayPurchasesTotal)}
+                </strong>
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+            <button
+              type="button"
+              onClick={onAddProduct}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold border transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              style={{
+                backgroundColor: theme.text,
+                color: theme.surface,
+                borderColor: theme.text,
+              }}
+            >
+              <Plus size={14} />
+              <span>منتج جديد</span>
             </button>
           </div>
-        </div>
-        <div className="space-y-6">
-          {groupedPurchases.length === 0 ? (
-            <div className="py-12 text-center text-zinc-400 font-bold text-sm bg-white dark:bg-zinc-800/50 rounded-lg border border-dashed border-zinc-200 dark:border-zinc-700 shadow-sm">
-              {t('no_data_available')}
+        </header>
+
+        {/* SECTION 01: MASTER INVENTORY VALUATION HERO (FOLIO BORDERED) */}
+        <section
+          className="border transition-colors text-right"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
+          <div className="p-4 sm:p-6 space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-xs font-bold">
+                <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
+                  01
+                </span>
+                <span style={{ color: theme.textMuted }}>{t('inventory_value')}</span>
+              </div>
+              <span className="text-[11px] font-bold" style={{ color: theme.textMuted }}>
+                بسعر البيع المتوقع:{' '}
+                <strong className="font-mono tabular-nums" style={{ color: theme.text }}>
+                  {formatPrivateValue(stats.totalSalesValue)}
+                </strong>
+              </span>
             </div>
-          ) : (
-            groupedPurchases.map((group: any, groupIndex: number) => {
-              const isExpanded = expandedPurchaseGroups[group.key] ?? (groupIndex === 0);
-              
-              return (
-                <div key={`group-${group.key}-${groupIndex}`} className="space-y-3">
-                  <div 
-                    className="flex items-center justify-between px-2 cursor-pointer select-none"
-                    onClick={() => togglePurchaseGroup(group.key)}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="h-7 w-7 rounded-full bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center text-brand-600 dark:text-brand-400">
-                         <Truck size={12} />
-                      </div>
-                      <span className="text-sm font-bold text-brand-800 dark:text-brand-400">
-                        {group.supplierName || t('unknown_supplier')}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-[11px] font-bold text-zinc-400 font-sans tracking-tight">
-                      {!isExpanded && (
-                        <span className="text-emerald-600 dark:text-emerald-400 ml-2">
-                          {formatCurrency(group.totalAmount, settings.currency, language)}
-                        </span>
-                      )}
-                      <span>{group.date}</span>
-                      {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                    </div>
-                  </div>
-                  
-                  {isExpanded && (
-                    <div className="bg-white dark:bg-zinc-800/80 rounded-lg border border-zinc-100/80 dark:border-zinc-700/50 overflow-hidden shadow-sm flex flex-col gap-px bg-zinc-100 dark:bg-zinc-700/50">
-                      {group.items.map((p: any, itemIndex: number) => (
-                        <div key={`${p.id}-${itemIndex}`} className="flex justify-between items-center p-4 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
-                          <div className="flex flex-col text-right flex-1">
-                            <span className="text-sm font-bold text-zinc-900 dark:text-white mb-2">{p.productName}</span>
-                            <div className="flex items-center justify-start gap-2 text-[11px] font-sans font-bold text-zinc-500">
-                              <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-900 px-2 py-0.5 rounded-md">
-                                <span className="text-zinc-900 dark:text-white">
-                                  {settings.defaultStockView === 'boxes' && p.piecesPerBox && p.piecesPerBox > 1
-                                    ? ((cleanQuantity(p.quantityChange) / p.piecesPerBox)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-                                    : formatQuantity(p.quantityChange)}
-                                </span>
-                                <span>
-                                  {settings.defaultStockView === 'boxes' && p.piecesPerBox && p.piecesPerBox > 1
-                                    ? 'كرتونة'
-                                    : (p.unit ? (t(p.unit) || 'قطعة') : t('piece'))}
-                                </span>
-                              </div>
-                              <span className="text-zinc-300 dark:text-zinc-600">|</span>
-                              <span>{formatCurrency(p.price, settings.currency, language)}</span>
-                              <span className="text-zinc-300 dark:text-zinc-600">|</span>
-                              <span className="text-emerald-600 dark:text-emerald-400">{formatCurrency(p.amount, settings.currency, language)}</span>
-                            </div>
-                          </div>
-                          
-                          {showDeletePurchases && (
-                            deletingPurchaseId === p.id ? (
-                              <div className="flex items-center gap-2 mr-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setDeletingPurchaseId(null)
-                                  }}
-                                  className="p-1.5 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg transition-colors"
-                                >
-                                  <X size={16} />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeletePurchase(p)
-                                  }}
-                                  className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors font-bold text-xs flex items-center gap-1"
-                                >
-                                  <Check size={16} />
-                                  <span>{t('confirm')}</span>
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDeletingPurchaseId(p.id)
-                                }}
-                                className="p-2 mr-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors shrink-0"
-                                title={t('delete')}
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            )
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+
+            <div
+              className="text-3xl sm:text-5xl font-black font-mono tabular-nums tracking-tight pt-1"
+              style={{ color: theme.text }}
+            >
+              {formatPrivateValue(stats.totalValue)}
+            </div>
+          </div>
+
+          <div
+            className="grid grid-cols-3 border-t divide-x divide-x-reverse"
+            style={{ backgroundColor: theme.bg, borderColor: theme.border }}
+          >
+            <div
+              onClick={() => setActiveTab('products')}
+              className="p-3.5 sm:p-4 space-y-1 cursor-pointer transition-colors"
+              style={{ borderColor: theme.border }}
+            >
+              <div className="text-[11px] font-bold truncate" style={{ color: theme.textMuted }}>
+                {t('total_products')}
+              </div>
+              <div
+                className="text-lg sm:text-2xl font-black font-mono tabular-nums"
+                style={{ color: theme.text }}
+              >
+                {stats.totalProducts.toLocaleString('en-US')}
+              </div>
+            </div>
+
+            <div
+              onClick={() => setActiveTab('products')}
+              className="p-3.5 sm:p-4 space-y-1 cursor-pointer transition-colors"
+              style={{ borderColor: theme.border }}
+            >
+              <div className="text-[11px] font-bold truncate" style={{ color: theme.textMuted }}>
+                {t('low_stock')}
+              </div>
+              <div
+                className="text-lg sm:text-2xl font-black font-mono tabular-nums"
+                style={{ color: stats.lowStock > 0 ? theme.negative : theme.text }}
+              >
+                {stats.lowStock.toLocaleString('en-US')}
+              </div>
+            </div>
+
+            <div
+              onClick={() => setActiveTab('reports')}
+              className="p-3.5 sm:p-4 space-y-1 cursor-pointer transition-colors"
+              style={{ borderColor: theme.border }}
+            >
+              <div className="text-[11px] font-bold truncate" style={{ color: theme.textMuted }}>
+                الربح المتوقع
+              </div>
+              <div
+                className="text-lg sm:text-2xl font-black font-mono tabular-nums"
+                style={{ color: theme.positive }}
+              >
+                {formatPrivateValue(stats.expectedProfit)}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* SECTION 02: FINANCIAL SUMMARY (4-CELL FOLIO MATRIX) */}
+        <section
+          className="border"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
+          <div
+            className="px-4 py-2.5 border-b flex items-center justify-between"
+            style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }}
+          >
+            <div className="flex items-center gap-2 text-xs font-bold">
+              <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
+                02
+              </span>
+              <span style={{ color: theme.text }}>الحسابات والالتزامات المالية</span>
+            </div>
+            <span className="text-[11px]" style={{ color: theme.textMuted }}>
+              انقر لفتح القسم
+            </span>
+          </div>
+
+          <div
+            className="grid grid-cols-2 lg:grid-cols-4 gap-px"
+            style={{ backgroundColor: theme.border }}
+          >
+            {[
+              {
+                label: t('customer_debts'),
+                sub: 'ديون مستحقة التحصيل',
+                value: stats.totalCustomerDebts,
+                icon: CreditCard,
+                tone: theme.positive,
+                onClick: () => setActiveTab('debts'),
+              },
+              {
+                label: t('supplier_debts'),
+                sub: 'مستحقات للموردين',
+                value: stats.totalSupplierDebts,
+                icon: Truck,
+                tone: stats.totalSupplierDebts > 0 ? theme.negative : theme.text,
+                onClick: () => setActiveTab('suppliers'),
+              },
+              {
+                label: t('expenses'),
+                sub: t('waiting_label', 'بانتظار الجرد'),
+                value: stats.totalExpenses,
+                icon: Wallet,
+                tone: theme.text,
+                onClick: () => setActiveTab('expenses'),
+              },
+              {
+                label: t('total_supplier_purchases'),
+                sub: 'مشتريات الدورة المفتوحة',
+                value: stats.totalSupplierPurchasesValue,
+                icon: ShoppingCart,
+                tone: theme.accent,
+                onClick: () => setActiveTab('suppliers'),
+              },
+            ].map((item, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={item.onClick}
+                className="p-4 text-right flex flex-col justify-between gap-3 transition-colors cursor-pointer"
+                style={{ backgroundColor: theme.surface, color: theme.text }}
+              >
+                <div className="flex items-center justify-between w-full">
+                  <item.icon size={15} style={{ color: theme.accent }} />
+                  <ArrowUpLeft size={13} style={{ color: theme.textMuted }} />
                 </div>
-              );
-            })
-          )}
-        </div>
+                <div className="space-y-1">
+                  <div
+                    className="text-lg sm:text-xl font-black font-mono tabular-nums tracking-tight"
+                    style={{ color: item.tone }}
+                  >
+                    {formatPrivateValue(item.value)}
+                  </div>
+                  <div className="text-xs font-bold leading-snug" style={{ color: theme.text }}>
+                    {item.label}
+                  </div>
+                  <div className="text-[10px]" style={{ color: theme.textMuted }}>
+                    {item.sub}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* SECTION 03: SMOOTH CURVED PURCHASE MOVEMENT CHART */}
+        <FolioPurchaseCurveChart
+          purchases={allPurchases}
+          theme={theme}
+          language={language}
+          formatPrivateValue={formatPrivateValue}
+          t={t}
+        />
+
+        {/* SECTION 04: PURCHASE PRICE VARIANCE FOLIO ENTRY PANEL */}
+        <PurchaseVarianceFolioCard
+          analysis={purchaseVarianceAnalysis}
+          currency={settings.currency}
+          language={language}
+          showFinancials={showFinancials}
+          darkMode={Boolean(settings.darkMode)}
+          isCollapsed={isVarianceCardCollapsed}
+          onToggleCollapse={toggleVarianceCardCollapsed}
+          onOpenModal={() => setIsVarianceModalOpen(true)}
+          themeOverride={theme}
+          sectionIndex="04"
+        />
+
+        {/* SECTION 05: CATEGORIES & TOP SUPPLIERS FOLIO TABLES */}
+        <FolioCategoriesAndSuppliers
+          categoryAnalysis={stats.categoryAnalysis}
+          topSuppliers={stats.topSuppliers}
+          totalInventoryValue={stats.totalValue}
+          theme={theme}
+          formatPrivateValue={formatPrivateValue}
+          onNavigateTab={setActiveTab}
+          t={t}
+        />
+
+        {/* SECTION 06: RECENT PURCHASES LEDGER (FOLIO ACCORDION + TABLE) */}
+        <section
+          className="border text-right"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
+          <div
+            className="p-4 sm:p-5 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+            style={{ borderColor: theme.border }}
+          >
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2 text-xs font-bold">
+                <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
+                  06
+                </span>
+                <span style={{ color: theme.textMuted }}>سجل التوريد والفواتير</span>
+              </div>
+              <h2 className="text-base sm:text-lg font-black" style={{ color: theme.text }}>
+                {t('last_purchases')}
+              </h2>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <div
+                className="flex items-center gap-2 px-2.5 py-1.5 border w-full sm:w-56"
+                style={{ backgroundColor: theme.bg, borderColor: theme.border }}
+              >
+                <Search size={13} style={{ color: theme.textMuted }} />
+                <input
+                  type="text"
+                  value={purchaseSearch}
+                  onChange={(e) => setPurchaseSearch(e.target.value)}
+                  placeholder="ابحث بالمورد أو الصنف..."
+                  className="bg-transparent text-xs w-full focus:outline-none"
+                  style={{ color: theme.text }}
+                />
+                {purchaseSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setPurchaseSearch('')}
+                    aria-label="مسح البحث"
+                    className="cursor-pointer"
+                    style={{ color: theme.textMuted }}
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+
+              {settings.enablePurchasesReports && (
+                <button
+                  type="button"
+                  onClick={() => setIsPrintModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold border transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                  style={{
+                    backgroundColor: theme.surfaceMuted,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  }}
+                  title="طباعة التقرير"
+                >
+                  <FileDown size={14} style={{ color: theme.accent }} />
+                  <span className="font-mono">PDF</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setShowDeletePurchases(!showDeletePurchases)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold border transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                style={{
+                  backgroundColor: showDeletePurchases ? theme.negative : theme.surfaceMuted,
+                  borderColor: showDeletePurchases ? theme.negative : theme.border,
+                  color: showDeletePurchases ? '#FFFFFF' : theme.textMuted,
+                }}
+                title={t('edit_purchases')}
+              >
+                <Trash2 size={14} />
+                <span>{showDeletePurchases ? 'إنهاء الحذف' : 'إدارة'}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="p-3 sm:p-5 space-y-3">
+            {filteredPurchaseGroups.length === 0 ? (
+              <div
+                className="py-10 text-center text-xs font-bold border border-dashed"
+                style={{ borderColor: theme.border, color: theme.textMuted }}
+              >
+                {purchaseSearch ? 'لا توجد فواتير شراء مطابقة للبحث.' : t('no_data_available')}
+              </div>
+            ) : (
+              filteredPurchaseGroups.map((group: any, groupIndex: number) => {
+                const isExpanded = expandedPurchaseGroups[group.key] ?? (groupIndex === 0);
+
+                return (
+                  <div
+                    key={`group-${group.key}-${groupIndex}`}
+                    className="border"
+                    style={{ borderColor: theme.border, backgroundColor: theme.bg }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => togglePurchaseGroup(group.key)}
+                      className="w-full px-3.5 py-3 flex items-center justify-between gap-2 text-right cursor-pointer transition-colors"
+                      style={{
+                        backgroundColor: isExpanded ? theme.surfaceMuted : theme.surface,
+                        color: theme.text,
+                      }}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Truck size={14} style={{ color: theme.accent }} className="shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-xs sm:text-sm font-black truncate">
+                            {group.supplierName || t('unknown_supplier')}
+                            {group.invoiceNumber ? ` · #${group.invoiceNumber}` : ''}
+                          </div>
+                          <div className="text-[10px] font-mono tabular-nums" style={{ color: theme.textMuted }}>
+                            {group.date} · {group.items.length} صنف
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2.5 shrink-0">
+                        <span
+                          className="text-xs sm:text-sm font-black font-mono tabular-nums"
+                          style={{ color: theme.positive }}
+                        >
+                          {formatPrivateValue(group.totalAmount)}
+                        </span>
+                        {isExpanded ? (
+                          <ChevronUp size={15} style={{ color: theme.textMuted }} />
+                        ) : (
+                          <ChevronDown size={15} style={{ color: theme.textMuted }} />
+                        )}
+                      </div>
+                    </button>
+
+                    {isExpanded && (
+                      <div
+                        className="border-t overflow-x-auto"
+                        style={{ borderColor: theme.border, backgroundColor: theme.surface }}
+                      >
+                        <table className="w-full text-right text-xs">
+                          <thead>
+                            <tr
+                              className="border-b font-bold"
+                              style={{
+                                borderColor: theme.border,
+                                backgroundColor: theme.bg,
+                                color: theme.textMuted,
+                              }}
+                            >
+                              <th className="py-2 px-3">الصنف</th>
+                              <th className="py-2 px-3">الكمية</th>
+                              <th className="py-2 px-3">سعر الوحدة</th>
+                              <th className="py-2 px-3">الإجمالي</th>
+                              {showDeletePurchases && <th className="py-2 px-3 w-20">إجراء</th>}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {group.items.map((p: any, itemIndex: number) => {
+                              const qtyDisplay =
+                                settings.defaultStockView === 'boxes' && p.piecesPerBox && p.piecesPerBox > 1
+                                  ? `${(cleanQuantity(p.quantityChange) / p.piecesPerBox).toLocaleString('en-US', {
+                                      minimumFractionDigits: 0,
+                                      maximumFractionDigits: 2,
+                                    })} كرتونة`
+                                  : `${formatQuantity(p.quantityChange)} ${
+                                      p.unit ? t(p.unit) || 'قطعة' : t('piece')
+                                    }`;
+
+                              return (
+                                <tr
+                                  key={`${p.id}-${itemIndex}`}
+                                  className="border-b last:border-b-0"
+                                  style={{ borderColor: theme.border, color: theme.text }}
+                                >
+                                  <td className="py-2.5 px-3 font-bold leading-snug">
+                                    {p.productName}
+                                  </td>
+                                  <td className="py-2.5 px-3 font-mono tabular-nums whitespace-nowrap">
+                                    {qtyDisplay}
+                                  </td>
+                                  <td
+                                    className="py-2.5 px-3 font-mono tabular-nums whitespace-nowrap"
+                                    style={{ color: theme.textMuted }}
+                                  >
+                                    {formatPrivateValue(p.price)}
+                                  </td>
+                                  <td
+                                    className="py-2.5 px-3 font-mono tabular-nums font-black whitespace-nowrap"
+                                    style={{ color: theme.positive }}
+                                  >
+                                    {formatPrivateValue(p.amount)}
+                                  </td>
+                                  {showDeletePurchases && (
+                                    <td className="py-2.5 px-3 whitespace-nowrap">
+                                      {deletingPurchaseId === p.id ? (
+                                        <div className="flex items-center gap-1">
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setDeletingPurchaseId(null);
+                                            }}
+                                            className="p-1 border cursor-pointer"
+                                            style={{
+                                              borderColor: theme.border,
+                                              color: theme.textMuted,
+                                            }}
+                                          >
+                                            <X size={13} />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDeletePurchase(p);
+                                            }}
+                                            className="px-2 py-1 text-[11px] font-bold flex items-center gap-1 cursor-pointer text-white"
+                                            style={{ backgroundColor: theme.negative }}
+                                          >
+                                            <Check size={12} />
+                                            <span>{t('confirm')}</span>
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setDeletingPurchaseId(p.id);
+                                          }}
+                                          className="p-1.5 border cursor-pointer"
+                                          style={{
+                                            borderColor: theme.border,
+                                            color: theme.negative,
+                                          }}
+                                          title={t('delete')}
+                                        >
+                                          <Trash2 size={14} />
+                                        </button>
+                                      )}
+                                    </td>
+                                  )}
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
       </div>
-      <PrintPurchasesModal 
+
+      <PrintPurchasesModal
         isOpen={isPrintModalOpen}
         onClose={() => setIsPrintModalOpen(false)}
         purchases={allPurchases}
@@ -736,6 +1015,7 @@ const Dashboard = memo(() => {
         language={language}
         darkMode={Boolean(settings.darkMode)}
         showFinancials={showFinancials}
+        activeThemeId={theme.id}
       />
     </div>
   );

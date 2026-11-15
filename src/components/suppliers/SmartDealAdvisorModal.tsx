@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Supplier, SupplierTransaction, SupplierCycle } from '../../types';
 import { formatCurrency, safeParseDate, roundMoney } from '../../lib/utils';
+import { useFolioTheme } from '../folio/FolioPageChrome';
 
 interface SmartDealAdvisorModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ export function SmartDealAdvisorModal({
   allTransactions,
   settings,
 }: SmartDealAdvisorModalProps) {
+  const { theme } = useFolioTheme(Boolean(settings?.darkMode), settings?.folioThemeId);
   // Deal evaluation inputs
   const [dealCost, setDealCost] = useState<string>('');
   const [availableCash, setAvailableCash] = useState<string>('');
@@ -271,27 +273,38 @@ export function SmartDealAdvisorModal({
           animate={{ opacity: 1 }} 
           exit={{ opacity: 0 }} 
           onClick={onClose} 
-          className="absolute inset-0 bg-zinc-950/70 backdrop-blur-sm" 
+          className="absolute inset-0 bg-black/60 backdrop-blur-xs" 
         />
         
         <motion.div 
-          initial={{ opacity: 0, scale: 0.96, y: 15 }} 
+          initial={{ opacity: 0, scale: 0.96, y: 12 }} 
           animate={{ opacity: 1, scale: 1, y: 0 }} 
-          exit={{ opacity: 0, scale: 0.96, y: 15 }} 
-          className="relative w-full max-w-xl max-h-[92vh] flex flex-col bg-white dark:bg-zinc-900 rounded-lg shadow-2xl border border-zinc-100 dark:border-zinc-800 overflow-hidden text-right"
+          exit={{ opacity: 0, scale: 0.96, y: 12 }} 
+          className="relative w-full max-w-xl max-h-[92vh] flex flex-col border shadow-2xl overflow-hidden text-right"
+          style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }}
           dir="rtl"
         >
           {/* Header */}
-          <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/80 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
-                <BrainCircuit size={20} />
-              </div>
-              <div>
-                <h2 className="text-base sm:text-lg font-black text-zinc-900 dark:text-white">
+          <div
+            className="p-4 sm:p-5 border-b flex items-center justify-between shrink-0"
+            style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span
+                className="text-[11px] font-mono font-bold tabular-nums px-2 py-0.5 border shrink-0"
+                style={{
+                  color: theme.accent,
+                  borderColor: `${theme.accent}45`,
+                  backgroundColor: `${theme.accent}12`
+                }}
+              >
+                01
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-base sm:text-lg font-black truncate" style={{ color: theme.text }}>
                   مستشار الصفقات والسيولة
                 </h2>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                <p className="text-[11px] truncate mt-0.5" style={{ color: theme.textMuted }}>
                   يتتبع نفقات الحليب والخبز الإلزامية ويحميك من أزمات السيولة عند الشراء
                 </p>
               </div>
@@ -299,43 +312,57 @@ export function SmartDealAdvisorModal({
 
             <button 
               onClick={onClose}
-              className="h-10 w-10 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:text-zinc-900 dark:hover:text-white transition-colors"
+              className="p-1.5 border flex items-center justify-center transition-colors cursor-pointer shrink-0"
+              style={{
+                backgroundColor: theme.surfaceMuted,
+                borderColor: theme.border,
+                color: theme.text
+              }}
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           </div>
 
           {/* Sub Navigation Tabs */}
-          <div className="grid grid-cols-3 border-b border-zinc-100 dark:border-zinc-800 text-xs font-bold bg-zinc-50 dark:bg-zinc-900/50 p-1.5 gap-1.5">
+          <div
+            className="grid grid-cols-3 border-b text-xs font-bold p-1.5 gap-1.5 shrink-0"
+            style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }}
+          >
             <button
+              type="button"
               onClick={() => setActiveTab('deal')}
-              className={`py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+              className="py-2 px-2 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              style={
                 activeTab === 'deal'
-                  ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'
-              }`}
+                  ? { backgroundColor: theme.accent, color: theme.accentText }
+                  : { backgroundColor: 'transparent', color: theme.textMuted }
+              }
             >
               <Sparkles size={14} />
               <span>فاحص الصفقات</span>
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab('commitments')}
-              className={`py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+              className="py-2 px-2 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              style={
                 activeTab === 'commitments'
-                  ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'
-              }`}
+                  ? { backgroundColor: theme.accent, color: theme.accentText }
+                  : { backgroundColor: 'transparent', color: theme.textMuted }
+              }
             >
               <ShieldCheck size={14} />
               <span>المصاريف الإلزامية</span>
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab('readiness')}
-              className={`py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+              className="py-2 px-2 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              style={
                 activeTab === 'readiness'
-                  ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300'
-              }`}
+                  ? { backgroundColor: theme.accent, color: theme.accentText }
+                  : { backgroundColor: 'transparent', color: theme.textMuted }
+              }
             >
               <Calendar size={14} />
               <span>رادار الـ 3 أيام</span>
@@ -343,23 +370,33 @@ export function SmartDealAdvisorModal({
           </div>
 
           {/* Content Body */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+          <div className="min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4">
             {/* TAB 1: DEAL EVALUATOR */}
             {activeTab === 'deal' && (
               <div className="space-y-4">
                 {/* Context banner */}
-                <div className="p-3 bg-brand-50/70 dark:bg-brand-950/20 border border-brand-200/60 dark:border-brand-800/50 rounded-lg flex items-start gap-2.5 text-xs text-brand-900 dark:text-brand-200">
-                  <Info size={16} className="text-brand-600 dark:text-brand-400 shrink-0 mt-0.5" />
+                <div
+                  className="p-3 border flex items-start gap-2.5 text-xs"
+                  style={{
+                    backgroundColor: `${theme.accent}10`,
+                    borderColor: `${theme.accent}40`,
+                    color: theme.text
+                  }}
+                >
+                  <Info size={16} className="shrink-0 mt-0.5" style={{ color: theme.accent }} />
                   <p className="leading-relaxed">
                     عرض عليك مورد صفقة أو تخفيضاً؟ اكتب تكلفة الصفقة والمبلغ الموجود في يدك، ليحسب لك الوكيل هل ستتبقى سيولة كافية لشاحنات الحليب والخبز القادمة أم لا!
                   </p>
                 </div>
 
                 {/* Inputs Box */}
-                <div className="bg-zinc-50 dark:bg-zinc-800/40 p-4 rounded-lg border border-zinc-200/70 dark:border-zinc-700/60 space-y-3">
+                <div
+                  className="p-4 border space-y-3"
+                  style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                >
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
+                      <label className="block text-xs font-bold mb-1" style={{ color: theme.text }}>
                         تكلفة الصفقة المطلوبة ({settings.currency}) *
                       </label>
                       <input
@@ -368,12 +405,17 @@ export function SmartDealAdvisorModal({
                         placeholder="مثال: 450"
                         value={dealCost}
                         onChange={(e) => setDealCost(e.target.value)}
-                        className="w-full h-11 px-3 text-sm font-black rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                        className="w-full h-11 px-3 text-sm font-mono font-black tabular-nums border outline-none"
+                        style={{
+                          backgroundColor: theme.bg,
+                          borderColor: theme.border,
+                          color: theme.text
+                        }}
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
+                      <label className="block text-xs font-bold mb-1" style={{ color: theme.text }}>
                         الكاش المتوفر بيدك / في الصندوق حالياً ({settings.currency}) *
                       </label>
                       <input
@@ -382,14 +424,19 @@ export function SmartDealAdvisorModal({
                         placeholder="مثال: 700"
                         value={availableCash}
                         onChange={(e) => setAvailableCash(e.target.value)}
-                        className="w-full h-11 px-3 text-sm font-black rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                        className="w-full h-11 px-3 text-sm font-mono font-black tabular-nums border outline-none"
+                        style={{
+                          backgroundColor: theme.bg,
+                          borderColor: theme.border,
+                          color: theme.text
+                        }}
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <div>
-                      <label className="block text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                      <label className="block text-[11px] font-medium mb-1" style={{ color: theme.textMuted }}>
                         اسم البضاعة أو المورد (اختياري)
                       </label>
                       <input
@@ -397,12 +444,17 @@ export function SmartDealAdvisorModal({
                         placeholder="مثال: 30 كرتونة معكرونة أو عصير"
                         value={dealName}
                         onChange={(e) => setDealName(e.target.value)}
-                        className="w-full h-9 px-3 text-xs rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                        className="w-full h-9 px-3 text-xs border outline-none"
+                        style={{
+                          backgroundColor: theme.bg,
+                          borderColor: theme.border,
+                          color: theme.text
+                        }}
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                      <label className="block text-[11px] font-medium mb-1" style={{ color: theme.textMuted }}>
                         نسبة التخفيض أو التوفير التقريبي (اختياري %)
                       </label>
                       <input
@@ -410,106 +462,133 @@ export function SmartDealAdvisorModal({
                         placeholder="مثال: 10%"
                         value={expectedDiscountPct}
                         onChange={(e) => setExpectedDiscountPct(e.target.value)}
-                        className="w-full h-9 px-3 text-xs rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                        className="w-full h-9 px-3 text-xs font-mono tabular-nums border outline-none"
+                        style={{
+                          backgroundColor: theme.bg,
+                          borderColor: theme.border,
+                          color: theme.text
+                        }}
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Deal Evaluation Card Output */}
-                {dealResult ? (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`p-4 sm:p-5 rounded-lg border transition-all ${
-                      dealResult.status === 'safe'
-                        ? 'bg-emerald-50/80 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60'
-                        : dealResult.status === 'caution'
-                        ? 'bg-amber-50/80 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/60'
-                        : 'bg-rose-50/80 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/60'
-                    }`}
-                  >
-                    {/* Header decision */}
-                    <div className="flex items-center justify-between pb-3 border-b border-zinc-200/50 dark:border-zinc-700/50">
-                      <div className="flex items-center gap-2">
-                        {dealResult.status === 'safe' ? (
-                          <CheckCircle2 size={24} className="text-emerald-600 dark:text-emerald-400" />
-                        ) : dealResult.status === 'caution' ? (
-                          <AlertTriangle size={24} className="text-amber-600 dark:text-amber-400" />
-                        ) : (
-                          <XCircle size={24} className="text-rose-600 dark:text-rose-400" />
-                        )}
-                        <h3 className={`text-base sm:text-lg font-black ${
-                          dealResult.status === 'safe'
-                            ? 'text-emerald-900 dark:text-emerald-200'
-                            : dealResult.status === 'caution'
-                            ? 'text-amber-900 dark:text-amber-200'
-                            : 'text-rose-900 dark:text-rose-200'
-                        }`}>
-                          {dealResult.title}
-                        </h3>
-                      </div>
-                      <span className={`px-2.5 py-1 rounded-lg text-xs font-black ${
-                        dealResult.status === 'safe'
-                          ? 'bg-emerald-200/80 text-emerald-900 dark:bg-emerald-900/60 dark:text-emerald-200'
-                          : dealResult.status === 'caution'
-                          ? 'bg-amber-200/80 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200'
-                          : 'bg-rose-200/80 text-rose-900 dark:bg-rose-900/60 dark:text-rose-200'
-                      }`}>
-                        {dealResult.badgeLabel}
-                      </span>
-                    </div>
-
-                    {/* Metric strip */}
-                    <div className="grid grid-cols-3 gap-2 my-3 text-center">
-                      <div className="p-2 bg-white/70 dark:bg-zinc-900/70 rounded-lg">
-                        <span className="block text-[10px] text-zinc-500 dark:text-zinc-400 font-bold">الكاش المتبقي</span>
-                        <span className={`text-sm font-black ${dealResult.remainingCash >= 0 ? 'text-zinc-900 dark:text-white' : 'text-rose-600'}`}>
-                          {formatMoney(dealResult.remainingCash)}
+                {dealResult ? (() => {
+                  const statusColor = dealResult.status === 'safe'
+                    ? theme.positive
+                    : dealResult.status === 'caution'
+                    ? theme.neutral
+                    : theme.negative;
+                  return (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-4 sm:p-5 border"
+                      style={{
+                        backgroundColor: `${statusColor}10`,
+                        borderColor: `${statusColor}55`
+                      }}
+                    >
+                      {/* Header decision */}
+                      <div
+                        className="flex items-center justify-between gap-2 pb-3 border-b"
+                        style={{ borderColor: `${statusColor}30` }}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          {dealResult.status === 'safe' ? (
+                            <CheckCircle2 size={22} className="shrink-0" style={{ color: statusColor }} />
+                          ) : dealResult.status === 'caution' ? (
+                            <AlertTriangle size={22} className="shrink-0" style={{ color: statusColor }} />
+                          ) : (
+                            <XCircle size={22} className="shrink-0" style={{ color: statusColor }} />
+                          )}
+                          <h3 className="text-sm sm:text-base font-black" style={{ color: theme.text }}>
+                            {dealResult.title}
+                          </h3>
+                        </div>
+                        <span
+                          className="px-2.5 py-1 border text-[11px] font-black shrink-0"
+                          style={{
+                            backgroundColor: `${statusColor}20`,
+                            borderColor: `${statusColor}50`,
+                            color: statusColor
+                          }}
+                        >
+                          {dealResult.badgeLabel}
                         </span>
                       </div>
-                      <div className="p-2 bg-white/70 dark:bg-zinc-900/70 rounded-lg">
-                        <span className="block text-[10px] text-zinc-500 dark:text-zinc-400 font-bold">تغطية مصاريف الأساسيات</span>
-                        <span className="text-sm font-black text-brand-600 dark:text-brand-400">
-                          {dealResult.safetyDaysCovered > 0 ? `~${dealResult.safetyDaysCovered} أيام` : 'صفر أيام'}
-                        </span>
-                      </div>
-                      <div className="p-2 bg-white/70 dark:bg-zinc-900/70 rounded-lg">
-                        <span className="block text-[10px] text-zinc-500 dark:text-zinc-400 font-bold">وسادة الأمان المطلوبة</span>
-                        <span className="text-sm font-black text-zinc-700 dark:text-zinc-300">
-                          {formatMoney(dealResult.requiredCushion)}
-                        </span>
-                      </div>
-                    </div>
 
-                    {/* Analysis explanation */}
-                    <p className="text-xs sm:text-sm font-medium leading-relaxed mb-3 text-zinc-800 dark:text-zinc-200">
-                      {dealResult.explanation}
-                    </p>
-
-                    {/* 3-day radar warning tie-in */}
-                    {upcomingReadiness.total3DaysExpectedCash > 0 && dealResult.remainingCash < upcomingReadiness.total3DaysExpectedCash && (
-                      <div className="mb-3 p-3 bg-amber-100/90 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800/70 rounded-lg flex items-start gap-2.5 text-xs text-amber-950 dark:text-amber-200">
-                        <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                        <div>
-                          <span className="font-bold block">⚠️ تحذير مباشر من رادار الـ 3 أيام:</span>
-                          <span className="leading-relaxed">
-                            شاحنات الموردين القادمة خلال الـ 3 أيام القادمة ستحتاج إلى حوالي <strong>{formatMoney(upcomingReadiness.total3DaysExpectedCash)}</strong>، بينما سيتبقى معك بعد هذه الصفقة <strong>{formatMoney(dealResult.remainingCash)}</strong> فقط! قد تواجه حرجاً في الدفع.
+                      {/* Metric strip */}
+                      <div
+                        className="grid grid-cols-3 border divide-x divide-x-reverse my-3 text-center"
+                        style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                      >
+                        <div className="p-2.5" style={{ borderColor: theme.border }}>
+                          <span className="block text-[10px] font-bold" style={{ color: theme.textMuted }}>الكاش المتبقي</span>
+                          <span
+                            className="text-sm font-mono font-black tabular-nums"
+                            style={{ color: dealResult.remainingCash >= 0 ? theme.text : theme.negative }}
+                          >
+                            {formatMoney(dealResult.remainingCash)}
+                          </span>
+                        </div>
+                        <div className="p-2.5" style={{ borderColor: theme.border }}>
+                          <span className="block text-[10px] font-bold" style={{ color: theme.textMuted }}>تغطية الأساسيات</span>
+                          <span className="text-sm font-mono font-black tabular-nums" style={{ color: theme.accent }}>
+                            {dealResult.safetyDaysCovered > 0 ? `~${dealResult.safetyDaysCovered} أيام` : 'صفر أيام'}
+                          </span>
+                        </div>
+                        <div className="p-2.5" style={{ borderColor: theme.border }}>
+                          <span className="block text-[10px] font-bold" style={{ color: theme.textMuted }}>وسادة الأمان</span>
+                          <span className="text-sm font-mono font-black tabular-nums" style={{ color: theme.text }}>
+                            {formatMoney(dealResult.requiredCushion)}
                           </span>
                         </div>
                       </div>
-                    )}
 
-                    {/* Operational Advice */}
-                    <div className="pt-3 border-t border-zinc-200/60 dark:border-zinc-700/60 flex items-start gap-2 text-xs">
-                      <span className="font-bold text-zinc-900 dark:text-white shrink-0">توجيه الوكيل:</span>
-                      <span className="text-zinc-700 dark:text-zinc-300 leading-relaxed">{dealResult.advice}</span>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <div className="text-center py-8 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-lg p-6">
-                    <Coins size={32} className="mx-auto text-zinc-300 dark:text-zinc-600 mb-2" />
-                    <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400">
+                      {/* Analysis explanation */}
+                      <p className="text-xs sm:text-sm font-medium leading-relaxed mb-3" style={{ color: theme.text }}>
+                        {dealResult.explanation}
+                      </p>
+
+                      {/* 3-day radar warning tie-in */}
+                      {upcomingReadiness.total3DaysExpectedCash > 0 && dealResult.remainingCash < upcomingReadiness.total3DaysExpectedCash && (
+                        <div
+                          className="mb-3 p-3 border flex items-start gap-2.5 text-xs"
+                          style={{
+                            backgroundColor: `${theme.neutral}18`,
+                            borderColor: `${theme.neutral}50`,
+                            color: theme.text
+                          }}
+                        >
+                          <AlertTriangle size={16} className="shrink-0 mt-0.5" style={{ color: theme.neutral }} />
+                          <div>
+                            <span className="font-bold block">تحذير مباشر من رادار الـ 3 أيام:</span>
+                            <span className="leading-relaxed">
+                              شاحنات الموردين القادمة خلال الـ 3 أيام القادمة ستحتاج إلى حوالي <strong>{formatMoney(upcomingReadiness.total3DaysExpectedCash)}</strong>، بينما سيتبقى معك بعد هذه الصفقة <strong>{formatMoney(dealResult.remainingCash)}</strong> فقط! قد تواجه حرجاً في الدفع.
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Operational Advice */}
+                      <div
+                        className="pt-3 border-t flex items-start gap-2 text-xs"
+                        style={{ borderColor: `${statusColor}30` }}
+                      >
+                        <span className="font-bold shrink-0" style={{ color: theme.text }}>توجيه الوكيل:</span>
+                        <span className="leading-relaxed" style={{ color: theme.textMuted }}>{dealResult.advice}</span>
+                      </div>
+                    </motion.div>
+                  );
+                })() : (
+                  <div
+                    className="text-center py-8 border border-dashed p-6"
+                    style={{ borderColor: theme.border, backgroundColor: theme.surface }}
+                  >
+                    <Coins size={30} className="mx-auto mb-2" style={{ color: theme.textMuted }} />
+                    <p className="text-xs font-bold" style={{ color: theme.textMuted }}>
                       أدخل تكلفة الصفقة والكاش المتوفر بيدك للحصول على تقييم فوري بالذكاء التجاري
                     </p>
                   </div>
@@ -520,68 +599,85 @@ export function SmartDealAdvisorModal({
             {/* TAB 2: FIXED COMMITMENTS */}
             {activeTab === 'commitments' && (
               <div className="space-y-4">
-                <div className="p-3 bg-brand-50/70 dark:bg-brand-950/20 border border-brand-200/60 dark:border-brand-800/50 rounded-lg text-xs text-brand-900 dark:text-brand-200 flex items-start gap-2">
-                  <ShieldCheck size={18} className="text-brand-600 dark:text-brand-400 shrink-0 mt-0.5" />
+                <div
+                  className="p-3 border text-xs flex items-start gap-2"
+                  style={{
+                    backgroundColor: `${theme.accent}10`,
+                    borderColor: `${theme.accent}40`,
+                    color: theme.text
+                  }}
+                >
+                  <ShieldCheck size={18} className="shrink-0 mt-0.5" style={{ color: theme.accent }} />
                   <div>
                     <span className="font-bold block">مفهوم «وسادة الأمان النقدي الإلزامية»:</span>
-                    <span className="text-zinc-600 dark:text-zinc-300">
+                    <span style={{ color: theme.textMuted }}>
                       هذه المبالغ تذهب بصفة شبه ثابتة إلى شاحنات الحليب والألبان والخبز والغاز. تجميد هذا المبلغ في بضائع بطيئة البيع هو السبب الأول لأزمات السيولة في محلات التجزئة.
                     </span>
                   </div>
                 </div>
 
                 {/* Summary cards */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-4 bg-zinc-50 dark:bg-zinc-800/40 rounded-lg border border-zinc-200/80 dark:border-zinc-700/60 text-center">
-                    <span className="block text-xs font-bold text-zinc-500 dark:text-zinc-400">
+                <div
+                  className="grid grid-cols-2 border divide-x divide-x-reverse"
+                  style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                >
+                  <div className="p-4 text-center" style={{ borderColor: theme.border }}>
+                    <span className="block text-xs font-bold" style={{ color: theme.textMuted }}>
                       متوسط المصروف الأسبوعي الثابت
                     </span>
-                    <span className="text-lg sm:text-xl font-black text-brand-600 dark:text-brand-400 mt-1 block">
+                    <span className="text-lg sm:text-xl font-mono font-black tabular-nums mt-1 block" style={{ color: theme.accent }}>
                       {formatMoney(recurringAnalysis.weeklyEstimatedTotal)}
                     </span>
-                    <span className="text-[10px] text-zinc-400 mt-0.5 block">تقريباً كل 7 أيام</span>
+                    <span className="text-[10px] mt-0.5 block" style={{ color: theme.textMuted }}>تقريباً كل 7 أيام</span>
                   </div>
 
-                  <div className="p-4 bg-zinc-50 dark:bg-zinc-800/40 rounded-lg border border-zinc-200/80 dark:border-zinc-700/60 text-center">
-                    <span className="block text-xs font-bold text-zinc-500 dark:text-zinc-400">
+                  <div className="p-4 text-center" style={{ borderColor: theme.border }}>
+                    <span className="block text-xs font-bold" style={{ color: theme.textMuted }}>
                       المعدل اليومي للسلع الأساسية
                     </span>
-                    <span className="text-lg sm:text-xl font-black text-zinc-900 dark:text-white mt-1 block">
+                    <span className="text-lg sm:text-xl font-mono font-black tabular-nums mt-1 block" style={{ color: theme.text }}>
                       {formatMoney(recurringAnalysis.dailyEstimatedTotal)}
                     </span>
-                    <span className="text-[10px] text-zinc-400 mt-0.5 block">يومياً لتغطية الحليب والخبز</span>
+                    <span className="text-[10px] mt-0.5 block" style={{ color: theme.textMuted }}>يومياً لتغطية الحليب والخبز</span>
                   </div>
                 </div>
 
                 {/* Categorized breakdown */}
                 <div className="space-y-2">
-                  <h4 className="text-xs font-black text-zinc-700 dark:text-zinc-300">
+                  <h4 className="text-xs font-black" style={{ color: theme.text }}>
                     توزيع النفقات الإلزامية حسب الصنف:
                   </h4>
                   {recurringAnalysis.breakdownByCategory.length > 0 ? (
                     recurringAnalysis.breakdownByCategory.map((cat, idx) => (
-                      <div key={idx} className="p-3 bg-white dark:bg-zinc-800/50 border border-zinc-200/70 dark:border-zinc-700/60 rounded-lg flex items-center justify-between">
+                      <div
+                        key={idx}
+                        className="p-3 border flex items-center justify-between"
+                        style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                      >
                         <div className="flex items-center gap-2.5">
                           <span className="text-xl">{cat.icon}</span>
                           <div>
-                            <span className="text-xs font-black text-zinc-900 dark:text-white block">{cat.name}</span>
+                            <span className="text-xs font-black block" style={{ color: theme.text }}>{cat.name}</span>
                             {cat.suppliers.length > 0 && (
-                              <span className="text-[10px] text-zinc-400 block">
+                              <span className="text-[10px] block" style={{ color: theme.textMuted }}>
                                 {cat.suppliers.join('، ')}
                               </span>
                             )}
                           </div>
                         </div>
                         <div className="text-left">
-                          <span className="text-xs font-black text-zinc-900 dark:text-white block">
+                          <span className="text-xs font-mono font-black tabular-nums block" style={{ color: theme.text }}>
                             ~{formatMoney(cat.weekly)}
                           </span>
-                          <span className="text-[10px] text-zinc-400">أسبوعياً</span>
+                          <span className="text-[10px]" style={{ color: theme.textMuted }}>أسبوعياً</span>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="p-4 text-center text-xs text-zinc-500 bg-zinc-50 dark:bg-zinc-800/30 rounded-lg">
+                    <div
+                      className="p-4 text-center text-xs border border-dashed"
+                      style={{ color: theme.textMuted, borderColor: theme.border, backgroundColor: theme.surface }}
+                    >
                       سيتم توزيع الأصناف تلقائياً مع تسجيل أولى فواتير الموردين أو رفع دورة سابقة
                     </div>
                   )}
@@ -593,135 +689,136 @@ export function SmartDealAdvisorModal({
             {activeTab === 'readiness' && (
               <div className="space-y-4">
                 {/* 3-day overview banner */}
-                <div className="p-4 bg-brand-50/70 dark:bg-brand-950/30 border border-brand-200/80 dark:border-brand-800/60 rounded-lg flex items-center justify-between">
+                <div
+                  className="p-4 border flex items-center justify-between"
+                  style={{
+                    backgroundColor: `${theme.accent}10`,
+                    borderColor: `${theme.accent}45`
+                  }}
+                >
                   <div className="flex items-center gap-2.5">
-                    <Calendar size={20} className="text-brand-600 dark:text-brand-400 shrink-0" />
+                    <Calendar size={20} className="shrink-0" style={{ color: theme.accent }} />
                     <div>
-                      <span className="text-xs font-black text-brand-950 dark:text-brand-200 block">
+                      <span className="text-xs font-black block" style={{ color: theme.text }}>
                         إجمالي السيولة المطلوبة للموردين خلال الـ 3 أيام القادمة:
                       </span>
-                      <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                      <span className="text-[11px]" style={{ color: theme.textMuted }}>
                         ({upcomingReadiness.todayName}، {upcomingReadiness.tomorrowName}، {upcomingReadiness.afterTomorrowName})
                       </span>
                     </div>
                   </div>
-                  <div className="text-left">
-                    <span className="text-base sm:text-lg font-black text-brand-600 dark:text-brand-400 block">
+                  <div className="text-left shrink-0">
+                    <span className="text-base sm:text-lg font-mono font-black tabular-nums block" style={{ color: theme.accent }}>
                       {formatMoney(upcomingReadiness.total3DaysExpectedCash)}
                     </span>
-                    <span className="text-[10px] text-zinc-400">تقدير الكاش المطلوب</span>
+                    <span className="text-[10px]" style={{ color: theme.textMuted }}>تقدير الكاش المطلوب</span>
                   </div>
                 </div>
 
-                <div className="p-3 bg-zinc-50 dark:bg-zinc-800/40 rounded-lg border border-zinc-200/60 dark:border-zinc-700/60 text-xs text-zinc-600 dark:text-zinc-300">
-                  يعتمد هذا الجدول على <span className="font-bold text-zinc-900 dark:text-white">أيام زيارات الموردين المسجلة في التطبيق (Visit Days)</span> ومتوسط فواتيرهم؛ ليساعدك على حجز الكاش المطلوب في الدرج وتفادي الحرج.
+                <div
+                  className="p-3 border text-xs"
+                  style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.textMuted }}
+                >
+                  يعتمد هذا الجدول على <span className="font-bold" style={{ color: theme.text }}>أيام زيارات الموردين المسجلة في التطبيق (Visit Days)</span> ومتوسط فواتيرهم؛ ليساعدك على حجز الكاش المطلوب في الدرج وتفادي الحرج.
                 </div>
 
-                {/* Day 1: Today */}
-                <div className="p-4 rounded-lg border border-brand-200 dark:border-brand-900/40 bg-brand-50/40 dark:bg-brand-950/20 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-brand-900 dark:text-brand-300 flex items-center gap-1.5">
-                      <Calendar size={14} />
-                      اليوم الأول: اليوم ({upcomingReadiness.todayName})
-                    </span>
-                    <span className="text-xs font-black text-brand-700 dark:text-brand-400 bg-white dark:bg-zinc-900 px-2.5 py-1 rounded-lg border border-brand-200 dark:border-brand-800">
-                      كاش متوقع: {formatMoney(upcomingReadiness.todayExpectedCash)}
-                    </span>
-                  </div>
-
-                  {upcomingReadiness.todayList.length > 0 ? (
-                    <div className="space-y-1.5">
-                      {upcomingReadiness.todayList.map((item, idx) => (
-                        <div key={idx} className="p-2 bg-white dark:bg-zinc-900 rounded-lg flex items-center justify-between text-xs">
-                          <div>
-                            <span className="font-bold text-zinc-900 dark:text-white">{item.supplier.name}</span>
-                            <span className="text-[10px] text-zinc-400 mr-2">({item.supplier.typeOfGoods || 'بضاعة عامة'})</span>
-                          </div>
-                          <span className="font-black text-zinc-700 dark:text-zinc-300">
-                            {item.avgAmount > 0 ? `~${formatMoney(item.avgAmount)}` : 'حسب الفاتورة'}
-                          </span>
-                        </div>
-                      ))}
+                {[
+                  {
+                    title: `اليوم الأول: اليوم (${upcomingReadiness.todayName})`,
+                    list: upcomingReadiness.todayList,
+                    cash: upcomingReadiness.todayExpectedCash,
+                    empty: 'لا توجد زيارات مجدولة لليوم',
+                    highlight: true
+                  },
+                  {
+                    title: `اليوم الثاني: غداً (${upcomingReadiness.tomorrowName})`,
+                    list: upcomingReadiness.tomorrowList,
+                    cash: upcomingReadiness.tomorrowExpectedCash,
+                    empty: 'لا توجد زيارات مجدولة ليوم الغد',
+                    highlight: false
+                  },
+                  {
+                    title: `اليوم الثالث: بعد غد (${upcomingReadiness.afterTomorrowName})`,
+                    list: upcomingReadiness.afterTomorrowList,
+                    cash: upcomingReadiness.afterTomorrowExpectedCash,
+                    empty: 'لا توجد زيارات مجدولة لبعد غد',
+                    highlight: false
+                  }
+                ].map((day, dIdx) => (
+                  <div
+                    key={dIdx}
+                    className="p-4 border space-y-3"
+                    style={{
+                      backgroundColor: day.highlight ? `${theme.accent}08` : theme.surface,
+                      borderColor: day.highlight ? `${theme.accent}45` : theme.border
+                    }}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className="text-xs font-black flex items-center gap-1.5"
+                        style={{ color: day.highlight ? theme.accent : theme.text }}
+                      >
+                        <Calendar size={14} />
+                        {day.title}
+                      </span>
+                      <span
+                        className="text-xs font-mono font-black tabular-nums px-2.5 py-1 border"
+                        style={{
+                          backgroundColor: theme.bg,
+                          borderColor: day.highlight ? `${theme.accent}45` : theme.border,
+                          color: day.highlight ? theme.accent : theme.text
+                        }}
+                      >
+                        كاش متوقع: {formatMoney(day.cash)}
+                      </span>
                     </div>
-                  ) : (
-                    <p className="text-xs text-zinc-500 italic">لا توجد زيارات مجدولة لليوم</p>
-                  )}
-                </div>
 
-                {/* Day 2: Tomorrow */}
-                <div className="p-4 rounded-lg border border-zinc-200 dark:border-zinc-700/60 bg-zinc-50 dark:bg-zinc-800/30 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
-                      <Calendar size={14} />
-                      اليوم الثاني: غداً ({upcomingReadiness.tomorrowName})
-                    </span>
-                    <span className="text-xs font-black text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-900 px-2.5 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700">
-                      كاش متوقع: {formatMoney(upcomingReadiness.tomorrowExpectedCash)}
-                    </span>
-                  </div>
-
-                  {upcomingReadiness.tomorrowList.length > 0 ? (
-                    <div className="space-y-1.5">
-                      {upcomingReadiness.tomorrowList.map((item, idx) => (
-                        <div key={idx} className="p-2 bg-white dark:bg-zinc-900 rounded-lg flex items-center justify-between text-xs">
-                          <div>
-                            <span className="font-bold text-zinc-900 dark:text-white">{item.supplier.name}</span>
-                            <span className="text-[10px] text-zinc-400 mr-2">({item.supplier.typeOfGoods || 'بضاعة عامة'})</span>
+                    {day.list.length > 0 ? (
+                      <div className="space-y-1.5">
+                        {day.list.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="p-2 border flex items-center justify-between text-xs"
+                            style={{ backgroundColor: theme.bg, borderColor: theme.border }}
+                          >
+                            <div>
+                              <span className="font-bold" style={{ color: theme.text }}>{item.supplier.name}</span>
+                              <span className="text-[10px] mr-2" style={{ color: theme.textMuted }}>
+                                ({item.supplier.typeOfGoods || 'بضاعة عامة'})
+                              </span>
+                            </div>
+                            <span className="font-mono font-black tabular-nums" style={{ color: theme.text }}>
+                              {item.avgAmount > 0 ? `~${formatMoney(item.avgAmount)}` : 'حسب الفاتورة'}
+                            </span>
                           </div>
-                          <span className="font-black text-zinc-700 dark:text-zinc-300">
-                            {item.avgAmount > 0 ? `~${formatMoney(item.avgAmount)}` : 'حسب الفاتورة'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-zinc-500 italic">لا توجد زيارات مجدولة ليوم الغد</p>
-                  )}
-                </div>
-
-                {/* Day 3: Day after tomorrow */}
-                <div className="p-4 rounded-lg border border-zinc-200 dark:border-zinc-700/60 bg-zinc-50 dark:bg-zinc-800/30 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
-                      <Calendar size={14} />
-                      اليوم الثالث: بعد غد ({upcomingReadiness.afterTomorrowName})
-                    </span>
-                    <span className="text-xs font-black text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-900 px-2.5 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700">
-                      كاش متوقع: {formatMoney(upcomingReadiness.afterTomorrowExpectedCash)}
-                    </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs italic" style={{ color: theme.textMuted }}>{day.empty}</p>
+                    )}
                   </div>
-
-                  {upcomingReadiness.afterTomorrowList.length > 0 ? (
-                    <div className="space-y-1.5">
-                      {upcomingReadiness.afterTomorrowList.map((item, idx) => (
-                        <div key={idx} className="p-2 bg-white dark:bg-zinc-900 rounded-lg flex items-center justify-between text-xs">
-                          <div>
-                            <span className="font-bold text-zinc-900 dark:text-white">{item.supplier.name}</span>
-                            <span className="text-[10px] text-zinc-400 mr-2">({item.supplier.typeOfGoods || 'بضاعة عامة'})</span>
-                          </div>
-                          <span className="font-black text-zinc-700 dark:text-zinc-300">
-                            {item.avgAmount > 0 ? `~${formatMoney(item.avgAmount)}` : 'حسب الفاتورة'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-zinc-500 italic">لا توجد زيارات مجدولة لبعد غد</p>
-                  )}
-                </div>
+                ))}
               </div>
             )}
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/80 flex items-center justify-between">
-            <span className="text-[11px] text-zinc-400 flex items-center gap-1">
+          <div
+            className="p-4 border-t flex items-center justify-between shrink-0"
+            style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+          >
+            <span className="text-[11px] flex items-center gap-1" style={{ color: theme.textMuted }}>
               <TrendingUp size={12} />
               تحليل فوري مبني على سجلات مشتريات متجرك
             </span>
             <button
               onClick={onClose}
-              className="px-5 py-2.5 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 text-xs font-bold active:scale-95 transition-transform"
+              className="px-5 py-2.5 border text-xs font-bold transition-colors cursor-pointer"
+              style={{
+                backgroundColor: theme.surfaceMuted,
+                borderColor: theme.border,
+                color: theme.text
+              }}
             >
               إغلاق
             </button>

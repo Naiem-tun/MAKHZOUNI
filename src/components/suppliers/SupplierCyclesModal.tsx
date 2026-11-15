@@ -9,6 +9,7 @@ import { SupplierCycle, Supplier } from '../../types';
 import { formatCurrency, formatAppDate, roundMoney } from '../../lib/utils';
 import * as xlsx from 'xlsx';
 import * as html2pdf from 'html2pdf.js';
+import { useFolioTheme } from '../folio/FolioPageChrome';
 
 interface SupplierCyclesModalProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ export function SupplierCyclesModal({
   onArchiveCurrentCycle,
   currentCycleCount
 }: SupplierCyclesModalProps) {
+  const { theme } = useFolioTheme(Boolean(settings?.darkMode), settings?.folioThemeId);
   const [selectedCycle, setSelectedCycle] = useState<SupplierCycle | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
@@ -174,14 +176,15 @@ export function SupplierCyclesModal({
           animate={{ opacity: 1 }} 
           exit={{ opacity: 0 }} 
           onClick={onClose} 
-          className="absolute inset-0 bg-zinc-950/70 backdrop-blur-sm" 
+          className="absolute inset-0 bg-black/60 backdrop-blur-xs" 
         />
         
         <motion.div 
-          initial={{ opacity: 0, scale: 0.96, y: 15 }} 
+          initial={{ opacity: 0, scale: 0.96, y: 12 }} 
           animate={{ opacity: 1, scale: 1, y: 0 }} 
-          exit={{ opacity: 0, scale: 0.96, y: 15 }} 
-          className="relative w-full max-w-2xl max-h-[90vh] flex flex-col bg-white dark:bg-zinc-900 rounded-lg shadow-2xl border border-zinc-100 dark:border-zinc-800 overflow-hidden text-right"
+          exit={{ opacity: 0, scale: 0.96, y: 12 }} 
+          className="relative w-full max-w-2xl max-h-[90vh] flex flex-col border shadow-2xl overflow-hidden text-right"
+          style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }}
           dir="rtl"
         >
           {/* Hidden File Input for Excel Import */}
@@ -194,16 +197,26 @@ export function SupplierCyclesModal({
           />
 
           {/* Header */}
-          <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/80 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
-                <Archive size={20} />
-              </div>
-              <div>
-                <h2 className="text-base sm:text-lg font-black text-zinc-900 dark:text-white">
+          <div
+            className="p-4 sm:p-5 border-b flex items-center justify-between shrink-0"
+            style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span
+                className="text-[11px] font-mono font-bold tabular-nums px-2 py-0.5 border shrink-0"
+                style={{
+                  color: theme.accent,
+                  borderColor: `${theme.accent}45`,
+                  backgroundColor: `${theme.accent}12`
+                }}
+              >
+                01
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-base sm:text-lg font-black truncate" style={{ color: theme.text }}>
                   أرشيف الدورات السابقة للموردين
                 </h2>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                <p className="text-[11px] truncate mt-0.5" style={{ color: theme.textMuted }}>
                   حفظ تاريخ المعاملات السابقة لتغذية ذكاء المتجر دون التأثير على نظافة شاشتك الحالية
                 </p>
               </div>
@@ -211,19 +224,33 @@ export function SupplierCyclesModal({
 
             <button 
               onClick={onClose}
-              className="h-10 w-10 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:text-zinc-900 dark:hover:text-white transition-colors"
+              className="p-1.5 border flex items-center justify-center transition-colors cursor-pointer shrink-0"
+              style={{
+                backgroundColor: theme.surfaceMuted,
+                borderColor: theme.border,
+                color: theme.text
+              }}
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           </div>
 
           {/* Action Toolbar */}
-          <div className="p-3 bg-zinc-100/70 dark:bg-zinc-800/40 border-b border-zinc-200/60 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2">
+          <div
+            className="p-3 border-b flex flex-wrap items-center justify-between gap-2 shrink-0"
+            style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }}
+          >
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isImporting}
-                className="px-3 py-2 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5 shadow-sm active:scale-95 transition-all disabled:opacity-50"
+                className="px-3 py-2 border text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
+                style={{
+                  backgroundColor: theme.surface,
+                  borderColor: theme.border,
+                  color: theme.text
+                }}
               >
                 <Upload size={14} />
                 <span>{isImporting ? 'جاري الاستيراد...' : 'استيراد دورة من ملف Excel على الهاتف'}</span>
@@ -232,11 +259,13 @@ export function SupplierCyclesModal({
 
             {currentCycleCount > 0 && (
               <button
+                type="button"
                 onClick={() => {
                   onClose();
                   onArchiveCurrentCycle();
                 }}
-                className="px-3 py-2 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                className="px-3 py-2 text-xs font-bold flex items-center gap-1.5 transition-opacity hover:opacity-90 cursor-pointer"
+                style={{ backgroundColor: theme.accent, color: theme.accentText }}
               >
                 <Archive size={14} />
                 <span>أرشفة الدورة الحالية الآن ({currentCycleCount} معاملة)</span>
@@ -245,14 +274,19 @@ export function SupplierCyclesModal({
           </div>
 
           {/* Body */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-5">
+          <div className="min-h-0 overflow-y-auto p-4 sm:p-5">
             {selectedCycle ? (
               /* Detail View of a single cycle */
               <div className="space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
+                <div
+                  className="flex items-center justify-between pb-3 border-b"
+                  style={{ borderColor: theme.border }}
+                >
                   <button
+                    type="button"
                     onClick={() => setSelectedCycle(null)}
-                    className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+                    className="flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+                    style={{ color: theme.accent }}
                   >
                     <ChevronLeft size={16} />
                     <span>العودة لقائمة الدورات</span>
@@ -260,15 +294,19 @@ export function SupplierCyclesModal({
 
                   <div className="flex items-center gap-2">
                     <button
+                      type="button"
                       onClick={() => handleExportCycleToPDF(selectedCycle)}
-                      className="px-3 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-bold flex items-center gap-1.5 hover:bg-brand-700 active:scale-95 transition-all shadow-sm"
+                      className="px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 transition-opacity hover:opacity-90 cursor-pointer"
+                      style={{ backgroundColor: theme.accent, color: theme.accentText }}
                     >
                       <FileText size={14} />
                       <span>تنزيل PDF</span>
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleExportCycleToExcel(selectedCycle)}
-                      className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold flex items-center gap-1.5 hover:bg-emerald-700 active:scale-95 transition-all shadow-sm"
+                      className="px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 transition-opacity hover:opacity-90 cursor-pointer"
+                      style={{ backgroundColor: theme.positive, color: '#FFFFFF' }}
                     >
                       <FileSpreadsheet size={14} />
                       <span>تنزيل Excel</span>
@@ -276,26 +314,29 @@ export function SupplierCyclesModal({
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/70 dark:border-zinc-700/60">
-                  <h3 className="text-base font-black text-zinc-900 dark:text-white mb-2">
+                <div
+                  className="p-4 border"
+                  style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                >
+                  <h3 className="text-base font-black mb-2" style={{ color: theme.text }}>
                     {selectedCycle.name}
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                     <div>
-                      <span className="text-zinc-400 block">إجمالي مشتريات الدورة:</span>
-                      <span className="font-black text-brand-600 text-sm mt-0.5 block">
+                      <span className="block" style={{ color: theme.textMuted }}>إجمالي مشتريات الدورة:</span>
+                      <span className="font-mono font-black tabular-nums text-sm mt-0.5 block" style={{ color: theme.accent }}>
                         {formatMoney(selectedCycle.totalAmount)}
                       </span>
                     </div>
                     <div>
-                      <span className="text-zinc-400 block">عدد المعاملات:</span>
-                      <span className="font-bold text-zinc-800 dark:text-zinc-200 text-sm mt-0.5 block">
+                      <span className="block" style={{ color: theme.textMuted }}>عدد المعاملات:</span>
+                      <span className="font-mono font-bold tabular-nums text-sm mt-0.5 block" style={{ color: theme.text }}>
                         {selectedCycle.transactionCount} معاملة
                       </span>
                     </div>
                     <div>
-                      <span className="text-zinc-400 block">تاريخ الأرشفة:</span>
-                      <span className="font-medium text-zinc-600 dark:text-zinc-400 mt-0.5 block">
+                      <span className="block" style={{ color: theme.textMuted }}>تاريخ الأرشفة:</span>
+                      <span className="font-mono font-medium tabular-nums mt-0.5 block" style={{ color: theme.textMuted }}>
                         {formatAppDate(selectedCycle.createdAt)}
                       </span>
                     </div>
@@ -304,17 +345,26 @@ export function SupplierCyclesModal({
 
                 {/* Supplier breakdown list */}
                 <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                  <h4 className="text-xs font-bold" style={{ color: theme.text }}>
                     توزيع المشتريات على الموردين في هذه الدورة:
                   </h4>
-                  <div className="divide-y divide-zinc-100 dark:divide-zinc-800 border border-zinc-200/70 dark:border-zinc-700/60 rounded-xl overflow-hidden bg-white dark:bg-zinc-900">
+                  <div
+                    className="divide-y border overflow-hidden"
+                    style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                  >
                     {(selectedCycle.supplierBreakdown || []).map((item, idx) => (
-                      <div key={idx} className="p-3 flex items-center justify-between text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors">
+                      <div
+                        key={idx}
+                        className="p-3 flex items-center justify-between text-xs"
+                        style={{ borderColor: theme.border }}
+                      >
                         <div>
-                          <span className="font-black text-zinc-900 dark:text-white block">{item.supplierName}</span>
-                          <span className="text-[10px] text-zinc-400">{item.typeOfGoods || 'بضاعة عامة'} • {item.count} دفعات</span>
+                          <span className="font-black block" style={{ color: theme.text }}>{item.supplierName}</span>
+                          <span className="text-[10px]" style={{ color: theme.textMuted }}>
+                            {item.typeOfGoods || 'بضاعة عامة'} • {item.count} دفعات
+                          </span>
                         </div>
-                        <span className="font-black text-zinc-900 dark:text-white text-sm">
+                        <span className="font-mono font-black tabular-nums text-sm" style={{ color: theme.text }}>
                           {formatMoney(item.amount)}
                         </span>
                       </div>
@@ -328,24 +378,32 @@ export function SupplierCyclesModal({
                 {cycles.map((cycle) => (
                   <div 
                     key={cycle.id}
-                    className="p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-700/60 bg-white dark:bg-zinc-900 hover:border-brand-300 dark:hover:border-brand-700 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm"
+                    className="p-4 border transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    style={{ backgroundColor: theme.surface, borderColor: theme.border }}
                   >
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-black text-sm text-zinc-900 dark:text-white">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-black text-sm" style={{ color: theme.text }}>
                           {cycle.name}
                         </span>
-                        <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded-full font-bold">
+                        <span
+                          className="text-[10px] border px-2 py-0.5 font-mono font-bold tabular-nums"
+                          style={{
+                            backgroundColor: theme.surfaceMuted,
+                            borderColor: theme.border,
+                            color: theme.textMuted
+                          }}
+                        >
                           {cycle.transactionCount} معاملة
                         </span>
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-zinc-500">
-                        <span className="flex items-center gap-1">
+                      <div className="flex items-center gap-3 text-xs" style={{ color: theme.textMuted }}>
+                        <span className="flex items-center gap-1 font-mono tabular-nums">
                           <Calendar size={12} />
                           {formatAppDate(cycle.createdAt)}
                         </span>
                         <span>•</span>
-                        <span className="font-black text-brand-600 dark:text-brand-400">
+                        <span className="font-mono font-black tabular-nums" style={{ color: theme.accent }}>
                           {formatMoney(cycle.totalAmount)}
                         </span>
                       </div>
@@ -353,50 +411,80 @@ export function SupplierCyclesModal({
 
                     <div className="flex items-center gap-2 self-end sm:self-auto">
                       <button
+                        type="button"
                         onClick={() => setSelectedCycle(cycle)}
-                        className="px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-bold hover:bg-zinc-200 dark:hover:bg-zinc-700 flex items-center gap-1.5 transition-colors"
+                        className="px-3 py-1.5 border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                        style={{
+                          backgroundColor: theme.surfaceMuted,
+                          borderColor: theme.border,
+                          color: theme.text
+                        }}
                       >
                         <Eye size={14} />
                         <span>عرض التفاصيل</span>
                       </button>
 
                       <button
+                        type="button"
                         onClick={() => handleExportCycleToPDF(cycle)}
-                        className="p-1.5 rounded-lg text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/30 transition-colors"
+                        className="p-1.5 border transition-colors cursor-pointer"
+                        style={{
+                          backgroundColor: `${theme.accent}12`,
+                          borderColor: `${theme.accent}40`,
+                          color: theme.accent
+                        }}
                         title="تنزيل PDF"
                       >
-                        <FileText size={18} />
+                        <FileText size={16} />
                       </button>
 
                       <button
+                        type="button"
                         onClick={() => handleExportCycleToExcel(cycle)}
-                        className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
+                        className="p-1.5 border transition-colors cursor-pointer"
+                        style={{
+                          backgroundColor: `${theme.positive}12`,
+                          borderColor: `${theme.positive}40`,
+                          color: theme.positive
+                        }}
                         title="تنزيل Excel"
                       >
-                        <FileSpreadsheet size={18} />
+                        <FileSpreadsheet size={16} />
                       </button>
 
                       <button
+                        type="button"
                         onClick={() => setDeleteConfirmId(cycle.id || null)}
-                        className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                        className="p-1.5 border transition-colors cursor-pointer"
+                        style={{
+                          backgroundColor: `${theme.negative}10`,
+                          borderColor: `${theme.negative}35`,
+                          color: theme.negative
+                        }}
                         title="حذف من الأرشيف"
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 space-y-3">
-                <div className="w-14 h-14 mx-auto rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-400 flex items-center justify-center">
-                  <Archive size={28} />
+              <div
+                className="text-center py-12 space-y-3 border border-dashed p-6"
+                style={{ borderColor: theme.border, backgroundColor: theme.surface }}
+              >
+                <div
+                  className="w-12 h-12 mx-auto border flex items-center justify-center"
+                  style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.textMuted }}
+                >
+                  <Archive size={24} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-200">
+                  <h3 className="text-sm font-black" style={{ color: theme.text }}>
                     لا توجد دورات مؤرشفة بعد
                   </h3>
-                  <p className="text-xs text-zinc-500 max-w-sm mx-auto mt-1">
+                  <p className="text-xs max-w-sm mx-auto mt-1" style={{ color: theme.textMuted }}>
                     عند انتهاء الجرد، استخدم خيار «أرشفة الدورة وبدء دورة جديدة» ليتم تصفير الشاشة وحفظ التقرير هنا وتنزيله على هاتفك، أو قم برفع ملف دورة قديم من هاتفك الآن.
                   </p>
                 </div>
@@ -408,30 +496,39 @@ export function SupplierCyclesModal({
           <AnimatePresence>
             {deleteConfirmId && (
               <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
-                <div className="absolute inset-0 bg-zinc-950/60" onClick={() => setDeleteConfirmId(null)} />
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setDeleteConfirmId(null)} />
                 <motion.div 
-                  initial={{ opacity: 0, scale: 0.95 }}
+                  initial={{ opacity: 0, scale: 0.96 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="relative bg-white dark:bg-zinc-900 p-6 rounded-lg max-w-xs w-full text-center shadow-xl border border-zinc-200 dark:border-zinc-800"
+                  exit={{ opacity: 0, scale: 0.96 }}
+                  className="relative p-6 max-w-xs w-full text-center shadow-xl border"
+                  style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }}
                 >
-                  <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-5">
+                  <p className="text-xs font-bold mb-5" style={{ color: theme.text }}>
                     هل أنت متأكد من حذف هذه الدورة من الأرشيف نهائياً؟
                   </p>
                   <div className="flex gap-2">
                     <button
+                      type="button"
                       onClick={async () => {
                         const id = deleteConfirmId;
                         setDeleteConfirmId(null);
                         if (id) await onDeleteCycle(id);
                       }}
-                      className="flex-1 py-2 rounded-lg bg-rose-600 text-white text-xs font-bold shadow-lg shadow-rose-600/20"
+                      className="flex-1 py-2 text-white text-xs font-bold cursor-pointer"
+                      style={{ backgroundColor: theme.negative }}
                     >
                       حذف
                     </button>
                     <button
+                      type="button"
                       onClick={() => setDeleteConfirmId(null)}
-                      className="flex-1 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs font-bold"
+                      className="flex-1 py-2 border text-xs font-bold cursor-pointer"
+                      style={{
+                        backgroundColor: theme.surfaceMuted,
+                        borderColor: theme.border,
+                        color: theme.text
+                      }}
                     >
                       إلغاء
                     </button>
@@ -442,13 +539,22 @@ export function SupplierCyclesModal({
           </AnimatePresence>
 
           {/* Footer */}
-          <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/80 flex items-center justify-between">
-            <span className="text-[11px] text-zinc-400">
+          <div
+            className="p-4 border-t flex items-center justify-between shrink-0"
+            style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+          >
+            <span className="text-[11px]" style={{ color: theme.textMuted }}>
               الدورات المؤرشفة تُمكّن الوكيل من حساب متوسطات الحليب والخبز تلقائياً
             </span>
             <button
+              type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 text-xs font-bold active:scale-95 transition-transform"
+              className="px-5 py-2 border text-xs font-bold transition-colors cursor-pointer"
+              style={{
+                backgroundColor: theme.surfaceMuted,
+                borderColor: theme.border,
+                color: theme.text
+              }}
             >
               إغلاق
             </button>

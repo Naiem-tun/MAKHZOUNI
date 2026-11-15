@@ -6,6 +6,8 @@ import { OperationType, UserSettings, Category } from './types';
 import { handleFirestoreError, cn } from './lib/utils';
 import i18n from './lib/i18n';
 import { syncTracker } from './lib/syncTracker';
+import { FOLIO_THEMES } from './components/inventory/analytics/folio/folioThemes';
+import { setGlobalFolioTheme } from './components/folio/FolioPageChrome';
 
 interface Toast {
   id: string;
@@ -43,6 +45,7 @@ const defaultSettings: UserSettings = {
   language: 'ar',
   darkMode: false,
   colorTheme: 'navy',
+  folioThemeId: 'folio-editorial',
   storeName: 'مخزوني',
   showFinancials: true,
 };
@@ -75,6 +78,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const normalizedTheme = normalizeTheme(parsed.colorTheme);
       parsed.colorTheme = normalizedTheme;
       document.documentElement.setAttribute('data-theme', normalizedTheme);
+      if (parsed.folioThemeId) {
+        try { localStorage.setItem('folio_theme_id', parsed.folioThemeId); } catch {}
+      }
       return parsed;
     }
     document.documentElement.setAttribute('data-theme', 'navy');
@@ -226,6 +232,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           data.colorTheme = normalizeTheme(data.colorTheme);
           document.documentElement.setAttribute('data-theme', data.colorTheme);
         }
+        if (data.folioThemeId && FOLIO_THEMES.some((t) => t.id === data.folioThemeId)) {
+          setGlobalFolioTheme(data.folioThemeId);
+        }
         setSettings(data);
         localStorage.setItem('user_settings', JSON.stringify(data));
         i18n.changeLanguage(data.language);
@@ -303,7 +312,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const toggleDarkMode = () => {
     const nextMode = !settings.darkMode;
-    updateSettings({ darkMode: nextMode });
+    const currentFolio = FOLIO_THEMES.find(
+      (t) => t.id === (settings.folioThemeId || localStorage.getItem('folio_theme_id')),
+    );
+    const nextFolioId = nextMode
+      ? currentFolio?.isDark
+        ? currentFolio.id
+        : 'folio-night'
+      : currentFolio && !currentFolio.isDark
+        ? currentFolio.id
+        : 'folio-editorial';
+    setGlobalFolioTheme(nextFolioId);
+    updateSettings({ darkMode: nextMode, folioThemeId: nextFolioId });
     showToast(nextMode ? i18n.t('night_mode_on') : i18n.t('day_mode_on'), 'info');
   };
 

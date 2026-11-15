@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Lock, ShieldCheck, AlertCircle, X, Check, Delete, KeyRound } from 'lucide-react';
+import { motion } from 'motion/react';
+import { Lock, AlertCircle, X, Check, Delete } from 'lucide-react';
 import { useAppContext } from '../../AppContext';
+import { useFolioTheme } from '../folio/FolioPageChrome';
 
 interface PinSetupModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ export const PinSetupModal: React.FC<PinSetupModalProps> = ({
   mode = 'setup'
 }) => {
   const { settings, updateSettings, showToast } = useAppContext();
+  const { theme } = useFolioTheme(Boolean(settings?.darkMode), settings?.folioThemeId);
   
   // Steps:
   // 'verify_old' (if changing or disabling and currently has PIN)
@@ -118,108 +120,120 @@ export const PinSetupModal: React.FC<PinSetupModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm select-none">
+    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs select-none" dir="rtl" onClick={onClose}>
       <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
+        initial={{ scale: 0.96, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl flex flex-col items-center text-center relative"
-        dir="rtl"
+        exit={{ scale: 0.96, opacity: 0 }}
+        className="border max-w-sm w-full shadow-2xl overflow-hidden flex flex-col relative"
+        style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }}
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={isSubmitting}
-          className="absolute top-4 left-4 p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+        {/* Header */}
+        <div
+          className="px-4 py-3 border-b flex items-center justify-between"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
         >
-          <X size={20} />
-        </button>
-
-        {/* Icon */}
-        <div className="w-14 h-14 rounded-2xl bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 flex items-center justify-center mb-4 mt-2">
-          {step === 'confirm_new' ? <Check size={28} /> : <Lock size={28} />}
-        </div>
-
-        {/* Title & Subtitle */}
-        <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
-          {getTitle()}
-        </h3>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 mb-5">
-          {getSubtitle()}
-        </p>
-
-        {/* 4 Dots Indicator */}
-        <div className="flex items-center justify-center gap-3 mb-3">
-          {[0, 1, 2, 3].map((idx) => {
-            const isFilled = currentInput.length > idx;
-            return (
-              <div
-                key={idx}
-                className={`w-3.5 h-3.5 rounded-full border-2 transition-all duration-200 ${
-                  isFilled
-                    ? 'border-brand-600 bg-brand-600 dark:border-brand-500 dark:bg-brand-500 scale-110'
-                    : 'border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800'
-                }`}
-              />
-            );
-          })}
-        </div>
-
-        {/* Error Message */}
-        <div className="h-5 mb-3 flex items-center justify-center">
-          {errorMsg ? (
-            <span className="text-xs font-bold text-red-500 dark:text-red-400 flex items-center gap-1">
-              <AlertCircle size={13} />
-              {errorMsg}
-            </span>
-          ) : (
-            <span className="text-[11px] text-zinc-400">
-              {step === 'confirm_new' ? 'الخطوة 2 من 2' : step === 'enter_new' ? 'الخطوة 1 من 2' : 'تأكيد الحماية'}
-            </span>
-          )}
-        </div>
-
-        {/* Keypad */}
-        <div className="grid grid-cols-3 gap-2.5 w-full max-w-[260px]" dir="ltr">
-          {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
-            <button
-              key={digit}
-              type="button"
-              onClick={() => handleDigit(digit)}
-              disabled={isSubmitting}
-              className="h-12 rounded-xl bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200/70 dark:border-zinc-700/60 text-lg font-bold text-zinc-800 dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-700 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
-            >
-              {digit}
-            </button>
-          ))}
-
+          <div className="flex items-center gap-2 text-xs font-black">
+            {step === 'confirm_new' ? <Check size={14} style={{ color: theme.positive }} /> : <Lock size={14} style={{ color: theme.accent }} />}
+            <span>حماية التطبيق برمز PIN</span>
+          </div>
           <button
             type="button"
-            onClick={handleClear}
-            disabled={isSubmitting || currentInput.length === 0}
-            className="h-12 rounded-xl bg-zinc-100/60 dark:bg-zinc-800/40 text-xs font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200/70 dark:hover:bg-zinc-700 active:scale-95 transition-all flex items-center justify-center disabled:opacity-30 cursor-pointer"
-          >
-            مسح
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleDigit('0')}
+            onClick={onClose}
             disabled={isSubmitting}
-            className="h-12 rounded-xl bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200/70 dark:border-zinc-700/60 text-lg font-bold text-zinc-800 dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-700 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+            aria-label="إغلاق"
+            className="p-1 border cursor-pointer"
+            style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.text }}
           >
-            0
+            <X size={15} />
           </button>
+        </div>
 
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={isSubmitting || currentInput.length === 0}
-            className="h-12 rounded-xl bg-zinc-100/60 dark:bg-zinc-800/40 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200/70 dark:hover:bg-zinc-700 active:scale-95 transition-all flex items-center justify-center disabled:opacity-30 cursor-pointer"
-          >
-            <Delete size={18} />
-          </button>
+        <div className="p-5 flex flex-col items-center text-center">
+          <h3 className="text-base sm:text-lg font-black" style={{ color: theme.text }}>
+            {getTitle()}
+          </h3>
+          <p className="text-xs mt-1 mb-5" style={{ color: theme.textMuted }}>
+            {getSubtitle()}
+          </p>
+
+          {/* 4 Box Indicator */}
+          <div className="flex items-center justify-center gap-3 mb-3">
+            {[0, 1, 2, 3].map((idx) => {
+              const isFilled = currentInput.length > idx;
+              return (
+                <div
+                  key={idx}
+                  className="w-4 h-4 border-2 transition-all duration-150"
+                  style={{
+                    borderColor: isFilled ? theme.accent : theme.border,
+                    backgroundColor: isFilled ? theme.accent : theme.surface,
+                  }}
+                />
+              );
+            })}
+          </div>
+
+          {/* Error / Step Message */}
+          <div className="h-5 mb-4 flex items-center justify-center">
+            {errorMsg ? (
+              <span className="text-xs font-bold flex items-center gap-1" style={{ color: theme.negative }}>
+                <AlertCircle size={13} />
+                {errorMsg}
+              </span>
+            ) : (
+              <span className="text-[11px] font-mono tabular-nums font-bold" style={{ color: theme.textMuted }}>
+                {step === 'confirm_new' ? 'الخطوة 2 من 2' : step === 'enter_new' ? 'الخطوة 1 من 2' : 'تأكيد الحماية'}
+              </span>
+            )}
+          </div>
+
+          {/* Keypad */}
+          <div className="grid grid-cols-3 gap-2 w-full max-w-[260px]" dir="ltr">
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
+              <button
+                key={digit}
+                type="button"
+                onClick={() => handleDigit(digit)}
+                disabled={isSubmitting}
+                className="h-12 border text-lg font-mono font-black flex items-center justify-center cursor-pointer transition-colors"
+                style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
+              >
+                {digit}
+              </button>
+            ))}
+
+            <button
+              type="button"
+              onClick={handleClear}
+              disabled={isSubmitting || currentInput.length === 0}
+              className="h-12 border text-xs font-bold flex items-center justify-center disabled:opacity-30 cursor-pointer"
+              style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.textMuted }}
+            >
+              مسح
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleDigit('0')}
+              disabled={isSubmitting}
+              className="h-12 border text-lg font-mono font-black flex items-center justify-center cursor-pointer transition-colors"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
+            >
+              0
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={isSubmitting || currentInput.length === 0}
+              className="h-12 border flex items-center justify-center disabled:opacity-30 cursor-pointer"
+              style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.text }}
+            >
+              <Delete size={18} />
+            </button>
+          </div>
         </div>
       </motion.div>
     </div>

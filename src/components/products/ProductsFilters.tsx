@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, ScanBarcode, Layers, Filter, Package, ChevronDown, Monitor } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { Search, ScanBarcode, Layers, Filter, Package, Monitor, X } from 'lucide-react';
 import { Category } from '../../types';
 import { useAppContext } from '../../AppContext';
+import { FolioTheme } from '../inventory/analytics/folio/folioTypes';
+import { resolveFolioTheme } from '../folio/FolioPageChrome';
 
 interface ProductsFiltersProps {
   searchTerm: string;
@@ -19,6 +20,7 @@ interface ProductsFiltersProps {
   categories: Category[];
   priceErrorsCount?: number;
   onOpenScanner: () => void;
+  theme?: FolioTheme;
 }
 
 export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
@@ -34,14 +36,16 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
   setShowPosStock,
   categories,
   priceErrorsCount = 0,
-  onOpenScanner
+  onOpenScanner,
+  theme,
 }) => {
   const { t } = useTranslation();
   const { settings } = useAppContext();
-  
+  const activeTheme = theme || resolveFolioTheme(Boolean(settings.darkMode));
+
   const [stockDropdownOpen, setStockDropdownOpen] = useState(false);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
-  
+
   const stockRef = useRef<HTMLDivElement>(null);
   const categoryRef = useRef<HTMLDivElement>(null);
 
@@ -63,12 +67,12 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
       { value: 'all', label: t('all_stock') },
       { value: 'available', label: t('available_stock') },
       { value: 'low', label: t('low_stock') },
-      { value: 'out', label: t('out_of_stock') }
+      { value: 'out', label: t('out_of_stock') },
     ];
     if (priceErrorsCount > 0) {
       opts.push({
         value: 'price_error',
-        label: `⚠️ أخطاء التسعير (${priceErrorsCount})`
+        label: `أخطاء التسعير (${priceErrorsCount})`,
       });
     }
     return opts;
@@ -77,7 +81,7 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
   const categoryOptions = useMemo(() => {
     const options = [{ value: 'all', label: t('all_categories') }];
     const seen = new Set<string>(['all']);
-    categories.forEach(c => {
+    categories.forEach((c) => {
       if (c && c.name && !seen.has(c.name)) {
         seen.add(c.name);
         options.push({ value: c.name, label: t(c.key || c.name) });
@@ -87,13 +91,15 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
   }, [categories, t]);
 
   return (
-    <div className="flex flex-col sm:flex-row gap-4">
-      <div className="relative flex-1 group">
-        <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-zinc-400 group-focus-within:text-brand-500 transition-colors">
-          <Search size={20} />
-        </div>
-        <input 
-          type="search" 
+    <div className="flex flex-col lg:flex-row gap-2.5">
+      {/* Search + Scanner Bar */}
+      <div
+        className="flex items-center gap-2 border px-3 py-2 flex-1"
+        style={{ backgroundColor: activeTheme.surface, borderColor: activeTheme.border }}
+      >
+        <Search size={16} style={{ color: activeTheme.textMuted }} className="shrink-0" />
+        <input
+          type="search"
           name="product_search"
           autoComplete="off"
           autoCorrect="off"
@@ -104,108 +110,162 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
           placeholder={t('search_product_placeholder')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full rounded-lg border border-zinc-200 bg-white py-3 pr-12 pl-12 outline-none focus:ring-2 focus:ring-brand-500 transition-all dark:bg-zinc-900 dark:border-zinc-800 dark:text-white"
+          className="w-full bg-transparent text-xs sm:text-sm outline-none"
+          style={{ color: activeTheme.text }}
         />
-        <div className="absolute inset-y-0 left-2 flex items-center pr-2">
-          <button 
-            type="button"
-            onClick={onOpenScanner}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-all active:scale-90 dark:text-zinc-500 dark:hover:bg-zinc-800"
-          >
-            <ScanBarcode size={20} />
-          </button>
-        </div>
-      </div>
-      <div className="flex-1 sm:flex-none overflow-x-auto md:overflow-visible no-scrollbar pb-[260px] -mb-[260px] md:pb-0 md:mb-0 pointer-events-none -mx-4 px-4 sm:mx-0 sm:px-0">
-        <div className="flex gap-2 w-max md:w-auto h-full pointer-events-auto">
-          <div className="relative shrink-0" ref={stockRef}>
-            <button 
-              onClick={() => setStockDropdownOpen(!stockDropdownOpen)}
-              className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 min-w-[110px] h-full"
-            >
-              <Layers size={16} className="text-zinc-400 shrink-0" />
-              <span className="flex-1 text-right">{stockOptions.find(o => o.value === stockFilter)?.label}</span>
-            </button>
-            {stockDropdownOpen && (
-              <div className="absolute top-full right-0 mt-1 w-full min-w-[140px] z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl overflow-hidden py-1">
-                {stockOptions.map(opt => (
-                  <button
-                    key={opt.value}
-                    onClick={() => {
-                      setStockFilter(opt.value);
-                      setStockDropdownOpen(false);
-                    }}
-                    className={cn(
-                      "w-full text-right px-4 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors",
-                      stockFilter === opt.value ? "text-brand-600 font-bold bg-brand-50/50 dark:bg-brand-900/10 dark:text-brand-400" : "text-zinc-600 dark:text-zinc-400"
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="relative shrink-0" ref={categoryRef}>
-            <button 
-              onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
-              className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-bold text-zinc-600 outline-none hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 min-w-[130px] h-full"
-            >
-              <Filter size={16} className="text-zinc-400 shrink-0" />
-              <span className="flex-1 text-right truncate">{categoryOptions.find(o => o.value === categoryFilter)?.label}</span>
-            </button>
-            {categoryDropdownOpen && (
-              <div className="absolute top-full right-0 mt-1 w-full min-w-[160px] max-h-[220px] overflow-y-auto z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl py-1">
-                {categoryOptions.map(opt => (
-                  <button
-                    key={opt.value}
-                    onClick={() => {
-                      setCategoryFilter(opt.value);
-                      setCategoryDropdownOpen(false);
-                    }}
-                    className={cn(
-                      "w-full text-right px-4 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors truncate",
-                      categoryFilter === opt.value ? "text-brand-600 font-bold bg-brand-50/50 dark:bg-brand-900/10 dark:text-brand-400" : "text-zinc-600 dark:text-zinc-400"
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
+        {searchTerm && (
           <button
-            onClick={() => setShowBoxInfo(!showBoxInfo)}
-            className={cn(
-              "flex shrink-0 items-center gap-2 px-4 py-2 rounded-lg border transition-all text-sm font-bold h-full",
-              showBoxInfo 
-                ? "bg-brand-600 border-brand-700 text-white shadow-lg shadow-brand-500/20 scale-105" 
-                : "bg-white border-zinc-200 text-zinc-500 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-500"
-            )}
-            title={showBoxInfo ? t('box_mode') || 'وضع الكرتونة' : t('box')}
+            type="button"
+            onClick={() => setSearchTerm('')}
+            aria-label="مسح البحث"
+            className="cursor-pointer shrink-0"
+            style={{ color: activeTheme.textMuted }}
           >
-            <Package size={18} className="shrink-0" />
-            <span>{t('box')}</span>
+            <X size={14} />
           </button>
+        )}
+        <button
+          type="button"
+          onClick={onOpenScanner}
+          className="p-1.5 border cursor-pointer shrink-0 transition-colors"
+          style={{
+            backgroundColor: activeTheme.bg,
+            borderColor: activeTheme.border,
+            color: activeTheme.text,
+          }}
+          title="مسح الباركود"
+        >
+          <ScanBarcode size={16} />
+        </button>
+      </div>
 
-          {settings.enablePOS && settings.showCashierStockButton !== false && setShowPosStock && (
-            <button
-              onClick={() => setShowPosStock(!showPosStock)}
-              className={cn(
-                "flex shrink-0 items-center gap-2 px-4 py-2 rounded-lg border transition-all text-sm font-bold h-full whitespace-nowrap",
-                showPosStock 
-                  ? "bg-blue-600 border-blue-700 text-white shadow-lg shadow-blue-500/20 scale-105" 
-                  : "bg-white border-zinc-200 text-zinc-500 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-500 hover:text-blue-600 dark:hover:text-blue-400"
-              )}
-              title="عرض مخزون الكاشير"
+      {/* Filters & View Toggles */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <div className="relative" ref={stockRef}>
+          <button
+            type="button"
+            onClick={() => setStockDropdownOpen(!stockDropdownOpen)}
+            className="h-10 px-3 flex items-center gap-2 border text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            style={{
+              backgroundColor:
+                stockFilter !== 'all' ? activeTheme.text : activeTheme.surface,
+              borderColor:
+                stockFilter !== 'all' ? activeTheme.text : activeTheme.border,
+              color: stockFilter !== 'all' ? activeTheme.surface : activeTheme.text,
+            }}
+          >
+            <Layers size={14} />
+            <span>{stockOptions.find((o) => o.value === stockFilter)?.label}</span>
+          </button>
+          {stockDropdownOpen && (
+            <div
+              className="absolute top-full right-0 mt-1 min-w-[165px] z-50 border shadow-xl overflow-hidden py-1"
+              style={{
+                backgroundColor: activeTheme.surface,
+                borderColor: activeTheme.border,
+              }}
             >
-              <Monitor size={18} className="shrink-0" />
-              <span>مخزون الكاشير</span>
-            </button>
+              {stockOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    setStockFilter(opt.value);
+                    setStockDropdownOpen(false);
+                  }}
+                  className="w-full text-right px-3.5 py-2 text-xs font-bold transition-colors cursor-pointer"
+                  style={{
+                    backgroundColor:
+                      stockFilter === opt.value ? activeTheme.surfaceMuted : 'transparent',
+                    color: stockFilter === opt.value ? activeTheme.accent : activeTheme.text,
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           )}
         </div>
+
+        <div className="relative" ref={categoryRef}>
+          <button
+            type="button"
+            onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
+            className="h-10 px-3 flex items-center gap-2 border text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer max-w-[170px]"
+            style={{
+              backgroundColor:
+                categoryFilter !== 'all' ? activeTheme.text : activeTheme.surface,
+              borderColor:
+                categoryFilter !== 'all' ? activeTheme.text : activeTheme.border,
+              color: categoryFilter !== 'all' ? activeTheme.surface : activeTheme.text,
+            }}
+          >
+            <Filter size={14} className="shrink-0" />
+            <span className="truncate">
+              {categoryOptions.find((o) => o.value === categoryFilter)?.label}
+            </span>
+          </button>
+          {categoryDropdownOpen && (
+            <div
+              className="absolute top-full right-0 mt-1 min-w-[175px] max-h-[240px] overflow-y-auto z-50 border shadow-xl py-1"
+              style={{
+                backgroundColor: activeTheme.surface,
+                borderColor: activeTheme.border,
+              }}
+            >
+              {categoryOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    setCategoryFilter(opt.value);
+                    setCategoryDropdownOpen(false);
+                  }}
+                  className="w-full text-right px-3.5 py-2 text-xs font-bold transition-colors truncate cursor-pointer"
+                  style={{
+                    backgroundColor:
+                      categoryFilter === opt.value ? activeTheme.surfaceMuted : 'transparent',
+                    color: categoryFilter === opt.value ? activeTheme.accent : activeTheme.text,
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowBoxInfo(!showBoxInfo)}
+          className="h-10 px-3 flex items-center gap-1.5 border text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+          style={{
+            backgroundColor: showBoxInfo ? activeTheme.accent : activeTheme.surface,
+            borderColor: showBoxInfo ? activeTheme.accent : activeTheme.border,
+            color: showBoxInfo ? activeTheme.accentText : activeTheme.text,
+          }}
+          title={showBoxInfo ? t('box_mode') || 'وضع الكرتونة' : t('box')}
+        >
+          <Package size={14} />
+          <span>{t('box')}</span>
+        </button>
+
+        {settings.enablePOS && settings.showCashierStockButton !== false && setShowPosStock && (
+          <button
+            type="button"
+            onClick={() => setShowPosStock(!showPosStock)}
+            className="h-10 px-3 flex items-center gap-1.5 border text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            style={{
+              backgroundColor: showPosStock ? activeTheme.positive : activeTheme.surface,
+              borderColor: showPosStock ? activeTheme.positive : activeTheme.border,
+              color: showPosStock ? '#FFFFFF' : activeTheme.text,
+            }}
+            title="عرض مخزون الكاشير"
+          >
+            <Monitor size={14} />
+            <span>مخزون الكاشير</span>
+          </button>
+        )}
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ import { motion } from 'motion/react';
 import { db } from '../../lib/firebase';
 import { collection, getDocs, doc, writeBatch } from 'firebase/firestore';
 import { useAppContext } from '../../AppContext';
+import { useFolioTheme } from '../folio/FolioPageChrome';
 
 interface DataManagementProps {
   onBack: () => void;
@@ -21,7 +22,8 @@ interface DataManagementProps {
 
 export const DataManagement: React.FC<DataManagementProps> = ({ onBack }) => {
   const { t } = useTranslation();
-  const { user } = useAppContext();
+  const { user, settings } = useAppContext();
+  const { theme } = useFolioTheme(Boolean(settings.darkMode), settings.folioThemeId);
   
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -256,102 +258,207 @@ export const DataManagement: React.FC<DataManagementProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="space-y-6 pb-12">
-      <header className="flex items-center gap-4">
-        <button onClick={onBack} className="h-10 w-10 rounded-lg bg-white border border-zinc-100 flex items-center justify-center text-zinc-600 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400">
-          <ArrowRight size={20} />
+    <div className="max-w-4xl mx-auto space-y-5 pb-20" style={{ color: theme.text }}>
+      <header
+        className="flex items-center gap-3 border-b pb-4"
+        style={{ borderColor: theme.border }}
+      >
+        <button
+          type="button"
+          onClick={onBack}
+          className="h-10 w-10 border flex items-center justify-center cursor-pointer"
+          style={{
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
+            color: theme.text,
+          }}
+        >
+          <ArrowRight size={18} />
         </button>
-        <div>
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t('data_management')}</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('export_import_data_desc')}</p>
+        <div className="flex-1 text-right">
+          <div className="flex items-center gap-2 text-xs font-bold" style={{ color: theme.textMuted }}>
+            <span className="font-mono" style={{ color: theme.accent }}>DATA</span>
+            <span>·</span>
+            <span>{t('export_import_data_desc')}</span>
+          </div>
+          <h1 className="text-2xl font-black tracking-tight" style={{ color: theme.text }}>
+            {t('data_management')}
+          </h1>
         </div>
       </header>
 
       {status && (
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }}
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`p-4 rounded-lg flex items-center gap-3 ${status.type === 'success' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400' : 'bg-rose-50 text-rose-700 dark:bg-rose-900/20 dark:text-rose-400'}`}
+          className="p-3.5 border flex items-center gap-2.5 text-xs font-bold"
+          style={{
+            backgroundColor: theme.surface,
+            borderColor: status.type === 'success' ? theme.positive : theme.negative,
+            color: status.type === 'success' ? theme.positive : theme.negative,
+          }}
         >
-          {status.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
-          <span className="text-sm font-medium">{status.msg}</span>
+          {status.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+          <span>{status.msg}</span>
         </motion.div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Export section */}
-        <section className="p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
-          <div className="h-12 w-12 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 dark:bg-brand-950/20">
-            <Download size={24} />
+        <section
+          className="p-5 border space-y-4 text-right"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
+          <div
+            className="h-10 w-10 border flex items-center justify-center"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+              color: theme.accent,
+            }}
+          >
+            <Download size={20} />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{t('export_backup')}</h3>
-            <p className="text-sm text-zinc-500">{t('export_backup_desc')}</p>
+            <h3 className="text-base font-black" style={{ color: theme.text }}>
+              {t('export_backup')}
+            </h3>
+            <p className="text-xs mt-1" style={{ color: theme.textMuted }}>
+              {t('export_backup_desc')}
+            </p>
           </div>
-          <button 
+          <button
+            type="button"
             onClick={handleExport}
             disabled={isExporting}
-            className="w-full py-4 rounded-lg bg-brand-600 text-white font-bold shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2 transition-all hover:bg-brand-700 disabled:opacity-50"
+            className="w-full py-3 border text-xs font-black flex items-center justify-center gap-2 transition-opacity disabled:opacity-50 cursor-pointer"
+            style={{
+              backgroundColor: theme.text,
+              color: theme.surface,
+              borderColor: theme.text,
+            }}
           >
-            {isExporting ? t('exporting') : <><Clipboard size={20} /> {t('export_now')}</>}
+            {isExporting ? t('exporting') : <><Clipboard size={16} /> {t('export_now')}</>}
           </button>
         </section>
 
         {/* Import section */}
-        <section className="p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
-          <div className="h-12 w-12 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 dark:bg-amber-950/20">
-            <Upload size={24} />
+        <section
+          className="p-5 border space-y-4 text-right"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
+          <div
+            className="h-10 w-10 border flex items-center justify-center"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+              color: theme.accent,
+            }}
+          >
+            <Upload size={20} />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{t('import_file')}</h3>
-            <p className="text-sm text-zinc-500">{t('import_file_desc')}</p>
+            <h3 className="text-base font-black" style={{ color: theme.text }}>
+              {t('import_file')}
+            </h3>
+            <p className="text-xs mt-1" style={{ color: theme.textMuted }}>
+              {t('import_file_desc')}
+            </p>
           </div>
-          <label className="cursor-pointer w-full py-4 rounded-lg bg-zinc-100 text-zinc-600 font-bold border-2 border-dashed border-zinc-200 flex items-center justify-center gap-2 transition-all hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700 dark:hover:bg-zinc-700">
-            <FileJson size={20} />
+          <label
+            className="cursor-pointer w-full py-3 border border-dashed text-xs font-bold flex items-center justify-center gap-2 transition-colors"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+              color: theme.text,
+            }}
+          >
+            <FileJson size={16} style={{ color: theme.accent }} />
             {isImporting ? t('importing') : t('choose_file_import')}
             <input type="file" accept=".json" onChange={handleFileImport} className="hidden" disabled={isImporting || isImportingCatalog} />
           </label>
         </section>
 
         {/* Catalog Import section */}
-        <section className="md:col-span-2 p-6 rounded-lg bg-white shadow-sm border border-brand-200 dark:bg-zinc-900 dark:border-brand-900/50 relative overflow-hidden space-y-4">
-          <div className="absolute top-0 right-0 p-4 -mr-4 -mt-4 opacity-5">
-            <PackagePlus size={100} />
-          </div>
-          <div className="relative z-10">
-            <div className="h-12 w-12 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 dark:bg-brand-950/20">
-              <PackagePlus size={24} />
+        <section
+          className="md:col-span-2 p-5 border space-y-4 text-right"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
+          <div className="flex items-start gap-3">
+            <div
+              className="h-10 w-10 border flex items-center justify-center shrink-0"
+              style={{
+                backgroundColor: theme.surfaceMuted,
+                borderColor: theme.border,
+                color: theme.accent,
+              }}
+            >
+              <PackagePlus size={20} />
             </div>
-            <div className="mt-4">
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">استيراد من كتالوج المنتجات</h3>
-              <p className="text-sm text-zinc-500">جلب المنتجات من تطبيق الكتالوج الخاص بك. ستوضع المنتجات في خانة "قائمة النقل" (المسودات) لحين تحديد أسعارها.</p>
+            <div>
+              <h3 className="text-base font-black" style={{ color: theme.text }}>
+                استيراد من كتالوج المنتجات
+              </h3>
+              <p className="text-xs mt-1" style={{ color: theme.textMuted }}>
+                جلب المنتجات من تطبيق الكتالوج الخاص بك. ستوضع المنتجات في خانة "قائمة النقل" (المسودات) لحين تحديد أسعارها.
+              </p>
             </div>
-            <label className="cursor-pointer mt-4 w-full py-4 rounded-lg bg-brand-50 text-brand-600 font-bold border-2 border-dashed border-brand-200 flex items-center justify-center gap-2 transition-all hover:bg-brand-100 dark:bg-brand-900/20 dark:text-brand-400 dark:border-brand-800 dark:hover:bg-brand-900/40">
-              <Upload size={20} />
-              {isImportingCatalog ? 'جاري الاستيراد...' : 'اختيار ملف الكتالوج (.json)'}
-              <input type="file" accept=".json" onChange={handleCatalogImport} className="hidden" disabled={isImporting || isImportingCatalog} />
-            </label>
           </div>
+          <label
+            className="cursor-pointer w-full py-3 border border-dashed text-xs font-bold flex items-center justify-center gap-2 transition-colors"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+              color: theme.accent,
+            }}
+          >
+            <Upload size={16} />
+            {isImportingCatalog ? 'جاري الاستيراد...' : 'اختيار ملف الكتالوج (.json)'}
+            <input type="file" accept=".json" onChange={handleCatalogImport} className="hidden" disabled={isImporting || isImportingCatalog} />
+          </label>
         </section>
 
         {/* Manual Import section */}
-        <section className="md:col-span-2 p-6 rounded-lg bg-white shadow-sm border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
+        <section
+          className="md:col-span-2 p-5 border space-y-4 text-right"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-              <Clipboard size={20} />
+            <div
+              className="h-10 w-10 border flex items-center justify-center"
+              style={{
+                backgroundColor: theme.surfaceMuted,
+                borderColor: theme.border,
+                color: theme.textMuted,
+              }}
+            >
+              <Clipboard size={18} />
             </div>
-            <h3 className="text-lg font-bold text-zinc-900 dark:text-white">{t('manual_import')}</h3>
+            <h3 className="text-base font-black" style={{ color: theme.text }}>
+              {t('manual_import')}
+            </h3>
           </div>
-          <textarea 
+          <textarea
             placeholder={t('paste_backup_placeholder')}
             value={manualCode}
             onChange={(e) => setManualCode(e.target.value)}
-            className="w-full h-32 rounded-lg bg-zinc-50 border border-zinc-200 p-4 font-mono text-xs outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300"
+            className="w-full h-32 border p-3.5 font-mono text-xs outline-none"
+            style={{
+              backgroundColor: theme.bg,
+              borderColor: theme.border,
+              color: theme.text,
+            }}
           />
-          <button 
+          <button
+            type="button"
             onClick={() => processImport(manualCode)}
             disabled={isImporting || !manualCode.trim()}
-            className="w-full py-3 rounded-lg bg-zinc-900 text-white font-bold transition-all hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-zinc-900 shadow-xl"
+            className="w-full py-3 border text-xs font-black transition-opacity disabled:opacity-40 cursor-pointer"
+            style={{
+              backgroundColor: theme.text,
+              color: theme.surface,
+              borderColor: theme.text,
+            }}
           >
             {t('load_code_process_data')}
           </button>

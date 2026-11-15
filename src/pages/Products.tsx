@@ -30,6 +30,8 @@ import { CustomConfirmModal } from '../components/common/CustomConfirmModal';
 import { useCategories } from '../hooks/useCategories';
 import { BarcodeScanner } from '../components/common/BarcodeScanner';
 import { query, orderBy, limit, getDocs, where } from 'firebase/firestore';
+import { useFolioTheme } from '../components/folio/FolioPageChrome';
+import { matchesQuery } from '../components/dashboard/PurchaseVarianceModal';
 
 export default function Products() {
   const { t } = useTranslation();
@@ -70,6 +72,11 @@ export default function Products() {
   const [isSmartPopupOpen, setIsSmartPopupOpen] = useState(false);
   const [pendingQuantityProduct, setPendingQuantityProduct] = useState<Product | null>(null);
   const [isPriceAuditModalOpen, setIsPriceAuditModalOpen] = useState(false);
+
+  const { theme } = useFolioTheme(
+    Boolean(settings.darkMode),
+    settings.folioThemeId,
+  );
 
   useEffect(() => {
     if (activeSupplier && pendingQuantityProduct) {
@@ -521,12 +528,28 @@ export default function Products() {
     return auditedProducts.filter(a => a.hasIssues).length;
   }, [auditedProducts, enablePriceAudit]);
 
+  const productsSummary = useMemo(() => {
+    let available = 0;
+    let low = 0;
+    let out = 0;
+    products.forEach((p) => {
+      const q = cleanQuantity(p.quantity || 0);
+      const min = p.minQuantity || 0;
+      if (q <= 0) out++;
+      else if (q <= min) low++;
+      else available++;
+    });
+    return { total: products.length, available, low, out };
+  }, [products]);
+
   const filteredProducts = useMemo(() => {
+    const q = (searchTerm || '').trim();
     return products.filter(p => {
-      const matchesSearch = (p.name || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
-                           p.barcode?.includes(searchTerm) ||
-                           p.barcode2?.includes(searchTerm) ||
-                           (p.aliases || []).some(a => (a || "").toLowerCase().includes((searchTerm || "").toLowerCase()));
+      const matchesSearch = !q ||
+        matchesQuery(p.name || '', q) ||
+        (p.barcode || '').includes(q) ||
+        (p.barcode2 || '').includes(q) ||
+        (p.aliases || []).some(a => matchesQuery(a || '', q));
       
       let matchesStock = true;
       if (stockFilter === 'available') {
@@ -585,104 +608,193 @@ export default function Products() {
   }, []);
 
   return (
-    <div className="space-y-6">
-      <ProductsHeader 
-        onAddProduct={() => {
-          setEditingProduct(null);
-          setScannedBarcode('');
-          setScannedBarcode2('');
-          setIsModalOpen(true);
-        }} 
-        onOpenPriceAudit={() => setIsPriceAuditModalOpen(true)}
-        priceIssuesCount={priceErrorsCount}
-      />
+    <div
+      className="min-h-screen px-2.5 sm:px-5 pt-3 pb-24 transition-colors"
+      style={{ backgroundColor: theme.bg, color: theme.text }}
+      dir="rtl"
+    >
+      <div className="max-w-6xl mx-auto space-y-5">
+        <ProductsHeader
+          onAddProduct={() => {
+            setEditingProduct(null);
+            setScannedBarcode('');
+            setScannedBarcode2('');
+            setIsModalOpen(true);
+          }}
+          onOpenPriceAudit={() => setIsPriceAuditModalOpen(true)}
+          priceIssuesCount={priceErrorsCount}
+          theme={theme}
+        />
 
-      {/* Search & Filters */}
-      <ProductsFilters
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        stockFilter={stockFilter}
-        setStockFilter={setStockFilter}
-        categoryFilter={categoryFilter}
-        setCategoryFilter={setCategoryFilter}
-        showBoxInfo={showBoxInfo}
-        setShowBoxInfo={setShowBoxInfo}
-        showPosStock={showPosStock}
-        setShowPosStock={setShowPosStock}
-        categories={categories}
-        priceErrorsCount={priceErrorsCount}
-        onOpenScanner={() => {
-          setScannerTarget('search');
-          setIsScannerOpen(true);
-        }}
-      />
-
-      {/* Alert banner for pricing errors if any exist */}
-      {priceErrorsCount > 0 && (
-        <div 
-          onClick={() => setIsPriceAuditModalOpen(true)}
-          className="p-3.5 bg-gradient-to-r from-amber-500/10 via-red-500/10 to-amber-500/10 hover:from-amber-500/20 hover:to-amber-500/20 border border-amber-300 dark:border-amber-700/60 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-900 dark:text-amber-200 text-xs font-bold cursor-pointer transition-all active:scale-[0.99] shadow-sm"
+        {/* SECTION 01: COMPACT CATALOG KPI STRIP */}
+        <section
+          className="border text-right"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
         >
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm">
-              <AlertCircle size={18} />
+          <div
+            className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 divide-x divide-x-reverse"
+            style={{ borderColor: theme.border }}
+          >
+            <div className="p-3.5 space-y-0.5" style={{ borderColor: theme.border }}>
+              <div className="text-[11px] font-bold" style={{ color: theme.textMuted }}>
+                إجمالي المنتجات
+              </div>
+              <div className="text-xl font-black font-mono tabular-nums">
+                {productsSummary.total}
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-black text-zinc-900 dark:text-white">
-                تنبيه التدقيق الذكي: تم رصد {priceErrorsCount} منتج(ات) تحتاج مراجعة الأسعار والتجزئة
-              </p>
-              <p className="text-zinc-600 dark:text-zinc-400 font-normal text-[11px] mt-0.5">
-                يشمل ذلك شبهة إدخال سعر العلبة للقطعة الواحدة، البيع بأقل من سعر التكلفة، أو عدم تطابق كرتونة الجملة والتجزئة.
-              </p>
+            <div className="p-3.5 space-y-0.5" style={{ borderColor: theme.border }}>
+              <div className="text-[11px] font-bold" style={{ color: theme.textMuted }}>
+                متوفر بالمخزون
+              </div>
+              <div
+                className="text-xl font-black font-mono tabular-nums"
+                style={{ color: theme.positive }}
+              >
+                {productsSummary.available}
+              </div>
+            </div>
+            <div className="p-3.5 space-y-0.5" style={{ borderColor: theme.border }}>
+              <div className="text-[11px] font-bold" style={{ color: theme.textMuted }}>
+                مخزون منخفض
+              </div>
+              <div
+                className="text-xl font-black font-mono tabular-nums"
+                style={{ color: theme.neutral }}
+              >
+                {productsSummary.low}
+              </div>
+            </div>
+            <div className="p-3.5 space-y-0.5" style={{ borderColor: theme.border }}>
+              <div className="text-[11px] font-bold" style={{ color: theme.textMuted }}>
+                نفد من المخزون
+              </div>
+              <div
+                className="text-xl font-black font-mono tabular-nums"
+                style={{ color: productsSummary.out > 0 ? theme.negative : theme.textMuted }}
+              >
+                {productsSummary.out}
+              </div>
             </div>
           </div>
-          <span className="shrink-0 self-end sm:self-auto text-xs bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5">
-            <span>فتح أداة التدقيق والتصحيح</span>
-            <span className="bg-amber-800/60 px-1.5 py-0.5 rounded font-mono text-[10px]">{priceErrorsCount}</span>
-          </span>
-        </div>
-      )}
-      
-      {error && (
-        <div className={cn(
-          "border p-4 rounded-xl flex items-center justify-center space-x-2 space-x-reverse",
-          error.includes('عدم الاتصال') 
-            ? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400" 
-            : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400"
-        )}>
-          {error.includes('عدم الاتصال') ? <WifiOff className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-          <span>{error}</span>
-        </div>
-      )}
+        </section>
 
-      {/* Products List */}
-      <ProductsList 
-        products={paginatedProducts} 
-        showBoxInfo={showBoxInfo}
-        showPosStock={showPosStock}
-        onEdit={(product) => {
-          setEditingProduct(product);
-          setIsModalOpen(true);
-        }}
-        onAddQuantity={(product) => {
-          setQuantityProduct(product);
-          setIsQuantityModalOpen(true);
-        }}
-        onCardClick={(product) => {
-          if (showBoxInfo) {
-            handleProductChoice(product);
-          } else {
-            setEditingProduct(product);
-            setIsModalOpen(true);
-          }
-        }}
-      />
+        {/* Search & Filters */}
+        <ProductsFilters
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          stockFilter={stockFilter}
+          setStockFilter={setStockFilter}
+          categoryFilter={categoryFilter}
+          setCategoryFilter={setCategoryFilter}
+          showBoxInfo={showBoxInfo}
+          setShowBoxInfo={setShowBoxInfo}
+          showPosStock={showPosStock}
+          setShowPosStock={setShowPosStock}
+          categories={categories}
+          priceErrorsCount={priceErrorsCount}
+          onOpenScanner={() => {
+            setScannerTarget('search');
+            setIsScannerOpen(true);
+          }}
+          theme={theme}
+        />
 
-      <ProductPagination 
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
+        {/* Alert banner for pricing errors */}
+        {priceErrorsCount > 0 && (
+          <div
+            onClick={() => setIsPriceAuditModalOpen(true)}
+            className="p-3.5 border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-bold cursor-pointer transition-colors"
+            style={{
+              backgroundColor: theme.surface,
+              borderColor: theme.border,
+              borderRightWidth: '3px',
+              borderRightStyle: 'solid',
+              borderRightColor: theme.negative,
+              color: theme.text,
+            }}
+          >
+            <div className="flex items-center gap-2.5">
+              <AlertCircle size={18} style={{ color: theme.negative }} className="shrink-0" />
+              <div>
+                <p className="text-xs sm:text-sm font-black">
+                  تنبيه التدقيق: تم رصد {priceErrorsCount} منتج(ات) تحتاج مراجعة الأسعار والتجزئة
+                </p>
+                <p className="text-[11px] font-normal mt-0.5" style={{ color: theme.textMuted }}>
+                  يشمل شبهة إدخال سعر العلبة للقطعة، البيع بأقل من التكلفة، أو عدم تطابق الجملة والتجزئة.
+                </p>
+              </div>
+            </div>
+            <span
+              className="shrink-0 self-end sm:self-auto text-xs px-3 py-1.5 border font-bold"
+              style={{
+                backgroundColor: theme.negative,
+                borderColor: theme.negative,
+                color: '#FFFFFF',
+              }}
+            >
+              فتح أداة التدقيق ({priceErrorsCount})
+            </span>
+          </div>
+        )}
+
+        {error && (
+          <div
+            className="border p-3.5 flex items-center justify-center gap-2 text-xs font-bold"
+            style={{
+              backgroundColor: theme.surface,
+              borderColor: error.includes('عدم الاتصال') ? theme.neutral : theme.negative,
+              color: error.includes('عدم الاتصال') ? theme.neutral : theme.negative,
+            }}
+          >
+            {error.includes('عدم الاتصال') ? <WifiOff className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Products List */}
+        {loading ? (
+          <div
+            className="border py-14 flex items-center justify-center"
+            style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+          >
+            <div
+              className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
+              style={{ borderColor: theme.accent, borderTopColor: 'transparent' }}
+            />
+          </div>
+        ) : (
+          <ProductsList
+            products={paginatedProducts}
+            showBoxInfo={showBoxInfo}
+            showPosStock={showPosStock}
+            onEdit={(product) => {
+              setEditingProduct(product);
+              setIsModalOpen(true);
+            }}
+            onAddQuantity={(product) => {
+              setQuantityProduct(product);
+              setIsQuantityModalOpen(true);
+            }}
+            onCardClick={(product) => {
+              if (showBoxInfo) {
+                handleProductChoice(product);
+              } else {
+                setEditingProduct(product);
+                setIsModalOpen(true);
+              }
+            }}
+            theme={theme}
+          />
+        )}
+
+        <ProductPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          theme={theme}
+        />
+      </div>
 
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}

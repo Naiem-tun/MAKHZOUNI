@@ -5,18 +5,20 @@ import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../AppContext';
 import { formatCurrency } from '../lib/utils';
 import { useSessionManagement } from '../hooks/useSessionManagement';
+import { useFolioTheme } from './folio/FolioPageChrome';
 
 export function SessionSummaryModal() {
-  const { 
-    user, 
-    settings, 
-    activeSupplier, 
-    setActiveSupplier, 
-    showToast, 
-    isSessionSummaryOpen, 
-    setIsSessionSummaryOpen 
+  const {
+    user,
+    settings,
+    activeSupplier,
+    setActiveSupplier,
+    showToast,
+    isSessionSummaryOpen,
+    setIsSessionSummaryOpen
   } = useAppContext();
   const { t } = useTranslation();
+  const { theme } = useFolioTheme(Boolean(settings?.darkMode), settings?.folioThemeId);
 
   const {
     sessionFinalTotal,
@@ -53,48 +55,67 @@ export function SessionSummaryModal() {
   return (
     <AnimatePresence>
       {isSessionSummaryOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60 backdrop-blur-xs"
             onClick={() => setIsSessionSummaryOpen(false)}
           />
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            initial={{ opacity: 0, scale: 0.96, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            className="relative w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-xl bg-white p-6 sm:p-7 dark:bg-zinc-900 shadow-2xl border border-zinc-100 dark:border-zinc-800 no-scrollbar"
+            exit={{ opacity: 0, scale: 0.96, y: 10 }}
+            className="relative w-full max-w-sm max-h-[92vh] border shadow-2xl overflow-hidden flex flex-col transition-colors"
+            style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }}
             dir="rtl"
           >
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-black text-zinc-900 dark:text-white">{t('session_details')}</h2>
+            {/* Header */}
+            <div
+              className="px-4 py-3.5 sm:px-5 border-b flex items-center justify-between gap-3 shrink-0"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+            >
+              <div className="space-y-0.5 min-w-0">
+                <div className="flex items-center gap-2 text-[11px] font-bold">
+                  <span className="font-mono tabular-nums" style={{ color: theme.accent }}>01</span>
+                  <span style={{ color: theme.textMuted }}>إغلاق حصة المورد</span>
+                </div>
+                <h2 className="text-base sm:text-lg font-black truncate" style={{ color: theme.text }}>
+                  {t('session_details')}
+                </h2>
                 {activeSupplier?.name && (
-                  <p className="text-xs text-brand-600 dark:text-brand-400 font-bold mt-0.5">{activeSupplier.name}</p>
+                  <p className="text-xs font-bold truncate" style={{ color: theme.accent }}>
+                    {activeSupplier.name}
+                  </p>
                 )}
               </div>
-              <button 
+              <button
+                type="button"
                 onClick={() => setIsSessionSummaryOpen(false)}
-                className="h-9 w-9 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700 transition-colors"
+                aria-label="إغلاق"
+                className="p-1.5 border cursor-pointer shrink-0"
+                style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.text }}
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
-            <div className="space-y-5">
-              {/* Date Selection Section (Smart Missed Visit detection) */}
+            <div className="p-4 sm:p-5 space-y-4 overflow-y-auto">
+              {/* Date Selection Section */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-                    <Calendar size={14} className="text-brand-600" />
+                  <label className="text-xs font-bold flex items-center gap-1.5" style={{ color: theme.textMuted }}>
+                    <Calendar size={13} style={{ color: theme.accent }} />
                     <span>تاريخ احتساب الفاتورة والزيارة</span>
                   </label>
                   {missedVisitDays.length > 0 && (
-                    <span className="text-[10px] font-black text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <span
+                      className="text-[10px] font-black px-1.5 py-0.5 border flex items-center gap-1"
+                      style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.neutral, color: theme.neutral }}
+                    >
                       <AlertCircle size={10} />
-                      زيارة فائتة
+                      <span>زيارة فائتة</span>
                     </span>
                   )}
                 </div>
@@ -107,26 +128,36 @@ export function SessionSummaryModal() {
                         key={mv.dayIndex}
                         type="button"
                         onClick={() => setSelectedDate(mv.date)}
-                        className={`w-full flex items-center justify-between p-3 rounded-lg border text-right transition-all cursor-pointer ${
-                          isSelected
-                            ? 'border-brand-500 bg-brand-50 dark:bg-brand-950/40 text-brand-900 dark:text-brand-200 ring-2 ring-brand-500/20'
-                            : 'border-zinc-200 dark:border-zinc-700/80 bg-zinc-50/70 dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300'
-                        }`}
+                        className="w-full flex items-center justify-between p-3 border text-right transition-colors cursor-pointer"
+                        style={{
+                          backgroundColor: theme.surface,
+                          borderColor: isSelected ? theme.accent : theme.border,
+                          borderRight: isSelected ? `3px solid ${theme.accent}` : undefined,
+                          color: theme.text,
+                        }}
                       >
-                        <div className="flex items-center gap-2">
-                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                            isSelected ? 'border-brand-600 bg-brand-600 text-white' : 'border-zinc-400'
-                          }`}>
-                            {isSelected && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className="w-4 h-4 border flex items-center justify-center shrink-0"
+                            style={{
+                              borderColor: isSelected ? theme.accent : theme.border,
+                              backgroundColor: isSelected ? theme.accent : theme.surface,
+                              color: theme.accentText,
+                            }}
+                          >
+                            {isSelected && <Check size={11} strokeWidth={3} />}
                           </div>
                           <div>
                             <p className="text-xs font-bold">
-                              موعد الزيارة الفائتة: <span className="text-brand-600 dark:text-brand-400">{mv.dayName}</span>
+                              موعد الزيارة الفائتة: <span style={{ color: theme.accent }}>{mv.dayName}</span>
                             </p>
-                            <p className="text-[11px] text-zinc-500">{formatDateDisplay(mv.date)}</p>
+                            <p className="text-[11px] font-mono tabular-nums" style={{ color: theme.textMuted }}>{formatDateDisplay(mv.date)}</p>
                           </div>
                         </div>
-                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/40">
+                        <span
+                          className="text-[10px] font-bold px-1.5 py-0.5 border"
+                          style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.neutral, color: theme.neutral }}
+                        >
                           مقترح تلقائياً
                         </span>
                       </button>
@@ -136,21 +167,28 @@ export function SessionSummaryModal() {
                   <button
                     type="button"
                     onClick={() => setSelectedDate(todayDate)}
-                    className={`w-full flex items-center justify-between p-3 rounded-lg border text-right transition-all cursor-pointer ${
-                      selectedDate.toDateString() === todayDate.toDateString()
-                        ? 'border-brand-500 bg-brand-50 dark:bg-brand-950/40 text-brand-900 dark:text-brand-200 ring-2 ring-brand-500/20'
-                        : 'border-zinc-200 dark:border-zinc-700/80 bg-zinc-50/70 dark:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300'
-                    }`}
+                    className="w-full flex items-center justify-between p-3 border text-right transition-colors cursor-pointer"
+                    style={{
+                      backgroundColor: theme.surface,
+                      borderColor: selectedDate.toDateString() === todayDate.toDateString() ? theme.accent : theme.border,
+                      borderRight: selectedDate.toDateString() === todayDate.toDateString() ? `3px solid ${theme.accent}` : undefined,
+                      color: theme.text,
+                    }}
                   >
-                    <div className="flex items-center gap-2">
-                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                        selectedDate.toDateString() === todayDate.toDateString() ? 'border-brand-600 bg-brand-600 text-white' : 'border-zinc-400'
-                      }`}>
-                        {selectedDate.toDateString() === todayDate.toDateString() && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className="w-4 h-4 border flex items-center justify-center shrink-0"
+                        style={{
+                          borderColor: selectedDate.toDateString() === todayDate.toDateString() ? theme.accent : theme.border,
+                          backgroundColor: selectedDate.toDateString() === todayDate.toDateString() ? theme.accent : theme.surface,
+                          color: theme.accentText,
+                        }}
+                      >
+                        {selectedDate.toDateString() === todayDate.toDateString() && <Check size={11} strokeWidth={3} />}
                       </div>
                       <div>
                         <p className="text-xs font-bold">اليوم الحالي ({todayDayName})</p>
-                        <p className="text-[11px] text-zinc-500">{formatDateDisplay(todayDate)}</p>
+                        <p className="text-[11px] font-mono tabular-nums" style={{ color: theme.textMuted }}>{formatDateDisplay(todayDate)}</p>
                       </div>
                     </div>
                   </button>
@@ -158,24 +196,33 @@ export function SessionSummaryModal() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">{t('total_purchases_auto')}</label>
-                <div className="p-3 bg-zinc-50 dark:bg-zinc-800/80 rounded-lg text-xl font-black text-zinc-900 dark:text-white text-center border border-zinc-100 dark:border-zinc-700/50 font-mono">
+                <label className="block text-xs font-bold mb-1.5" style={{ color: theme.textMuted }}>{t('total_purchases_auto')}</label>
+                <div
+                  className="p-3 border text-xl font-black text-center font-mono tabular-nums"
+                  style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
+                >
                   {formatCurrency(activeSupplier?.sessionTotal || 0, settings.currency)}
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1.5 gap-2">
-                  <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                  <label className="text-xs font-bold" style={{ color: theme.textMuted }}>
                     {t('session_difference')}
                   </label>
                   {parseFloat(sessionDifference) > 0 && recordAsExpense && (
-                    <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-900/50 shrink-0">
+                    <span
+                      className="text-[10px] font-bold px-1.5 py-0.5 border shrink-0"
+                      style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.neutral, color: theme.neutral }}
+                    >
                       {t('tax_expense_linked_hint')}
                     </span>
                   )}
                 </div>
-                <div className="relative flex items-center bg-zinc-100 dark:bg-zinc-800 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-brand-500 transition-all">
+                <div
+                  className="relative flex items-center border overflow-hidden"
+                  style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                >
                   <input
                     type="number"
                     step="0.001"
@@ -189,29 +236,33 @@ export function SessionSummaryModal() {
                       const newTotal = (autoTotal + valNum).toFixed(3);
                       setSessionFinalTotal(newTotal);
                     }}
-                    className="w-full bg-transparent border-none p-3 font-black text-base text-center focus:outline-none text-zinc-900 dark:text-white font-mono"
+                    className="w-full bg-transparent border-none p-3 font-black text-base text-center focus:outline-none font-mono tabular-nums"
+                    style={{ color: theme.text }}
                   />
-                  
+
                   <button
                     type="button"
                     onClick={() => setRecordAsExpense(!recordAsExpense)}
                     title={t('record_tax_as_expense')}
-                    className="absolute left-2.5 p-1 rounded-md transition-all select-none active:scale-95"
+                    className="absolute left-2.5 p-1 cursor-pointer select-none"
                   >
-                    <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
-                      recordAsExpense 
-                        ? 'bg-amber-600 border-amber-600 text-white shadow-xs' 
-                        : 'border-zinc-400 dark:border-zinc-500 bg-white dark:bg-zinc-800 text-transparent'
-                    }`}>
+                    <div
+                      className="w-5 h-5 border flex items-center justify-center transition-colors"
+                      style={{
+                        backgroundColor: recordAsExpense ? theme.neutral : theme.surfaceMuted,
+                        borderColor: recordAsExpense ? theme.neutral : theme.border,
+                        color: '#FFFFFF',
+                      }}
+                    >
                       {recordAsExpense && <Check size={13} strokeWidth={3.5} />}
                     </div>
                   </button>
                 </div>
-                <p className="mt-1 text-[11px] text-zinc-400 text-center">{t('session_difference_hint')}</p>
+                <p className="mt-1 text-[11px] text-center" style={{ color: theme.textMuted }}>{t('session_difference_hint')}</p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">{t('final_amount_to_record')}</label>
+                <label className="block text-xs font-bold mb-1.5" style={{ color: theme.textMuted }}>{t('final_amount_to_record')}</label>
                 <input
                   type="number"
                   step="0.001"
@@ -226,28 +277,33 @@ export function SessionSummaryModal() {
                     const newDiff = (totalValNum - autoTotal).toFixed(3);
                     setSessionDifference(newDiff);
                   }}
-                  className="w-full bg-zinc-100 dark:bg-zinc-800 border-none rounded-lg p-3 font-black text-base focus:ring-2 focus:ring-brand-500 text-center transition-all focus:outline-none font-mono text-zinc-900 dark:text-white"
+                  className="w-full border p-3 font-black text-base text-center focus:outline-none font-mono tabular-nums"
+                  style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.accent }}
                 />
-                <p className="mt-1 text-[11px] text-zinc-400 text-center">{t('edit_amount_hint')}</p>
+                <p className="mt-1 text-[11px] text-center" style={{ color: theme.textMuted }}>{t('edit_amount_hint')}</p>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-1 space-y-2">
                 <button
+                  type="button"
                   onClick={handleEndSessionConfirm}
                   disabled={isSavingSession}
-                  className="w-full py-3.5 rounded-lg bg-brand-600 text-white font-bold text-sm shadow-md shadow-brand-500/20 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 cursor-pointer"
+                  className="w-full py-3.5 border font-black text-sm disabled:opacity-50 cursor-pointer transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: theme.accent, borderColor: theme.accent, color: theme.accentText }}
                 >
-                  {isSavingSession ? <div className="animate-spin w-5 h-5 border-2 border-white rounded-full border-t-transparent mx-auto"></div> : t('save_and_end_session')}
+                  {isSavingSession ? <div className="animate-spin w-5 h-5 border-2 border-current rounded-full border-t-transparent mx-auto" /> : t('save_and_end_session')}
                 </button>
                 {(!sessionFinalTotal || parseFloat(sessionFinalTotal) <= 0) && (
                   <button
+                    type="button"
                     onClick={() => {
-                       setActiveSupplier(null);
-                       setIsSessionSummaryOpen(false);
+                      setActiveSupplier(null);
+                      setIsSessionSummaryOpen(false);
                     }}
-                    className="w-full mt-2 py-3 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-bold text-xs transition-all hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer"
+                    className="w-full py-2.5 border font-bold text-xs cursor-pointer transition-colors"
+                    style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.textMuted }}
                   >
-                     {t('end_session_without_saving') || 'إنهاء الجلسة بدون حفظ'}
+                    {t('end_session_without_saving') || 'إنهاء الجلسة بدون حفظ'}
                   </button>
                 )}
               </div>

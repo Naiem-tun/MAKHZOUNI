@@ -7,6 +7,7 @@ import { X, ExternalLink, Loader2 } from 'lucide-react';
 import { useAppContext } from '../../AppContext';
 import { collection, query, getDocs, orderBy, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { useFolioTheme } from '../folio/FolioPageChrome';
 
 interface PrintSupplierTxModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ export function PrintSupplierTxModal({
 }: PrintSupplierTxModalProps) {
   const { t } = useTranslation();
   const { user, settings, showToast } = useAppContext();
+  const { theme } = useFolioTheme(Boolean(settings?.darkMode), settings?.folioThemeId);
   const [sourceScope, setSourceScope] = useState<'active_cycle' | 'archived_cycle' | 'all_history'>('active_cycle');
   const [selectedCycleId, setSelectedCycleId] = useState<string>(archivedCycles[0]?.id || '');
   const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'all' | 'custom'>('all');
@@ -271,32 +273,64 @@ export function PrintSupplierTxModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div 
-        className="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-2xl shadow-xl overflow-hidden flex flex-col"
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4"
+      onClick={() => !isPrinting && onClose()}
+    >
+      <div
+        className="w-full max-w-sm border shadow-2xl overflow-hidden flex flex-col"
+        style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }}
         dir={settings.language === 'ar' ? 'rtl' : 'ltr'}
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-800/50">
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-white">طباعة سجل العمليات</h2>
-          <button onClick={onClose} disabled={isPrinting} className="p-2 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors text-zinc-500 dark:text-zinc-400">
-            <X size={20} />
+        <div
+          className="px-5 py-4 border-b flex justify-between items-center"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
+          <div className="flex items-center gap-2.5">
+            <span
+              className="text-[11px] font-mono font-bold tabular-nums px-2 py-0.5 border"
+              style={{
+                color: theme.accent,
+                borderColor: `${theme.accent}45`,
+                backgroundColor: `${theme.accent}12`
+              }}
+            >
+              01
+            </span>
+            <h2 className="text-base font-black" style={{ color: theme.text }}>
+              طباعة سجل العمليات
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={isPrinting}
+            className="p-1.5 border transition-colors cursor-pointer disabled:opacity-50"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+              color: theme.text
+            }}
+          >
+            <X size={18} />
           </button>
         </div>
-        
-        <div className="p-6 space-y-5">
+
+        <div className="p-5 space-y-5">
           {/* Scope Selector: Active Cycle vs Archived Cycle vs Full History */}
-          <div className="space-y-2.5">
-            <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">نطاق التقرير</label>
+          <div className="space-y-2">
+            <label className="text-xs font-bold block" style={{ color: theme.textMuted }}>نطاق التقرير</label>
             <div className="grid grid-cols-3 gap-1.5">
               <button
                 type="button"
                 disabled={isPrinting}
                 onClick={() => setSourceScope('active_cycle')}
-                className={`py-2 px-1.5 rounded-lg text-xs font-bold transition-all border text-center ${
+                className="py-2 px-1.5 text-xs font-bold transition-colors border text-center cursor-pointer"
+                style={
                   sourceScope === 'active_cycle'
-                    ? 'bg-brand-50 border-brand-500 text-brand-700 dark:bg-brand-500/10 dark:border-brand-500 dark:text-brand-400 shadow-sm'
-                    : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400'
-                }`}
+                    ? { backgroundColor: `${theme.accent}14`, borderColor: theme.accent, color: theme.accent }
+                    : { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textMuted }
+                }
               >
                 الدورة الحالية ({activeTransactions.length})
               </button>
@@ -304,11 +338,12 @@ export function PrintSupplierTxModal({
                 type="button"
                 disabled={isPrinting || archivedCycles.length === 0}
                 onClick={() => setSourceScope('archived_cycle')}
-                className={`py-2 px-1.5 rounded-lg text-xs font-bold transition-all border text-center disabled:opacity-40 ${
+                className="py-2 px-1.5 text-xs font-bold transition-colors border text-center disabled:opacity-40 cursor-pointer"
+                style={
                   sourceScope === 'archived_cycle'
-                    ? 'bg-brand-50 border-brand-500 text-brand-700 dark:bg-brand-500/10 dark:border-brand-500 dark:text-brand-400 shadow-sm'
-                    : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400'
-                }`}
+                    ? { backgroundColor: `${theme.accent}14`, borderColor: theme.accent, color: theme.accent }
+                    : { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textMuted }
+                }
               >
                 أرشيف الدورات ({archivedCycles.length})
               </button>
@@ -316,24 +351,33 @@ export function PrintSupplierTxModal({
                 type="button"
                 disabled={isPrinting}
                 onClick={() => setSourceScope('all_history')}
-                className={`py-2 px-1.5 rounded-lg text-xs font-bold transition-all border text-center ${
+                className="py-2 px-1.5 text-xs font-bold transition-colors border text-center cursor-pointer"
+                style={
                   sourceScope === 'all_history'
-                    ? 'bg-brand-50 border-brand-500 text-brand-700 dark:bg-brand-500/10 dark:border-brand-500 dark:text-brand-400 shadow-sm'
-                    : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400'
-                }`}
+                    ? { backgroundColor: `${theme.accent}14`, borderColor: theme.accent, color: theme.accent }
+                    : { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textMuted }
+                }
               >
                 السجل الكامل
               </button>
             </div>
 
             {sourceScope === 'active_cycle' && activeTransactions.length === 0 && (
-              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-lg text-xs font-bold text-amber-800 dark:text-amber-300 text-center leading-relaxed">
+              <div
+                className="p-3 border text-xs font-bold text-center leading-relaxed"
+                style={{
+                  backgroundColor: `${theme.neutral}12`,
+                  borderColor: `${theme.neutral}45`,
+                  color: theme.text
+                }}
+              >
                 الدورة الحالية فارغة (0 معاملات مسجلة). لقد تم إغلاق الدورة وأرشفتها.
                 {archivedCycles.length > 0 && (
                   <button
                     type="button"
                     onClick={() => setSourceScope('archived_cycle')}
-                    className="block mx-auto mt-2 text-brand-600 dark:text-brand-400 font-black underline hover:text-brand-700"
+                    className="block mx-auto mt-2 font-black underline cursor-pointer"
+                    style={{ color: theme.accent }}
                   >
                     اضغط هنا لاختيار الدورة المؤرشفة وتنزيل ملف PDF الخاص بها
                   </button>
@@ -343,11 +387,16 @@ export function PrintSupplierTxModal({
 
             {sourceScope === 'archived_cycle' && (
               <div className="space-y-1.5 pt-1">
-                <label className="text-xs font-bold text-zinc-600 dark:text-zinc-400">اختر الدورة المؤرشفة:</label>
+                <label className="text-xs font-bold block" style={{ color: theme.textMuted }}>اختر الدورة المؤرشفة:</label>
                 <select
                   value={selectedCycleId}
                   onChange={(e) => setSelectedCycleId(e.target.value)}
-                  className="w-full p-2.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-xs font-bold text-zinc-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="w-full p-2.5 border text-xs font-bold focus:outline-none"
+                  style={{
+                    backgroundColor: theme.surface,
+                    borderColor: theme.border,
+                    color: theme.text
+                  }}
                 >
                   {archivedCycles.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -360,7 +409,7 @@ export function PrintSupplierTxModal({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-bold text-zinc-700 dark:text-zinc-300">الفترة الزمنية</label>
+            <label className="text-xs font-bold block" style={{ color: theme.textMuted }}>الفترة الزمنية</label>
             <div className="grid grid-cols-2 gap-2">
               {[
                 { id: 'today', label: 'عمليات اليوم' },
@@ -371,14 +420,16 @@ export function PrintSupplierTxModal({
               ].map(opt => (
                 <button
                   key={opt.id}
+                  type="button"
                   disabled={isPrinting}
                   onClick={() => setPeriod(opt.id as any)}
-                  className={`py-3 px-2 rounded-xl text-xs font-bold transition-all border-2 ${
-                    period === opt.id 
-                      ? 'bg-brand-50 border-brand-500 text-brand-700 dark:bg-brand-500/10 dark:border-brand-500 dark:text-brand-400 shadow-sm'
-                      : 'bg-white border-zinc-100 text-zinc-500 hover:bg-zinc-50 hover:border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400'
-                  }`}
-                  style={opt.id === 'custom' ? { gridColumn: 'span 2' } : undefined}
+                  className="py-2.5 px-2 text-xs font-bold transition-colors border cursor-pointer"
+                  style={{
+                    ...(opt.id === 'custom' ? { gridColumn: 'span 2' } : {}),
+                    ...(period === opt.id
+                      ? { backgroundColor: `${theme.accent}14`, borderColor: theme.accent, color: theme.accent }
+                      : { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textMuted })
+                  }}
                 >
                   {opt.label}
                 </button>
@@ -388,40 +439,56 @@ export function PrintSupplierTxModal({
             {period === 'custom' && (
               <div className="grid grid-cols-2 gap-3 pt-2">
                 <div>
-                  <label className="block text-[10px] font-bold text-zinc-500 mb-1">من تاريخ</label>
+                  <label className="block text-[10px] font-bold mb-1" style={{ color: theme.textMuted }}>من تاريخ</label>
                   <input
                     type="date"
                     disabled={isPrinting}
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                     dir="ltr"
-                    className="w-full p-2 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-zinc-50 dark:bg-zinc-800 text-sm focus:ring-2 focus:ring-brand-500"
+                    className="w-full p-2 border text-sm font-mono outline-none"
+                    style={{
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                      color: theme.text
+                    }}
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-zinc-500 mb-1">إلى تاريخ</label>
+                  <label className="block text-[10px] font-bold mb-1" style={{ color: theme.textMuted }}>إلى تاريخ</label>
                   <input
                     type="date"
                     disabled={isPrinting}
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     dir="ltr"
-                    className="w-full p-2 border border-zinc-200 dark:border-zinc-700 rounded-lg bg-zinc-50 dark:bg-zinc-800 text-sm focus:ring-2 focus:ring-brand-500"
+                    className="w-full p-2 border text-sm font-mono outline-none"
+                    style={{
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                      color: theme.text
+                    }}
                   />
                 </div>
               </div>
             )}
           </div>
-          
+        </div>
+
+        <div
+          className="px-5 py-4 border-t"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
           <button
             onClick={handlePrint}
             disabled={
-              isPrinting || 
+              isPrinting ||
               (sourceScope === 'active_cycle' && activeTransactions.length === 0) ||
               (sourceScope === 'archived_cycle' && !selectedCycleId) ||
               (period === 'custom' && (!startDate || !endDate))
             }
-            className="w-full py-4 rounded-xl font-black text-sm bg-brand-600 hover:bg-brand-700 text-white shadow-lg shadow-brand-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 font-black text-sm transition-opacity hover:opacity-90 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            style={{ backgroundColor: theme.accent, color: theme.accentText }}
           >
             {isPrinting ? (
               <>

@@ -3,7 +3,6 @@ import {
   ArrowLeft,
   ArrowUp,
   Calendar,
-  Palette,
   PanelRightClose,
   PanelRightOpen,
   X,
@@ -28,6 +27,7 @@ import {
 } from '../types';
 import { FolioChartsPart1 } from '../folio/FolioChartsPart1';
 import { FolioChartsPart2 } from '../folio/FolioChartsPart2';
+import { useFolioTheme } from '../../../folio/FolioPageChrome';
 import {
   FolioDiagnosticView,
   FolioPurchasesView,
@@ -186,27 +186,11 @@ export const FolioTab: React.FC<FolioTabProps> = ({
   const [sourceMode, setSourceMode] = useState<FolioSourceMode>('live');
   const [isSidePanelOpen, setIsSidePanelOpen] = useState<boolean>(false);
 
-  const [themeId, setThemeId] = useState<string>(() => {
-    try {
-      const saved = localStorage.getItem('folio_theme_id');
-      if (saved && FOLIO_THEMES.some((t) => t.id === saved)) return saved;
-    } catch {}
-    return settings.darkMode ? 'folio-night' : 'folio-editorial';
-  });
-
   const [activeSection, setActiveSection] = useState<string>('01');
-  const [showThemePicker, setShowThemePicker] = useState(false);
-
-  const activeTheme =
-    FOLIO_THEMES.find((t) => t.id === themeId) || FOLIO_THEMES[0];
-
-  const handleSelectTheme = (id: string) => {
-    setThemeId(id);
-    setShowThemePicker(false);
-    try {
-      localStorage.setItem('folio_theme_id', id);
-    } catch {}
-  };
+  const { theme: activeTheme } = useFolioTheme(
+    Boolean(settings.darkMode),
+    settings.folioThemeId,
+  );
 
   // Observe active section on scroll when in visual view
   useEffect(() => {
@@ -412,61 +396,6 @@ export const FolioTab: React.FC<FolioTabProps> = ({
               </div>
             )}
 
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => setShowThemePicker((v) => !v)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold border transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-              style={{
-                backgroundColor: activeTheme.surface,
-                borderColor: activeTheme.border,
-                color: activeTheme.text,
-              }}
-            >
-              <Palette size={13} style={{ color: activeTheme.accent }} />
-              <span className="hidden sm:inline">{activeTheme.name}</span>
-              <span className="sm:hidden">الثيم</span>
-            </button>
-
-          {showThemePicker && (
-            <div
-              className="absolute left-0 mt-1.5 w-52 border shadow-xl z-40 p-1.5 space-y-1"
-              style={{
-                backgroundColor: activeTheme.surface,
-                borderColor: activeTheme.border,
-              }}
-            >
-              {FOLIO_THEMES.map((th) => {
-                const selected = th.id === activeTheme.id;
-                return (
-                  <button
-                    key={th.id}
-                    type="button"
-                    onClick={() => handleSelectTheme(th.id)}
-                    className="w-full flex items-center justify-between px-2.5 py-2 text-xs font-bold transition-colors cursor-pointer"
-                    style={{
-                      backgroundColor: selected
-                        ? activeTheme.surfaceMuted
-                        : 'transparent',
-                      color: activeTheme.text,
-                    }}
-                  >
-                    <span>{th.name}</span>
-                    <span className="flex items-center gap-0.5">
-                      {th.series.slice(0, 3).map((col, idx) => (
-                        <span
-                          key={idx}
-                          className="w-2.5 h-2.5 inline-block"
-                          style={{ backgroundColor: col }}
-                        />
-                      ))}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          </div>
         </div>
       </div>
 

@@ -24,6 +24,7 @@ export interface UserSettings {
   language: 'ar' | 'en';
   darkMode: boolean;
   colorTheme?: 'navy' | 'harbor' | 'sage' | 'charcoal' | 'amethyst' | 'slate' | 'copper' | 'amber';
+  folioThemeId?: string;
   storeName: string;
   showFinancials?: boolean;
   showFloatingTotals?: boolean;

@@ -1,6 +1,7 @@
 import React from 'react';
 import { FileText, Printer, FileSpreadsheet, Activity, ListChecks, Archive } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { FolioTheme } from '../inventory/analytics/folio/folioTypes';
+import { resolveFolioTheme } from '../folio/FolioPageChrome';
 
 interface SupplierToolbarProps {
   showExportMenu: boolean;
@@ -8,13 +9,14 @@ interface SupplierToolbarProps {
   settings: any;
   setIsPrintModalOpen: (open: boolean) => void;
   exportToExcel: () => void;
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   setIsClearAllConfirmOpen: (open: boolean) => void;
   isTrackingMode: boolean;
   setIsTrackingMode: (mode: boolean) => void;
   setIsAdvisorOpen?: (open: boolean) => void;
   setIsCyclesModalOpen?: (open: boolean) => void;
   archivedCyclesCount?: number;
+  theme?: FolioTheme;
 }
 
 export function SupplierToolbar({
@@ -24,23 +26,34 @@ export function SupplierToolbar({
   setIsPrintModalOpen,
   exportToExcel,
   fileInputRef,
-  setIsClearAllConfirmOpen,
   isTrackingMode,
   setIsTrackingMode,
   setIsAdvisorOpen,
   setIsCyclesModalOpen,
-  archivedCyclesCount = 0
+  archivedCyclesCount = 0,
+  theme,
 }: SupplierToolbarProps) {
-  const { t } = useTranslation();
+  const activeTheme = theme || resolveFolioTheme(Boolean(settings?.darkMode));
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <div className="flex items-center gap-1.5 sm:gap-2">
-        {/* Deal & Procurement Advisor Button - Neutral, no colors or logos, just 'مستشار' */}
+    <div
+      className="border p-2 flex flex-wrap items-center justify-between gap-2"
+      style={{
+        backgroundColor: activeTheme.surface,
+        borderColor: activeTheme.border,
+      }}
+    >
+      <div className="flex items-center gap-1.5">
         {setIsAdvisorOpen && (
           <button
+            type="button"
             onClick={() => setIsAdvisorOpen(true)}
-            className="h-10 px-3.5 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg shadow-sm active:scale-95 transition-all text-xs sm:text-sm font-bold"
+            className="h-9 px-3 flex items-center justify-center border text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+            style={{
+              backgroundColor: activeTheme.surfaceMuted,
+              borderColor: activeTheme.border,
+              color: activeTheme.text,
+            }}
             title="مستشار"
           >
             <span>مستشار</span>
@@ -48,34 +61,57 @@ export function SupplierToolbar({
         )}
       </div>
 
-      <div className="flex items-center gap-1.5 sm:gap-2">
+      <div className="flex flex-wrap items-center gap-1.5">
         <div className="relative">
-          <button 
+          <button
+            type="button"
             onClick={() => setShowExportMenu(!showExportMenu)}
-            className="w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg shadow-sm text-zinc-600 dark:text-zinc-400 active:scale-95 transition-transform"
+            className="h-9 px-2.5 flex items-center gap-1.5 border text-xs font-bold transition-colors cursor-pointer"
+            style={{
+              backgroundColor: activeTheme.bg,
+              borderColor: activeTheme.border,
+              color: activeTheme.text,
+            }}
             title="تقارير"
           >
-            <FileText size={18} />
+            <FileText size={15} style={{ color: activeTheme.textMuted }} />
+            <span className="hidden sm:inline">تقارير</span>
           </button>
-          
+
           {showExportMenu && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowExportMenu(false)} />
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg shadow-xl z-50 overflow-hidden py-1">
+              <div
+                className="absolute right-0 mt-1.5 w-48 border shadow-xl z-50 overflow-hidden py-1"
+                style={{
+                  backgroundColor: activeTheme.surface,
+                  borderColor: activeTheme.border,
+                }}
+              >
                 {(settings.enablePurchasesReports ?? false) && (
                   <button
-                    onClick={() => { setShowExportMenu(false); setIsPrintModalOpen(true); }}
-                    className="w-full justify-start px-4 py-3 flex items-center gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-sm font-bold text-zinc-700 dark:text-zinc-300"
+                    type="button"
+                    onClick={() => {
+                      setShowExportMenu(false);
+                      setIsPrintModalOpen(true);
+                    }}
+                    className="w-full justify-start px-3.5 py-2.5 flex items-center gap-2.5 text-xs font-bold transition-colors cursor-pointer hover:opacity-80"
+                    style={{ color: activeTheme.text }}
                   >
-                    <Printer size={16} />
+                    <Printer size={15} />
                     <span>طباعة سجل العمليات</span>
                   </button>
                 )}
                 <button
-                  onClick={() => { setShowExportMenu(false); exportToExcel(); }}
-                  className="w-full justify-start px-4 py-3 flex items-center gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-sm font-bold text-[#107C41]"
+                  type="button"
+                  onClick={() => {
+                    setShowExportMenu(false);
+                    exportToExcel();
+                  }}
+                  className="w-full justify-start px-3.5 py-2.5 flex items-center gap-2.5 text-xs font-bold transition-colors cursor-pointer hover:opacity-80"
+                  style={{ color: activeTheme.positive }}
                 >
-                  <FileSpreadsheet size={16} />
+                  <FileSpreadsheet size={15} />
                   <span>تصدير Excel</span>
                 </button>
               </div>
@@ -83,40 +119,56 @@ export function SupplierToolbar({
           )}
         </div>
 
-        <button 
+        <button
+          type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="h-10 px-2.5 sm:px-3 flex items-center gap-1.5 bg-brand-50 border border-brand-200 dark:bg-brand-900/20 dark:border-brand-800 text-brand-600 dark:text-brand-400 rounded-lg shadow-sm active:scale-95 transition-all text-xs sm:text-sm font-bold"
+          className="h-9 px-2.5 sm:px-3 flex items-center gap-1.5 border text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+          style={{
+            backgroundColor: activeTheme.bg,
+            borderColor: activeTheme.border,
+            color: activeTheme.accent,
+          }}
           title="استيراد للمقارنة"
         >
-          <Activity size={17} />
+          <Activity size={15} />
           <span className="hidden md:inline">مقارنة بـ Excel</span>
         </button>
 
         <button
+          type="button"
           onClick={() => setIsTrackingMode(!isTrackingMode)}
-          className={`h-10 px-2.5 sm:px-3 flex items-center gap-1.5 rounded-lg shadow-sm active:scale-95 transition-all text-xs sm:text-sm font-bold ${
-            isTrackingMode 
-              ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-500/20' 
-              : 'bg-white text-zinc-600 border border-zinc-100 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800'
-          }`}
+          className="h-9 px-2.5 sm:px-3 flex items-center gap-1.5 border text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+          style={{
+            backgroundColor: isTrackingMode ? activeTheme.positive : activeTheme.bg,
+            borderColor: isTrackingMode ? activeTheme.positive : activeTheme.border,
+            color: isTrackingMode ? '#FFFFFF' : activeTheme.text,
+          }}
           title="وضع المتابعة"
         >
-          <ListChecks size={17} />
+          <ListChecks size={15} />
           <span className="hidden sm:inline">المتابعة</span>
         </button>
 
-        {/* Unified Cycles Archive Button - positioned at the outer edge as the last button */}
         {setIsCyclesModalOpen && (
           <button
+            type="button"
             onClick={() => setIsCyclesModalOpen(true)}
-            className="h-10 px-2.5 sm:px-3 flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg shadow-sm active:scale-95 transition-all text-xs sm:text-sm font-bold"
+            className="h-9 px-2.5 sm:px-3 flex items-center gap-1.5 border text-xs font-bold transition-colors cursor-pointer whitespace-nowrap"
+            style={{
+              backgroundColor: activeTheme.bg,
+              borderColor: activeTheme.border,
+              color: activeTheme.text,
+            }}
             title="أرشيف الدورات السابقة للموردين"
           >
-            <Archive size={16} className="text-zinc-500" />
+            <Archive size={15} style={{ color: activeTheme.textMuted }} />
             <span className="hidden sm:inline">الأرشيف</span>
             {archivedCyclesCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 font-bold">
-                {archivedCyclesCount}
+              <span
+                className="font-mono tabular-nums text-[11px]"
+                style={{ color: activeTheme.accent }}
+              >
+                ({archivedCyclesCount})
               </span>
             )}
           </button>

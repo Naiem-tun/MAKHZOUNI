@@ -44,6 +44,8 @@ import {
   EvaluatedItemResult 
 } from '../lib/priceHikeTracker';
 import { InventoryLayer } from '../types';
+import { useFolioTheme } from '../components/folio/FolioPageChrome';
+import { matchesQuery } from '../components/dashboard/PurchaseVarianceModal';
 
 
 
@@ -89,6 +91,14 @@ export default function Inventory() {
   const { t } = useTranslation();
   const { user, settings, showToast, setActiveTab } = useAppContext();
   const { categories } = useCategories();
+  const { theme } = useFolioTheme(
+    Boolean(settings.darkMode),
+    settings.folioThemeId,
+  );
+  const showFinancials = settings.showFinancials ?? true;
+  const language = settings.language || 'ar';
+  const formatPrivateValue = (val: number) =>
+    !showFinancials ? '••••••' : formatCurrency(val, settings.currency, language);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [showUninventoriedOnly, setShowUninventoriedOnly] = useState(false);
@@ -541,12 +551,16 @@ export default function Inventory() {
   const filteredProducts = useMemo(() => {
     if (!groupedProducts) return [];
     const productsToFilter = groupedProducts;
-    const s = (searchTerm || "").toLowerCase();
+    const s = (searchTerm || '').trim();
     const filtered = productsToFilter.filter((p: any) => {
-      const matchSearch = (p.name || "").toLowerCase().includes(s) || p.barcode?.includes(s) || p.barcode2?.includes(s);
+      const matchSearch =
+        !s ||
+        matchesQuery(p.name || '', s) ||
+        (p.barcode || '').toLowerCase().includes(s.toLowerCase()) ||
+        (p.barcode2 || '').toLowerCase().includes(s.toLowerCase());
       const matchCat = categoryFilter === 'all' || p.category === categoryFilter;
       const matchUninventoried = !showUninventoriedOnly || !checkedProducts[p.id];
-      
+
       const qty = cleanQuantity(p.quantity || 0);
       let matchStock = true;
       if (stockFilter === 'in_stock') {
@@ -934,8 +948,14 @@ export default function Inventory() {
     );
   }
 
+  const countedItemsCount = Object.keys(inventoryData).length;
+
   return (
-    <div className="space-y-6 pb-40 min-h-[100dvh] -mx-2 sm:mx-0 relative" dir="rtl">
+    <div
+      className="min-h-screen px-2.5 sm:px-5 pt-3 pb-36 transition-colors relative"
+      style={{ backgroundColor: theme.bg, color: theme.text }}
+      dir="rtl"
+    >
       <ExpensesModal
         show={showExpensesModal}
         onClose={() => setShowExpensesModal(false)}
@@ -945,7 +965,7 @@ export default function Inventory() {
         onToggleDeduct={() => setShouldDeductExpenses(!shouldDeductExpenses)}
       />
 
-      <DamageModal 
+      <DamageModal
         show={showDamageModal}
         onClose={() => setShowDamageModal(false)}
         products={products}
@@ -965,407 +985,575 @@ export default function Inventory() {
         }}
         onDeleteReport={(reportId) => {
           if (!user) return;
-          setHistoryReports(prev => prev.filter(r => r.id !== reportId));
+          setHistoryReports((prev) => prev.filter((r) => r.id !== reportId));
           showToast(t('report_deleted_successfully') || 'Report deleted successfully', 'success');
-          
+
           deleteDoc(doc(db, `users/${user.uid}/reports`, reportId)).catch((error) => {
-            console.error("Error deleting report", error);
+            console.error('Error deleting report', error);
             showToast(t('error_deleting_report') || 'Error deleting report', 'error');
-            // We could optionally revert the deletion in state here, but letting it be is okay.
           });
         }}
       />
-      {/* Header Section */}
-      <div className="flex items-center justify-between pt-2 px-4 gap-4 min-w-0">
-        <div className="text-right space-y-1 shrink-0">
-          <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white leading-tight">{t('jard_monthly')}</h1>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">{t('enter_actual_quantity')}</p>
-        </div>
-        <button 
-          onClick={handleCompleteInventory}
-          disabled={isSavingInventory}
-          className={cn(
-            "flex items-center justify-center gap-2 h-11 px-4 sm:px-5 rounded-xl text-sm font-bold text-white transition-all shadow-md shadow-brand-500/20 active:scale-95 whitespace-nowrap",
-            isSavingInventory 
-              ? "bg-brand-500/70 cursor-not-allowed opacity-80" 
-              : "bg-brand-600 hover:bg-brand-700"
-          )}
-        >
-          {isSavingInventory ? (
-            <>
-              <Loader2 size={18} className="animate-spin" />
-              <span>{t('saving') || 'جارٍ الحفظ...'}</span>
-            </>
-          ) : (
-            <>
-              <ClipboardCheck size={18} strokeWidth={2.5} />
-              <span>{t('save') || 'حفظ'}</span>
-            </>
-          )}
-        </button>
-      </div>
 
-      {/* Toolbar - Matching Suppliers page button style & curvature */}
-      <div className="px-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          {/* Group 1: History, Analytics & Expenses */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <button 
+      <div className="max-w-6xl mx-auto space-y-5">
+        {/* FOLIO HEADER */}
+        <header
+          className="border-b pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-3 text-right"
+          style={{ borderColor: theme.border }}
+        >
+          <div className="space-y-1 min-w-0">
+            <div
+              className="flex items-center gap-2 text-xs font-bold"
+              style={{ color: theme.textMuted }}
+            >
+              <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
+                FOLIO
+              </span>
+              <span aria-hidden="true">·</span>
+              <span className="truncate">{t('enter_actual_quantity')}</span>
+            </div>
+            <h1
+              className="text-2xl sm:text-3xl font-black tracking-tight leading-tight"
+              style={{ color: theme.text }}
+            >
+              {t('jard_monthly')}
+            </h1>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto shrink-0">
+            <button
+              type="button"
+              onClick={handleCompleteInventory}
+              disabled={isSavingInventory}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 border text-xs font-black transition-colors whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-60"
+              style={{
+                backgroundColor: theme.text,
+                borderColor: theme.text,
+                color: theme.surface,
+              }}
+            >
+              {isSavingInventory ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>{t('saving') || 'جارٍ الحفظ...'}</span>
+                </>
+              ) : (
+                <>
+                  <ClipboardCheck size={14} />
+                  <span>{t('save') || 'حفظ الجرد'}</span>
+                </>
+              )}
+            </button>
+          </div>
+        </header>
+
+        {/* FOLIO TOOLBAR */}
+        <div
+          className="border p-2 flex flex-wrap items-center justify-between gap-2"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
               onClick={() => setShowHistoryModal(true)}
-              className="h-10 px-2.5 sm:px-3 flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg shadow-sm active:scale-95 transition-all text-xs sm:text-sm font-bold"
+              className="h-9 px-2.5 sm:px-3 flex items-center gap-1.5 border text-xs font-bold transition-colors cursor-pointer"
+              style={{
+                backgroundColor: theme.bg,
+                borderColor: theme.border,
+                color: theme.text,
+              }}
               title={t('inventory_log')}
             >
-              <History size={16} className="text-zinc-500" />
+              <History size={14} style={{ color: theme.textMuted }} />
               <span className="hidden sm:inline">{t('inventory_log') || 'سجل الجرد'}</span>
               {historyReports.length > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 font-bold">
-                  {historyReports.length}
+                <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
+                  ({historyReports.length})
                 </span>
               )}
             </button>
 
-            <button 
+            <button
+              type="button"
               onClick={() => {
                 setActiveTab('reports');
                 window.dispatchEvent(new CustomEvent('open-analytics-tab', { detail: 'inventory_intel' }));
               }}
-              className="h-10 px-2.5 sm:px-3 flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg shadow-sm active:scale-95 transition-all text-xs sm:text-sm font-bold"
+              className="h-9 px-2.5 sm:px-3 flex items-center gap-1.5 border text-xs font-bold transition-colors cursor-pointer"
+              style={{
+                backgroundColor: theme.bg,
+                borderColor: theme.border,
+                color: theme.text,
+              }}
               title="تحليلات واستخبارات الجرد"
             >
-              <TrendingUp size={16} className="text-zinc-500" />
+              <TrendingUp size={14} style={{ color: theme.accent }} />
               <span className="hidden sm:inline">تحليلات الجرد</span>
             </button>
-            
-            <button 
+
+            <button
+              type="button"
               onClick={() => setShowExpensesModal(true)}
-              className="h-10 px-2.5 sm:px-3 flex items-center gap-1.5 sm:gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg shadow-sm active:scale-95 transition-all text-xs sm:text-sm font-bold"
+              className="h-9 px-2.5 sm:px-3 flex items-center gap-1.5 border text-xs font-bold transition-colors cursor-pointer"
+              style={{
+                backgroundColor: theme.bg,
+                borderColor: expensesAmount > 0 ? theme.negative : theme.border,
+                color: expensesAmount > 0 ? theme.negative : theme.text,
+              }}
               title={t('expenses')}
             >
-              <Wallet size={16} className={expensesAmount > 0 ? "text-[#B34C36]" : "text-zinc-500"} />
+              <Wallet size={14} />
               <span className="hidden md:inline">{t('expenses')}</span>
               {expensesAmount > 0 ? (
-                <span className="font-mono font-black text-xs text-[#B34C36] tracking-tight">
-                  {formatCurrency(expensesAmount, settings.currency, settings.language)}
+                <span className="font-mono tabular-nums font-black">
+                  {formatPrivateValue(expensesAmount)}
                 </span>
               ) : (
-                <span className="hidden sm:inline">{t('expenses')}</span>
+                <span className="sm:hidden">{t('expenses')}</span>
               )}
             </button>
           </div>
 
-          {/* Group 2: Operational tools (Compare, Print, Detailed Mode, Damage, Clear) */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <button 
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
               onClick={() => setShowCompareModal(true)}
-              className="h-10 px-2.5 sm:px-3 flex items-center gap-1.5 bg-brand-50 border border-brand-200 dark:bg-brand-900/20 dark:border-brand-800 text-brand-600 dark:text-brand-400 rounded-lg shadow-sm active:scale-95 transition-all text-xs sm:text-sm font-bold"
+              className="h-9 px-2.5 sm:px-3 flex items-center gap-1.5 border text-xs font-bold transition-colors cursor-pointer"
+              style={{
+                backgroundColor: theme.bg,
+                borderColor: theme.border,
+                color: theme.accent,
+              }}
               title="مقارنة الجرد الذكية بـ Excel"
             >
-              <Activity size={17} />
+              <Activity size={14} />
               <span className="hidden md:inline">مقارنة بـ Excel</span>
             </button>
 
-            <button 
+            <button
+              type="button"
               onClick={() => setShowPrintModal(true)}
-              className="w-10 h-10 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 active:scale-95 transition-transform"
+              className="w-9 h-9 flex items-center justify-center border transition-colors cursor-pointer"
+              style={{
+                backgroundColor: theme.bg,
+                borderColor: theme.border,
+                color: theme.text,
+              }}
               title="طباعة كشف الجرد الورقي"
             >
-              <Printer size={18} />
+              <Printer size={15} />
             </button>
 
-            <button 
+            <button
+              type="button"
               onClick={() => setShowDetailedControls(!showDetailedControls)}
-              className={cn(
-                "h-10 px-2.5 sm:px-3 flex items-center gap-1.5 rounded-lg shadow-sm active:scale-95 transition-all text-xs sm:text-sm font-bold border",
-                showDetailedControls 
-                  ? "bg-brand-600 text-white border-brand-600 hover:bg-brand-700 shadow-brand-500/20" 
-                  : "bg-white text-zinc-700 border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-              )}
+              className="h-9 px-2.5 sm:px-3 flex items-center gap-1.5 border text-xs font-bold transition-colors cursor-pointer"
+              style={{
+                backgroundColor: showDetailedControls ? theme.accent : theme.bg,
+                borderColor: showDetailedControls ? theme.accent : theme.border,
+                color: showDetailedControls ? theme.accentText : theme.text,
+              }}
               title={t('detailed_inventory_mode')}
             >
-              <PlusCircle size={16} />
+              <PlusCircle size={14} />
               <span className="hidden sm:inline">تفصيلي</span>
             </button>
 
-            <button 
+            <button
+              type="button"
               onClick={() => setShowDamageModal(true)}
-              className="h-10 px-2.5 sm:px-3 flex items-center gap-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-lg shadow-sm active:scale-95 transition-all text-xs sm:text-sm font-bold"
+              className="h-9 px-2.5 sm:px-3 flex items-center gap-1.5 border text-xs font-bold transition-colors cursor-pointer"
+              style={{
+                backgroundColor: theme.bg,
+                borderColor: damageCount > 0 ? theme.negative : theme.border,
+                color: damageCount > 0 ? theme.negative : theme.text,
+              }}
               title="تسجيل وإدارة التالف"
             >
-              <AlertTriangle size={16} className={damageCount > 0 ? "text-[#B34C36]" : "text-zinc-500"} />
+              <AlertTriangle size={14} />
               <span className="hidden sm:inline">التالف</span>
               {damageCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-zinc-100 text-[#B34C36] dark:bg-zinc-800 font-black">
-                  {damageCount}
-                </span>
+                <span className="font-mono tabular-nums font-black">({damageCount})</span>
               )}
             </button>
 
-            <button 
+            <button
+              type="button"
               onClick={handleClearInventory}
-              className={cn(
-                "w-10 h-10 flex items-center justify-center rounded-lg shadow-sm active:scale-95 transition-all border",
-                Object.keys(inventoryData).length > 0 
-                  ? "bg-[#B34C36] border-[#B34C36] text-white hover:bg-[#9E3E2A] shadow-md shadow-[#B34C36]/20" 
-                  : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-              )}
+              className="w-9 h-9 flex items-center justify-center border transition-colors cursor-pointer"
+              style={{
+                backgroundColor: countedItemsCount > 0 ? theme.negative : theme.bg,
+                borderColor: countedItemsCount > 0 ? theme.negative : theme.border,
+                color: countedItemsCount > 0 ? '#FFFFFF' : theme.textMuted,
+              }}
               title={t('confirm_clear_quantities')}
             >
-              <Trash2 size={17} />
+              <Trash2 size={15} />
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Progress Bar */}
-      <div className="space-y-1.5 px-4">
-        <div className="flex justify-between items-center text-[9px] font-black text-zinc-400 uppercase tracking-widest">
-          <span className="text-brand-500">{progress}%</span>
-          <span>{t('overall_progress')}</span>
-        </div>
-        <div className="h-1.5 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-          <motion.div 
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            className="h-full bg-brand-500 rounded-full" 
-          />
-        </div>
-      </div>
-
-      {/* Search Bar & Categories */}
-      <div className="space-y-3 px-4">
-        <div className="flex gap-2">
-          <button 
-            onClick={() => setIsScannerOpen(true)}
-            className="w-11 h-11 shrink-0 flex items-center justify-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 active:scale-95 transition-all"
-            title="مسح الباركود"
+        {/* SECTION 01: PROGRESS & INVENTORY KPI STRIP */}
+        <section
+          className="border text-right"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
+          <div
+            className="grid grid-cols-3 divide-x divide-x-reverse"
+            style={{ borderColor: theme.border }}
           >
-            <ScanBarcode size={20} className="text-zinc-500" />
-          </button>
-          <div className="relative flex-1">
-            <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" size={18} />
-            <input 
-              type="search"
-              name="inventory_search"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              data-lpignore="true"
-              data-form-type="other"
-              className="w-full h-11 pr-11 pl-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg outline-none text-xs sm:text-[13px] placeholder:text-zinc-400 dark:placeholder:text-zinc-500 shadow-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
-              placeholder={t('search_product_inventory_placeholder')} 
-              value={searchTerm} 
-              onChange={(e) => setSearchTerm(e.target.value)}
+            <div className="p-3.5 space-y-0.5" style={{ borderColor: theme.border }}>
+              <div className="text-[11px] font-bold" style={{ color: theme.textMuted }}>
+                {t('overall_progress')}
+              </div>
+              <div
+                className="text-xl font-black font-mono tabular-nums"
+                style={{ color: theme.accent }}
+              >
+                {progress}%
+              </div>
+            </div>
+            <div className="p-3.5 space-y-0.5" style={{ borderColor: theme.border }}>
+              <div className="text-[11px] font-bold" style={{ color: theme.textMuted }}>
+                تم إدخال كميتها
+              </div>
+              <div className="text-xl font-black font-mono tabular-nums">
+                {countedItemsCount} / {groupedProducts.length}
+              </div>
+            </div>
+            <div className="p-3.5 space-y-0.5" style={{ borderColor: theme.border }}>
+              <div className="text-[11px] font-bold" style={{ color: theme.textMuted }}>
+                متوفر / رصيد صفر
+              </div>
+              <div className="text-xl font-black font-mono tabular-nums">
+                {stockStats.inStock}{' '}
+                <span className="text-xs font-normal" style={{ color: theme.textMuted }}>
+                  / {stockStats.zeroStock}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="h-1 w-full overflow-hidden border-t"
+            style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }}
+          >
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              className="h-full"
+              style={{ backgroundColor: theme.accent }}
             />
           </div>
-        </div>
-        <div className="flex flex-wrap sm:flex-nowrap gap-2">
-          <div className="relative group/filter flex-1 min-w-[130px]" ref={categoryRef}>
-            <button 
-              onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
-              className="w-full h-11 flex items-center justify-between px-4 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs sm:text-[13px] font-bold text-zinc-700 dark:text-zinc-300 outline-none hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors shadow-sm focus:border-brand-500"
+        </section>
+
+        {/* SEARCH & FILTERS */}
+        <div className="space-y-2.5">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setIsScannerOpen(true)}
+              className="w-11 h-11 shrink-0 flex items-center justify-center border transition-colors cursor-pointer"
+              style={{
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+                color: theme.text,
+              }}
+              title="مسح الباركود"
             >
-              <span className="truncate flex-1 text-center">{categoryFilter === 'all' ? t('all_categories_filter') : t(categories.find(c => c.name === categoryFilter)?.key || categoryFilter)}</span>
-              <svg className="h-4 w-4 fill-current text-zinc-400 shrink-0" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+              <ScanBarcode size={18} />
             </button>
-            {categoryDropdownOpen && (
-              <div className="absolute top-full right-0 mt-1 w-full max-h-[300px] overflow-y-auto z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl py-1">
+            <div
+              className="flex-1 flex items-center gap-2 border px-3"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+            >
+              <Search size={16} style={{ color: theme.textMuted }} className="shrink-0" />
+              <input
+                type="search"
+                name="inventory_search"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                data-lpignore="true"
+                data-form-type="other"
+                className="w-full h-11 bg-transparent outline-none text-xs sm:text-sm"
+                style={{ color: theme.text }}
+                placeholder={t('search_product_inventory_placeholder')}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              {searchTerm && (
                 <button
-                  onClick={() => {
-                    setCategoryFilter('all');
-                    setCategoryDropdownOpen(false);
-                  }}
-                  className={cn(
-                    "w-full text-right px-4 py-2 text-[13px] hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors truncate",
-                    categoryFilter === 'all' ? "text-brand-600 font-bold bg-brand-50/50 dark:bg-brand-900/10 dark:text-brand-400" : "text-zinc-600 dark:text-zinc-400"
-                  )}
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  aria-label="مسح البحث"
+                  className="cursor-pointer"
+                  style={{ color: theme.textMuted }}
                 >
-                  {t('all_categories_filter')}
+                  <X size={14} />
                 </button>
-                {categories.map((c, index) => (
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap sm:flex-nowrap gap-2">
+            <div className="relative flex-1 min-w-[130px]" ref={categoryRef}>
+              <button
+                type="button"
+                onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
+                className="w-full h-10 flex items-center justify-between px-3 border text-xs font-bold outline-none transition-colors cursor-pointer"
+                style={{
+                  backgroundColor: categoryFilter !== 'all' ? theme.text : theme.surface,
+                  borderColor: categoryFilter !== 'all' ? theme.text : theme.border,
+                  color: categoryFilter !== 'all' ? theme.surface : theme.text,
+                }}
+              >
+                <span className="truncate flex-1 text-right">
+                  {categoryFilter === 'all'
+                    ? t('all_categories_filter')
+                    : t(categories.find((c) => c.name === categoryFilter)?.key || categoryFilter)}
+                </span>
+                <svg className="h-4 w-4 fill-current opacity-60 shrink-0" viewBox="0 0 20 20">
+                  <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                </svg>
+              </button>
+              {categoryDropdownOpen && (
+                <div
+                  className="absolute top-full right-0 mt-1 w-full max-h-[300px] overflow-y-auto z-50 border shadow-xl py-1"
+                  style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                >
                   <button
-                    key={`${c.id}-${index}`}
+                    type="button"
                     onClick={() => {
-                      setCategoryFilter(c.name);
+                      setCategoryFilter('all');
                       setCategoryDropdownOpen(false);
                     }}
-                    className={cn(
-                      "w-full text-right px-4 py-2 text-[13px] hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors truncate",
-                      categoryFilter === c.name ? "text-brand-600 font-bold bg-brand-50/50 dark:bg-brand-900/10 dark:text-brand-400" : "text-zinc-600 dark:text-zinc-400"
-                    )}
+                    className="w-full text-right px-3.5 py-2 text-xs font-bold transition-colors truncate cursor-pointer"
+                    style={{
+                      backgroundColor: categoryFilter === 'all' ? theme.surfaceMuted : 'transparent',
+                      color: categoryFilter === 'all' ? theme.accent : theme.text,
+                    }}
                   >
-                    {t(c.key || c.name)}
+                    {t('all_categories_filter')}
                   </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Stock Filter Dropdown */}
-          <div className="relative" ref={stockFilterRef}>
-            <button
-              onClick={() => setStockDropdownOpen(!stockDropdownOpen)}
-              className={cn(
-                "h-11 px-3 sm:px-3.5 flex items-center gap-1.5 rounded-lg border text-xs sm:text-[13px] font-bold transition-all shadow-sm active:scale-95 whitespace-nowrap",
-                stockFilter !== 'all'
-                  ? "bg-brand-600 border-brand-600 text-white shadow-brand-500/20"
-                  : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                  {categories.map((c, index) => (
+                    <button
+                      type="button"
+                      key={`${c.id}-${index}`}
+                      onClick={() => {
+                        setCategoryFilter(c.name);
+                        setCategoryDropdownOpen(false);
+                      }}
+                      className="w-full text-right px-3.5 py-2 text-xs font-bold transition-colors truncate cursor-pointer"
+                      style={{
+                        backgroundColor:
+                          categoryFilter === c.name ? theme.surfaceMuted : 'transparent',
+                        color: categoryFilter === c.name ? theme.accent : theme.text,
+                      }}
+                    >
+                      {t(c.key || c.name)}
+                    </button>
+                  ))}
+                </div>
               )}
-              title="فلترة حسب كمية المخزون"
+            </div>
+
+            <div className="relative" ref={stockFilterRef}>
+              <button
+                type="button"
+                onClick={() => setStockDropdownOpen(!stockDropdownOpen)}
+                className="h-10 px-3 flex items-center gap-1.5 border text-xs font-bold transition-colors whitespace-nowrap cursor-pointer"
+                style={{
+                  backgroundColor: stockFilter !== 'all' ? theme.text : theme.surface,
+                  borderColor: stockFilter !== 'all' ? theme.text : theme.border,
+                  color: stockFilter !== 'all' ? theme.surface : theme.text,
+                }}
+                title="فلترة حسب كمية المخزون"
+              >
+                <span>
+                  {stockFilter === 'all' && 'الكمية: الكل'}
+                  {stockFilter === 'in_stock' && 'المتوفر فقط (>0)'}
+                  {stockFilter === 'zero_stock' && 'غير متوفر (كمية 0)'}
+                </span>
+                <svg className="h-4 w-4 fill-current opacity-60 shrink-0" viewBox="0 0 20 20">
+                  <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                </svg>
+              </button>
+
+              {stockDropdownOpen && (
+                <div
+                  className="absolute top-full right-0 mt-1 min-w-[215px] z-50 border shadow-xl py-1 overflow-hidden"
+                  style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                >
+                  {[
+                    { id: 'all', label: 'جميع المنتجات (الكل)', count: stockStats.total },
+                    { id: 'in_stock', label: 'المتوفر فقط (إخفاء كمية 0)', count: stockStats.inStock },
+                    { id: 'zero_stock', label: 'غير المتوفرة فقط (كمية 0)', count: stockStats.zeroStock },
+                  ].map((opt) => (
+                    <button
+                      type="button"
+                      key={opt.id}
+                      onClick={() => {
+                        setStockFilter(opt.id as any);
+                        setStockDropdownOpen(false);
+                      }}
+                      className="w-full text-right px-3.5 py-2 text-xs font-bold transition-colors flex items-center justify-between cursor-pointer"
+                      style={{
+                        backgroundColor:
+                          stockFilter === opt.id ? theme.surfaceMuted : 'transparent',
+                        color: stockFilter === opt.id ? theme.accent : theme.text,
+                      }}
+                    >
+                      <span>{opt.label}</span>
+                      <span className="font-mono tabular-nums opacity-70">({opt.count})</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowUninventoriedOnly(!showUninventoriedOnly)}
+              className="h-10 px-3 border text-xs font-bold transition-colors whitespace-nowrap cursor-pointer"
+              style={{
+                backgroundColor: showUninventoriedOnly ? theme.accent : theme.surface,
+                borderColor: showUninventoriedOnly ? theme.accent : theme.border,
+                color: showUninventoriedOnly ? theme.accentText : theme.text,
+              }}
             >
-              <span>
-                {stockFilter === 'all' && 'الكمية: الكل'}
-                {stockFilter === 'in_stock' && 'المتوفر فقط (>0)'}
-                {stockFilter === 'zero_stock' && 'غير متوفر (كمية 0)'}
-              </span>
-              <svg className="h-4 w-4 fill-current opacity-70 shrink-0" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+              {t('not_inventoried')}
             </button>
-
-            {stockDropdownOpen && (
-              <div className="absolute top-full right-0 mt-1 min-w-[215px] z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-xl py-1 overflow-hidden">
-                <button
-                  onClick={() => {
-                    setStockFilter('all');
-                    setStockDropdownOpen(false);
-                  }}
-                  className={cn(
-                    "w-full text-right px-4 py-2.5 text-[13px] hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center justify-between",
-                    stockFilter === 'all' ? "text-brand-600 font-bold bg-brand-50/50 dark:bg-brand-900/10 dark:text-brand-400" : "text-zinc-600 dark:text-zinc-400"
-                  )}
-                >
-                  <span>جميع المنتجات (الكل)</span>
-                  <span className="text-[11px] font-mono opacity-70">({stockStats.total})</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setStockFilter('in_stock');
-                    setStockDropdownOpen(false);
-                  }}
-                  className={cn(
-                    "w-full text-right px-4 py-2.5 text-[13px] hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center justify-between",
-                    stockFilter === 'in_stock' ? "text-brand-600 font-bold bg-brand-50/50 dark:bg-brand-900/10 dark:text-brand-400" : "text-zinc-600 dark:text-zinc-400"
-                  )}
-                >
-                  <span>المتوفر فقط (إخفاء كمية 0)</span>
-                  <span className="text-[11px] font-mono opacity-70">({stockStats.inStock})</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setStockFilter('zero_stock');
-                    setStockDropdownOpen(false);
-                  }}
-                  className={cn(
-                    "w-full text-right px-4 py-2.5 text-[13px] hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center justify-between",
-                    stockFilter === 'zero_stock' ? "text-brand-600 font-bold bg-brand-50/50 dark:bg-brand-900/10 dark:text-brand-400" : "text-zinc-600 dark:text-zinc-400"
-                  )}
-                >
-                  <span>غير المتوفرة فقط (كمية 0)</span>
-                  <span className="text-[11px] font-mono opacity-70">({stockStats.zeroStock})</span>
-                </button>
-              </div>
-            )}
           </div>
-
-          <button
-            onClick={() => setShowUninventoriedOnly(!showUninventoriedOnly)}
-            className={cn(
-              "h-11 px-3 sm:px-4 rounded-lg border text-xs sm:text-[13px] font-bold transition-all shadow-sm active:scale-95 whitespace-nowrap",
-              showUninventoriedOnly 
-                ? "bg-brand-600 border-brand-600 text-white shadow-brand-500/20" 
-                : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-            )}
-          >
-            {t('not_inventoried')}
-          </button>
         </div>
-      </div>
 
-      {/* Product List */}
-      <div className="grid grid-cols-1 gap-2 px-2">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+        {/* SECTION 02: INVENTORY ITEMS LIST */}
+        <section
+          className="border text-right"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
+          <div
+            className="px-4 py-2.5 border-b flex items-center justify-between"
+            style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }}
+          >
+            <div className="flex items-center gap-2 text-xs font-bold">
+              <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
+                02
+              </span>
+              <span>جدول عدّ المخزون</span>
+            </div>
+            <span className="text-[11px] font-mono tabular-nums" style={{ color: theme.textMuted }}>
+              {filteredProducts.length} صنف
+            </span>
           </div>
-        ) : (
-          <>
-            {sortedProducts.map((p, index) => (
-              <InventoryItem
-                key={p.id}
-                product={p}
-                sequenceNumber={(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
-                inventoryQuantity={inventoryData[p.id]}
-                isChecked={!!checkedProducts[p.id]}
-                showDetailedControls={showDetailedControls}
-                onToggleCheck={toggleChecked}
-                onAddPiece={handleAddPiece}
-                onAddCarton={handleAddCarton}
-                onChangeQuantity={handleChangeQuantity}
-              />
-            ))}
-            
-            {filteredProducts.length === 0 && (
-              <div className="text-center py-20 text-zinc-300 text-sm">
-                {t('no_products_found')}
-              </div>
-            )}
-          </>
-        )}
-      </div>
 
-      {/* Pagination */}
-      <ProductPagination 
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-16">
+              <div
+                className="w-7 h-7 border-2 border-t-transparent rounded-full animate-spin"
+                style={{ borderColor: theme.accent, borderTopColor: 'transparent' }}
+              />
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="text-center py-14 text-xs font-bold" style={{ color: theme.textMuted }}>
+              {t('no_products_found')}
+            </div>
+          ) : (
+            <div className="divide-y" style={{ borderColor: theme.border }}>
+              {sortedProducts.map((p, index) => (
+                <InventoryItem
+                  key={p.id}
+                  product={p}
+                  sequenceNumber={(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                  inventoryQuantity={inventoryData[p.id]}
+                  isChecked={!!checkedProducts[p.id]}
+                  showDetailedControls={showDetailedControls}
+                  onToggleCheck={toggleChecked}
+                  onAddPiece={handleAddPiece}
+                  onAddCarton={handleAddCarton}
+                  onChangeQuantity={handleChangeQuantity}
+                  theme={theme}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Pagination */}
+        <ProductPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          theme={theme}
+        />
+      </div>
 
       {/* Custom Alert/Confirm Modal */}
       <AnimatePresence>
         {modalConfig.show && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
+              onClick={() => setModalConfig((prev) => ({ ...prev, show: false }))}
               className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
             />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-[280px] bg-white dark:bg-zinc-900 rounded-lg p-6 shadow-2xl border border-zinc-100 dark:border-zinc-800 text-center"
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              className="relative w-full max-w-xs border p-5 text-center shadow-2xl"
+              style={{
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+                color: theme.text,
+              }}
+              dir="rtl"
             >
-              <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-200 mb-6 leading-relaxed">
-                {modalConfig.message}
-              </p>
-              
+              <p className="text-xs font-bold mb-5 leading-relaxed">{modalConfig.message}</p>
+
               <div className="flex gap-2">
                 {modalConfig.type === 'confirm' ? (
                   <>
-                    <button 
+                    <button
+                      type="button"
                       onClick={() => {
-                        setModalConfig(prev => ({ ...prev, show: false }));
+                        setModalConfig((prev) => ({ ...prev, show: false }));
                         modalConfig.onConfirm?.();
                       }}
-                      className="flex-1 py-2.5 text-white rounded-lg text-[12px] font-black active:scale-95 transition-all shadow-lg shadow-[#B34C36]/20"
-                      style={{ backgroundColor: '#B34C36' }}
+                      className="flex-1 py-2 text-white border text-xs font-black cursor-pointer"
+                      style={{
+                        backgroundColor: theme.negative,
+                        borderColor: theme.negative,
+                      }}
                     >
                       {t('confirm')}
                     </button>
-                    <button 
-                      onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
-                      className="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-lg text-[12px] font-bold active:scale-95 transition-all"
+                    <button
+                      type="button"
+                      onClick={() => setModalConfig((prev) => ({ ...prev, show: false }))}
+                      className="flex-1 py-2 border text-xs font-bold cursor-pointer"
+                      style={{
+                        backgroundColor: theme.surfaceMuted,
+                        borderColor: theme.border,
+                        color: theme.text,
+                      }}
                     >
                       {t('cancel')}
                     </button>
                   </>
                 ) : (
-                  <button 
-                    onClick={() => setModalConfig(prev => ({ ...prev, show: false }))}
-                    className="w-full py-2.5 bg-brand-600 text-white rounded-lg text-[12px] font-black active:scale-95 transition-all"
+                  <button
+                    type="button"
+                    onClick={() => setModalConfig((prev) => ({ ...prev, show: false }))}
+                    className="w-full py-2 border text-xs font-black cursor-pointer"
+                    style={{
+                      backgroundColor: theme.accent,
+                      borderColor: theme.accent,
+                      color: theme.accentText,
+                    }}
                   >
                     {t('ok')}
                   </button>
@@ -1380,30 +1568,40 @@ export default function Inventory() {
       <AnimatePresence>
         {isSavingInventory && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 15 }}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 15 }}
-              className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-2xl p-6 sm:p-7 shadow-2xl border border-zinc-200 dark:border-zinc-800 text-center flex flex-col items-center"
+              exit={{ opacity: 0, scale: 0.94, y: 12 }}
+              className="relative w-full max-w-sm border p-6 shadow-2xl text-center flex flex-col items-center"
+              style={{
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+                color: theme.text,
+              }}
+              dir="rtl"
             >
-              <div className="w-16 h-16 rounded-2xl bg-brand-50 dark:bg-brand-950/60 border border-brand-100 dark:border-brand-900/40 flex items-center justify-center text-brand-600 dark:text-brand-400 mb-4 shadow-inner">
-                <Loader2 className="w-8 h-8 animate-spin" />
+              <div
+                className="w-12 h-12 border flex items-center justify-center mb-4"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                  color: theme.accent,
+                }}
+              >
+                <Loader2 className="w-6 h-6 animate-spin" />
               </div>
-              <h3 className="text-base sm:text-lg font-black text-zinc-900 dark:text-white mb-2">
+              <h3 className="text-base font-black mb-2">
                 {t('saving_inventory') || 'جارٍ حفظ الجرد وتحديث المخزون...'}
               </h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed mb-4">
+              <p className="text-xs leading-relaxed" style={{ color: theme.textMuted }}>
                 يتم الآن تحديث أرصدة المنتجات في قاعدة البيانات وتسجيل التقرير المالي، يرجى الانتظار لحين اكتمال العملية.
               </p>
-              <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
-                <div className="bg-brand-600 h-full rounded-full animate-pulse" style={{ width: '100%' }} />
-              </div>
             </motion.div>
           </div>
         )}

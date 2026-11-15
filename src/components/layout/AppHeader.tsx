@@ -5,6 +5,7 @@ import { useAppContext } from "../../AppContext";
 import { safeDispatchEvent } from "../../lib/utils";
 import { useState } from "react";
 import { SyncBadge, SyncCounterBadge } from "./SyncBadges";
+import { useFolioTheme } from "../folio/FolioPageChrome";
 
 interface AppHeaderProps {
   setMobileMenuOpen: (open: boolean) => void;
@@ -17,27 +18,48 @@ export function AppHeader({
   activeTab,
   setActiveTab,
 }: AppHeaderProps) {
-  const { user, isOffline, settings, activeSupplier, setIsSessionSummaryOpen, lockApp } = useAppContext();
+  const { isOffline, settings, activeSupplier, setIsSessionSummaryOpen, lockApp } = useAppContext();
   const { t } = useTranslation();
   const [showSyncMenu, setShowSyncMenu] = useState(false);
+  const { theme } = useFolioTheme(Boolean(settings.darkMode), settings.folioThemeId);
 
   return (
-    <header className="sticky top-0 z-40 bg-white shadow-sm dark:bg-zinc-900 border-b border-zinc-200/60 dark:border-zinc-800/60">
+    <header
+      className="sticky top-0 z-40 border-b transition-colors"
+      style={{
+        backgroundColor: theme.surface,
+        borderColor: theme.border,
+        color: theme.text,
+      }}
+    >
       <div className="mx-auto max-w-7xl px-4">
-        <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex h-15 items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => setMobileMenuOpen(true)}
-                className="text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+                className="p-1.5 border transition-colors cursor-pointer"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                  color: theme.text,
+                }}
+                aria-label={t("menu")}
               >
-                <Menu size={24} />
+                <Menu size={20} />
               </button>
               <div
                 onClick={() => setActiveTab("dashboard")}
-                className="cursor-pointer"
+                className="cursor-pointer flex items-center gap-2"
               >
-                <Logo className="w-10 h-10 shadow-lg active:scale-95 transition-transform" />
+                <Logo className="w-9 h-9 active:scale-95 transition-transform" />
+                <span
+                  className="hidden md:inline text-sm font-black tracking-tight"
+                  style={{ color: theme.text }}
+                >
+                  {settings.storeName || "مخزوني"}
+                </span>
               </div>
             </div>
 
@@ -48,11 +70,16 @@ export function AppHeader({
                     e.stopPropagation();
                     setShowSyncMenu(!showSyncMenu);
                   }}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-800/50 dark:text-amber-400 relative cursor-pointer"
+                  className="flex items-center gap-1.5 px-2.5 py-1 border relative cursor-pointer"
+                  style={{
+                    backgroundColor: theme.surfaceMuted,
+                    borderColor: theme.negative,
+                    color: theme.negative,
+                  }}
                 >
-                  <CloudOff size={14} />
+                  <CloudOff size={13} />
                   <SyncBadge />
-                  <span className="text-xs font-bold hidden sm:inline">
+                  <span className="text-[11px] font-bold hidden sm:inline">
                     {t("offline_mode", "مخزن محلياً")}
                   </span>
                   <SyncCounterBadge
@@ -66,15 +93,23 @@ export function AppHeader({
                     e.stopPropagation();
                     setShowSyncMenu(!showSyncMenu);
                   }}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-400 relative cursor-pointer"
+                  className="flex items-center gap-1.5 px-2.5 py-1 border relative cursor-pointer"
+                  style={{
+                    backgroundColor: theme.surfaceMuted,
+                    borderColor: theme.border,
+                    color: theme.positive,
+                  }}
                   title={t(
                     "online_mode_tooltip",
                     "متصل. يتم المزامنة بشكل لحظي.",
                   )}
                 >
-                  <Cloud size={14} />
+                  <Cloud size={13} />
                   <SyncBadge />
-                  <span className="text-xs font-bold hidden sm:inline">
+                  <span
+                    className="text-[11px] font-bold hidden sm:inline"
+                    style={{ color: theme.textMuted }}
+                  >
                     {t("online_mode", "متصل ومحدث")}
                   </span>
                   <SyncCounterBadge
@@ -86,8 +121,9 @@ export function AppHeader({
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 shrink-0">
             <button
+              type="button"
               onClick={() => {
                 if (activeSupplier) {
                   setIsSessionSummaryOpen(true);
@@ -95,7 +131,20 @@ export function AppHeader({
                   safeDispatchEvent("open-supplier-selector");
                 }
               }}
-              className={`transition-all h-9 px-3 rounded-lg flex items-center justify-center ${activeSupplier ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-md scale-105" : "bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-900/40 shadow-sm transition-all"}`}
+              className="h-9 px-3 border flex items-center justify-center transition-colors cursor-pointer"
+              style={
+                activeSupplier
+                  ? {
+                      backgroundColor: theme.text,
+                      color: theme.surface,
+                      borderColor: theme.text,
+                    }
+                  : {
+                      backgroundColor: theme.surfaceMuted,
+                      color: theme.accent,
+                      borderColor: theme.border,
+                    }
+              }
               title={
                 activeSupplier
                   ? t("end_supplier_session")
@@ -104,33 +153,53 @@ export function AppHeader({
             >
               {activeSupplier ? (
                 <div className="flex items-center gap-2">
-                  <Square size={16} fill="currentColor" />
-                  <span className="text-[10px] font-black leading-none">
+                  <Square size={14} fill="currentColor" />
+                  <span className="text-[11px] font-black leading-none truncate max-w-[110px]">
                     {activeSupplier.name}
                   </span>
                 </div>
               ) : (
-                <Play size={16} fill="currentColor" />
+                <Play size={15} fill="currentColor" />
               )}
             </button>
 
             {settings.showShoppingList !== false && (
               <button
+                type="button"
                 onClick={() => setActiveTab("shopping-list")}
-                className={`transition-colors ${activeTab === "shopping-list" ? "text-brand-600" : "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"}`}
+                className="h-9 w-9 border flex items-center justify-center transition-colors cursor-pointer"
+                style={
+                  activeTab === "shopping-list"
+                    ? {
+                        backgroundColor: theme.text,
+                        color: theme.surface,
+                        borderColor: theme.text,
+                      }
+                    : {
+                        backgroundColor: theme.surface,
+                        color: theme.textMuted,
+                        borderColor: theme.border,
+                      }
+                }
                 title={t("shopping_list")}
               >
-                <ShoppingCart size={22} />
+                <ShoppingCart size={18} />
               </button>
             )}
 
             {settings.appPinEnabled && settings.appPin && (
               <button
+                type="button"
                 onClick={lockApp}
-                className="transition-colors text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center justify-center"
+                className="h-9 w-9 border flex items-center justify-center transition-colors cursor-pointer"
+                style={{
+                  backgroundColor: theme.surface,
+                  color: theme.textMuted,
+                  borderColor: theme.border,
+                }}
                 title="قفل التطبيق الآن"
               >
-                <Lock size={20} />
+                <Lock size={17} />
               </button>
             )}
           </div>

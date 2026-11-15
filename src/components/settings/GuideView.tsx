@@ -15,8 +15,13 @@ import {
   Zap
 } from 'lucide-react';
 
+import { useAppContext } from '../../AppContext';
+import { useFolioTheme } from '../folio/FolioPageChrome';
+
 export const GuideView = ({ onBack }: { onBack: () => void }) => {
   const { t } = useTranslation();
+  const { settings } = useAppContext();
+  const { theme } = useFolioTheme(Boolean(settings.darkMode), settings.folioThemeId);
   
   const sections = [
     {
@@ -62,41 +67,78 @@ export const GuideView = ({ onBack }: { onBack: () => void }) => {
   ];
 
   return (
-    <div className="space-y-8 pb-12">
-      <header className="flex items-center gap-4 border-b border-zinc-100 dark:border-zinc-800 pb-4">
-        <button onClick={onBack} className="h-10 w-10 rounded-lg bg-white border border-zinc-100 flex items-center justify-center text-zinc-600 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400">
-          <ChevronLeft size={20} />
+    <div className="max-w-4xl mx-auto space-y-6 pb-20" style={{ color: theme.text }}>
+      <header
+        className="flex items-center gap-3 border-b pb-4"
+        style={{ borderColor: theme.border }}
+      >
+        <button
+          type="button"
+          onClick={onBack}
+          className="h-10 w-10 border flex items-center justify-center cursor-pointer"
+          style={{
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
+            color: theme.text,
+          }}
+        >
+          <ChevronLeft size={18} />
         </button>
         <div className="flex-1 text-right">
-          <h1 className="text-2xl font-black text-zinc-900 dark:text-white">{t('user_guide')}</h1>
-          <p className="text-[10px] uppercase font-bold tracking-widest text-brand-500">{t('learn_store_management')}</p>
+          <div className="flex items-center gap-2 text-xs font-bold" style={{ color: theme.textMuted }}>
+            <span className="font-mono" style={{ color: theme.accent }}>GUIDE</span>
+            <span>·</span>
+            <span>{t('learn_store_management')}</span>
+          </div>
+          <h1 className="text-2xl font-black tracking-tight" style={{ color: theme.text }}>
+            {t('user_guide')}
+          </h1>
         </div>
-        <div className="h-12 w-12 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 dark:bg-brand-950/20">
-          <BookOpen size={24} />
+        <div
+          className="h-10 w-10 border flex items-center justify-center"
+          style={{
+            backgroundColor: theme.surfaceMuted,
+            borderColor: theme.border,
+            color: theme.accent,
+          }}
+        >
+          <BookOpen size={20} />
         </div>
       </header>
 
-      <div className="space-y-6">
+      <div
+        className="border divide-y"
+        style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+      >
         {sections.map((section, idx) => (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.05 }}
-            key={idx} 
-            className="flex gap-4 group"
+            transition={{ delay: idx * 0.04 }}
+            key={idx}
+            className="flex gap-4 p-4 sm:p-5 text-right"
+            style={{ borderColor: theme.border }}
           >
-            <div className="flex flex-col items-center gap-2">
-              <div className="h-12 w-12 rounded-lg bg-white border border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-400 shadow-sm group-hover:border-brand-200 transition-all">
-                <section.icon size={22} />
-              </div>
-              {idx < sections.length - 1 && <div className="w-px flex-1 bg-zinc-100 dark:bg-zinc-800" />}
+            <div
+              className="h-11 w-11 border flex items-center justify-center shrink-0"
+              style={{
+                backgroundColor: theme.surfaceMuted,
+                borderColor: theme.border,
+                color: theme.accent,
+              }}
+            >
+              <section.icon size={20} />
             </div>
-            <div className="flex-1 text-right pt-1 pb-4">
-              <h3 className="text-base font-black text-zinc-900 dark:text-white mb-2 leading-none flex items-center gap-2 justify-end">
-                {section.title}
-                <span className="h-1 w-4 bg-brand-500 rounded-full opacity-30" />
-              </h3>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
+            <div className="flex-1 min-w-0 space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs font-bold" style={{ color: theme.accent }}>
+                  {String(idx + 1).padStart(2, '0')}
+                </span>
+                <h3 className="text-sm font-black" style={{ color: theme.text }}>
+                  {section.title}
+                </h3>
+              </div>
+              <p className="text-xs leading-relaxed font-medium" style={{ color: theme.textMuted }}>
                 {section.content}
               </p>
             </div>
@@ -104,15 +146,19 @@ export const GuideView = ({ onBack }: { onBack: () => void }) => {
         ))}
       </div>
 
-      <div className="bg-brand-500 rounded-lg p-8 text-white text-center relative overflow-hidden shadow-xl shadow-brand-500/20">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
-        <div className="relative z-10">
-          <Zap className="mx-auto mb-4 opacity-50" size={32} />
-          <h4 className="text-xl font-black mb-2">{t('guide_help_title')}</h4>
-          <p className="text-sm opacity-80 font-medium">
-            {t('guide_help_content')}
-          </p>
-        </div>
+      <div
+        className="border p-6 text-center space-y-2"
+        style={{
+          backgroundColor: theme.surfaceMuted,
+          borderColor: theme.border,
+          color: theme.text,
+        }}
+      >
+        <Zap className="mx-auto" size={24} style={{ color: theme.accent }} />
+        <h4 className="text-base font-black">{t('guide_help_title')}</h4>
+        <p className="text-xs font-medium" style={{ color: theme.textMuted }}>
+          {t('guide_help_content')}
+        </p>
       </div>
     </div>
   );

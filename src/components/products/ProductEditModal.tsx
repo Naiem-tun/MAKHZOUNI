@@ -4,7 +4,9 @@ import { X, ScanBarcode, Trash2, Camera, ImagePlus, Copy, ChevronDown, ChevronUp
 import { useCategories } from '../../hooks/useCategories';
 import { Product } from '../../types';
 import { getLocalImage } from '../../lib/localImages';
-import { cleanQuantity, formatQuantity } from '../../lib/utils';
+import { cleanQuantity } from '../../lib/utils';
+import { useAppContext } from '../../AppContext';
+import { useFolioTheme } from '../folio/FolioPageChrome';
 
 interface ProductEditModalProps {
   product: Product | null;
@@ -20,6 +22,8 @@ interface ProductEditModalProps {
 
 export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, scannedBarcode, scannedBarcode2 = '', onScan, onCopy }: ProductEditModalProps) {
   const { t } = useTranslation();
+  const { settings } = useAppContext();
+  const { theme } = useFolioTheme(Boolean(settings?.darkMode), settings?.folioThemeId);
   const { categories } = useCategories();
   const [productName, setProductName] = useState('');
   const [minQuantity, setMinQuantity] = useState<number | string>('');
@@ -249,75 +253,102 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
     setImageRemoved(true);
   };
 
+  const hasPriceLoss = parseFloat(String(sellingPrice)) > 0 && parseFloat(String(piecePrice)) > 0 && parseFloat(String(sellingPrice)) <= parseFloat(String(piecePrice));
+
   return (
     <>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div 
-            onClick={onClose}
-            className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm"
-          />
-          <div 
-            className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-2xl dark:bg-zinc-900 max-h-[90vh] overflow-y-auto"
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs overflow-hidden" dir="rtl" onClick={onClose}>
+          <div
+            className="relative w-full max-w-md border flex flex-col max-h-[92vh] shadow-2xl overflow-hidden transition-colors"
+            style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <button 
-              onClick={onClose}
-              className="absolute top-4 left-4 text-zinc-400 hover:text-zinc-600 p-1"
+            {/* Folio Header */}
+            <div
+              className="px-4 py-3.5 sm:px-5 sm:py-4 border-b flex items-center justify-between gap-3 shrink-0"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
             >
-              <X size={20} />
-            </button>
-            {product && product.id && onCopy && (
-              <button 
-                type="button"
-                onClick={() => onCopy(product)}
-                title={t('copy_product') || 'نسخ المنتج'}
-                className="absolute top-4 left-12 text-zinc-400 hover:text-brand-500 p-1 transition-colors"
-              >
-                <Copy size={20} />
-              </button>
-            )}
-            <h2 className="mb-4 text-lg font-bold text-zinc-900 dark:text-white pr-4">
-              {product && product.id ? t('edit') : t('add_product')}
-            </h2>
-            
-            <div className="space-y-3 text-right">
+              <div className="space-y-0.5 min-w-0">
+                <div className="flex items-center gap-2 text-[11px] font-bold">
+                  <span className="font-mono tabular-nums" style={{ color: theme.accent }}>01</span>
+                  <span style={{ color: theme.textMuted }}>بطاقة بيانات المنتج والتسعير</span>
+                </div>
+                <h2 className="text-base sm:text-lg font-black tracking-tight truncate" style={{ color: theme.text }}>
+                  {product && product.id ? t('edit') : t('add_product')}
+                </h2>
+              </div>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                {product && product.id && onCopy && (
+                  <button
+                    type="button"
+                    onClick={() => onCopy(product)}
+                    title={t('copy_product') || 'نسخ المنتج'}
+                    className="p-1.5 border transition-colors cursor-pointer"
+                    style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.textMuted }}
+                  >
+                    <Copy size={16} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="إغلاق"
+                  className="p-1.5 border transition-colors cursor-pointer"
+                  style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.text }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4 text-right">
               {/* Image Picker */}
-              <div className="flex justify-center mb-4">
+              <div className="flex justify-center">
                 <div className="relative group">
-                  <div className="w-24 h-24 rounded-[20px] bg-zinc-100 dark:bg-zinc-800 border-2 border-dashed border-zinc-300 dark:border-zinc-700 flex flex-col items-center justify-center overflow-hidden transition-colors hover:border-brand-500 overflow-hidden relative">
+                  <div
+                    className="w-24 h-24 border border-dashed flex flex-col items-center justify-center overflow-hidden transition-colors relative"
+                    style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                  >
                     {imagePreview ? (
                       <div className="w-full h-full relative">
                         <img src={imagePreview} alt="Product" className="w-full h-full object-cover" />
                         <button
                           type="button"
                           onClick={handleRemoveImage}
-                          className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-black/70 backdrop-blur-sm"
+                          className="absolute top-1 right-1 p-1 border cursor-pointer"
+                          style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.negative }}
                         >
-                          <X size={14} />
+                          <X size={13} />
                         </button>
                       </div>
                     ) : (
-                      <div className="text-zinc-400 flex flex-col items-center gap-2">
-                        <ImagePlus size={24} />
-                        <span className="text-[10px] font-medium">{t('image') || 'صورة'}</span>
+                      <div className="flex flex-col items-center gap-1.5" style={{ color: theme.textMuted }}>
+                        <ImagePlus size={22} />
+                        <span className="text-[10px] font-bold">{t('image') || 'صورة'}</span>
                       </div>
                     )}
                   </div>
                   {!imagePreview && (
-                    <div className="absolute -bottom-2 -right-2 flex gap-1">
+                    <div className="mt-2 flex items-center justify-center gap-1.5">
                       <button
                         type="button"
                         onClick={() => cameraInputRef.current?.click()}
-                        className="h-8 w-8 bg-brand-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-brand-600 active:scale-95 transition-all"
+                        className="h-7 px-2.5 border flex items-center justify-center gap-1 text-[10px] font-bold cursor-pointer transition-opacity hover:opacity-90"
+                        style={{ backgroundColor: theme.accent, borderColor: theme.accent, color: theme.accentText }}
                       >
-                        <Camera size={14} />
+                        <Camera size={13} />
+                        <span>كاميرا</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="h-8 w-8 bg-zinc-700 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-zinc-800 active:scale-95 transition-all"
+                        className="h-7 px-2.5 border flex items-center justify-center gap-1 text-[10px] font-bold cursor-pointer transition-colors"
+                        style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.text }}
                       >
-                        <ImagePlus size={14} />
+                        <ImagePlus size={13} />
+                        <span>معرض</span>
                       </button>
                     </div>
                   )}
@@ -341,8 +372,8 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
 
               {/* 1. Name */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-zinc-500">{t('name')}</label>
-                <input 
+                <label className="text-[11px] font-bold block" style={{ color: theme.textMuted }}>{t('name')}</label>
+                <input
                   type="search"
                   autoComplete="new-password"
                   autoCorrect="off"
@@ -355,9 +386,10 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                   data-form-type="other"
                   value={productName}
                   onChange={(e) => setProductName(e.target.value)}
-                  required 
+                  required
                   onKeyDown={handleKeyDown}
-                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-right font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
+                  className="w-full border px-3 py-2.5 text-sm text-right font-bold outline-none transition-colors"
+                  style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
                 />
               </div>
 
@@ -365,19 +397,20 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
               <div className="space-y-2">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold" style={{ color: theme.textMuted }}>{t('barcode')}</label>
                     {!showBarcode2 && (
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={() => setShowBarcode2(true)}
-                        className="text-[10px] font-bold text-brand-500 hover:text-brand-600 dark:text-brand-400 dark:hover:text-brand-300"
+                        className="text-[11px] font-bold cursor-pointer hover:underline"
+                        style={{ color: theme.accent }}
                       >
                         {t('extra_barcode')}
                       </button>
                     )}
-                    <label className="text-[10px] font-bold text-zinc-500">{t('barcode')}</label>
                   </div>
-                  <div className="relative group">
-                    <input 
+                  <div className="relative flex items-center">
+                    <input
                       type="search"
                       autoComplete="new-password"
                       autoCorrect="off"
@@ -391,26 +424,26 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                       value={barcode}
                       onChange={(e) => setBarcode(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 pl-10 text-sm text-right outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-700 dark:text-white block" 
+                      className="w-full border px-3 py-2.5 pl-11 text-sm text-right font-mono tabular-nums outline-none transition-colors block"
+                      style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
                       placeholder={t('scan_barcode_placeholder')}
                     />
-                    <div className="absolute inset-y-0 left-1 flex items-center pl-1">
-                      <button 
-                        type="button" 
-                        onClick={() => onScan('barcode')}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-white border border-zinc-200 text-zinc-400 group-focus-within:border-brand-500 group-focus-within:text-brand-500 dark:bg-zinc-950 dark:border-zinc-800 transition-all active:scale-90"
-                      >
-                        <ScanBarcode size={16} />
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onScan('barcode')}
+                      className="absolute left-1.5 flex h-7 w-7 items-center justify-center border cursor-pointer transition-colors"
+                      style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.text }}
+                    >
+                      <ScanBarcode size={15} />
+                    </button>
                   </div>
                 </div>
 
                 {showBarcode2 && (
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-500 flex justify-end">{t('barcode')}</label>
-                    <div className="relative group">
-                      <input 
+                    <label className="text-[11px] font-bold block" style={{ color: theme.textMuted }}>{t('barcode')} (2)</label>
+                    <div className="relative flex items-center">
+                      <input
                         type="search"
                         autoComplete="new-password"
                         autoCorrect="off"
@@ -424,18 +457,18 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                         value={barcode2}
                         onChange={(e) => setBarcode2(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 pl-10 text-sm text-right outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-700 dark:text-white block" 
+                        className="w-full border px-3 py-2.5 pl-11 text-sm text-right font-mono tabular-nums outline-none transition-colors block"
+                        style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
                         placeholder={t('scan_barcode_placeholder')}
                       />
-                      <div className="absolute inset-y-0 left-1 flex items-center pl-1">
-                        <button 
-                          type="button" 
-                          onClick={() => onScan('barcode2')}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg bg-white border border-zinc-200 text-zinc-400 group-focus-within:border-brand-500 group-focus-within:text-brand-500 dark:bg-zinc-950 dark:border-zinc-800 transition-all active:scale-90"
-                        >
-                          <ScanBarcode size={16} />
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onScan('barcode2')}
+                        className="absolute left-1.5 flex h-7 w-7 items-center justify-center border cursor-pointer transition-colors"
+                        style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.text }}
+                      >
+                        <ScanBarcode size={15} />
+                      </button>
                     </div>
                   </div>
                 )}
@@ -444,26 +477,35 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
               {/* 3. Category & Unit */}
               <div className="grid grid-cols-2 gap-3 text-right">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-500">{t('category')}</label>
+                  <label className="text-[11px] font-bold block" style={{ color: theme.textMuted }}>{t('category')}</label>
                   <div className="relative">
                     <button
                       type="button"
                       onClick={() => setShowCategoryMenu(!showCategoryMenu)}
-                      className="w-full appearance-none rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-bold text-zinc-900 outline-none hover:bg-zinc-100 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white flex items-center justify-between transition-colors overflow-hidden"
+                      className="w-full appearance-none border px-3 py-2.5 text-xs sm:text-sm font-bold outline-none flex items-center justify-between transition-colors overflow-hidden cursor-pointer"
+                      style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
                     >
                       <span className="truncate flex-1 text-right">{t(categories.find(c => c.name === category)?.key || category || categories[0]?.name || '')}</span>
-                      <svg className="h-4 w-4 fill-current text-zinc-400 shrink-0 mr-2" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                      <ChevronDown size={14} className="shrink-0 mr-2" style={{ color: theme.textMuted }} />
                     </button>
                     {showCategoryMenu && (
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowCategoryMenu(false)} />
-                        <div className="absolute right-0 left-0 top-full mt-1 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg shadow-xl z-50 overflow-hidden py-1 max-h-48 overflow-y-auto">
+                        <div
+                          className="absolute right-0 left-0 top-full mt-1 border shadow-xl z-50 overflow-hidden py-1 max-h-48 overflow-y-auto divide-y"
+                          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                        >
                           {categories.map((c, index) => (
                             <button
                               key={`${c.id}-${index}`}
                               type="button"
                               onClick={() => { setCategory(c.name); setShowCategoryMenu(false); }}
-                              className="w-full px-4 py-2 text-sm font-bold text-right text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                              className="w-full px-3 py-2 text-xs sm:text-sm font-bold text-right cursor-pointer transition-colors"
+                              style={{
+                                backgroundColor: category === c.name ? theme.surfaceMuted : theme.surface,
+                                color: category === c.name ? theme.accent : theme.text,
+                                borderColor: theme.border,
+                              }}
                             >
                               {t(c.key || c.name)}
                             </button>
@@ -474,31 +516,45 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-500">{t('unit') || 'الوحدة'}</label>
+                  <label className="text-[11px] font-bold block" style={{ color: theme.textMuted }}>{t('unit') || 'الوحدة'}</label>
                   <div className="relative">
                     <button
                       type="button"
                       onClick={() => setShowUnitMenu(!showUnitMenu)}
-                      className="w-full appearance-none rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-bold text-zinc-900 outline-none hover:bg-zinc-100 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white flex items-center justify-between transition-colors overflow-hidden"
+                      className="w-full appearance-none border px-3 py-2.5 text-xs sm:text-sm font-bold outline-none flex items-center justify-between transition-colors overflow-hidden cursor-pointer"
+                      style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
                     >
                       <span className="truncate flex-1 text-right">{unit === 'kg' ? 'كغ' : 'قطعة'}</span>
-                      <svg className="h-4 w-4 fill-current text-zinc-400 shrink-0 mr-2" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                      <ChevronDown size={14} className="shrink-0 mr-2" style={{ color: theme.textMuted }} />
                     </button>
                     {showUnitMenu && (
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowUnitMenu(false)} />
-                        <div className="absolute right-0 left-0 top-full mt-1 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg shadow-xl z-50 overflow-hidden py-1">
+                        <div
+                          className="absolute right-0 left-0 top-full mt-1 border shadow-xl z-50 overflow-hidden py-1 divide-y"
+                          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                        >
                           <button
                             type="button"
                             onClick={() => { setUnit('piece'); setShowUnitMenu(false); }}
-                            className="w-full px-4 py-2 text-sm font-bold text-right text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                            className="w-full px-3 py-2 text-xs sm:text-sm font-bold text-right cursor-pointer"
+                            style={{
+                              backgroundColor: unit === 'piece' ? theme.surfaceMuted : theme.surface,
+                              color: unit === 'piece' ? theme.accent : theme.text,
+                              borderColor: theme.border,
+                            }}
                           >
                             قطعة
                           </button>
                           <button
                             type="button"
                             onClick={() => { setUnit('kg'); setShowUnitMenu(false); }}
-                            className="w-full px-4 py-2 text-sm font-bold text-right text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                            className="w-full px-3 py-2 text-xs sm:text-sm font-bold text-right cursor-pointer"
+                            style={{
+                              backgroundColor: unit === 'kg' ? theme.surfaceMuted : theme.surface,
+                              color: unit === 'kg' ? theme.accent : theme.text,
+                              borderColor: theme.border,
+                            }}
                           >
                             كغ
                           </button>
@@ -510,21 +566,22 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
               </div>
 
               {/* Advanced Settings Toggle */}
-              <div className="border-t border-zinc-100 dark:border-zinc-800 pt-2">
+              <div className="border-t pt-2.5" style={{ borderColor: theme.border }}>
                 <button
                   type="button"
                   onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="flex items-center justify-between w-full text-xs font-bold text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors py-1"
+                  className="flex items-center justify-between w-full text-xs font-bold py-1 cursor-pointer"
+                  style={{ color: theme.textMuted }}
                 >
                   <span>إعدادات متقدمة (الحد الأدنى، الوحدات الصغرى)</span>
                   {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </button>
-                
-                <div className={showAdvanced ? "grid grid-cols-2 gap-3 text-right mt-3" : "hidden"}>
+
+                <div className={showAdvanced ? 'grid grid-cols-2 gap-3 text-right mt-2.5' : 'hidden'}>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-500">{t('min_quantity')}</label>
-                    <input 
-                      type="text" 
+                    <label className="text-[11px] font-bold block" style={{ color: theme.textMuted }}>{t('min_quantity')}</label>
+                    <input
+                      type="text"
                       inputMode="decimal"
                       autoComplete="new-password"
                       autoCorrect="off"
@@ -539,13 +596,14 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                       onChange={(e) => setMinQuantity(e.target.value)}
                       placeholder="0"
                       onKeyDown={handleKeyDown}
-                      className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
+                      className="w-full border px-3 py-2 text-sm text-center font-mono font-bold tabular-nums outline-none"
+                      style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-500">{"عدد الحبات في القطعة (وحدة صغرى)"}</label>
-                    <input 
-                      type="text" 
+                    <label className="text-[11px] font-bold block" style={{ color: theme.textMuted }}>عدد الحبات في القطعة (وحدة صغرى)</label>
+                    <input
+                      type="text"
                       inputMode="numeric"
                       autoComplete="new-password"
                       autoCorrect="off"
@@ -559,17 +617,19 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                       value={subItemsPerPiece}
                       onChange={(e) => setSubItemsPerPiece(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
+                      className="w-full border px-3 py-2 text-sm text-center font-mono font-bold tabular-nums outline-none"
+                      style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
                     />
                   </div>
                 </div>
               </div>
+
               {/* 4. Box Info Row */}
-              <div className="grid grid-cols-2 gap-3 text-right">
+              <div className="grid grid-cols-2 gap-3 text-right border-t pt-3" style={{ borderColor: theme.border }}>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-500">{t('pieces_in_box')}</label>
-                  <input 
-                    type="text" 
+                  <label className="text-[11px] font-bold block" style={{ color: theme.textMuted }}>{t('pieces_in_box')}</label>
+                  <input
+                    type="text"
                     inputMode="numeric"
                     autoComplete="new-password"
                     autoCorrect="off"
@@ -583,13 +643,14 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                     value={piecesPerBox}
                     onChange={(e) => handlePiecesChange(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
+                    className="w-full border px-3 py-2.5 text-sm text-center font-mono font-bold tabular-nums outline-none"
+                    style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-500">{t('box_purchase_price')}</label>
-                  <input 
-                    type="text" 
+                  <label className="text-[11px] font-bold block" style={{ color: theme.textMuted }}>{t('box_purchase_price')}</label>
+                  <input
+                    type="text"
                     inputMode="decimal"
                     autoComplete="new-password"
                     autoCorrect="off"
@@ -603,18 +664,19 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                     value={boxPrice}
                     onChange={(e) => handleBoxPriceChange(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white" 
+                    className="w-full border px-3 py-2.5 text-sm text-center font-mono font-bold tabular-nums outline-none"
+                    style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
                   />
                 </div>
               </div>
 
               {/* 5. Prices Row */}
-              <div className="space-y-1 text-right">
+              <div className="space-y-2 text-right">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-500">{t('piece_purchase_price')}</label>
-                    <input 
-                      type="text" 
+                    <label className="text-[11px] font-bold block" style={{ color: theme.textMuted }}>{t('piece_purchase_price')}</label>
+                    <input
+                      type="text"
                       inputMode="decimal"
                       autoComplete="new-password"
                       autoCorrect="off"
@@ -627,19 +689,20 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                       data-form-type="other"
                       value={piecePrice}
                       onChange={(e) => handlePiecePriceChange(e.target.value)}
-                      required 
+                      required
                       onKeyDown={handleKeyDown}
-                      className={`w-full rounded-lg border px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 transition-colors ${
-                        (parseFloat(String(sellingPrice)) > 0 && parseFloat(String(piecePrice)) > 0 && parseFloat(String(sellingPrice)) <= parseFloat(String(piecePrice)))
-                          ? 'border-amber-400 bg-amber-50/50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 focus:ring-amber-500'
-                          : 'border-zinc-200 bg-zinc-50 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white'
-                      }`} 
+                      className="w-full border px-3 py-2.5 text-sm text-center font-mono font-bold tabular-nums outline-none transition-colors"
+                      style={{
+                        backgroundColor: theme.surface,
+                        borderColor: hasPriceLoss ? theme.neutral : theme.border,
+                        color: hasPriceLoss ? theme.neutral : theme.text,
+                      }}
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-500">{t('selling_price')}</label>
-                    <input 
-                      type="text" 
+                    <label className="text-[11px] font-bold block" style={{ color: theme.textMuted }}>{t('selling_price')}</label>
+                    <input
+                      type="text"
                       inputMode="decimal"
                       autoComplete="new-password"
                       autoCorrect="off"
@@ -650,22 +713,23 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                       data-bwignore="true"
                       data-protonpass-ignore="true"
                       data-form-type="other"
-                      value={sellingPrice} 
+                      value={sellingPrice}
                       onChange={(e) => handleSellingPriceChange(e.target.value)}
-                      required 
+                      required
                       onKeyDown={handleKeyDown}
-                      className={`w-full rounded-lg border px-3 py-2 text-sm text-center font-bold outline-none focus:ring-2 transition-colors ${
-                        (parseFloat(String(sellingPrice)) > 0 && parseFloat(String(piecePrice)) > 0 && parseFloat(String(sellingPrice)) <= parseFloat(String(piecePrice)))
-                          ? 'border-red-500 bg-red-50/50 dark:bg-red-950/20 text-red-600 dark:text-red-400 focus:ring-red-500'
-                          : 'border-zinc-200 bg-zinc-50 focus:ring-brand-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white'
-                      }`} 
+                      className="w-full border px-3 py-2.5 text-sm text-center font-mono font-bold tabular-nums outline-none transition-colors"
+                      style={{
+                        backgroundColor: theme.surface,
+                        borderColor: hasPriceLoss ? theme.negative : theme.border,
+                        color: hasPriceLoss ? theme.negative : theme.text,
+                      }}
                     />
                   </div>
                 </div>
 
                 {/* Real-time inline warning for loss */}
-                {parseFloat(String(sellingPrice)) > 0 && parseFloat(String(piecePrice)) > 0 && parseFloat(String(sellingPrice)) <= parseFloat(String(piecePrice)) && (
-                  <p className="text-[11px] font-bold text-red-500 pt-0.5 flex items-center justify-end gap-1">
+                {hasPriceLoss && (
+                  <p className="text-[11px] font-bold pt-0.5 flex items-center justify-end gap-1" style={{ color: theme.negative }}>
                     <span>يجب أن يكون سعر البيع أكبر من سعر الشراء ({parseFloat(String(piecePrice)).toFixed(3)})</span>
                     <AlertCircle size={13} className="shrink-0" />
                   </p>
@@ -673,9 +737,17 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
 
                 {/* Real-time warning for box price entered as piece price */}
                 {Number(piecesPerBox) > 1 && parseFloat(String(piecePrice)) > 0 && parseFloat(String(sellingPrice)) >= (parseFloat(String(piecePrice)) * Number(piecesPerBox) * 0.8) && (
-                  <div className="mt-2 p-2.5 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/60 rounded-lg text-purple-900 dark:text-purple-200 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                  <div
+                    className="mt-2 p-3 border text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2"
+                    style={{
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                      borderRight: `3px solid ${theme.neutral}`,
+                      color: theme.text,
+                    }}
+                  >
                     <div className="flex items-center gap-1.5 font-bold">
-                      <AlertCircle size={15} className="text-purple-600 shrink-0" />
+                      <AlertCircle size={15} className="shrink-0" style={{ color: theme.neutral }} />
                       <span>هل أدخلت سعر بيع العلبة كاملة ({sellingPrice}) بدلاً من سعر القطعة؟</span>
                     </div>
                     <button
@@ -687,7 +759,8 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
                           setSellingPrice(parseFloat((sp / ppb).toFixed(3)));
                         }
                       }}
-                      className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-[11px] font-black shrink-0 transition-colors shadow-sm"
+                      className="px-2.5 py-1.5 border text-[11px] font-black shrink-0 cursor-pointer transition-opacity hover:opacity-90"
+                      style={{ backgroundColor: theme.accent, borderColor: theme.accent, color: theme.accentText }}
                     >
                       تقسيم على {piecesPerBox} حبات ({parseFloat(((parseFloat(String(sellingPrice)) || 0) / (Number(piecesPerBox) || 1)).toFixed(3))})
                     </button>
@@ -697,38 +770,46 @@ export function ProductEditModal({ product, isOpen, onClose, onSave, onDelete, s
 
               {/* Price validation error banner */}
               {priceError && (
-                <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 rounded-lg text-red-600 dark:text-red-400 text-xs font-bold flex items-center justify-between gap-2 text-right">
-                  <div className="flex items-center gap-2">
-                    <AlertCircle size={16} className="shrink-0 text-red-500" />
-                    <span>{priceError}</span>
-                  </div>
+                <div
+                  className="p-3 border text-xs font-bold flex items-center gap-2 text-right"
+                  style={{
+                    backgroundColor: theme.surface,
+                    borderColor: theme.negative,
+                    borderRight: `3px solid ${theme.negative}`,
+                    color: theme.negative,
+                  }}
+                >
+                  <AlertCircle size={16} className="shrink-0" />
+                  <span>{priceError}</span>
                 </div>
               )}
+            </div>
 
-              <div className="pt-3">
-                <button 
-                  type="button" 
-                  onClick={handlePerformSave}
-                  disabled={isSaving || !productName.trim() || (parseFloat(String(sellingPrice)) > 0 && parseFloat(String(piecePrice)) > 0 && parseFloat(String(sellingPrice)) <= parseFloat(String(piecePrice)))}
-                  className="w-full rounded-lg bg-brand-600 py-3 text-sm font-bold text-white transition-all hover:bg-brand-700 active:scale-95 shadow-lg shadow-brand-600/10 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSaving ? <div className="animate-spin w-5 h-5 border-2 border-white rounded-full border-t-transparent mx-auto"></div> : t('save')}
-                </button>
-              </div>
+            {/* Folio Sticky Footer Actions */}
+            <div
+              className="p-4 sm:px-5 border-t space-y-2 shrink-0"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+            >
+              <button
+                type="button"
+                onClick={handlePerformSave}
+                disabled={isSaving || !productName.trim() || hasPriceLoss}
+                className="w-full py-3 border text-sm font-black transition-opacity hover:opacity-90 disabled:opacity-45 disabled:cursor-not-allowed cursor-pointer"
+                style={{ backgroundColor: theme.accent, borderColor: theme.accent, color: theme.accentText }}
+              >
+                {isSaving ? <div className="animate-spin w-5 h-5 border-2 border-current rounded-full border-t-transparent mx-auto" /> : t('save')}
+              </button>
 
               {product && onDelete && (
-                <>
-                  <div className="h-px w-full bg-zinc-100 dark:bg-zinc-800 my-2"></div>
-                  <button
-                    type="button"
-                    onClick={() => onDelete(product)}
-                    className="w-full flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold text-white shadow-lg shadow-[#B34C36]/20 transition-all active:scale-95"
-                    style={{ backgroundColor: '#B34C36' }}
-                  >
-                    <Trash2 size={16} />
-                    <span>{t('delete_product')}</span>
-                  </button>
-                </>
+                <button
+                  type="button"
+                  onClick={() => onDelete(product)}
+                  className="w-full flex items-center justify-center gap-2 border py-2.5 text-sm font-black transition-opacity hover:opacity-90 cursor-pointer"
+                  style={{ backgroundColor: theme.negative, borderColor: theme.negative, color: '#FFFFFF' }}
+                >
+                  <Trash2 size={15} />
+                  <span>{t('delete_product')}</span>
+                </button>
               )}
             </div>
           </div>

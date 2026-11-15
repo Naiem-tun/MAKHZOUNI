@@ -1,11 +1,12 @@
 import React from 'react';
-import { X, Shield, History, TrendingUp, TrendingDown, Minus, Truck, Calendar, Info, Package } from 'lucide-react';
+import { X, Shield, History, TrendingDown, Truck, Calendar, Package } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Product } from '../../types';
-import { formatCurrency, cn, safeParseDate } from '../../lib/utils';
+import { formatCurrency, safeParseDate } from '../../lib/utils';
 import { useAppContext } from '../../AppContext';
 import { query, collection, where, limit, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { useFolioTheme } from '../folio/FolioPageChrome';
 
 interface PriceNegotiationModalProps {
   products: Product[];
@@ -16,8 +17,9 @@ interface PriceNegotiationModalProps {
 export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegotiationModalProps) {
   const { t } = useTranslation();
   const { settings, user } = useAppContext();
+  const { theme } = useFolioTheme(Boolean(settings?.darkMode), settings?.folioThemeId);
   const [history, setHistory] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(false);
+  const [, setLoading] = React.useState(false);
 
   React.useEffect(() => {
     if (isOpen && products && products.length > 0 && user) {
@@ -121,158 +123,162 @@ export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegoti
   return (
     <>
       {isOpen && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-          <div 
-            onClick={onClose} 
-            className="absolute inset-0 bg-zinc-950/70 backdrop-blur-md" 
-          />
-          <div 
-            className="relative w-full max-w-md overflow-hidden rounded-lg bg-zinc-50/95 backdrop-blur-xl dark:bg-zinc-950/95 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.3)] border border-white/20 dark:border-zinc-800 flex flex-col max-h-[90vh]"
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs" dir="rtl" onClick={onClose}>
+          <div
+            className="relative w-full max-w-md border flex flex-col max-h-[90vh] shadow-2xl overflow-hidden transition-colors"
+            style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }}
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* Top Banner - Absolute Best */}
-            <div className="bg-gradient-to-br from-brand-500 via-brand-600 to-brand-800 p-8 text-white relative shrink-0 overflow-hidden">
-              <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none transform translate-x-1/4 -translate-y-1/4 rotate-12">
-                <Shield size={140} strokeWidth={1} />
-              </div>
-              <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-              
-              <div className="relative z-10 flex items-start justify-between mb-8">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className="bg-white/20 backdrop-blur-md p-1.5 rounded-lg shadow-sm">
-                      <Shield size={12} className="text-white" />
-                    </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-white/90">{t('price_negotiation_tool')}</span>
-                  </div>
-                  <h2 className="text-2xl font-black leading-tight drop-shadow-sm">{mainProduct.name}</h2>
-                  <p className="text-[11px] font-bold text-white/70 tracking-widest drop-shadow-sm">{mainProduct.barcode || mainProduct.barcode2}</p>
+            {/* Header */}
+            <div
+              className="px-4 py-3.5 sm:px-5 sm:py-4 border-b flex items-start justify-between gap-3 shrink-0"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+            >
+              <div className="space-y-1 min-w-0">
+                <div className="flex items-center gap-2 text-[11px] font-bold">
+                  <Shield size={13} style={{ color: theme.accent }} />
+                  <span className="font-mono tabular-nums" style={{ color: theme.accent }}>01</span>
+                  <span style={{ color: theme.textMuted }}>{t('price_negotiation_tool')}</span>
                 </div>
-                <button 
-                  onClick={onClose}
-                  className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur-md transition-all text-white border border-white/10 shadow-sm active:scale-95"
-                >
-                  <X size={20} />
-                </button>
+                <h2 className="text-base sm:text-xl font-black leading-tight truncate" style={{ color: theme.text }}>
+                  {mainProduct.name}
+                </h2>
+                {(mainProduct.barcode || mainProduct.barcode2) && (
+                  <p className="text-[11px] font-mono tabular-nums" style={{ color: theme.textMuted }}>
+                    {mainProduct.barcode || mainProduct.barcode2}
+                  </p>
+                )}
               </div>
 
-              <div className="flex items-end justify-between relative z-10">
-                <div className="space-y-1">
-                  <p className="text-brand-100 text-[11px] font-black uppercase tracking-widest mb-1">{t('best_historical_price')}</p>
-                  <div className="flex items-center gap-3">
-                    <p className="text-[40px] tracking-tight font-black leading-none drop-shadow-md">
-                      {formatCurrency(absoluteBestPrice, settings.currency, settings.language).split(' ')[0]}
-                      <span className="text-xl ml-1 text-white/80">{formatCurrency(absoluteBestPrice, settings.currency, settings.language).split(' ').slice(1).join(' ')}</span>
-                    </p>
-                    <div className="bg-emerald-400 text-emerald-950 h-8 w-8 rounded-full flex items-center justify-center shadow-lg animate-bounce">
-                      <TrendingDown size={18} strokeWidth={3} />
-                    </div>
-                  </div>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="إغلاق"
+                className="p-1.5 border cursor-pointer shrink-0"
+                style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.text }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Best Historical Price KPI Strip */}
+            <div
+              className="grid grid-cols-2 border-b divide-x divide-x-reverse shrink-0"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+            >
+              <div className="p-3.5 sm:p-4 space-y-1" style={{ borderColor: theme.border }}>
+                <div className="text-[10px] font-bold" style={{ color: theme.textMuted }}>
+                  {t('best_historical_price')}
                 </div>
-                <div className="bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-lg text-[10px] font-black text-white/90 border border-white/10 flex items-center gap-1.5 shadow-inner">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  {history.length} {t('purchases') || 'مشتريات'}
+                <div className="flex items-center gap-1.5">
+                  <TrendingDown size={16} style={{ color: theme.positive }} />
+                  <span className="text-lg sm:text-xl font-black font-mono tabular-nums" style={{ color: theme.positive }}>
+                    {formatCurrency(absoluteBestPrice, settings.currency, settings.language)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3.5 sm:p-4 space-y-1" style={{ borderColor: theme.border }}>
+                <div className="text-[10px] font-bold" style={{ color: theme.textMuted }}>
+                  عمليات الشراء المسجلة
+                </div>
+                <div className="text-lg sm:text-xl font-black font-mono tabular-nums" style={{ color: theme.text }}>
+                  {history.length} <span className="text-xs font-bold" style={{ color: theme.textMuted }}>{t('purchases') || 'مشتريات'}</span>
                 </div>
               </div>
             </div>
 
             {/* Scrollable Content */}
-             <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-gradient-to-b from-white/50 to-transparent dark:from-zinc-900/50 dark:to-transparent">
-              
-              {/* Supplier Comparison Section */}
-              {sortedSuppliers.length > 0 && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-zinc-400 dark:text-zinc-500 px-1">
-                    <History size={16} />
-                    <span className="text-[11px] font-black uppercase tracking-widest">{t('supplier_comparison')}</span>
+            <div className="min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4">
+              {sortedSuppliers.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-black" style={{ color: theme.textMuted }}>
+                    <History size={14} style={{ color: theme.accent }} />
+                    <span>{t('supplier_comparison')}</span>
                   </div>
-                  
-                  <div className="flex gap-4 overflow-x-auto pb-4 -mx-2 px-2 no-scrollbar snap-x">
-                    {sortedSuppliers.map((s, idx) => (
-                      <div
-                        key={idx}
-                        className={cn(
-                          "min-w-[180px] snap-center p-5 rounded-lg shrink-0 transition-all relative flex flex-col justify-between overflow-hidden hover:scale-[1.02] hover:-translate-y-0.5",
-                          idx === 0 
-                            ? "bg-gradient-to-br from-emerald-400 to-emerald-600 border border-emerald-400/50 text-white shadow-[0_10px_30px_-10px_rgba(16,185,129,0.5)]" 
-                            : "bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 text-zinc-900 dark:text-white hover:border-brand-200 dark:hover:border-brand-800 shadow-sm hover:shadow-md"
-                        )}
-                      >
-                        {/* Background Decoration for First Place */}
-                        {idx === 0 && (
-                           <div className="absolute top-0 left-0 p-4 opacity-[0.08] pointer-events-none transform -rotate-12 -translate-x-4 -translate-y-4">
-                              <Shield size={100} strokeWidth={1} />
-                           </div>
-                        )}
-                        
-                        <div className="flex flex-col gap-3 relative z-10 h-full">
-                          <div className="flex items-center justify-between">
-                            <div className={cn(
-                              "h-8 w-8 rounded-full flex items-center justify-center backdrop-blur-md shadow-sm",
-                              idx === 0 ? "bg-white/20 text-white" : "bg-zinc-50 dark:bg-zinc-800 text-brand-500 dark:text-brand-400 border border-zinc-100 dark:border-zinc-700"
-                            )}>
-                              <Truck size={14} />
-                            </div>
-                            {idx === 0 && (
-                              <span className="bg-white text-emerald-600 text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1">
-                                <TrendingDown size={10} strokeWidth={3} />
-                                {t('best_deal')}
+
+                  <div className="space-y-2.5">
+                    {sortedSuppliers.map((s, idx) => {
+                      const isBest = idx === 0;
+                      return (
+                        <div
+                          key={idx}
+                          className="p-3.5 border transition-colors flex items-center justify-between gap-3"
+                          style={{
+                            backgroundColor: theme.surface,
+                            borderColor: isBest ? theme.positive : theme.border,
+                            borderRight: isBest ? `4px solid ${theme.positive}` : undefined,
+                          }}
+                        >
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Truck size={14} style={{ color: isBest ? theme.positive : theme.accent }} />
+                              <span className="text-sm font-black truncate" style={{ color: theme.text }}>
+                                {s.supplierName}
                               </span>
-                            )}
-                          </div>
-                          <div className="mt-2">
-                            <p className={cn(
-                              "text-sm font-black truncate",
-                              idx === 0 ? "text-white" : "text-zinc-900 dark:text-white"
-                            )}>
-                              {s.supplierName}
-                            </p>
-                            <p className={cn(
-                              "text-[10px] font-bold mt-1 flex items-center gap-1",
-                              idx === 0 ? "text-emerald-50" : "text-zinc-400"
-                            )}>
-                              <Calendar size={10} />
-                              <span>{s.lastDate?.seconds ? new Date(s.lastDate.seconds * 1000).toLocaleDateString(settings.language === 'ar' ? 'ar-TN' : 'en-GB') : '-'}</span>
-                            </p>
-                          </div>
-                          <div className={cn(
-                              "mt-4 pt-4 border-t border-dashed",
-                              idx === 0 ? "border-white/30" : "border-zinc-100 dark:border-zinc-800"
-                          )}>
-                            <div className="flex items-baseline gap-1">
-                              <p className="text-[22px] tracking-tight font-black leading-none drop-shadow-sm">
-                                {formatCurrency(s.price * s.boxQty, settings.currency, settings.language).split(' ')[0]}
-                              </p>
-                              <span className={cn("text-[11px] font-bold", idx === 0 ? "text-white/80" : "text-zinc-400")}>
-                                {formatCurrency(s.price * s.boxQty, settings.currency, settings.language).split(' ').slice(1).join(' ')}
+                              {isBest && (
+                                <span
+                                  className="text-[10px] font-black px-1.5 py-0.5 border inline-flex items-center gap-1"
+                                  style={{
+                                    borderColor: theme.positive,
+                                    color: theme.positive,
+                                    backgroundColor: theme.surfaceMuted,
+                                  }}
+                                >
+                                  <TrendingDown size={10} />
+                                  <span>{t('best_deal')}</span>
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-3 text-[11px] font-mono tabular-nums" style={{ color: theme.textMuted }}>
+                              <span className="inline-flex items-center gap-1">
+                                <Calendar size={11} />
+                                {s.lastDate?.seconds ? new Date(s.lastDate.seconds * 1000).toLocaleDateString(settings.language === 'ar' ? 'ar-TN' : 'en-GB') : '-'}
+                              </span>
+                              <span className="inline-flex items-center gap-1">
+                                <Package size={11} />
+                                {s.boxQty} {t('piece')} / {t('box')}
                               </span>
                             </div>
-                            <div className={cn(
-                                "inline-flex items-center gap-1.5 mt-3 px-2.5 py-1.5 rounded-lg transition-colors",
-                                idx === 0 ? "bg-black/10 backdrop-blur-sm" : "bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800"
-                            )}>
-                               <Package size={10} className={idx === 0 ? "text-white" : "text-zinc-400"} />
-                               <span className={cn(
-                                   "text-[9.5px] font-black tracking-wide",
-                                   idx === 0 ? "text-white/95" : "text-zinc-500"
-                               )}>
-                                 {s.boxQty} {t('piece')} / {t('box')}
-                               </span>
+                          </div>
+
+                          <div className="text-left shrink-0">
+                            <div
+                              className="text-base font-black font-mono tabular-nums"
+                              style={{ color: isBest ? theme.positive : theme.text }}
+                            >
+                              {formatCurrency(s.price * s.boxQty, settings.currency, settings.language)}
+                            </div>
+                            <div className="text-[10px] font-mono tabular-nums" style={{ color: theme.textMuted }}>
+                              {formatCurrency(s.price, settings.currency, settings.language)} / قطعة
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
+              ) : (
+                <div
+                  className="p-8 border text-center text-xs font-bold"
+                  style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.textMuted }}
+                >
+                  لا توجد بيانات تاريخية للأسعار بعد
+                </div>
               )}
-
             </div>
 
             {/* Footer Action */}
-            <div className="p-6 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-md border-t border-white/20 dark:border-zinc-800/50 shrink-0">
-               <button 
+            <div
+              className="p-4 border-t shrink-0"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+            >
+              <button
+                type="button"
                 onClick={onClose}
-                className="w-full py-4 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-black text-sm tracking-widest uppercase active:scale-[0.98] transition-all shadow-[0_10px_20px_-10px_rgba(0,0,0,0.3)] hover:shadow-xl hover:bg-zinc-800 dark:hover:bg-zinc-100 flex items-center justify-center"
+                className="w-full py-3 border font-black text-xs cursor-pointer transition-colors"
+                style={{ backgroundColor: theme.text, borderColor: theme.text, color: theme.surface }}
               >
                 {t('back')}
               </button>

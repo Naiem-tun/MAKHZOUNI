@@ -15,6 +15,7 @@ import { AppHeader } from "./components/layout/AppHeader";
 import { AppMobileMenu } from "./components/layout/AppMobileMenu";
 import { AppBottomNav } from "./components/layout/AppBottomNav";
 import { AppLockScreen } from "./components/auth/AppLockScreen";
+import { useFolioTheme } from "./components/folio/FolioPageChrome";
 
 import { Logo } from "./components/UI";
 import { useTranslation } from "react-i18next";
@@ -134,6 +135,7 @@ function AppContent() {
     isAppLocked,
   } = useAppContext();
   const { t } = useTranslation();
+  const { theme } = useFolioTheme(Boolean(settings.darkMode), settings.folioThemeId);
   const [mountedTabs, setMountedTabs] = useState<Set<string>>(
     new Set(["products"]),
   );
@@ -433,7 +435,8 @@ function AppContent() {
 
       {!loading && user && (
         <div
-          className={`flex flex-col bg-[var(--app-bg,#F4F7FB)] dark:bg-[var(--app-bg-dark,#0B1121)] font-sans transition-colors duration-300 relative min-h-[100dvh]`}
+          className="flex flex-col font-sans transition-colors duration-300 relative min-h-[100dvh]"
+          style={{ backgroundColor: theme.bg, color: theme.text }}
         >
           <AppHeader setMobileMenuOpen={setMobileMenuOpen} activeTab={activeTab} setActiveTab={setActiveTab} />
 
@@ -449,11 +452,14 @@ function AppContent() {
 
           {/* Main Content */}
           <main
-            className={`mx-auto max-w-7xl relative w-full flex-1 flex flex-col px-4 pt-4 pb-[calc(9rem+env(safe-area-inset-bottom))] sm:px-6 lg:px-8 min-h-[500px]`}
+            className="mx-auto max-w-7xl relative w-full flex-1 flex flex-col px-4 pt-4 pb-[calc(9rem+env(safe-area-inset-bottom))] sm:px-6 lg:px-8 min-h-[500px]"
           >
             <Suspense
               fallback={
-                <div className="flex flex-col items-center justify-center p-12 text-zinc-400 flex-1">
+                <div
+                  className="flex flex-col items-center justify-center p-12 flex-1"
+                  style={{ color: theme.textMuted }}
+                >
                   <motion.div
                     animate={{ rotate: 360 }}
                     transition={{
@@ -461,9 +467,13 @@ function AppContent() {
                       duration: 1,
                       ease: "linear",
                     }}
-                    className="h-8 w-8 rounded-full border-2 border-zinc-200 border-t-brand-500 mb-4"
+                    className="h-8 w-8 border-2 mb-4"
+                    style={{
+                      borderColor: theme.border,
+                      borderTopColor: theme.accent,
+                    }}
                   />
-                  <span className="text-sm font-medium">{t("loading")}</span>
+                  <span className="text-sm font-bold">{t("loading")}</span>
                 </div>
               }
             >
@@ -581,44 +591,82 @@ function AppContent() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 40 }}
                   transition={{ type: "tween", duration: 0.2, ease: "easeOut" }}
-                  className="relative w-full sm:max-w-md bg-white dark:bg-zinc-900 rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl border-t sm:border border-zinc-100 dark:border-zinc-800 z-10 select-none pb-10 sm:pb-6"
+                  className="relative w-full sm:max-w-md p-6 shadow-2xl border z-10 select-none pb-10 sm:pb-6"
+                  style={{
+                    backgroundColor: theme.surface,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  }}
                 >
-                  {/* Pull bar for mobile */}
-                  <div className="w-12 h-1 bg-zinc-200 dark:bg-zinc-700 rounded-full mx-auto mb-5 sm:hidden" />
-
                   {/* Header */}
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-black text-zinc-900 dark:text-white">
-                      {t("choose_operation") || "اختيار نوع العملية"}
-                    </h3>
+                  <div
+                    className="flex items-center justify-between pb-4 mb-5 border-b"
+                    style={{ borderColor: theme.border }}
+                  >
+                    <div>
+                      <span
+                        className="text-[11px] font-mono font-bold block"
+                        style={{ color: theme.accent }}
+                      >
+                        QUICK ACTION
+                      </span>
+                      <h3
+                        className="text-lg font-black"
+                        style={{ color: theme.text }}
+                      >
+                        {t("choose_operation") || "اختيار نوع العملية"}
+                      </h3>
+                    </div>
                     <button
                       id="quick-action-close-btn"
+                      type="button"
                       onClick={() => setShowQuickActionModal(false)}
-                      className="p-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                      className="p-1.5 border transition-colors cursor-pointer"
+                      style={{
+                        backgroundColor: theme.surfaceMuted,
+                        borderColor: theme.border,
+                        color: theme.textMuted,
+                      }}
                     >
                       <X size={18} />
                     </button>
                   </div>
 
                   {/* Quick Options */}
-                  <div className="grid grid-cols-1 gap-3.5">
+                  <div className="grid grid-cols-1 gap-3">
                     {/* Option 1: POS (Retail Sale) */}
                     <button
                       id="quick-action-pos-btn"
+                      type="button"
                       onClick={() => {
                         setActiveTab("pos");
                         setShowQuickActionModal(false);
                       }}
-                      className="flex items-center gap-4 p-4 text-right rounded-xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 hover:bg-brand-50/40 dark:bg-zinc-900/50 dark:hover:bg-brand-950/10 hover:border-brand-100 dark:hover:border-brand-900/30 transition-all duration-75 group active:scale-[0.98]"
+                      className="flex items-center gap-4 p-4 text-right border transition-colors active:scale-[0.98] cursor-pointer"
+                      style={{
+                        backgroundColor: theme.bg,
+                        borderColor: theme.border,
+                        color: theme.text,
+                      }}
                     >
-                      <div className="w-12 h-12 rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0 group-hover:bg-brand-500 group-hover:text-white transition-all duration-75">
-                        <Store size={22} />
+                      <div
+                        className="w-11 h-11 border flex items-center justify-center shrink-0"
+                        style={{
+                          backgroundColor: theme.surface,
+                          borderColor: theme.border,
+                          color: theme.accent,
+                        }}
+                      >
+                        <Store size={20} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-zinc-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+                        <h4 className="font-black text-sm" style={{ color: theme.text }}>
                           {t("pos_quick") || "شاشة البيع بالتجزئة (الكاشير POS)"}
                         </h4>
-                        <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-1 leading-normal">
+                        <p
+                          className="text-[11px] font-medium mt-1 leading-normal"
+                          style={{ color: theme.textMuted }}
+                        >
                           {t("pos_quick_desc") || "تسجيل مبيعات جديدة للزبائن مع خصم فوري من المخزون وتحديث الكاشير."}
                         </p>
                       </div>
@@ -627,20 +675,36 @@ function AppContent() {
                     {/* Option 2: Invoice Calculator (Purchase) */}
                     <button
                       id="quick-action-invoice-btn"
+                      type="button"
                       onClick={() => {
                         setActiveTab("invoice-calculator");
                         setShowQuickActionModal(false);
                       }}
-                      className="flex items-center gap-4 p-4 text-right rounded-xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 hover:bg-blue-50/40 dark:bg-zinc-900/50 dark:hover:bg-blue-950/10 hover:border-blue-100 dark:hover:border-blue-900/30 transition-all duration-75 group active:scale-[0.98]"
+                      className="flex items-center gap-4 p-4 text-right border transition-colors active:scale-[0.98] cursor-pointer"
+                      style={{
+                        backgroundColor: theme.bg,
+                        borderColor: theme.border,
+                        color: theme.text,
+                      }}
                     >
-                      <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:bg-blue-500 group-hover:text-white transition-all duration-75">
-                        <Calculator size={22} />
+                      <div
+                        className="w-11 h-11 border flex items-center justify-center shrink-0"
+                        style={{
+                          backgroundColor: theme.surface,
+                          borderColor: theme.border,
+                          color: theme.accent,
+                        }}
+                      >
+                        <Calculator size={20} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-zinc-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        <h4 className="font-black text-sm" style={{ color: theme.text }}>
                           {t("invoice_calc_quick") || "فاتورة مشتريات (حاسبة الفواتير)"}
                         </h4>
-                        <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-1 leading-normal">
+                        <p
+                          className="text-[11px] font-medium mt-1 leading-normal"
+                          style={{ color: theme.textMuted }}
+                        >
                           {t("invoice_calc_quick_desc") || "إضافة سلع جديدة، حساب الأرباح، وضبط تكلفة المشتريات ومزامنة المخازن."}
                         </p>
                       </div>

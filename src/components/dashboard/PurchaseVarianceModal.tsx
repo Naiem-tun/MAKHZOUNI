@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   Award,
@@ -7,7 +7,6 @@ import {
   ChevronUp,
   Info,
   Package,
-  Palette,
   Search,
   Sparkles,
   Truck,
@@ -18,8 +17,7 @@ import {
   PurchaseVarianceAnalysisResult,
 } from '../../lib/purchaseVarianceCalculator';
 import { formatCurrency } from '../../lib/utils';
-import { FOLIO_THEMES } from '../inventory/analytics/folio/folioThemes';
-import { FolioTheme } from '../inventory/analytics/folio/folioTypes';
+import { useFolioTheme } from '../folio/FolioPageChrome';
 
 interface PurchaseVarianceModalProps {
   isOpen: boolean;
@@ -29,6 +27,7 @@ interface PurchaseVarianceModalProps {
   language?: string;
   darkMode?: boolean;
   showFinancials?: boolean;
+  activeThemeId?: string;
 }
 
 export const normalizeArabic = (text: string): string => {
@@ -117,6 +116,7 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
   language = 'ar',
   darkMode = false,
   showFinancials = true,
+  activeThemeId,
 }) => {
   const [activeTab, setActiveTab] = useState<'products' | 'suppliers'>(
     'products',
@@ -133,27 +133,7 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
     Record<string, boolean>
   >({});
 
-  const [themeId, setThemeId] = useState<string>(() => {
-    try {
-      const saved = localStorage.getItem('folio_theme_id');
-      if (saved && FOLIO_THEMES.some((t) => t.id === saved)) return saved;
-    } catch {}
-    return darkMode ? 'folio-night' : 'folio-editorial';
-  });
-  const [showThemePicker, setShowThemePicker] = useState(false);
-
-  const theme: FolioTheme = useMemo(
-    () => FOLIO_THEMES.find((t) => t.id === themeId) || FOLIO_THEMES[0],
-    [themeId],
-  );
-
-  const handleSelectTheme = (id: string) => {
-    setThemeId(id);
-    setShowThemePicker(false);
-    try {
-      localStorage.setItem('folio_theme_id', id);
-    } catch {}
-  };
+  const { theme } = useFolioTheme(darkMode, activeThemeId);
 
   const fmtVal = (val: number) => {
     if (!showFinancials) return '••••••';
@@ -247,12 +227,12 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs overflow-hidden"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs overflow-hidden"
       dir="rtl"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-4xl border flex flex-col h-full sm:h-auto sm:max-h-[92vh] shadow-2xl overflow-hidden transition-colors"
+        className="w-full max-w-4xl border flex flex-col max-h-[92vh] shadow-2xl overflow-hidden transition-colors"
         style={{
           backgroundColor: theme.bg,
           borderColor: theme.border,
@@ -296,61 +276,7 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowThemePicker((v) => !v)}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold border transition-colors cursor-pointer"
-                style={{
-                  backgroundColor: theme.surfaceMuted,
-                  borderColor: theme.border,
-                  color: theme.text,
-                }}
-                title="تغيير ثيم العرض"
-              >
-                <Palette size={13} style={{ color: theme.accent }} />
-                <span className="hidden sm:inline">{theme.name}</span>
-              </button>
 
-              {showThemePicker && (
-                <div
-                  className="absolute left-0 mt-1.5 w-48 border shadow-xl z-50 p-1 space-y-0.5"
-                  style={{
-                    backgroundColor: theme.surface,
-                    borderColor: theme.border,
-                  }}
-                >
-                  {FOLIO_THEMES.map((th) => {
-                    const selected = th.id === theme.id;
-                    return (
-                      <button
-                        key={th.id}
-                        type="button"
-                        onClick={() => handleSelectTheme(th.id)}
-                        className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-bold cursor-pointer"
-                        style={{
-                          backgroundColor: selected
-                            ? theme.surfaceMuted
-                            : 'transparent',
-                          color: theme.text,
-                        }}
-                      >
-                        <span>{th.name}</span>
-                        <span className="flex items-center gap-0.5">
-                          {th.series.slice(0, 3).map((col, idx) => (
-                            <span
-                              key={idx}
-                              className="w-2 h-2 inline-block"
-                              style={{ backgroundColor: col }}
-                            />
-                          ))}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
 
             <button
               type="button"
@@ -369,7 +295,7 @@ export const PurchaseVarianceModal: React.FC<PurchaseVarianceModalProps> = ({
         </div>
 
         {/* SCROLLABLE BODY */}
-        <div className="overflow-y-auto flex-1 flex flex-col">
+        <div className="min-h-0 overflow-y-auto flex flex-col">
           {/* FOLIO 3-CELL KPI STRIP */}
           <div
             className="p-3 sm:px-6 sm:py-4 border-b shrink-0"

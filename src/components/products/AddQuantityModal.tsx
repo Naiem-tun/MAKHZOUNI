@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, History, TrendingUp, TrendingDown, Minus, AlertCircle } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Product } from '../../types';
-import { formatCurrency, cn, cleanQuantity, formatQuantity } from '../../lib/utils';
+import { cleanQuantity, formatQuantity } from '../../lib/utils';
 import { useAppContext } from '../../AppContext';
+import { useFolioTheme } from '../folio/FolioPageChrome';
 
 interface AddQuantityModalProps {
   product: Product | null;
@@ -13,9 +14,10 @@ interface AddQuantityModalProps {
   lastPurchase?: any;
 }
 
-export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurchase }: AddQuantityModalProps) {
+export function AddQuantityModal({ product, isOpen, onClose, onConfirm }: AddQuantityModalProps) {
   const { t } = useTranslation();
   const { settings, activeSupplier } = useAppContext();
+  const { theme } = useFolioTheme(Boolean(settings?.darkMode), settings?.folioThemeId);
   const [numBoxes, setNumBoxes] = useState(0);
   const [extraPieces, setExtraPieces] = useState(0);
   const [boxPrice, setBoxPrice] = useState(0);
@@ -88,205 +90,244 @@ export function AddQuantityModal({ product, isOpen, onClose, onConfirm, lastPurc
     }
   };
 
+  const hasPriceWarning = Boolean(product?.sellingPrice && piecePrice > 0 && piecePrice >= product.sellingPrice);
+
   return (
     <>
       {isOpen && product && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div 
-            onClick={onClose}
-            className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm"
-          />
-          <div 
-            className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-2xl dark:bg-zinc-900"
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs" dir="rtl" onClick={onClose}>
+          <div
+            className="relative w-full max-w-md border flex flex-col max-h-[92vh] shadow-2xl overflow-hidden transition-colors"
+            style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <button 
-              onClick={onClose}
-              className="absolute top-6 left-6 text-zinc-400 hover:text-zinc-600 shadow-sm"
+            {/* Header */}
+            <div
+              className="px-4 py-3.5 sm:px-5 sm:py-4 border-b flex items-center justify-between gap-3 shrink-0"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
             >
-              <X size={20} />
-            </button>
-            
-            <h2 className="mb-6 text-center text-lg font-medium text-zinc-900 dark:text-white px-8">
-              {t('add_quantity')} - {product.name}
-            </h2>
+              <div className="space-y-0.5 min-w-0">
+                <div className="flex items-center gap-2 text-[11px] font-bold">
+                  <span className="font-mono tabular-nums" style={{ color: theme.accent }}>01</span>
+                  <span style={{ color: theme.textMuted }}>{t('add_quantity')}</span>
+                </div>
+                <h2 className="text-base sm:text-lg font-black tracking-tight truncate" style={{ color: theme.text }}>
+                  {product.name}
+                </h2>
+              </div>
 
-            <div className="space-y-6">
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="إغلاق"
+                className="p-1.5 border transition-colors cursor-pointer shrink-0"
+                style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.text }}
+              >
+                <X size={16} />
+              </button>
+            </div>
 
+            <div className="p-4 sm:p-5 space-y-4 overflow-y-auto">
               {!activeSupplier && !settings.requireSupplierSession && (
-                <div className="mx-8 -mt-2 rounded-lg bg-amber-50 p-3 flex gap-3 items-start border border-amber-200/60 dark:bg-amber-500/10 dark:border-amber-500/20 shadow-sm" dir="rtl">
-                  <div className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                  </div>
+                <div
+                  className="p-3 border flex gap-3 items-start"
+                  style={{
+                    backgroundColor: theme.surface,
+                    borderColor: theme.border,
+                    borderRight: `3px solid ${theme.neutral}`,
+                  }}
+                >
+                  <AlertCircle size={16} className="shrink-0 mt-0.5" style={{ color: theme.neutral }} />
                   <div>
-                    <h4 className="text-xs font-black text-amber-800 dark:text-amber-300 mb-0.5">تنبيه المورد</h4>
-                    <p className="text-[10px] sm:text-xs font-bold text-amber-700/90 dark:text-amber-400/80 leading-relaxed">
-                      لا توجد حصة مورد نشطة حالياً. هذه المشتريات ستُسجل كـ <span className="underline decoration-amber-300/50 decoration-2 underline-offset-2">"مورد غير معروف"</span> ولن تُضاف لسجل مشتريات أي مورد.
+                    <h4 className="text-xs font-black mb-0.5" style={{ color: theme.text }}>تنبيه المورد</h4>
+                    <p className="text-[11px] font-bold leading-relaxed" style={{ color: theme.textMuted }}>
+                      لا توجد حصة مورد نشطة حالياً. هذه المشتريات ستُسجل كـ <span className="underline">"مورد غير معروف"</span> ولن تُضاف لسجل مشتريات أي مورد.
                     </p>
                   </div>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3 rounded-lg bg-zinc-50 p-4 dark:bg-zinc-800/50">
-                    <div className="text-center border-r border-zinc-200 dark:border-zinc-700">
-                      <p className="text-[10px] font-bold text-zinc-400 mb-1">{t('current_stock')}</p>
-                      <div className="flex flex-col items-center justify-center gap-1">
-                        <div className="flex items-baseline justify-center gap-1">
-                          {settings.defaultStockView === 'boxes' && product.piecesPerBox && product.piecesPerBox > 1 ? (
-                            <>
-                              <span className="text-lg font-bold text-zinc-900 dark:text-white">{(cleanQuantity(product.quantity) / product.piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
-                              <span className="text-[8px] font-bold text-zinc-400">كرتونة</span>
-                            </>
-                          ) : (
-                            <>
-                              <span className="text-lg font-bold text-zinc-900 dark:text-white">{formatQuantity(product.quantity)}</span>
-                              <span className="text-[8px] font-bold text-zinc-400">{unitText}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-[10px] font-bold text-zinc-400 mb-1">{t('pieces_in_box')}</p>
-                      <span className="text-lg font-black text-zinc-900 dark:text-white">{product.piecesPerBox}</span>
+              {/* Current Stock KPI Strip */}
+              <div
+                className="grid grid-cols-2 border divide-x divide-x-reverse"
+                style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+              >
+                <div className="p-3 text-center" style={{ borderColor: theme.border }}>
+                  <p className="text-[10px] font-bold mb-1" style={{ color: theme.textMuted }}>{t('current_stock')}</p>
+                  <div className="flex items-baseline justify-center gap-1">
+                    {settings.defaultStockView === 'boxes' && product.piecesPerBox && product.piecesPerBox > 1 ? (
+                      <>
+                        <span className="text-lg font-black font-mono tabular-nums" style={{ color: theme.text }}>
+                          {(cleanQuantity(product.quantity) / product.piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                        </span>
+                        <span className="text-[10px] font-bold" style={{ color: theme.textMuted }}>كرتونة</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-lg font-black font-mono tabular-nums" style={{ color: theme.text }}>
+                          {formatQuantity(product.quantity)}
+                        </span>
+                        <span className="text-[10px] font-bold" style={{ color: theme.textMuted }}>{unitText}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="p-3 text-center" style={{ borderColor: theme.border }}>
+                  <p className="text-[10px] font-bold mb-1" style={{ color: theme.textMuted }}>{t('pieces_in_box')}</p>
+                  <span className="text-lg font-black font-mono tabular-nums" style={{ color: theme.accent }}>
+                    {product.piecesPerBox}
+                  </span>
+                </div>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1 text-right">
+                    <label className="text-[11px] font-bold block" style={{ color: theme.textMuted }}>{t('num_boxes')}</label>
+                    <input
+                      type="number"
+                      step="any"
+                      name="num_boxes_input"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      data-lpignore="true"
+                      data-form-type="other"
+                      value={numBoxes || ''}
+                      onChange={(e) => setNumBoxes(parseFloat(e.target.value.replace(',', '.')) || 0)}
+                      className="w-full border py-3.5 text-center text-xl font-black font-mono tabular-nums outline-none"
+                      style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
+                      placeholder="0"
+                      enterKeyHint="done"
+                      inputMode="decimal"
+                      onKeyDown={handleKeyDown}
+                    />
+                  </div>
+                  <div className="space-y-1 text-right">
+                    <label className="text-[11px] font-bold block" style={{ color: theme.textMuted }}>{t('extra_pieces')}</label>
+                    <input
+                      type="number"
+                      step="any"
+                      name="extra_pieces_input"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      data-lpignore="true"
+                      data-form-type="other"
+                      value={extraPieces || ''}
+                      onChange={(e) => setExtraPieces(parseFloat(e.target.value.replace(',', '.')) || 0)}
+                      className="w-full border py-3.5 text-center text-xl font-black font-mono tabular-nums outline-none"
+                      style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
+                      placeholder="0"
+                      enterKeyHint="done"
+                      inputMode="decimal"
+                      onKeyDown={handleKeyDown}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1 text-right">
+                    <label className="text-[11px] font-bold block" style={{ color: theme.textMuted }}>{t('box_purchase_price')}</label>
+                    <input
+                      type="number"
+                      step="0.001"
+                      name="box_price_input"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      data-lpignore="true"
+                      data-form-type="other"
+                      value={boxPrice || ''}
+                      onChange={(e) => handleQtyBoxPriceChange(parseFloat(e.target.value.replace(',', '.')) || 0)}
+                      className="w-full border py-2.5 text-center font-black font-mono tabular-nums outline-none"
+                      style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
+                      enterKeyHint="done"
+                      inputMode="decimal"
+                      onKeyDown={handleKeyDown}
+                    />
+                  </div>
+                  <div className="space-y-1 text-right">
+                    <label className="text-[11px] font-bold block" style={{ color: theme.textMuted }}>{t('piece_purchase_price')}</label>
+                    <input
+                      type="number"
+                      step="0.001"
+                      name="piece_price_input"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      data-lpignore="true"
+                      data-form-type="other"
+                      value={piecePrice || ''}
+                      onChange={(e) => handleQtyPiecePriceChange(parseFloat(e.target.value.replace(',', '.')) || 0)}
+                      className="w-full border py-2.5 text-center font-black font-mono tabular-nums outline-none transition-colors"
+                      style={{
+                        backgroundColor: theme.surface,
+                        borderColor: hasPriceWarning ? theme.negative : theme.border,
+                        color: hasPriceWarning ? theme.negative : theme.text,
+                      }}
+                      enterKeyHint="done"
+                      inputMode="decimal"
+                      onKeyDown={handleKeyDown}
+                    />
+                  </div>
+                </div>
+
+                {hasPriceWarning && (
+                  <p className="text-[11px] font-bold text-right flex items-center justify-end gap-1" style={{ color: theme.negative }}>
+                    <span>تنبيه: سعر الشراء الجديد ({piecePrice.toFixed(3)}) يجب أن يكون أقل من سعر البيع ({product.sellingPrice.toFixed(3)})</span>
+                    <AlertCircle size={13} className="shrink-0" />
+                  </p>
+                )}
+
+                <div
+                  className="border border-dashed p-3.5 space-y-2.5"
+                  style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold" style={{ color: theme.textMuted }}>{t('will_be_added')}</span>
+                    <div className="flex items-baseline gap-1 font-mono tabular-nums">
+                      {settings.defaultStockView === 'boxes' && product?.piecesPerBox && product.piecesPerBox > 1 ? (
+                        <>
+                          <span className="text-sm font-black" style={{ color: theme.text }}>
+                            {(addedQty / product.piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                          </span>
+                          <span className="text-[10px] font-bold" style={{ color: theme.textMuted }}>كرتونة</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-sm font-black" style={{ color: theme.text }}>{formatQuantity(addedQty)}</span>
+                          <span className="text-[10px] font-bold" style={{ color: theme.textMuted }}>{unitText}</span>
+                        </>
+                      )}
                     </div>
                   </div>
-
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1 text-right">
-                        <label className="text-[10px] font-bold text-zinc-400 pr-1">{t('num_boxes')}</label>
-                        <input 
-                          type="number" 
-                          step="any"
-                          name="num_boxes_input"
-                          autoComplete="off"
-                          autoCorrect="off"
-                          data-lpignore="true"
-                          data-form-type="other"
-                          value={numBoxes || ''}
-                          onChange={(e) => setNumBoxes(parseFloat(e.target.value.replace(',', '.')) || 0)}
-                          className="w-full rounded-lg border border-zinc-200 bg-white py-4 text-center text-xl font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
-                          placeholder="0"
-                          enterKeyHint="done"
-                          inputMode="decimal"
-                          onKeyDown={handleKeyDown}
-                        />
-                      </div>
-                      <div className="space-y-1 text-right">
-                        <label className="text-[10px] font-bold text-zinc-400 pr-1">{t('extra_pieces')}</label>
-                        <input 
-                          type="number" 
-                          step="any"
-                          name="extra_pieces_input"
-                          autoComplete="off"
-                          autoCorrect="off"
-                          data-lpignore="true"
-                          data-form-type="other"
-                          value={extraPieces || ''}
-                          onChange={(e) => setExtraPieces(parseFloat(e.target.value.replace(',', '.')) || 0)}
-                          className="w-full rounded-lg border border-zinc-200 bg-white py-4 text-center text-xl font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
-                          placeholder="0"
-                          enterKeyHint="done"
-                          inputMode="decimal"
-                          onKeyDown={handleKeyDown}
-                        />
-                      </div>
+                  <div className="h-px" style={{ backgroundColor: theme.border }} />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black" style={{ color: theme.text }}>{t('new_total_stock')}</span>
+                    <div className="flex items-baseline gap-1 font-mono tabular-nums">
+                      {settings.defaultStockView === 'boxes' && product?.piecesPerBox && product.piecesPerBox > 1 ? (
+                        <>
+                          <span className="text-lg font-black" style={{ color: theme.accent }}>
+                            {(newTotalQty / product.piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                          </span>
+                          <span className="text-[10px] font-bold" style={{ color: theme.textMuted }}>كرتونة</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-lg font-black" style={{ color: theme.accent }}>{formatQuantity(newTotalQty)}</span>
+                          <span className="text-[10px] font-bold" style={{ color: theme.textMuted }}>{unitText}</span>
+                        </>
+                      )}
                     </div>
+                  </div>
+                </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1 text-right">
-                        <label className="text-[10px] font-bold text-zinc-400 pr-1">{t('box_purchase_price')}</label>
-                        <input 
-                          type="number" 
-                          step="0.001"
-                          name="box_price_input"
-                          autoComplete="off"
-                          autoCorrect="off"
-                          data-lpignore="true"
-                          data-form-type="other"
-                          value={boxPrice || ''}
-                          onChange={(e) => handleQtyBoxPriceChange(parseFloat(e.target.value.replace(',', '.')) || 0)}
-                          className="w-full rounded-lg border border-zinc-200 bg-white py-3 text-center font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white"
-                          enterKeyHint="done"
-                          inputMode="decimal"
-                          onKeyDown={handleKeyDown}
-                        />
-                      </div>
-                      <div className="space-y-1 text-right">
-                        <label className="text-[10px] font-bold text-zinc-400 pr-1">{t('piece_purchase_price')}</label>
-                        <input 
-                          type="number" 
-                          step="0.001"
-                          name="piece_price_input"
-                          autoComplete="off"
-                          autoCorrect="off"
-                          data-lpignore="true"
-                          data-form-type="other"
-                          value={piecePrice || ''}
-                          onChange={(e) => handleQtyPiecePriceChange(parseFloat(e.target.value.replace(',', '.')) || 0)}
-                          className={`w-full rounded-lg border py-3 text-center font-bold outline-none focus:ring-2 transition-colors ${
-                            (product?.sellingPrice && piecePrice > 0 && piecePrice >= product.sellingPrice)
-                              ? 'border-red-500 bg-red-50/50 text-red-600 focus:ring-red-500 dark:bg-red-950/20 dark:border-red-500 dark:text-red-400'
-                              : 'border-zinc-200 bg-white text-zinc-900 focus:ring-brand-500 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white'
-                          }`}
-                          enterKeyHint="done"
-                          inputMode="decimal"
-                          onKeyDown={handleKeyDown}
-                        />
-                      </div>
-                    </div>
-
-                    {product?.sellingPrice && piecePrice > 0 && piecePrice >= product.sellingPrice && (
-                      <p className="text-[11px] font-bold text-red-500 text-right flex items-center justify-end gap-1">
-                        <span>تنبيه: سعر الشراء الجديد ({piecePrice.toFixed(3)}) يجب أن يكون أقل من سعر البيع ({product.sellingPrice.toFixed(3)})</span>
-                        <AlertCircle size={13} className="shrink-0" />
-                      </p>
-                    )}
-
-                    <div className="rounded-lg border-2 border-dashed border-zinc-100 p-4 dark:border-zinc-800 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-baseline gap-1">
-                          {settings.defaultStockView === 'boxes' && product?.piecesPerBox && product.piecesPerBox > 1 ? (
-                            <>
-                              <span className="text-sm font-bold text-zinc-900 dark:text-white">{(addedQty / product.piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
-                              <span className="text-[10px] font-bold text-zinc-400">كرتونة</span>
-                            </>
-                          ) : (
-                            <>
-                              <span className="text-sm font-bold text-zinc-900 dark:text-white">{formatQuantity(addedQty)}</span>
-                              <span className="text-[10px] font-bold text-zinc-400">{unitText}</span>
-                            </>
-                          )}
-                        </div>
-                        <span className="text-xs font-bold text-zinc-500">{t('will_be_added')}</span>
-                      </div>
-                      <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-baseline gap-1">
-                          {settings.defaultStockView === 'boxes' && product?.piecesPerBox && product.piecesPerBox > 1 ? (
-                            <>
-                              <span className="text-lg font-bold text-brand-600">{(newTotalQty / product.piecesPerBox).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
-                              <span className="text-[10px] font-bold text-zinc-400">كرتونة</span>
-                            </>
-                          ) : (
-                            <>
-                              <span className="text-lg font-bold text-brand-600">{formatQuantity(newTotalQty)}</span>
-                              <span className="text-[10px] font-bold text-zinc-400">{unitText}</span>
-                            </>
-                          )}
-                        </div>
-                        <span className="text-sm font-bold text-zinc-900 dark:text-white">{t('new_total_stock')}</span>
-                      </div>
-                    </div>
-
-                    <button 
-                      type="submit" 
-                      disabled={addedQty <= 0 || isSaving}
-                      className="w-full rounded-lg bg-brand-600 py-4 font-bold text-white transition-all hover:bg-brand-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-brand-600 dark:hover:bg-brand-700"
-                    >
-                      {isSaving ? <div className="animate-spin w-5 h-5 border-2 border-white rounded-full border-t-transparent mx-auto"></div> : t('confirm_purchase')}
-                    </button>
-                  </form>
+                <button
+                  type="submit"
+                  disabled={addedQty <= 0 || isSaving}
+                  className="w-full py-3.5 border font-black text-sm transition-opacity hover:opacity-90 disabled:opacity-45 disabled:cursor-not-allowed cursor-pointer"
+                  style={{ backgroundColor: theme.accent, borderColor: theme.accent, color: theme.accentText }}
+                >
+                  {isSaving ? <div className="animate-spin w-5 h-5 border-2 border-current rounded-full border-t-transparent mx-auto" /> : t('confirm_purchase')}
+                </button>
+              </form>
             </div>
           </div>
         </div>

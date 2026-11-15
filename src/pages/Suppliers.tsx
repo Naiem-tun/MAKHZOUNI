@@ -6,7 +6,7 @@ import { db } from '../lib/firebase';
 import { Supplier, SupplierTransaction, Debt, OperationType, SupplierCycle } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { syncTracker } from '../lib/syncTracker';
-import { Truck, Plus, Phone, Trash2, Edit2, X, RotateCcw, UserPlus, Eye, Receipt, History, CirclePlus, Calendar, Search, Play, Square, Printer, FileSpreadsheet, Activity, BrainCircuit, Archive, ArrowLeftRight, ShoppingCart, Layers, Handshake } from 'lucide-react';
+import { ArrowLeftRight, Eye, ChevronUp, ChevronDown } from 'lucide-react';
 import { formatCurrency, handleFirestoreError, safeParseDate, formatAppDate, roundMoney } from '../lib/utils';
 import { logAudit } from '../lib/auditLogger';
 import { PrintSupplierTxModal } from '../components/suppliers/PrintSupplierTxModal';
@@ -22,7 +22,8 @@ import { SupplierSearchBar } from '../components/suppliers/SupplierSearchBar';
 import { SmartDealAdvisorModal } from '../components/suppliers/SmartDealAdvisorModal';
 import { SupplierCyclesModal } from '../components/suppliers/SupplierCyclesModal';
 import * as xlsx from 'xlsx';
-import { Download, FileText } from 'lucide-react';
+import { FolioSmoothTrendCard, useFolioTheme } from '../components/folio/FolioPageChrome';
+import { matchesQuery } from '../components/dashboard/PurchaseVarianceModal';
 
 export default function Suppliers() {
   const { t } = useTranslation();
@@ -49,7 +50,17 @@ export default function Suppliers() {
   const [uploadedReports, setUploadedReports] = useState<{ id: string; name: string; data: Record<string, number> }[]>([]);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [isTrackingMode, setIsTrackingMode] = useState(false);
+  const [showTrendCurve, setShowTrendCurve] = useState(true);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const { theme } = useFolioTheme(
+    Boolean(settings.darkMode),
+    settings.folioThemeId,
+  );
+  const showFinancials = settings.showFinancials ?? true;
+  const language = settings.language || 'ar';
+  const formatPrivateValue = (val: number) =>
+    !showFinancials ? '••••••' : formatCurrency(val, settings.currency, language);
 
   const days = [
     { id: 0, name: t('sunday') },
@@ -237,11 +248,15 @@ export default function Suppliers() {
   const grandTotal = activeTransactions.reduce((acc, t) => acc + (t.amount || 0), 0);
   const activeSuppliersInCycleCount = new Set(activeTransactions.filter(t => t.supplierId && (t.amount || 0) > 0).map(t => t.supplierId)).size;
 
-  const filteredSuppliers = suppliersWithTotals.filter(s => 
-    (s.name || "").toLowerCase().includes((searchQuery || "").toLowerCase()) ||
-    s.phone?.includes(searchQuery) ||
-    (s.typeOfGoods || "").toLowerCase().includes((searchQuery || "").toLowerCase())
-  );
+  const filteredSuppliers = suppliersWithTotals.filter((s) => {
+    const q = (searchQuery || '').trim();
+    if (!q) return true;
+    return (
+      matchesQuery(s.name || '', q) ||
+      matchesQuery(s.typeOfGoods || '', q) ||
+      (s.phone || '').includes(q)
+    );
+  });
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -879,7 +894,11 @@ export default function Suppliers() {
   };
 
   return (
-    <div className="space-y-6 pb-24">
+    <div
+      className="min-h-screen px-2.5 sm:px-5 pt-3 pb-24 transition-colors"
+      style={{ backgroundColor: theme.bg, color: theme.text }}
+      dir="rtl"
+    >
       <input
         type="file"
         ref={fileInputRef}
@@ -887,111 +906,215 @@ export default function Suppliers() {
         accept=".xlsx,.xls,.csv"
         className="hidden"
       />
-      
-      <SupplierHeader 
-        setEditingSupplier={setEditingSupplier}
-        setSelectedVisitDays={setSelectedVisitDays}
-        setIsModalOpen={setIsModalOpen}
-      />
 
-      <SupplierToolbar
-        showExportMenu={showExportMenu}
-        setShowExportMenu={setShowExportMenu}
-        settings={settings}
-        setIsPrintModalOpen={setIsPrintModalOpen}
-        exportToExcel={exportToExcel}
-        fileInputRef={fileInputRef}
-        setIsClearAllConfirmOpen={setIsClearAllConfirmOpen}
-        isTrackingMode={isTrackingMode}
-        setIsTrackingMode={setIsTrackingMode}
-        setIsAdvisorOpen={setIsAdvisorOpen}
-        setIsCyclesModalOpen={setIsCyclesModalOpen}
-        archivedCyclesCount={cycles.length}
-      />
+      <div className="max-w-6xl mx-auto space-y-5">
+        <SupplierHeader
+          setEditingSupplier={setEditingSupplier}
+          setSelectedVisitDays={setSelectedVisitDays}
+          setIsModalOpen={setIsModalOpen}
+          theme={theme}
+        />
 
-      {/* Compact Purchases Summary - Dashboard-inspired & matching app curvature */}
-      {(settings.showFloatingTotals ?? true) && (
-        <div 
-          onClick={() => setIsTotalModalOpen(true)}
-          className="relative p-3 sm:p-3.5 rounded-lg bg-brand-800 dark:bg-zinc-900 text-white shadow-sm border border-brand-700/40 dark:border-zinc-800 cursor-pointer transition-all hover:bg-brand-900 active:scale-[0.99] overflow-hidden group"
-        >
-          {/* Subtle ambient light */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+        <SupplierToolbar
+          showExportMenu={showExportMenu}
+          setShowExportMenu={setShowExportMenu}
+          settings={settings}
+          setIsPrintModalOpen={setIsPrintModalOpen}
+          exportToExcel={exportToExcel}
+          fileInputRef={fileInputRef}
+          setIsClearAllConfirmOpen={setIsClearAllConfirmOpen}
+          isTrackingMode={isTrackingMode}
+          setIsTrackingMode={setIsTrackingMode}
+          setIsAdvisorOpen={setIsAdvisorOpen}
+          setIsCyclesModalOpen={setIsCyclesModalOpen}
+          archivedCyclesCount={cycles.length}
+          theme={theme}
+        />
 
-          <div className="relative z-10 flex flex-wrap items-center justify-between gap-2.5">
-            {/* Right side: Icon + Label + Value */}
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="h-8 w-8 shrink-0 rounded-lg bg-white/10 dark:bg-white/5 flex items-center justify-center text-emerald-300">
-                <ArrowLeftRight size={16} />
+        {/* SECTION 01: CYCLE SUMMARY STRIP */}
+        {(settings.showFloatingTotals ?? true) && (
+          <section
+            className="border text-right"
+            style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+          >
+            <div
+              className="px-4 py-2.5 border-b flex flex-wrap items-center justify-between gap-2"
+              style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }}
+            >
+              <div className="flex items-center gap-2 text-xs font-bold">
+                <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
+                  01
+                </span>
+                <span>ملخص الدورة المفتوحة للموردين</span>
               </div>
-              <div className="min-w-0">
-                <div className="text-[11px] font-bold text-brand-200 dark:text-zinc-400 leading-tight">
-                  إجمالي المعاملات مع الموردين
-                </div>
-                <div className="text-lg sm:text-xl font-black tracking-tight text-white leading-none mt-0.5">
-                  {!(settings.showFinancials ?? true) ? '••••••' : formatCurrency(grandTotal, settings.currency, settings.language || 'ar')}
-                </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowTrendCurve((v) => !v)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold border transition-colors cursor-pointer"
+                  style={{
+                    backgroundColor: theme.surface,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  }}
+                >
+                  <span>{showTrendCurve ? 'إخفاء المنحنى' : 'عرض المنحنى'}</span>
+                  {showTrendCurve ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsTotalModalOpen(true)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold border transition-colors cursor-pointer"
+                  style={{
+                    backgroundColor: theme.text,
+                    borderColor: theme.text,
+                    color: theme.surface,
+                  }}
+                >
+                  <span>التفاصيل الكاملة</span>
+                  <Eye size={12} />
+                </button>
               </div>
             </div>
 
-            {/* Left side (in RTL): Metrics + Details Button */}
-            <div className="flex items-center gap-1.5 mr-auto sm:mr-0 flex-wrap">
-              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10 dark:bg-white/5 text-[11px] font-bold text-brand-100">
-                <Layers size={12} className="text-brand-300" />
-                <span>{activeTransactions.length}</span>
-                <span className="text-[10px] font-normal text-brand-200 opacity-80">{t('operations') || 'عملية'}</span>
+            <div
+              className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x sm:divide-x-reverse cursor-pointer"
+              style={{ borderColor: theme.border }}
+              onClick={() => setIsTotalModalOpen(true)}
+            >
+              <div className="p-4 space-y-1" style={{ borderColor: theme.border }}>
+                <div
+                  className="flex items-center gap-1.5 text-[11px] font-bold"
+                  style={{ color: theme.textMuted }}
+                >
+                  <ArrowLeftRight size={12} style={{ color: theme.accent }} />
+                  <span>إجمالي المعاملات مع الموردين</span>
+                </div>
+                <div
+                  className="text-2xl sm:text-3xl font-black font-mono tabular-nums tracking-tight"
+                  style={{ color: theme.accent }}
+                >
+                  {formatPrivateValue(grandTotal)}
+                </div>
+                <div className="text-[10px] font-mono tabular-nums" style={{ color: theme.textMuted }}>
+                  منذ {formatAppDate(trackingStartDate, language, t)}
+                </div>
               </div>
 
-              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10 dark:bg-white/5 text-[11px] font-bold text-emerald-200">
-                <Truck size={12} className="text-emerald-300" />
-                <span>{activeSuppliersInCycleCount}</span>
-                <span className="text-[10px] font-normal text-brand-200 opacity-80">/ {suppliers.length} مورد</span>
+              <div className="p-4 space-y-1" style={{ borderColor: theme.border }}>
+                <div className="text-[11px] font-bold" style={{ color: theme.textMuted }}>
+                  عدد فواتير ومعاملات الدورة
+                </div>
+                <div
+                  className="text-xl sm:text-2xl font-black font-mono tabular-nums"
+                  style={{ color: theme.text }}
+                >
+                  {activeTransactions.length}
+                </div>
+                <div className="text-[10px] font-mono tabular-nums" style={{ color: theme.textMuted }}>
+                  {t('operations') || 'عملية'} مسجلة
+                </div>
               </div>
 
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); setIsTotalModalOpen(true); }}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/20 active:bg-white/25 text-white text-[11px] font-bold transition-colors"
-              >
-                <span>التفاصيل</span>
-                <Eye size={12} />
-              </button>
+              <div className="p-4 space-y-1" style={{ borderColor: theme.border }}>
+                <div className="text-[11px] font-bold" style={{ color: theme.textMuted }}>
+                  الموردون النشطون في الدورة
+                </div>
+                <div
+                  className="text-xl sm:text-2xl font-black font-mono tabular-nums"
+                  style={{ color: theme.positive }}
+                >
+                  {activeSuppliersInCycleCount} / {suppliers.length}
+                </div>
+                <div className="text-[10px] font-mono tabular-nums" style={{ color: theme.textMuted }}>
+                  {suppliers.filter((s) => s.visitDays?.includes(today)).length} مورد زيارته اليوم
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </section>
+        )}
 
-      <SupplierSearchBar
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        uploadedReports={uploadedReports}
-        removeUploadedReport={removeUploadedReport}
-      />
-
-      <div className="grid grid-cols-1 gap-4 pb-24">
-        {filteredSuppliers.map((s) => (
-          <SupplierCard
-            key={s.id}
-            supplier={s}
-            debts={debts}
-            isToday={!!s.visitDays?.includes(today)}
-            uploadedReports={uploadedReports}
-            settings={settings}
-            activeSupplier={activeSupplier}
-            setEditingSupplier={setEditingSupplier}
-            setSelectedVisitDays={setSelectedVisitDays}
-            setIsModalOpen={setIsModalOpen}
-            setDeleteConfirmId={setDeleteConfirmId}
-            setDeleteConfirmName={setDeleteConfirmName}
-            setSelectedSupplier={setSelectedSupplier}
-            setIsHistoryModalOpen={setIsHistoryModalOpen}
-            setIsSessionSummaryOpen={setIsSessionSummaryOpen}
-            setActiveSupplier={setActiveSupplier}
-            setIsAddTxModalOpen={setIsAddTxModalOpen}
-            isTrackingMode={isTrackingMode}
-            onMarkAbsent={handleMarkAbsent}
+        {/* SECTION 02: SMOOTH SUPPLY CURVE */}
+        {showTrendCurve && (
+          <FolioSmoothTrendCard
+            sectionIndex="02"
+            kicker="حركة التوريد"
+            title="منحنى توريد الدورة المفتوحة"
+            items={activeTransactions}
+            theme={theme}
+            language={language}
+            formatValue={formatPrivateValue}
+            t={t}
+            unitLabel="فاتورة"
+            emptyMessage="لا توجد فواتير توريد مسجلة خلال هذه الفترة."
+            gradientId="folioSuppliersAreaGrad"
           />
-        ))}
+        )}
+
+        {/* SEARCH & EXCEL COMPARISON TAGS */}
+        <SupplierSearchBar
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          uploadedReports={uploadedReports}
+          removeUploadedReport={removeUploadedReport}
+          theme={theme}
+        />
+
+        {/* SECTION 03: SUPPLIERS LEDGER LIST */}
+        <section
+          className="border text-right"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
+          <div
+            className="px-4 py-2.5 border-b flex items-center justify-between"
+            style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }}
+          >
+            <div className="flex items-center gap-2 text-xs font-bold">
+              <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
+                03
+              </span>
+              <span>قائمة الموردين</span>
+            </div>
+            <span className="text-[11px] font-mono tabular-nums" style={{ color: theme.textMuted }}>
+              {filteredSuppliers.length} مورد · اسحب يساراً للتعديل أو الحذف
+            </span>
+          </div>
+
+          {filteredSuppliers.length === 0 ? (
+            <div className="py-12 px-4 text-center text-xs font-bold" style={{ color: theme.textMuted }}>
+              {searchQuery ? 'لا يوجد موردون مطابقون لبحثك.' : 'لم يتم تسجيل موردين بعد.'}
+            </div>
+          ) : (
+            <div className="divide-y" style={{ borderColor: theme.border }}>
+              {filteredSuppliers.map((s) => (
+                <SupplierCard
+                  key={s.id}
+                  supplier={s}
+                  debts={debts}
+                  isToday={!!s.visitDays?.includes(today)}
+                  uploadedReports={uploadedReports}
+                  settings={settings}
+                  activeSupplier={activeSupplier}
+                  setEditingSupplier={setEditingSupplier}
+                  setSelectedVisitDays={setSelectedVisitDays}
+                  setIsModalOpen={setIsModalOpen}
+                  setDeleteConfirmId={setDeleteConfirmId}
+                  setDeleteConfirmName={setDeleteConfirmName}
+                  setSelectedSupplier={setSelectedSupplier}
+                  setIsHistoryModalOpen={setIsHistoryModalOpen}
+                  setIsSessionSummaryOpen={setIsSessionSummaryOpen}
+                  setActiveSupplier={setActiveSupplier}
+                  setIsAddTxModalOpen={setIsAddTxModalOpen}
+                  isTrackingMode={isTrackingMode}
+                  onMarkAbsent={handleMarkAbsent}
+                  theme={theme}
+                />
+              ))}
+            </div>
+          )}
+        </section>
       </div>
 
       <SupplierFormModal

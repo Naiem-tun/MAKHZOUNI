@@ -1,12 +1,18 @@
-import React from 'react';
 import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { Phone, Square, Play, Plus, Edit2, Trash2, Clock } from 'lucide-react';
 import { Supplier, Debt } from '../../types';
 import { formatCurrency } from '../../lib/utils';
+import { FolioTheme } from '../inventory/analytics/folio/folioTypes';
+import { resolveFolioTheme } from '../folio/FolioPageChrome';
 
 interface SupplierCardProps {
-  supplier: Supplier & { txCount?: number, totalPaid?: number, isMissed?: boolean, visitHistory?: { status: 'attended' | 'absent' | 'pending' | 'unknown', date: string }[] };
+  supplier: Supplier & {
+    txCount?: number;
+    totalPaid?: number;
+    isMissed?: boolean;
+    visitHistory?: { status: 'attended' | 'absent' | 'pending' | 'unknown'; date: string }[];
+  };
   debts: Debt[];
   isToday: boolean;
   uploadedReports: any[];
@@ -24,6 +30,7 @@ interface SupplierCardProps {
   setIsAddTxModalOpen: (open: boolean) => void;
   isTrackingMode?: boolean;
   onMarkAbsent: (supplierId: string, dateIso: string) => void;
+  theme?: FolioTheme;
 }
 
 export function SupplierCard({
@@ -44,148 +51,298 @@ export function SupplierCard({
   setActiveSupplier,
   setIsAddTxModalOpen,
   isTrackingMode,
-  onMarkAbsent
+  onMarkAbsent,
+  theme,
 }: SupplierCardProps) {
   const { t } = useTranslation();
+  const activeTheme = theme || resolveFolioTheme(Boolean(settings?.darkMode));
+  const showFinancials = settings?.showFinancials ?? true;
+  const language = settings?.language || 'ar';
+  const formatPrivateValue = (val: number) =>
+    !showFinancials ? '••••••' : formatCurrency(val, settings.currency, language);
+
+  const hasUnpaidDebt = debts.some((d) => d.customerName === s.name && d.status === 'unpaid');
 
   return (
-    <div className="relative group overflow-hidden rounded-lg">
+    <div
+      className="relative group overflow-hidden"
+      style={{ borderColor: activeTheme.border }}
+    >
       {/* Hidden Actions Layer (Behind) */}
       <div className="absolute inset-y-0 right-0 flex items-center pr-1 gap-1 z-0">
-        <button 
-          onClick={() => { setEditingSupplier(s); setSelectedVisitDays(s.visitDays || []); setIsModalOpen(true); }}
-          className="h-[calc(100%-8px)] w-16 bg-edit-bg border border-edit-border rounded-lg flex flex-col items-center justify-center gap-1 text-edit-text"
+        <button
+          type="button"
+          onClick={() => {
+            setEditingSupplier(s);
+            setSelectedVisitDays(s.visitDays || []);
+            setIsModalOpen(true);
+          }}
+          className="h-[calc(100%-8px)] w-16 bg-edit-bg border border-edit-border flex flex-col items-center justify-center gap-1 text-edit-text cursor-pointer"
         >
-          <Edit2 size={18} />
+          <Edit2 size={16} />
           <span className="text-[10px] font-bold">{t('edit')}</span>
         </button>
-        <button 
-          onClick={() => { setDeleteConfirmId(s.id!); setDeleteConfirmName(s.name || ''); }}
-          className="h-[calc(100%-8px)] w-16 bg-delete-bg border border-delete-border flex flex-col items-center justify-center gap-1 text-delete-text rounded-lg"
+        <button
+          type="button"
+          onClick={() => {
+            setDeleteConfirmId(s.id!);
+            setDeleteConfirmName(s.name || '');
+          }}
+          className="h-[calc(100%-8px)] w-16 bg-delete-bg border border-delete-border flex flex-col items-center justify-center gap-1 text-delete-text cursor-pointer"
         >
-          <Trash2 size={18} />
+          <Trash2 size={16} />
           <span className="text-[10px] font-bold">{t('delete')}</span>
         </button>
       </div>
 
       {/* Swipable Front Layer */}
-      <motion.div 
+      <motion.div
         drag="x"
         dragConstraints={{ left: -140, right: 0 }}
         dragElastic={0.1}
-        onClick={() => { setSelectedSupplier(s); setIsHistoryModalOpen(true); }}
-        className={`relative z-10 flex cursor-pointer items-center justify-between rounded-lg bg-white p-3 shadow-sm border transition-all ${
-          isToday 
-            ? 'border-brand-500 ring-4 ring-brand-500/5 dark:bg-zinc-900' 
+        onClick={() => {
+          setSelectedSupplier(s);
+          setIsHistoryModalOpen(true);
+        }}
+        className="relative z-10 flex cursor-pointer items-center justify-between gap-2.5 p-3 sm:px-4 transition-colors"
+        style={{
+          backgroundColor: activeTheme.surface,
+          borderRightWidth: '3px',
+          borderRightStyle: 'solid',
+          borderRightColor: isToday
+            ? activeTheme.accent
             : s.isMissed
-            ? 'border-[#B34C36] ring-4 ring-[#B34C36]/5 dark:bg-zinc-900'
-            : 'border-zinc-100 dark:bg-zinc-900 dark:border-zinc-800'
-        }`}
+              ? activeTheme.negative
+              : activeTheme.border,
+        }}
       >
-        <div className="flex items-center gap-2">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base font-bold text-zinc-900 dark:text-white truncate">{s.name}</h3>
-                  {debts.some(d => d.customerName === s.name && d.status === 'unpaid') && (
-                    <span className="text-[#B34C36] font-bold">-</span>
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 min-w-0">
+            <h3
+              className="text-sm sm:text-base font-black truncate"
+              style={{ color: activeTheme.text }}
+            >
+              {s.name}
+            </h3>
+            {hasUnpaidDebt && (
+              <span
+                className="text-xs font-black"
+                style={{ color: activeTheme.negative }}
+                title="يوجد دين غير مسدد"
+              >
+                (دين)
+              </span>
+            )}
+            {s.typeOfGoods && (
+              <>
+                <span aria-hidden="true" style={{ color: activeTheme.textMuted }}>
+                  ·
+                </span>
+                <span className="text-[11px] font-bold truncate" style={{ color: activeTheme.textMuted }}>
+                  {s.typeOfGoods}
+                </span>
+              </>
+            )}
+          </div>
+
+          <div
+            className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]"
+            style={{ color: activeTheme.textMuted }}
+          >
+            <span className="font-mono tabular-nums font-bold" style={{ color: activeTheme.text }}>
+              {formatPrivateValue(s.totalPaid || 0)}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span className="font-mono tabular-nums">
+              {s.txCount || 0} {t('operations')}
+            </span>
+
+            {isToday && !isTrackingMode && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span className="font-bold" style={{ color: activeTheme.accent }}>
+                  {t('visits_today')}
+                </span>
+              </>
+            )}
+            {s.isMissed && !isToday && !isTrackingMode && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span className="font-bold" style={{ color: activeTheme.negative }}>
+                  {t('missed_visit')}
+                </span>
+              </>
+            )}
+
+            {uploadedReports.map((report, idx) => {
+              const normalizeName = (name: string) =>
+                (name || '')
+                  .trim()
+                  .toLowerCase()
+                  .replace(/[أإآٱ]/g, 'ا')
+                  .replace(/ة/g, 'ه')
+                  .replace(/ي/g, 'ى')
+                  .replace(/[\u064B-\u065F]/g, '')
+                  .replace(/\s+/g, ' ');
+              const sNorm = normalizeName(s.name);
+              let val =
+                report.data[s.name] ??
+                report.data[s.name?.trim()] ??
+                report.data[sNorm] ??
+                report.data[s.name?.toLowerCase()?.trim()];
+              if (val === undefined && report.data) {
+                const matchedKey = Object.keys(report.data).find((k) => normalizeName(k) === sNorm);
+                if (matchedKey) {
+                  val = report.data[matchedKey];
+                }
+              }
+              val = val ?? 0;
+              const diff = (s.totalPaid || 0) - val;
+              const match = report.name.match(/\((\d+)\)/);
+              const shortName = match ? match[0] : `(${idx + 1})`;
+              return (
+                <span
+                  key={report.id}
+                  className="inline-flex items-center gap-1 border px-1.5 py-0.5 text-[10px] font-mono tabular-nums font-bold"
+                  style={{
+                    backgroundColor: activeTheme.bg,
+                    borderColor: activeTheme.border,
+                    color: activeTheme.accent,
+                  }}
+                  title={report.name}
+                >
+                  {shortName}: {formatPrivateValue(val)}
+                  {diff !== 0 && (
+                    <span
+                      style={{ color: diff > 0 ? activeTheme.positive : activeTheme.negative }}
+                      dir="ltr"
+                    >
+                      ({diff > 0 ? '+' : ''}
+                      {formatPrivateValue(diff)})
+                    </span>
                   )}
-                </div>
-                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                  <span className="inline-flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-1.5 py-0.5 rounded-lg text-[10px] font-bold border border-zinc-200 dark:border-zinc-700">
-                    {s.txCount || 0} {t('operations')}
-                  </span>
-                  
-                  {uploadedReports.map((report, idx) => {
-                    const normalizeName = (name: string) => (name || '').trim().toLowerCase().replace(/[أإآٱ]/g, "ا").replace(/ة/g, "ه").replace(/ي/g, "ى").replace(/[\u064B-\u065F]/g, "").replace(/\s+/g, " ");
-                    const sNorm = normalizeName(s.name);
-                    let val = report.data[s.name] ?? report.data[s.name?.trim()] ?? report.data[sNorm] ?? report.data[s.name?.toLowerCase()?.trim()];
-                    if (val === undefined && report.data) {
-                      const matchedKey = Object.keys(report.data).find(k => normalizeName(k) === sNorm);
-                      if (matchedKey) {
-                        val = report.data[matchedKey];
-                      }
-                    }
-                    val = val ?? 0;
-                    const diff = (s.totalPaid || 0) - val;
-                    const match = report.name.match(/\((\d+)\)/);
-                    const shortName = match ? match[0] : `(${idx + 1})`;
+                </span>
+              );
+            })}
+          </div>
+
+          {isTrackingMode && s.visitHistory && s.visitHistory.length > 0 && (
+            <div className="flex items-center gap-1.5 pt-1 text-[14px] font-bold tracking-widest" dir="ltr">
+              {[...s.visitHistory]
+                .reverse()
+                .slice(0, 5)
+                .map((visit, idx) => {
+                  if (visit.status === 'attended') {
                     return (
-                      <span key={report.id} className="inline-flex items-center justify-center bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300 px-1.5 py-0.5 rounded-lg text-[10px] font-bold border border-brand-200 dark:border-brand-800" title={report.name}>
-                        {shortName}: {formatCurrency(val, settings.currency, settings.language)}
-                        {diff !== 0 && (
-                          <span className={`mr-1 ${diff > 0 ? 'text-[#107C41]' : 'text-[#B34C36]'}`} dir="ltr">
-                            ({diff > 0 ? '+' : ''}{formatCurrency(diff, settings.currency, settings.language)})
-                          </span>
-                        )}
+                      <span key={idx} style={{ color: activeTheme.positive }} title="حضر">
+                        ✓
                       </span>
                     );
-                  })}
-                </div>
-              </div>
-              <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500 shrink-0">{s.typeOfGoods}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {isToday && !isTrackingMode && <span className="text-[10px] font-bold text-brand-600 bg-brand-50 dark:bg-brand-900/40 px-1.5 py-0.5 rounded-lg">{t('visits_today')}</span>}
-              {s.isMissed && !isToday && !isTrackingMode && <span className="text-[10px] font-bold text-[#B34C36] bg-[#B34C36]/10 px-1.5 py-0.5 rounded-lg">{t('missed_visit')}</span>}
-              {isTrackingMode && s.visitHistory && s.visitHistory.length > 0 && (
-                <div className="flex items-center gap-1.5 text-[14px] font-bold tracking-widest" dir="ltr">
-                  {[...s.visitHistory].reverse().slice(0, 5).map((visit, idx) => {
-                    if (visit.status === 'attended') return <span key={idx} className="text-emerald-600 dark:text-emerald-500" title="حضر">✓</span>;
-                    if (visit.status === 'absent') return <span key={idx} className="text-[#B34C36]" title="غياب مؤكد">×</span>;
-                    if (visit.status === 'pending') return <span key={idx} title="في الانتظار اليوم"><Clock className="w-3.5 h-3.5 text-brand-600" /></span>;
+                  }
+                  if (visit.status === 'absent') {
                     return (
-                      <button 
-                        key={idx}
-                        onClick={(e) => { e.stopPropagation(); onMarkAbsent(s.id!, visit.date); }}
-                        className="text-zinc-300 hover:text-[#B34C36] transition-colors cursor-pointer text-[12px]"
-                        title="اضغط لتسجيل غياب مؤكد"
-                      >
-                        ؟
-                      </button>
+                      <span key={idx} style={{ color: activeTheme.negative }} title="غياب مؤكد">
+                        ×
+                      </span>
                     );
-                  })}
-                </div>
-              )}
+                  }
+                  if (visit.status === 'pending') {
+                    return (
+                      <span key={idx} title="في الانتظار اليوم">
+                        <Clock className="w-3.5 h-3.5" style={{ color: activeTheme.accent }} />
+                      </span>
+                    );
+                  }
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onMarkAbsent(s.id!, visit.date);
+                      }}
+                      className="cursor-pointer text-[12px] transition-opacity hover:opacity-75"
+                      style={{ color: activeTheme.textMuted }}
+                      title="اضغط لتسجيل غياب مؤكد"
+                    >
+                      ؟
+                    </button>
+                  );
+                })}
             </div>
-          </div>
+          )}
         </div>
+
         <div className="flex items-center gap-1.5 shrink-0 pl-1">
           {s.phone && (
-            <a 
-              href={`tel:${s.phone}`} 
+            <a
+              href={`tel:${s.phone}`}
               onClick={(e) => e.stopPropagation()}
-              className="w-10 h-10 flex items-center justify-center rounded-lg bg-zinc-50 text-brand-600 border border-zinc-100 hover:bg-zinc-100 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:bg-zinc-700 transition-colors"
+              className="w-9 h-9 flex items-center justify-center border transition-colors"
+              style={{
+                backgroundColor: activeTheme.surfaceMuted,
+                borderColor: activeTheme.border,
+                color: activeTheme.text,
+              }}
+              title="اتصال"
             >
-              <Phone size={18}/>
+              <Phone size={15} />
             </a>
           )}
-          {(settings.showSupplierSessionButton ?? true) && (
-            activeSupplier?.id === s.id ? (
-              <button 
-                onClick={(e) => { e.stopPropagation(); setIsSessionSummaryOpen(true); }} 
-                className="w-10 h-10 flex items-center justify-center rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:opacity-90 transition-all font-bold shadow-sm"
+
+          {(settings.showSupplierSessionButton ?? true) &&
+            (activeSupplier?.id === s.id ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsSessionSummaryOpen(true);
+                }}
+                className="w-9 h-9 flex items-center justify-center border transition-colors cursor-pointer"
+                style={{
+                  backgroundColor: activeTheme.text,
+                  borderColor: activeTheme.text,
+                  color: activeTheme.surface,
+                }}
                 title={t('end_supplier_session')}
               >
-                <Square size={16} fill="currentColor" />
+                <Square size={14} fill="currentColor" />
               </button>
             ) : (
-              <button 
-                onClick={(e) => { e.stopPropagation(); setActiveSupplier({ id: s.id!, name: s.name, visitDays: s.visitDays }); }} 
-                className="w-10 h-10 flex items-center justify-center rounded-lg bg-brand-50 text-brand-600 hover:bg-brand-100 transition-all font-bold shadow-sm"
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveSupplier({ id: s.id!, name: s.name, visitDays: s.visitDays });
+                }}
+                className="w-9 h-9 flex items-center justify-center border transition-colors cursor-pointer"
+                style={{
+                  backgroundColor: activeTheme.surfaceMuted,
+                  borderColor: activeTheme.border,
+                  color: activeTheme.accent,
+                }}
                 title={t('start_supplier_session')}
               >
-                <Play size={16} fill="currentColor" />
+                <Play size={14} fill="currentColor" />
               </button>
-            )
-          )}
-          <button 
-            onClick={(e) => { e.stopPropagation(); setSelectedSupplier(s); setIsAddTxModalOpen(true); }} 
-            className="flex items-center justify-center gap-1.5 px-3 h-[34px] bg-brand-50 border border-brand-200 text-brand-700 dark:bg-brand-500/10 dark:border-brand-500/20 dark:text-brand-300 rounded-lg hover:bg-brand-100 dark:hover:bg-brand-500/30 transition-all active:scale-95 shrink-0"
+            ))}
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedSupplier(s);
+              setIsAddTxModalOpen(true);
+            }}
+            className="h-9 px-2.5 flex items-center justify-center gap-1 border text-xs font-bold transition-colors cursor-pointer shrink-0"
+            style={{
+              backgroundColor: activeTheme.accent,
+              borderColor: activeTheme.accent,
+              color: activeTheme.accentText,
+            }}
           >
-            <span className="font-bold text-sm tracking-wide">{t('record_payment', 'تسديد')}</span>
-            <Plus size={16} strokeWidth={2.5} />
+            <span>{t('record_payment', 'تسديد')}</span>
+            <Plus size={14} />
           </button>
         </div>
       </motion.div>

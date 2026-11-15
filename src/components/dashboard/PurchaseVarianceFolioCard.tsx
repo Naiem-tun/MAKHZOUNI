@@ -5,8 +5,8 @@ import {
   PurchaseVarianceAnalysisResult,
 } from '../../lib/purchaseVarianceCalculator';
 import { formatCurrency } from '../../lib/utils';
-import { FOLIO_THEMES } from '../inventory/analytics/folio/folioThemes';
 import { FolioTheme } from '../inventory/analytics/folio/folioTypes';
+import { useFolioTheme } from '../folio/FolioPageChrome';
 import { matchesQuery } from './PurchaseVarianceModal';
 
 interface PurchaseVarianceFolioCardProps {
@@ -18,22 +18,9 @@ interface PurchaseVarianceFolioCardProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   onOpenModal: () => void;
+  themeOverride?: FolioTheme;
+  sectionIndex?: string;
 }
-
-const resolveFolioTheme = (darkMode: boolean): FolioTheme => {
-  try {
-    const saved = localStorage.getItem('folio_theme_id');
-    if (saved) {
-      const match = FOLIO_THEMES.find((t) => t.id === saved);
-      if (match) return match;
-    }
-  } catch {}
-  return (
-    FOLIO_THEMES.find(
-      (t) => t.id === (darkMode ? 'folio-night' : 'folio-editorial'),
-    ) || FOLIO_THEMES[0]
-  );
-};
 
 export const PurchaseVarianceFolioCard: React.FC<
   PurchaseVarianceFolioCardProps
@@ -46,8 +33,11 @@ export const PurchaseVarianceFolioCard: React.FC<
   isCollapsed,
   onToggleCollapse,
   onOpenModal,
+  themeOverride,
+  sectionIndex = '04',
 }) => {
-  const theme = useMemo(() => resolveFolioTheme(darkMode), [darkMode]);
+  const { theme: liveTheme } = useFolioTheme(darkMode);
+  const theme = themeOverride || liveTheme;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'loss' | 'diff' | 'max'>('loss');
@@ -95,7 +85,7 @@ export const PurchaseVarianceFolioCard: React.FC<
             className="text-xs font-mono font-bold tabular-nums shrink-0"
             style={{ color: theme.accent }}
           >
-            01
+            {sectionIndex}
           </span>
           <div className="min-w-0">
             <span className="text-xs sm:text-sm font-black truncate block">
@@ -164,7 +154,7 @@ export const PurchaseVarianceFolioCard: React.FC<
                 className="font-mono tabular-nums"
                 style={{ color: theme.accent }}
               >
-                01
+                {sectionIndex}
               </span>
               <span style={{ color: theme.textMuted }}>
                 تباين أسعار شراء المخزون الحالي

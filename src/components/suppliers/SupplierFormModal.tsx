@@ -1,7 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
+import { X } from 'lucide-react';
 import { Supplier } from '../../types';
+import { useAppContext } from '../../AppContext';
+import { useFolioTheme } from '../folio/FolioPageChrome';
 
 interface SupplierFormModalProps {
   isModalOpen: boolean;
@@ -13,16 +16,6 @@ interface SupplierFormModalProps {
   setSelectedVisitDays: (days: number[]) => void;
 }
 
-const days = [
-  { id: 0, name: 'الأحد' }, // Note: We will use t() in the component
-  { id: 1, name: 'الإثنين' },
-  { id: 2, name: 'الثلاثاء' },
-  { id: 3, name: 'الأربعاء' },
-  { id: 4, name: 'الخميس' },
-  { id: 5, name: 'الجمعة' },
-  { id: 6, name: 'السبت' },
-];
-
 export function SupplierFormModal({
   isModalOpen,
   closeModal,
@@ -33,6 +26,8 @@ export function SupplierFormModal({
   setSelectedVisitDays,
 }: SupplierFormModalProps) {
   const { t } = useTranslation();
+  const { settings } = useAppContext();
+  const { theme } = useFolioTheme(Boolean(settings?.darkMode), settings?.folioThemeId);
 
   const localizedDays = [
     { id: 0, name: t('sunday') },
@@ -44,137 +39,243 @@ export function SupplierFormModal({
     { id: 6, name: t('saturday') },
   ];
 
+  const toggleDay = (id: number) => {
+    if (selectedVisitDays.includes(id)) {
+      setSelectedVisitDays(selectedVisitDays.filter(d => d !== id));
+    } else {
+      setSelectedVisitDays([...selectedVisitDays, id]);
+    }
+  };
+
   return (
     <AnimatePresence>
       {isModalOpen && (
-        <motion.div key="modal-supplier-form" className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal} className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm" />
-          <motion.div key={editingSupplier?.id || 'new'} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-md rounded-lg bg-white p-8 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
-            <h2 className="mb-6 text-2xl font-bold text-zinc-900 dark:text-white">{editingSupplier ? t('edit_supplier_data') : t('add_new_supplier')}</h2>
-            <form onSubmit={handleSave} autoComplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-protonpass-ignore="true" className="space-y-4 text-right">
-              <div>
-                <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('name')}</label>
-                <input 
-                  name="supplier_name" 
-                  type="text"
-                  autoComplete="one-time-code"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck={false}
-                  data-lpignore="true"
-                  data-1p-ignore="true"
-                  data-bwignore="true"
-                  data-protonpass-ignore="true"
-                  data-form-type="other"
-                  placeholder={t('supplier_name_placeholder')} 
-                  defaultValue={editingSupplier?.name} 
-                  required 
-                  className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700 font-bold" 
-                />
+        <motion.div
+          key="modal-supplier-form"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
+          dir="rtl"
+        >
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={closeModal}
+            className="absolute inset-0 bg-black/60 backdrop-blur-xs"
+          />
+          <motion.div
+            key={editingSupplier?.id || 'new'}
+            initial={{ opacity: 0, scale: 0.96, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 12 }}
+            className="relative w-full max-w-md border shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
+            style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }}
+          >
+            {/* Header */}
+            <div
+              className="px-5 py-4 border-b flex items-center justify-between shrink-0"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+            >
+              <div className="flex items-center gap-2.5">
+                <span
+                  className="text-[11px] font-mono font-bold tabular-nums px-2 py-0.5 border"
+                  style={{
+                    color: theme.accent,
+                    borderColor: `${theme.accent}45`,
+                    backgroundColor: `${theme.accent}12`
+                  }}
+                >
+                  01
+                </span>
+                <h2 className="text-base sm:text-lg font-black" style={{ color: theme.text }}>
+                  {editingSupplier ? t('edit_supplier_data') : t('add_new_supplier')}
+                </h2>
               </div>
-              <div>
-                <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('phone_number')}</label>
-            <input 
-              name="supplier_phone" 
-              type="tel"
-              autoComplete="one-time-code"
-              autoCorrect="off"
-              data-lpignore="true"
-              data-1p-ignore="true"
-              data-bwignore="true"
-              data-protonpass-ignore="true"
-              data-form-type="other"
-              placeholder={t('supplier_phone_placeholder')} 
-              defaultValue={editingSupplier?.phone} 
-              className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" 
-            />
-          </div>
-          <div>
-            <label className="text-xs font-bold text-neutral-400 mb-1 block">{t('category')}</label>
-            <input 
-              name="supplier_goods" 
-              type="text"
-              autoComplete="one-time-code"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              data-lpignore="true"
-              data-1p-ignore="true"
-              data-bwignore="true"
-              data-protonpass-ignore="true"
-              data-form-type="other"
-              placeholder={t('supplier_goods_placeholder')} 
-              defaultValue={editingSupplier?.typeOfGoods} 
-              className="w-full rounded-lg border bg-zinc-50 p-4 text-right outline-none dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700" 
-            />
-          </div>
-          <div>
-            <label className="text-xs font-bold text-zinc-400 mb-3 block">{t('weekly_visit_days')}</label>
-            <div className="space-y-2">
-              {/* Row 1: Sun-Wed */}
-              <div className="grid grid-cols-4 gap-2">
-                {[0, 1, 2, 3].map((id) => {
-                  const day = localizedDays.find(d => d.id === id);
-                  if (!day) return null;
-                  return (
-                    <button
-                      key={day.id}
-                      type="button"
-                      onClick={() => {
-                        if (selectedVisitDays.includes(day.id)) {
-                          setSelectedVisitDays(selectedVisitDays.filter(d => d !== id));
-                        } else {
-                          setSelectedVisitDays([...selectedVisitDays, id]);
-                        }
-                      }}
-                      className={`py-3 rounded-lg text-[11px] font-black transition-all ${
-                        selectedVisitDays.includes(day.id)
-                          ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20'
-                          : 'bg-zinc-50 text-zinc-500 dark:bg-zinc-800/50 dark:text-zinc-400 border border-zinc-100 dark:border-zinc-800'
-                      }`}
-                    >
-                      {day.name}
-                    </button>
-                  );
-                })}
-              </div>
-              {/* Row 2: Thu-Sat */}
-              <div className="grid grid-cols-3 gap-2">
-                {[4, 5, 6].map((id) => {
-                  const day = localizedDays.find(d => d.id === id);
-                  if (!day) return null;
-                  return (
-                    <button
-                      key={day.id}
-                      type="button"
-                      onClick={() => {
-                        if (selectedVisitDays.includes(day.id)) {
-                          setSelectedVisitDays(selectedVisitDays.filter(d => d !== id));
-                        } else {
-                          setSelectedVisitDays([...selectedVisitDays, id]);
-                        }
-                      }}
-                      className={`py-3 rounded-lg text-[11px] font-black transition-all ${
-                        selectedVisitDays.includes(day.id)
-                          ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20'
-                          : 'bg-zinc-50 text-zinc-500 dark:bg-zinc-800/50 dark:text-zinc-400 border border-zinc-100 dark:border-zinc-800'
-                      }`}
-                    >
-                      {day.name}
-                    </button>
-                  );
-                })}
-              </div>
+              <button
+                type="button"
+                onClick={closeModal}
+                className="p-1.5 border transition-colors cursor-pointer"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                  color: theme.text
+                }}
+              >
+                <X size={18} />
+              </button>
             </div>
-          </div>
-          <div className="flex gap-3 pt-4">
-            <button type="button" onClick={closeModal} className="flex-1 rounded-lg bg-zinc-100 py-3 font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">{t('cancel')}</button>
-            <button type="submit" disabled={isSaving} className="flex-1 rounded-lg bg-brand-600 py-3 font-semibold text-white shadow-lg shadow-brand-500/20 disabled:opacity-50">
-              {isSaving ? t('saving') : t('save_data')}
-            </button>
-          </div>
-        </form>
-      </motion.div>
+
+            <form
+              onSubmit={handleSave}
+              autoComplete="off"
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-bwignore="true"
+              data-protonpass-ignore="true"
+              className="flex flex-col min-h-0 overflow-hidden"
+            >
+              <div className="p-5 space-y-4 text-right min-h-0 overflow-y-auto">
+                <div>
+                  <label className="text-xs font-bold mb-1.5 block" style={{ color: theme.textMuted }}>
+                    {t('name')}
+                  </label>
+                  <input
+                    name="supplier_name"
+                    type="text"
+                    autoComplete="one-time-code"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
+                    data-protonpass-ignore="true"
+                    data-form-type="other"
+                    placeholder={t('supplier_name_placeholder')}
+                    defaultValue={editingSupplier?.name}
+                    required
+                    className="w-full border p-3.5 text-right outline-none font-bold text-sm transition-colors"
+                    style={{
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                      color: theme.text
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold mb-1.5 block" style={{ color: theme.textMuted }}>
+                    {t('phone_number')}
+                  </label>
+                  <input
+                    name="supplier_phone"
+                    type="tel"
+                    autoComplete="one-time-code"
+                    autoCorrect="off"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
+                    data-protonpass-ignore="true"
+                    data-form-type="other"
+                    placeholder={t('supplier_phone_placeholder')}
+                    defaultValue={editingSupplier?.phone}
+                    className="w-full border p-3.5 text-right outline-none font-mono text-sm transition-colors"
+                    style={{
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                      color: theme.text
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold mb-1.5 block" style={{ color: theme.textMuted }}>
+                    {t('category')}
+                  </label>
+                  <input
+                    name="supplier_goods"
+                    type="text"
+                    autoComplete="one-time-code"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
+                    data-protonpass-ignore="true"
+                    data-form-type="other"
+                    placeholder={t('supplier_goods_placeholder')}
+                    defaultValue={editingSupplier?.typeOfGoods}
+                    className="w-full border p-3.5 text-right outline-none text-sm transition-colors"
+                    style={{
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                      color: theme.text
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold mb-2.5 block" style={{ color: theme.textMuted }}>
+                    {t('weekly_visit_days')}
+                  </label>
+                  <div className="space-y-2">
+                    {/* Row 1: Sun-Wed */}
+                    <div className="grid grid-cols-4 gap-2">
+                      {[0, 1, 2, 3].map((id) => {
+                        const day = localizedDays.find(d => d.id === id);
+                        if (!day) return null;
+                        const active = selectedVisitDays.includes(day.id);
+                        return (
+                          <button
+                            key={day.id}
+                            type="button"
+                            onClick={() => toggleDay(day.id)}
+                            className="py-2.5 border text-[11px] font-black transition-colors cursor-pointer"
+                            style={
+                              active
+                                ? { backgroundColor: theme.accent, borderColor: theme.accent, color: theme.accentText }
+                                : { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textMuted }
+                            }
+                          >
+                            {day.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {/* Row 2: Thu-Sat */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {[4, 5, 6].map((id) => {
+                        const day = localizedDays.find(d => d.id === id);
+                        if (!day) return null;
+                        const active = selectedVisitDays.includes(day.id);
+                        return (
+                          <button
+                            key={day.id}
+                            type="button"
+                            onClick={() => toggleDay(day.id)}
+                            className="py-2.5 border text-[11px] font-black transition-colors cursor-pointer"
+                            style={
+                              active
+                                ? { backgroundColor: theme.accent, borderColor: theme.accent, color: theme.accentText }
+                                : { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textMuted }
+                            }
+                          >
+                            {day.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className="px-5 py-4 border-t flex gap-3 shrink-0"
+                style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+              >
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="flex-1 py-3 border text-xs font-bold transition-colors cursor-pointer"
+                  style={{
+                    backgroundColor: theme.surfaceMuted,
+                    borderColor: theme.border,
+                    color: theme.text
+                  }}
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="flex-1 py-3 text-xs font-black transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                  style={{ backgroundColor: theme.accent, color: theme.accentText }}
+                >
+                  {isSaving ? t('saving') : t('save_data')}
+                </button>
+              </div>
+            </form>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>

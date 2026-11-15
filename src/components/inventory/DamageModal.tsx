@@ -21,6 +21,8 @@ import { useTranslation } from 'react-i18next';
 import { BarcodeScanner } from '../common/BarcodeScanner';
 import { CustomConfirmModal } from '../common/CustomConfirmModal';
 
+import { useFolioTheme } from '../folio/FolioPageChrome';
+
 interface DamageModalProps {
   show: boolean;
   onClose: () => void;
@@ -30,6 +32,7 @@ interface DamageModalProps {
 export function DamageModal({ show, onClose, products }: DamageModalProps) {
   const { t } = useTranslation();
   const { user, settings, showToast } = useAppContext();
+  const { theme } = useFolioTheme(Boolean(settings?.darkMode), settings?.folioThemeId);
   
   // Tab state: 'record' (new damage) | 'logs' (view records)
   const [activeTab, setActiveTab] = useState<'record' | 'logs'>('record');
@@ -196,7 +199,7 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
         `تم خصم ${qty} ككمية تالفة. الرصيد السابق: ${selectedProduct.quantity || 0}، الرصيد الجديد: ${newQty}.${note.trim() ? ` السبب: ${note.trim()}` : ''} بقيمة خسارة: ${lossAmount}`
       );
 
-      showToast(t('damage_registered_successfully') || 'تم تسجيل التالف وخصم المخزون بنجاح ✅', 'success');
+      showToast(t('damage_registered_successfully') || 'تم تسجيل التالف وخصم المخزون بنجاح', 'success');
       
       // Reset form and switch to logs tab so the user can immediately view what was recorded!
       setSelectedProduct(null);
@@ -248,7 +251,7 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
         `تم إلغاء تسجيل التالف واسترجاع كمية (${itemToDelete.quantity}) إلى رصيد المنتج.`
       );
 
-      showToast('تم إلغاء التالف واسترجاع الكمية إلى المخزون بنجاح ✅', 'success');
+      showToast('تم إلغاء التالف واسترجاع الكمية إلى المخزون بنجاح', 'success');
       setItemToDelete(null);
     } catch (err) {
       console.error("Error deleting damage log:", err);
@@ -284,65 +287,98 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
   return (
     <>
       <AnimatePresence>
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm" dir="rtl">
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs"
+          dir="rtl"
+          onClick={onClose}
+        >
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            initial={{ opacity: 0, scale: 0.96, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[92vh] border border-zinc-100 dark:border-zinc-800"
+            exit={{ opacity: 0, scale: 0.96, y: 12 }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg max-h-[92vh] overflow-hidden flex flex-col border shadow-2xl"
+            style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }}
           >
             {/* Header */}
-            <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky top-0 z-20">
+            <div
+              className="p-4 border-b sticky top-0 z-20 shrink-0"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+            >
               <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2.5 text-[#B34C36]">
-                  <div className="w-10 h-10 rounded-xl bg-[#B34C36]/10 flex items-center justify-center text-[#B34C36]">
-                    <AlertTriangle size={22} />
-                  </div>
-                  <div>
-                    <h2 className="text-base sm:text-lg font-black text-zinc-900 dark:text-zinc-100">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span
+                    className="text-[11px] font-mono font-bold tabular-nums px-2 py-0.5 border shrink-0"
+                    style={{
+                      color: theme.negative,
+                      borderColor: `${theme.negative}50`,
+                      backgroundColor: `${theme.negative}10`
+                    }}
+                  >
+                    01
+                  </span>
+                  <div className="min-w-0">
+                    <h2 className="text-base sm:text-lg font-black truncate" style={{ color: theme.text }}>
                       نظام إدارة التالف والمفقودات
                     </h2>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-[11px] truncate" style={{ color: theme.textMuted }}>
                       خصم الكميات التالفة وتوثيق الخسائر قبل إغلاق الجرد
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={onClose}
-                  className="w-9 h-9 flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-xl bg-zinc-100 dark:bg-zinc-800 transition-colors"
+                  className="p-1.5 border transition-colors cursor-pointer shrink-0"
+                  style={{
+                    backgroundColor: theme.surfaceMuted,
+                    borderColor: theme.border,
+                    color: theme.text
+                  }}
                 >
                   <X size={18} />
                 </button>
               </div>
 
               {/* Navigation Tabs */}
-              <div className="flex items-center p-1 bg-zinc-100 dark:bg-zinc-800/80 rounded-xl text-xs font-bold gap-1">
+              <div
+                className="grid grid-cols-2 border p-1 text-xs font-bold gap-1"
+                style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }}
+              >
                 <button
+                  type="button"
                   onClick={() => setActiveTab('record')}
-                  className={cn(
-                    "flex-1 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all",
+                  className="py-2 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  style={
                     activeTab === 'record'
-                      ? "bg-white dark:bg-zinc-900 text-[#B34C36] shadow-sm font-black"
-                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-                  )}
+                      ? { backgroundColor: theme.negative, color: '#FFFFFF' }
+                      : { backgroundColor: 'transparent', color: theme.textMuted }
+                  }
                 >
                   <PlusCircle size={15} />
                   <span>تسجيل تالف جديد</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setActiveTab('logs')}
-                  className={cn(
-                    "flex-1 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all",
+                  className="py-2 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  style={
                     activeTab === 'logs'
-                      ? "bg-white dark:bg-zinc-900 text-[#B34C36] shadow-sm font-black"
-                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-                  )}
+                      ? { backgroundColor: theme.negative, color: '#FFFFFF' }
+                      : { backgroundColor: 'transparent', color: theme.textMuted }
+                  }
                 >
                   <History size={15} />
                   <span>سجل التالف</span>
                   {pendingLogsCount > 0 && (
-                    <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-[#B34C36] text-white">
+                    <span
+                      className="px-1.5 py-0.5 text-[10px] font-mono font-black tabular-nums border"
+                      style={
+                        activeTab === 'logs'
+                          ? { backgroundColor: 'rgba(255,255,255,0.2)', borderColor: 'rgba(255,255,255,0.35)', color: '#FFFFFF' }
+                          : { backgroundColor: theme.negative, borderColor: theme.negative, color: '#FFFFFF' }
+                      }
+                    >
                       {pendingLogsCount}
                     </span>
                   )}
@@ -351,14 +387,14 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
             </div>
 
             {/* Modal Body */}
-            <div className="p-4 overflow-y-auto flex-1 space-y-4">
+            <div className="p-4 min-h-0 overflow-y-auto space-y-4">
               {activeTab === 'record' ? (
                 /* TAB 1: RECORD NEW DAMAGE */
                 <div className="space-y-4">
                   {!selectedProduct ? (
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                        <label className="block text-xs font-bold mb-1.5" style={{ color: theme.text }}>
                           ابحث عن المنتج التالف بالاسم أو امسح الباركود
                         </label>
                         <div className="relative flex items-center">
@@ -368,18 +404,24 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             onKeyDown={handleKeyDownSearch}
-                            className="w-full h-12 pr-10 pl-24 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/60 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:ring-2 focus:ring-[#B34C36]/30 focus:border-[#B34C36] outline-none text-sm font-medium transition-all"
+                            className="w-full h-11 pr-10 pl-24 border outline-none text-sm font-medium transition-colors"
+                            style={{
+                              backgroundColor: theme.surface,
+                              borderColor: theme.border,
+                              color: theme.text
+                            }}
                             autoFocus
                           />
-                          <Search className="absolute right-3.5 text-zinc-400" size={18} />
+                          <Search className="absolute right-3" size={17} style={{ color: theme.textMuted }} />
 
                           {/* Scanner Button inside input */}
-                          <div className="absolute left-2 flex items-center gap-1">
+                          <div className="absolute left-1.5 flex items-center gap-1">
                             {searchTerm && (
                               <button
                                 type="button"
                                 onClick={() => setSearchTerm('')}
-                                className="p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-lg"
+                                className="p-1.5 transition-colors cursor-pointer"
+                                style={{ color: theme.textMuted }}
                                 title="مسح النص"
                               >
                                 <X size={15} />
@@ -388,10 +430,15 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
                             <button
                               type="button"
                               onClick={() => setIsScannerOpen(true)}
-                              className="flex items-center gap-1 px-2.5 py-1.5 bg-[#B34C36]/10 hover:bg-[#B34C36]/20 text-[#B34C36] rounded-lg transition-colors font-bold text-xs"
+                              className="flex items-center gap-1 px-2.5 py-1.5 border font-bold text-xs cursor-pointer transition-colors"
+                              style={{
+                                backgroundColor: `${theme.negative}14`,
+                                borderColor: `${theme.negative}45`,
+                                color: theme.negative
+                              }}
                               title="مسح الباركود بالكاميرا"
                             >
-                              <ScanBarcode size={16} />
+                              <ScanBarcode size={15} />
                               <span className="hidden sm:inline">مسح</span>
                             </button>
                           </div>
@@ -399,41 +446,65 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
                       </div>
 
                       {/* Quick tip */}
-                      <div className="flex items-center gap-2 p-2.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 rounded-xl text-amber-800 dark:text-amber-300 text-xs">
-                        <AlertCircle size={15} className="shrink-0" />
+                      <div
+                        className="flex items-center gap-2 p-2.5 border text-xs"
+                        style={{
+                          backgroundColor: `${theme.neutral}12`,
+                          borderColor: `${theme.neutral}45`,
+                          color: theme.text
+                        }}
+                      >
+                        <AlertCircle size={15} className="shrink-0" style={{ color: theme.neutral }} />
                         <span>يمكنك استخدام كاميرا الهاتف بمسح الباركود مباشرة، أو الكتابة والضغط على Enter.</span>
                       </div>
 
                       {/* Filtered suggestions list */}
                       {filteredProducts.length > 0 && (
-                        <div className="space-y-1.5 border border-zinc-100 dark:border-zinc-800 rounded-xl p-2 bg-zinc-50/70 dark:bg-zinc-800/40">
-                          <div className="text-[11px] font-bold text-zinc-400 px-2 py-0.5">
+                        <div
+                          className="space-y-1.5 border p-2"
+                          style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }}
+                        >
+                          <div className="text-[11px] font-bold px-2 py-0.5" style={{ color: theme.textMuted }}>
                             المنتجات المطابقة ({filteredProducts.length}):
                           </div>
                           {filteredProducts.map(p => (
                             <button
                               key={p.id}
+                              type="button"
                               onClick={() => {
                                 setSelectedProduct(p);
                                 setSearchTerm('');
                               }}
-                              className="w-full text-right p-3 rounded-xl hover:bg-white dark:hover:bg-zinc-800 transition-all flex items-center justify-between border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 shadow-sm group"
+                              className="w-full text-right p-3 border transition-colors flex items-center justify-between cursor-pointer"
+                              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
                             >
                               <div className="min-w-0 flex-1 pl-2">
-                                <div className="font-bold text-sm text-zinc-900 dark:text-zinc-100 truncate group-hover:text-[#B34C36] transition-colors">
+                                <div className="font-bold text-sm truncate" style={{ color: theme.text }}>
                                   {p.name}
                                 </div>
-                                <div className="flex items-center gap-2 text-xs text-zinc-500 mt-0.5">
-                                  <span>الرصيد: <strong className="text-zinc-700 dark:text-zinc-300">{p.quantity || 0}</strong></span>
+                                <div className="flex items-center gap-2 text-xs mt-0.5" style={{ color: theme.textMuted }}>
+                                  <span>
+                                    الرصيد:{' '}
+                                    <strong className="font-mono tabular-nums" style={{ color: theme.text }}>
+                                      {p.quantity || 0}
+                                    </strong>
+                                  </span>
                                   {p.barcode && (
                                     <>
                                       <span>•</span>
-                                      <span className="font-mono text-[11px]">{p.barcode}</span>
+                                      <span className="font-mono tabular-nums text-[11px]">{p.barcode}</span>
                                     </>
                                   )}
                                 </div>
                               </div>
-                              <div className="text-xs font-bold text-[#B34C36] bg-[#B34C36]/10 px-2.5 py-1 rounded-lg shrink-0">
+                              <div
+                                className="text-xs font-bold px-2.5 py-1 border shrink-0"
+                                style={{
+                                  backgroundColor: `${theme.negative}14`,
+                                  borderColor: `${theme.negative}45`,
+                                  color: theme.negative
+                                }}
+                              >
                                 اختيار
                               </div>
                             </button>
@@ -442,7 +513,10 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
                       )}
 
                       {searchTerm && filteredProducts.length === 0 && (
-                        <div className="text-center py-8 text-sm text-zinc-400 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
+                        <div
+                          className="text-center py-8 text-sm border border-dashed"
+                          style={{ borderColor: theme.border, color: theme.textMuted }}
+                        >
                           لا توجد منتجات مطابقة لـ "{searchTerm}"
                         </div>
                       )}
@@ -451,25 +525,47 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
                     /* PRODUCT SELECTED FORM */
                     <form id="damage-form" onSubmit={handleSubmit} className="space-y-4">
                       {/* Product Overview Card */}
-                      <div className="flex items-start justify-between p-3.5 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700">
-                        <div className="space-y-1">
-                          <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wide">المنتج المحدد</div>
-                          <div className="font-black text-sm sm:text-base text-zinc-900 dark:text-white">
+                      <div
+                        className="flex items-start justify-between p-3.5 border"
+                        style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                      >
+                        <div className="space-y-1 min-w-0">
+                          <div className="text-[11px] font-bold uppercase tracking-wide" style={{ color: theme.textMuted }}>
+                            المنتج المحدد
+                          </div>
+                          <div className="font-black text-sm sm:text-base truncate" style={{ color: theme.text }}>
                             {selectedProduct.name}
                           </div>
-                          <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-600 dark:text-zinc-400 pt-1">
-                            <span className="bg-zinc-200/60 dark:bg-zinc-700/60 px-2 py-0.5 rounded-md">
-                              الرصيد المتوفر: <strong className="text-zinc-900 dark:text-white font-bold">{selectedProduct.quantity || 0}</strong>
+                          <div className="flex flex-wrap items-center gap-2 text-xs pt-1" style={{ color: theme.textMuted }}>
+                            <span
+                              className="px-2 py-0.5 border"
+                              style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }}
+                            >
+                              الرصيد المتوفر:{' '}
+                              <strong className="font-mono tabular-nums font-bold" style={{ color: theme.text }}>
+                                {selectedProduct.quantity || 0}
+                              </strong>
                             </span>
-                            <span className="bg-zinc-200/60 dark:bg-zinc-700/60 px-2 py-0.5 rounded-md">
-                              سعر التكلفة: <strong className="text-[#B34C36] font-bold">{formatCurrency(selectedProduct.purchasePrice || selectedProduct.costPrice || 0, settings.currency, settings.language)}</strong>
+                            <span
+                              className="px-2 py-0.5 border"
+                              style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }}
+                            >
+                              سعر التكلفة:{' '}
+                              <strong className="font-mono tabular-nums font-bold" style={{ color: theme.negative }}>
+                                {formatCurrency(selectedProduct.purchasePrice || selectedProduct.costPrice || 0, settings.currency, settings.language)}
+                              </strong>
                             </span>
                           </div>
                         </div>
                         <button
                           type="button"
                           onClick={() => setSelectedProduct(null)}
-                          className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-2.5 py-1.5 rounded-lg transition-colors border border-blue-200 dark:border-blue-900/50"
+                          className="text-xs font-bold px-2.5 py-1.5 border transition-colors cursor-pointer shrink-0"
+                          style={{
+                            backgroundColor: `${theme.accent}12`,
+                            borderColor: `${theme.accent}45`,
+                            color: theme.accent
+                          }}
                         >
                           تغيير الصنف
                         </button>
@@ -478,10 +574,10 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
                       {/* Quantity Input */}
                       <div>
                         <div className="flex justify-between items-center mb-1.5">
-                          <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
-                            الكمية التالفة المخصومة <span className="text-red-500">*</span>
+                          <label className="text-xs font-bold" style={{ color: theme.text }}>
+                            الكمية التالفة المخصومة <span style={{ color: theme.negative }}>*</span>
                           </label>
-                          <span className="text-[11px] text-zinc-400">
+                          <span className="text-[11px] font-mono tabular-nums" style={{ color: theme.textMuted }}>
                             الحد الأقصى: {selectedProduct.quantity || 0}
                           </span>
                         </div>
@@ -494,7 +590,12 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
                             max={selectedProduct.quantity || 0}
                             value={damageQty}
                             onChange={(e) => setDamageQty(e.target.value)}
-                            className="w-full h-12 px-4 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[#B34C36]/30 focus:border-[#B34C36] outline-none text-base font-black transition-all"
+                            className="w-full h-11 px-4 border outline-none text-base font-mono font-black tabular-nums transition-colors"
+                            style={{
+                              backgroundColor: theme.surface,
+                              borderColor: theme.border,
+                              color: theme.text
+                            }}
                             placeholder="مثال: 1"
                             autoFocus
                           />
@@ -502,11 +603,17 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
 
                         {/* Calculated Loss Notice */}
                         {damageQty && Number(damageQty) > 0 && (
-                          <div className="mt-2 p-3 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/40 rounded-xl flex items-center justify-between text-xs font-bold">
-                            <span className="text-red-700 dark:text-red-300">
+                          <div
+                            className="mt-2 p-3 border flex items-center justify-between text-xs font-bold"
+                            style={{
+                              backgroundColor: `${theme.negative}10`,
+                              borderColor: `${theme.negative}45`
+                            }}
+                          >
+                            <span style={{ color: theme.negative }}>
                               إجمالي الخسارة المالية:
                             </span>
-                            <span className="text-red-600 dark:text-red-400 text-sm font-black" dir="ltr">
+                            <span className="text-sm font-mono font-black tabular-nums" style={{ color: theme.negative }} dir="ltr">
                               {formatCurrency(
                                 roundMoney((selectedProduct.purchasePrice || selectedProduct.costPrice || 0) * Number(damageQty)),
                                 settings.currency,
@@ -519,13 +626,18 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
 
                       {/* Notes / Reason */}
                       <div>
-                        <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                        <label className="block text-xs font-bold mb-1.5" style={{ color: theme.text }}>
                           سبب التلف أو الملاحظات (اختياري)
                         </label>
                         <textarea
                           value={note}
                           onChange={(e) => setNote(e.target.value)}
-                          className="w-full p-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[#B34C36]/30 focus:border-[#B34C36] outline-none text-sm transition-all resize-none min-h-[75px]"
+                          className="w-full p-3 border outline-none text-sm transition-colors resize-none min-h-[75px]"
+                          style={{
+                            backgroundColor: theme.surface,
+                            borderColor: theme.border,
+                            color: theme.text
+                          }}
                           placeholder="مثلاً: كسر أثناء النقل، انتهاء صلاحية، عيب مصنعي..."
                         />
                       </div>
@@ -535,54 +647,67 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
               ) : (
                 /* TAB 2: DAMAGE LOGS (VIEW REGISTERED DAMAGES) */
                 <div className="space-y-4">
-                  {/* Filter Pills */}
+                  {/* Filter Bar */}
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl text-xs font-bold">
+                    <div
+                      className="flex items-center border p-1 text-xs font-bold gap-1"
+                      style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }}
+                    >
                       <button
+                        type="button"
                         onClick={() => setLogsFilter('pending')}
-                        className={cn(
-                          "px-3 py-1.5 rounded-lg transition-all",
+                        className="px-3 py-1.5 transition-colors cursor-pointer"
+                        style={
                           logsFilter === 'pending'
-                            ? "bg-white dark:bg-zinc-900 text-[#B34C36] shadow-sm font-black"
-                            : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
-                        )}
+                            ? { backgroundColor: theme.surface, color: theme.negative, fontWeight: 900 }
+                            : { backgroundColor: 'transparent', color: theme.textMuted }
+                        }
                       >
                         المعلق بالجرد الحالي ({pendingLogsCount})
                       </button>
                       <button
+                        type="button"
                         onClick={() => setLogsFilter('all')}
-                        className={cn(
-                          "px-3 py-1.5 rounded-lg transition-all",
+                        className="px-3 py-1.5 transition-colors cursor-pointer"
+                        style={
                           logsFilter === 'all'
-                            ? "bg-white dark:bg-zinc-900 text-[#B34C36] shadow-sm font-black"
-                            : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
-                        )}
+                            ? { backgroundColor: theme.surface, color: theme.negative, fontWeight: 900 }
+                            : { backgroundColor: 'transparent', color: theme.textMuted }
+                        }
                       >
                         جميع السجلات ({damageLogs.length})
                       </button>
                     </div>
 
                     <button
+                      type="button"
                       onClick={() => setActiveTab('record')}
-                      className="text-xs font-bold text-[#B34C36] hover:underline flex items-center gap-1 shrink-0"
+                      className="text-xs font-bold hover:underline flex items-center gap-1 shrink-0 cursor-pointer"
+                      style={{ color: theme.negative }}
                     >
                       <PlusCircle size={14} />
                       <span>إضافة تالف</span>
                     </button>
                   </div>
 
-                  {/* Summary Metric Cards */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 bg-red-50/70 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 rounded-xl">
-                      <div className="text-[10px] font-bold text-red-600 dark:text-red-400">إجمالي خسائر التالف</div>
-                      <div className="text-base sm:text-lg font-black text-red-700 dark:text-red-300 mt-0.5">
+                  {/* Summary Metric Strip */}
+                  <div
+                    className="grid grid-cols-2 border divide-x divide-x-reverse"
+                    style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                  >
+                    <div className="p-3" style={{ borderColor: theme.border }}>
+                      <div className="text-[10px] font-bold" style={{ color: theme.negative }}>إجمالي خسائر التالف</div>
+                      <div className="text-base sm:text-lg font-mono font-black tabular-nums mt-0.5" style={{ color: theme.negative }}>
                         {formatCurrency(totalLossDisplayed, settings.currency, settings.language)}
                       </div>
                     </div>
-                    <div className="p-3 bg-zinc-100/70 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-700/50 rounded-xl">
-                      <div className="text-[10px] font-bold text-zinc-500">إجمالي القطع التالفة</div>
-                      <div className="text-base sm:text-lg font-black text-zinc-900 dark:text-white mt-0.5">
-                        {totalPiecesDisplayed} <span className="text-xs font-normal text-zinc-400">قطعة ({displayedLogs.length} عملية)</span>
+                    <div className="p-3" style={{ borderColor: theme.border }}>
+                      <div className="text-[10px] font-bold" style={{ color: theme.textMuted }}>إجمالي القطع التالفة</div>
+                      <div className="text-base sm:text-lg font-mono font-black tabular-nums mt-0.5" style={{ color: theme.text }}>
+                        {totalPiecesDisplayed}{' '}
+                        <span className="text-xs font-sans font-normal" style={{ color: theme.textMuted }}>
+                          قطعة ({displayedLogs.length} عملية)
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -590,25 +715,36 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
                   {/* Damage Logs List */}
                   {loadingLogs ? (
                     <div className="py-12 flex flex-col items-center justify-center gap-2">
-                      <div className="w-7 h-7 border-2 border-[#B34C36] border-t-transparent animate-spin rounded-full" />
-                      <span className="text-xs text-zinc-400 font-bold">جاري تحميل سجلات التالف...</span>
+                      <div
+                        className="w-7 h-7 border-2 border-t-transparent animate-spin rounded-full"
+                        style={{ borderColor: `${theme.negative} transparent ${theme.negative} ${theme.negative}` }}
+                      />
+                      <span className="text-xs font-bold" style={{ color: theme.textMuted }}>جاري تحميل سجلات التالف...</span>
                     </div>
                   ) : displayedLogs.length === 0 ? (
-                    <div className="py-12 text-center border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl p-6">
-                      <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 flex items-center justify-center mx-auto mb-2">
-                        <CheckCircle2 size={24} />
+                    <div
+                      className="py-12 text-center border border-dashed p-6"
+                      style={{ borderColor: theme.border, backgroundColor: theme.surface }}
+                    >
+                      <div
+                        className="w-12 h-12 border flex items-center justify-center mx-auto mb-2"
+                        style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.textMuted }}
+                      >
+                        <CheckCircle2 size={22} />
                       </div>
-                      <div className="text-sm font-bold text-zinc-700 dark:text-zinc-300">
+                      <div className="text-sm font-bold" style={{ color: theme.text }}>
                         {logsFilter === 'pending' ? 'لا توجد تسجيلات تالف معلقة حالياً' : 'سجل التالف فارغ'}
                       </div>
-                      <p className="text-xs text-zinc-400 mt-1 max-w-xs mx-auto">
+                      <p className="text-xs mt-1 max-w-xs mx-auto" style={{ color: theme.textMuted }}>
                         {logsFilter === 'pending'
                           ? 'أي تالف تسجله سيظهر هنا بانتظار إغلاق الجرد القادم، ويمكنك إلغاؤه واسترجاع رصيده في أي وقت.'
                           : 'لم يتم تسجيل أي منتجات تالفة بعد.'}
                       </p>
                       <button
+                        type="button"
                         onClick={() => setActiveTab('record')}
-                        className="mt-4 px-4 py-2 bg-[#B34C36] text-white text-xs font-bold rounded-xl shadow hover:brightness-110 transition-all inline-flex items-center gap-1.5"
+                        className="mt-4 px-4 py-2 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                        style={{ backgroundColor: theme.negative, color: '#FFFFFF' }}
                       >
                         <PlusCircle size={15} />
                         <span>تسجيل منتج تالف الآن</span>
@@ -621,27 +757,42 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
                         return (
                           <div
                             key={item.id}
-                            className="p-3.5 bg-zinc-50 dark:bg-zinc-800/60 rounded-xl border border-zinc-200/80 dark:border-zinc-700/70 hover:border-zinc-300 dark:hover:border-zinc-600 transition-all space-y-2"
+                            className="p-3.5 border space-y-2 transition-colors"
+                            style={{ backgroundColor: theme.surface, borderColor: theme.border }}
                           >
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="font-black text-sm text-zinc-900 dark:text-white">
+                                  <span className="font-black text-sm" style={{ color: theme.text }}>
                                     {item.productName}
                                   </span>
                                   {item.audited ? (
-                                    <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 rounded-md">
+                                    <span
+                                      className="text-[10px] font-bold px-2 py-0.5 border"
+                                      style={{
+                                        backgroundColor: `${theme.positive}14`,
+                                        borderColor: `${theme.positive}45`,
+                                        color: theme.positive
+                                      }}
+                                    >
                                       مُدرج في جرد سابق {item.auditedAt ? `(${formatAppDate(safeParseDate(item.auditedAt), settings.language, t, { day: 'numeric', month: 'short' })})` : ''}
                                     </span>
                                   ) : (
-                                    <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 rounded-md">
+                                    <span
+                                      className="text-[10px] font-bold px-2 py-0.5 border"
+                                      style={{
+                                        backgroundColor: `${theme.neutral}14`,
+                                        borderColor: `${theme.neutral}45`,
+                                        color: theme.neutral
+                                      }}
+                                    >
                                       معلق للجرد القادم
                                     </span>
                                   )}
                                 </div>
-                                <div className="flex items-center gap-2 text-[11px] text-zinc-400 mt-1">
+                                <div className="flex items-center gap-2 text-[11px] mt-1" style={{ color: theme.textMuted }}>
                                   <Clock size={12} />
-                                  <span>
+                                  <span className="font-mono tabular-nums">
                                     {formatAppDate(itemDate, settings.language, t, { day: 'numeric', month: 'short', year: 'numeric' })}
                                     {' '}
                                     {itemDate.toLocaleTimeString(settings.language === 'ar' ? 'ar-TN' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
@@ -649,7 +800,7 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
                                   {item.barcode && (
                                     <>
                                       <span>•</span>
-                                      <span className="font-mono text-[10px]">{item.barcode}</span>
+                                      <span className="font-mono tabular-nums text-[10px]">{item.barcode}</span>
                                     </>
                                   )}
                                 </div>
@@ -660,29 +811,39 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
                                 <button
                                   type="button"
                                   onClick={() => setItemToDelete(item)}
-                                  className="p-2 text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors shrink-0"
+                                  className="p-2 border transition-colors shrink-0 cursor-pointer"
+                                  style={{
+                                    backgroundColor: `${theme.negative}10`,
+                                    borderColor: `${theme.negative}35`,
+                                    color: theme.negative
+                                  }}
                                   title="إلغاء التالف واسترجاع الكمية للمخزون"
                                 >
-                                  <Trash2 size={16} />
+                                  <Trash2 size={15} />
                                 </button>
                               )}
                             </div>
 
                             {/* Details Grid */}
-                            <div className="grid grid-cols-3 gap-2 p-2 bg-white dark:bg-zinc-900 rounded-lg text-xs border border-zinc-100 dark:border-zinc-800">
+                            <div
+                              className="grid grid-cols-3 gap-2 p-2.5 border text-xs"
+                              style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }}
+                            >
                               <div>
-                                <div className="text-[10px] text-zinc-400 font-bold">الكمية التالفة</div>
-                                <div className="font-black text-red-600 dark:text-red-400">{item.quantity}</div>
+                                <div className="text-[10px] font-bold" style={{ color: theme.textMuted }}>الكمية التالفة</div>
+                                <div className="font-mono font-black tabular-nums" style={{ color: theme.negative }}>
+                                  {item.quantity}
+                                </div>
                               </div>
                               <div>
-                                <div className="text-[10px] text-zinc-400 font-bold">تكلفة الوحدة</div>
-                                <div className="font-bold text-zinc-700 dark:text-zinc-300">
+                                <div className="text-[10px] font-bold" style={{ color: theme.textMuted }}>تكلفة الوحدة</div>
+                                <div className="font-mono font-bold tabular-nums" style={{ color: theme.text }}>
                                   {formatCurrency(item.unitCost || 0, settings.currency, settings.language)}
                                 </div>
                               </div>
                               <div>
-                                <div className="text-[10px] text-zinc-400 font-bold">إجمالي الخسارة</div>
-                                <div className="font-black text-[#B34C36]">
+                                <div className="text-[10px] font-bold" style={{ color: theme.textMuted }}>إجمالي الخسارة</div>
+                                <div className="font-mono font-black tabular-nums" style={{ color: theme.negative }}>
                                   {formatCurrency(item.totalLoss || 0, settings.currency, settings.language)}
                                 </div>
                               </div>
@@ -690,8 +851,15 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
 
                             {/* Reason note if any */}
                             {item.reason && (
-                              <div className="text-xs text-zinc-600 dark:text-zinc-400 bg-zinc-100/70 dark:bg-zinc-800/80 px-2.5 py-1.5 rounded-lg">
-                                <span className="font-bold text-zinc-500">السبب: </span>
+                              <div
+                                className="text-xs px-2.5 py-1.5 border"
+                                style={{
+                                  backgroundColor: theme.surfaceMuted,
+                                  borderColor: theme.border,
+                                  color: theme.textMuted
+                                }}
+                              >
+                                <span className="font-bold" style={{ color: theme.text }}>السبب: </span>
                                 {item.reason}
                               </div>
                             )}
@@ -705,13 +873,21 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 flex items-center justify-between gap-3">
+            <div
+              className="p-4 border-t flex items-center justify-between gap-3 shrink-0"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+            >
               {activeTab === 'record' ? (
                 <>
                   <button
                     type="button"
                     onClick={onClose}
-                    className="px-4 h-11 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/50 dark:hover:bg-zinc-800 rounded-xl text-xs font-bold transition-colors"
+                    className="px-4 h-11 border text-xs font-bold transition-colors cursor-pointer"
+                    style={{
+                      backgroundColor: theme.surfaceMuted,
+                      borderColor: theme.border,
+                      color: theme.text
+                    }}
                   >
                     إلغاء
                   </button>
@@ -719,8 +895,8 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
                     form="damage-form"
                     type="submit"
                     disabled={!selectedProduct || !damageQty || isSubmitting}
-                    className="flex-1 h-11 flex items-center justify-center gap-2 text-white font-bold text-xs sm:text-sm rounded-xl shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110"
-                    style={{ backgroundColor: '#B34C36', boxShadow: '0 8px 16px -4px rgba(179, 76, 54, 0.25)' }}
+                    className="flex-1 h-11 flex items-center justify-center gap-2 font-bold text-xs sm:text-sm transition-opacity disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    style={{ backgroundColor: theme.negative, color: '#FFFFFF' }}
                   >
                     {isSubmitting ? (
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -736,7 +912,12 @@ export function DamageModal({ show, onClose, products }: DamageModalProps) {
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-full h-11 bg-zinc-900 dark:bg-zinc-800 hover:bg-zinc-800 dark:hover:bg-zinc-700 text-white font-bold text-xs sm:text-sm rounded-xl transition-colors"
+                  className="w-full h-11 border font-bold text-xs sm:text-sm transition-colors cursor-pointer"
+                  style={{
+                    backgroundColor: theme.surfaceMuted,
+                    borderColor: theme.border,
+                    color: theme.text
+                  }}
                 >
                   إغلاق النافذة
                 </button>

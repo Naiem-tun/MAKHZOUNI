@@ -1,9 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Wallet, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { formatCurrency, cn } from '../../lib/utils';
+import { formatCurrency } from '../../lib/utils';
 import { useAppContext } from '../../AppContext';
+import { useFolioTheme } from '../folio/FolioPageChrome';
 
 interface ExpensesModalProps {
   show: boolean;
@@ -24,72 +25,115 @@ export const ExpensesModal: React.FC<ExpensesModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const { settings } = useAppContext();
+  const { theme } = useFolioTheme(Boolean(settings?.darkMode), settings?.folioThemeId);
 
   return (
     <AnimatePresence>
       {show && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-          />
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+          dir="rtl"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-2xl border border-zinc-100 dark:border-zinc-800"
+            exit={{ opacity: 0, scale: 0.96, y: 12 }}
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-sm border shadow-2xl overflow-hidden"
+            style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }}
           >
-            <div className="p-6 space-y-6">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center text-amber-600">
-                    <Wallet size={20} />
-                  </div>
-                  <h3 className="font-bold text-lg">{t('expenses_month')}</h3>
+            {/* Sticky Header */}
+            <div
+              className="px-5 py-4 border-b flex justify-between items-center"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+            >
+              <div className="flex items-center gap-2.5">
+                <span
+                  className="text-[11px] font-mono font-bold tabular-nums px-2 py-0.5 border"
+                  style={{
+                    color: theme.accent,
+                    borderColor: `${theme.accent}45`,
+                    backgroundColor: `${theme.accent}12`
+                  }}
+                >
+                  01
+                </span>
+                <h3 className="font-black text-base" style={{ color: theme.text }}>
+                  {t('expenses_month')}
+                </h3>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-1.5 border transition-colors cursor-pointer"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                  color: theme.text
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div
+                className="space-y-1.5 text-center py-5 px-4 border"
+                style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+              >
+                <div className="text-3xl font-mono font-black tabular-nums" style={{ color: theme.negative }} dir="ltr">
+                  {loading ? '...' : formatCurrency(amount, settings.currency, settings.language)}
                 </div>
-                <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600">
-                  <X size={20} />
-                </button>
+                <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: theme.textMuted }}>
+                  {t('total_expenses_recorded')}
+                </div>
               </div>
 
-              <div className="space-y-2 text-center py-4 bg-amber-50/30 dark:bg-amber-950/10 rounded-lg border border-amber-50 dark:border-amber-950/20">
-                <div className="text-4xl font-black text-zinc-900 dark:text-white">
-                  {loading ? "..." : formatCurrency(amount, settings.currency, settings.language)}
-                </div>
-                <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{t('total_expenses_recorded')}</div>
-              </div>
-
-              <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">{t('deduct_from_inventory_profit')}</span>
-                    <span className="text-[10px] text-zinc-400 font-medium leading-tight">{t('deduct_expenses_profit_desc')}</span>
+              <div
+                className="p-4 border space-y-2"
+                style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border }}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-bold" style={{ color: theme.text }}>
+                      {t('deduct_from_inventory_profit')}
+                    </span>
+                    <span className="text-[11px] leading-snug mt-0.5" style={{ color: theme.textMuted }}>
+                      {t('deduct_expenses_profit_desc')}
+                    </span>
                   </div>
-                  <button 
+                  <button
+                    type="button"
                     onClick={onToggleDeduct}
-                    className={cn(
-                      "w-12 h-6 rounded-full transition-all relative",
-                      shouldDeduct ? "bg-[#B34C36]" : "bg-zinc-300 dark:bg-zinc-700"
-                    )}
+                    className="w-12 h-6 border transition-colors relative shrink-0 cursor-pointer"
+                    style={{
+                      backgroundColor: shouldDeduct ? theme.negative : theme.surface,
+                      borderColor: shouldDeduct ? theme.negative : theme.border
+                    }}
                   >
-                    <motion.div 
-                      animate={{ x: shouldDeduct ? 24 : 4 }}
-                      className="absolute top-1 left-0 w-4 h-4 bg-white rounded-full shadow-sm"
+                    <motion.div
+                      animate={{ x: shouldDeduct ? 24 : 2 }}
+                      className="absolute top-0.5 left-0 w-4 h-4"
+                      style={{ backgroundColor: shouldDeduct ? '#FFFFFF' : theme.textMuted }}
                     />
                   </button>
                 </div>
               </div>
-              
-              <p className="text-[10px] text-zinc-400 text-center px-4 leading-relaxed font-medium">
+
+              <p className="text-[11px] text-center px-2 leading-relaxed font-medium" style={{ color: theme.textMuted }}>
                 {t('expenses_auto_fetched_desc')}
               </p>
+            </div>
 
-              <button 
+            <div
+              className="px-5 py-3.5 border-t"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+            >
+              <button
+                type="button"
                 onClick={onClose}
-                className="w-full py-4 bg-zinc-900 dark:bg-brand-600 text-white rounded-lg font-black shadow-lg shadow-zinc-500/20 active:scale-95 transition-all"
+                className="w-full py-2.5 text-xs font-black transition-opacity hover:opacity-90 cursor-pointer"
+                style={{ backgroundColor: theme.accent, color: theme.accentText }}
               >
                 {t('close')}
               </button>
@@ -99,4 +143,4 @@ export const ExpensesModal: React.FC<ExpensesModalProps> = ({
       )}
     </AnimatePresence>
   );
-}
+};

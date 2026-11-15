@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAppContext } from '../../AppContext';
 import { cn } from '../../lib/utils';
+import { useFolioTheme } from '../folio/FolioPageChrome';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import * as xlsx from 'xlsx';
@@ -36,6 +37,7 @@ export const InventoryPrintModal: React.FC<InventoryPrintModalProps> = ({
   categories
 }) => {
   const { settings, showToast } = useAppContext();
+  const { theme } = useFolioTheme(Boolean(settings?.darkMode), settings?.folioThemeId);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showSystemQuantity, setShowSystemQuantity] = useState<boolean>(true);
   const [sortBy, setSortBy] = useState<'category' | 'name' | 'barcode'>('category');
@@ -543,29 +545,52 @@ export const InventoryPrintModal: React.FC<InventoryPrintModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[110] flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-sm">
+      <div
+        className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4 bg-black/65 backdrop-blur-xs"
+        dir="rtl"
+        onClick={onClose}
+      >
         
         {/* Modal Container */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
+          initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          className="relative w-full max-w-4xl bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[92vh]"
+          exit={{ opacity: 0, scale: 0.96 }}
+          onClick={(e) => e.stopPropagation()}
+          className="relative w-full max-w-4xl max-h-[92vh] border shadow-2xl overflow-hidden flex flex-col"
+          style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 sm:p-5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-brand-500/10 text-brand-600 dark:text-brand-400 rounded-xl">
-                <FileText size={22} />
-              </div>
-              <div>
-                <h3 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+          <div
+            className="flex items-center justify-between p-4 sm:p-5 border-b shrink-0"
+            style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span
+                className="text-[11px] font-mono font-bold tabular-nums px-2 py-0.5 border shrink-0"
+                style={{
+                  color: theme.accent,
+                  borderColor: `${theme.accent}45`,
+                  backgroundColor: `${theme.accent}12`
+                }}
+              >
+                01
+              </span>
+              <div className="min-w-0">
+                <h3 className="text-base sm:text-lg font-black flex items-center gap-2 flex-wrap" style={{ color: theme.text }}>
                   <span>استخراج كشف جرد المخزون الورقي (PDF)</span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400">
+                  <span
+                    className="text-[11px] font-mono font-bold tabular-nums px-2 py-0.5 border"
+                    style={{
+                      backgroundColor: `${theme.accent}12`,
+                      borderColor: `${theme.accent}40`,
+                      color: theme.accent
+                    }}
+                  >
                     {filteredProducts.length} منتج • {totalPages} صفحة
                   </span>
                 </h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                <p className="text-[11px]" style={{ color: theme.textMuted }}>
                   توليد وتحميل ملف PDF فوري يحتوي على كافة الصفحات والجداول بدقة ووضوح تام
                 </p>
               </div>
@@ -573,30 +598,39 @@ export const InventoryPrintModal: React.FC<InventoryPrintModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-white rounded-xl hover:bg-zinc-200/50 dark:hover:bg-zinc-800 transition-colors"
+              className="p-1.5 border transition-colors cursor-pointer shrink-0"
+              style={{
+                backgroundColor: theme.surfaceMuted,
+                borderColor: theme.border,
+                color: theme.text
+              }}
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           </div>
 
           {/* Action Toolbar */}
-          <div className="p-3 sm:p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-wrap items-center justify-between gap-2.5 shrink-0">
+          <div
+            className="p-3 sm:p-4 border-b flex flex-wrap items-center justify-between gap-2.5 shrink-0"
+            style={{ backgroundColor: theme.bg, borderColor: theme.border }}
+          >
             <div className="flex flex-wrap items-center gap-2">
               {/* PRIMARY ACTION: Download PDF directly */}
               <button
                 type="button"
                 onClick={handleDownloadPDF}
                 disabled={isExportingPDF || isPrintingDirect}
-                className="flex items-center gap-2 px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs sm:text-sm font-black transition-all shadow-md shadow-brand-500/25 active:scale-95 cursor-pointer disabled:opacity-50"
+                className="flex items-center gap-2 px-5 py-2.5 text-xs sm:text-sm font-black transition-opacity hover:opacity-90 cursor-pointer disabled:opacity-50"
+                style={{ backgroundColor: theme.accent, color: theme.accentText }}
               >
                 {isExportingPDF ? (
                   <>
-                    <Loader2 size={18} className="animate-spin text-white" />
+                    <Loader2 size={17} className="animate-spin" />
                     <span>جاري توليد PDF ({pdfProgress.current} من {pdfProgress.total})...</span>
                   </>
                 ) : (
                   <>
-                    <Download size={18} />
+                    <Download size={17} />
                     <span>تحميل ملف PDF ({totalPages} صفحة)</span>
                   </>
                 )}
@@ -607,12 +641,17 @@ export const InventoryPrintModal: React.FC<InventoryPrintModalProps> = ({
                 type="button"
                 onClick={handleDirectPrint}
                 disabled={isExportingPDF || isPrintingDirect}
-                className="flex items-center gap-2 px-3.5 py-2.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer disabled:opacity-50 border border-zinc-200 dark:border-zinc-700"
+                className="flex items-center gap-2 px-3.5 py-2.5 border text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                style={{
+                  backgroundColor: theme.surface,
+                  borderColor: theme.border,
+                  color: theme.text
+                }}
               >
                 {isPrintingDirect ? (
                   <Loader2 size={16} className="animate-spin" />
                 ) : (
-                  <Printer size={16} className="text-zinc-600 dark:text-zinc-300" />
+                  <Printer size={16} />
                 )}
                 <span>طباعة فورية</span>
               </button>
@@ -622,7 +661,12 @@ export const InventoryPrintModal: React.FC<InventoryPrintModalProps> = ({
                 type="button"
                 onClick={handleExportExcel}
                 disabled={isExportingPDF || isPrintingDirect}
-                className="flex items-center gap-1.5 px-3 py-2.5 bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800/40 text-zinc-600 dark:text-zinc-400 rounded-xl text-xs font-bold transition-all border border-zinc-200 dark:border-zinc-700"
+                className="flex items-center gap-1.5 px-3 py-2.5 border text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                  color: theme.text
+                }}
                 title="تصدير كجدول Excel"
               >
                 <FileSpreadsheet size={15} />
@@ -634,7 +678,12 @@ export const InventoryPrintModal: React.FC<InventoryPrintModalProps> = ({
             <button
               type="button"
               onClick={handleOpenInNewTab}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-zinc-600 dark:text-zinc-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-2 border text-xs font-bold transition-colors cursor-pointer"
+              style={{
+                backgroundColor: theme.surfaceMuted,
+                borderColor: theme.border,
+                color: theme.text
+              }}
             >
               <ExternalLink size={15} />
               <span>فتح في صفحة مستقلة</span>
@@ -642,38 +691,51 @@ export const InventoryPrintModal: React.FC<InventoryPrintModalProps> = ({
           </div>
 
           {/* Filter Bar */}
-          <div className="p-3 sm:p-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/60 grid grid-cols-1 sm:grid-cols-12 gap-2.5 shrink-0 text-xs font-bold relative z-20">
+          <div
+            className="p-3 sm:p-4 border-b grid grid-cols-1 sm:grid-cols-12 gap-2.5 shrink-0 text-xs font-bold relative z-20"
+            style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+          >
             {/* Category Dropdown */}
             <div className="sm:col-span-4 relative" ref={categoryRef}>
-              <label className="block text-zinc-500 mb-1">القسم / التصنيف:</label>
+              <label className="block mb-1" style={{ color: theme.textMuted }}>القسم / التصنيف:</label>
               <button
                 type="button"
                 onClick={() => {
                   setCategoryDropdownOpen(!categoryDropdownOpen);
                   setSortDropdownOpen(false);
                 }}
-                className="w-full h-10 px-3 rounded-xl bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-bold text-xs flex items-center justify-between outline-none cursor-pointer border border-zinc-200 dark:border-zinc-700 shadow-sm focus:border-brand-500"
+                className="w-full h-10 px-3 font-bold text-xs flex items-center justify-between outline-none cursor-pointer border"
+                style={{
+                  backgroundColor: theme.bg,
+                  borderColor: theme.border,
+                  color: theme.text
+                }}
               >
                 <span className="truncate">
                   {selectedCategory === 'all'
                     ? `كل الأقسام (${products.length} منتج)`
                     : selectedCategory}
                 </span>
-                <ChevronDown size={16} className={cn("transition-transform duration-200 text-zinc-400 shrink-0 mr-1", categoryDropdownOpen && "rotate-180")} />
+                <ChevronDown size={16} className={cn("transition-transform duration-200 shrink-0 mr-1", categoryDropdownOpen && "rotate-180")} style={{ color: theme.textMuted }} />
               </button>
 
               {categoryDropdownOpen && (
-                <div className="absolute top-full right-0 left-0 mt-1 z-50 max-h-56 overflow-y-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl py-1">
+                <div
+                  className="absolute top-full right-0 left-0 mt-1 z-50 max-h-56 overflow-y-auto border shadow-xl py-1"
+                  style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                >
                   <button
                     type="button"
                     onClick={() => {
                       setSelectedCategory('all');
                       setCategoryDropdownOpen(false);
                     }}
-                    className={cn(
-                      "w-full text-right px-3 py-2 text-xs font-bold transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 truncate cursor-pointer",
-                      selectedCategory === 'all' ? "text-brand-600 dark:text-brand-400 bg-brand-50/50 dark:bg-brand-900/10" : "text-zinc-700 dark:text-zinc-300"
-                    )}
+                    className="w-full text-right px-3 py-2 text-xs font-bold transition-colors truncate cursor-pointer"
+                    style={
+                      selectedCategory === 'all'
+                        ? { color: theme.accent, backgroundColor: `${theme.accent}12` }
+                        : { color: theme.text }
+                    }
                   >
                     كل الأقسام ({products.length} منتج)
                   </button>
@@ -685,10 +747,12 @@ export const InventoryPrintModal: React.FC<InventoryPrintModalProps> = ({
                         setSelectedCategory(c.name);
                         setCategoryDropdownOpen(false);
                       }}
-                      className={cn(
-                        "w-full text-right px-3 py-2 text-xs font-bold transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 truncate cursor-pointer",
-                        selectedCategory === c.name ? "text-brand-600 dark:text-brand-400 bg-brand-50/50 dark:bg-brand-900/10" : "text-zinc-700 dark:text-zinc-300"
-                      )}
+                      className="w-full text-right px-3 py-2 text-xs font-bold transition-colors truncate cursor-pointer"
+                      style={
+                        selectedCategory === c.name
+                          ? { color: theme.accent, backgroundColor: `${theme.accent}12` }
+                          : { color: theme.text }
+                      }
                     >
                       {c.name}
                     </button>
@@ -699,25 +763,33 @@ export const InventoryPrintModal: React.FC<InventoryPrintModalProps> = ({
 
             {/* Sort Dropdown */}
             <div className="sm:col-span-4 relative" ref={sortRef}>
-              <label className="block text-zinc-500 mb-1">الترتيب:</label>
+              <label className="block mb-1" style={{ color: theme.textMuted }}>الترتيب:</label>
               <button
                 type="button"
                 onClick={() => {
                   setSortDropdownOpen(!sortDropdownOpen);
                   setCategoryDropdownOpen(false);
                 }}
-                className="w-full h-10 px-3 rounded-xl bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-bold text-xs flex items-center justify-between outline-none cursor-pointer border border-zinc-200 dark:border-zinc-700 shadow-sm focus:border-brand-500"
+                className="w-full h-10 px-3 font-bold text-xs flex items-center justify-between outline-none cursor-pointer border"
+                style={{
+                  backgroundColor: theme.bg,
+                  borderColor: theme.border,
+                  color: theme.text
+                }}
               >
                 <span className="truncate">
                   {sortBy === 'category' && 'حسب القسم ثم اسم المنتج'}
                   {sortBy === 'name' && 'حسب اسم المنتج أبجدياً'}
                   {sortBy === 'barcode' && 'حسب رقم الباركود'}
                 </span>
-                <ChevronDown size={16} className={cn("transition-transform duration-200 text-zinc-400 shrink-0 mr-1", sortDropdownOpen && "rotate-180")} />
+                <ChevronDown size={16} className={cn("transition-transform duration-200 shrink-0 mr-1", sortDropdownOpen && "rotate-180")} style={{ color: theme.textMuted }} />
               </button>
 
               {sortDropdownOpen && (
-                <div className="absolute top-full right-0 left-0 mt-1 z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl py-1">
+                <div
+                  className="absolute top-full right-0 left-0 mt-1 z-50 border shadow-xl py-1"
+                  style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                >
                   {[
                     { value: 'category', label: 'حسب القسم ثم اسم المنتج' },
                     { value: 'name', label: 'حسب اسم المنتج أبجدياً' },
@@ -730,10 +802,12 @@ export const InventoryPrintModal: React.FC<InventoryPrintModalProps> = ({
                         setSortBy(opt.value as any);
                         setSortDropdownOpen(false);
                       }}
-                      className={cn(
-                        "w-full text-right px-3 py-2 text-xs font-bold transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 truncate cursor-pointer",
-                        sortBy === opt.value ? "text-brand-600 dark:text-brand-400 bg-brand-50/50 dark:bg-brand-900/10" : "text-zinc-700 dark:text-zinc-300"
-                      )}
+                      className="w-full text-right px-3 py-2 text-xs font-bold transition-colors truncate cursor-pointer"
+                      style={
+                        sortBy === opt.value
+                          ? { color: theme.accent, backgroundColor: `${theme.accent}12` }
+                          : { color: theme.text }
+                      }
                     >
                       {opt.label}
                     </button>
@@ -747,11 +821,20 @@ export const InventoryPrintModal: React.FC<InventoryPrintModalProps> = ({
               <button
                 type="button"
                 onClick={() => setShowSystemQuantity(!showSystemQuantity)}
-                className={`w-full h-10 px-3 rounded-xl flex items-center justify-center gap-2 border shadow-sm transition-all cursor-pointer ${
-                  showSystemQuantity 
-                    ? 'bg-brand-50 border-brand-200 text-brand-700 dark:bg-brand-950/40 dark:border-brand-800 dark:text-brand-300' 
-                    : 'bg-white border-zinc-200 text-zinc-600 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300'
-                }`}
+                className="w-full h-10 px-3 flex items-center justify-center gap-2 border transition-colors cursor-pointer"
+                style={
+                  showSystemQuantity
+                    ? {
+                        backgroundColor: `${theme.accent}14`,
+                        borderColor: `${theme.accent}50`,
+                        color: theme.accent
+                      }
+                    : {
+                        backgroundColor: theme.bg,
+                        borderColor: theme.border,
+                        color: theme.text
+                      }
+                }
               >
                 {showSystemQuantity ? <Eye size={16} /> : <EyeOff size={16} />}
                 <span className="truncate">{showSystemQuantity ? 'إظهار كمية النظام' : 'جرد أعمى (إخفاء السيستم)'}</span>
@@ -760,38 +843,47 @@ export const InventoryPrintModal: React.FC<InventoryPrintModalProps> = ({
           </div>
 
           {/* Quick Search & Summary Tip */}
-          <div className="px-4 py-2 bg-zinc-100/60 dark:bg-zinc-800/40 border-b border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-500">
+          <div
+            className="px-4 py-2 border-b flex flex-wrap items-center justify-between gap-2 text-xs"
+            style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.textMuted }}
+          >
             <div className="relative flex-1 min-w-[200px] max-w-xs">
-              <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
+              <Search className="absolute right-2.5 top-1/2 -translate-y-1/2" size={14} style={{ color: theme.textMuted }} />
               <input
                 type="text"
                 placeholder="تصفية سريعة بالاسم أو الباركود..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-8 pr-8 pl-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs outline-none focus:border-brand-500 text-zinc-900 dark:text-zinc-100"
+                className="w-full h-8 pr-8 pl-6 border text-xs outline-none"
+                style={{
+                  backgroundColor: theme.bg,
+                  borderColor: theme.border,
+                  color: theme.text
+                }}
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 cursor-pointer"
+                  style={{ color: theme.textMuted }}
                 >
                   <X size={12} />
                 </button>
               )}
             </div>
 
-            <div className="flex items-center gap-3 text-[11px] font-semibold text-zinc-600 dark:text-zinc-400">
-              <span>إجمالي الصفحات: <strong className="text-zinc-900 dark:text-white">{totalPages} صفحة A4</strong></span>
+            <div className="flex items-center gap-3 text-[11px] font-mono font-semibold tabular-nums" style={{ color: theme.textMuted }}>
+              <span>إجمالي الصفحات: <strong style={{ color: theme.text }}>{totalPages} صفحة A4</strong></span>
               <span>•</span>
-              <span>عدد المنتجات: <strong className="text-brand-600 dark:text-brand-400">{filteredProducts.length}</strong></span>
+              <span>عدد المنتجات: <strong style={{ color: theme.accent }}>{filteredProducts.length}</strong></span>
             </div>
           </div>
 
           {/* Printable Preview Area */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-zinc-100 dark:bg-zinc-950">
+          <div className="min-h-0 overflow-y-auto p-4 sm:p-6" style={{ backgroundColor: theme.surfaceMuted }}>
             <div 
               id="printable-inventory-sheet" 
-              className="bg-white text-zinc-900 p-6 sm:p-8 rounded-xl shadow-lg border border-zinc-200 mx-auto max-w-3xl"
+              className="bg-white text-zinc-900 p-6 sm:p-8 shadow-lg border border-zinc-200 mx-auto max-w-3xl"
               dir="rtl"
             >
               {/* Sheet Header */}
