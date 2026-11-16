@@ -163,7 +163,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         drag="x"
         dragConstraints={{ left: -112, right: 0 }}
         dragElastic={0.1}
-        className="relative z-10 flex items-center justify-between gap-3 px-3.5 py-3 cursor-pointer transition-colors"
+        className="relative z-10 flex items-center justify-between gap-2.5 sm:gap-3 px-2.5 sm:px-3.5 py-3 cursor-pointer transition-colors"
         style={{
           backgroundColor: activeTheme.surface,
           borderRightWidth: hasPriceError ? '3px' : '0px',
@@ -178,12 +178,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           }
         }}
       >
-        <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
           <ProductIcon product={product} theme={activeTheme} />
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
               <h3
-                className="text-sm sm:text-base font-black leading-tight truncate"
+                className="text-sm sm:text-base font-semibold leading-tight truncate"
                 style={{ color: activeTheme.text }}
               >
                 {product.name}

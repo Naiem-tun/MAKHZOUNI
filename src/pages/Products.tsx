@@ -528,20 +528,6 @@ export default function Products() {
     return auditedProducts.filter(a => a.hasIssues).length;
   }, [auditedProducts, enablePriceAudit]);
 
-  const productsSummary = useMemo(() => {
-    let available = 0;
-    let low = 0;
-    let out = 0;
-    products.forEach((p) => {
-      const q = cleanQuantity(p.quantity || 0);
-      const min = p.minQuantity || 0;
-      if (q <= 0) out++;
-      else if (q <= min) low++;
-      else available++;
-    });
-    return { total: products.length, available, low, out };
-  }, [products]);
-
   const filteredProducts = useMemo(() => {
     const q = (searchTerm || '').trim();
     return products.filter(p => {
@@ -609,11 +595,11 @@ export default function Products() {
 
   return (
     <div
-      className="min-h-screen px-2.5 sm:px-5 pt-3 pb-24 transition-colors"
+      className="min-h-screen -mx-2.5 sm:mx-0 pt-1 pb-24 transition-colors"
       style={{ backgroundColor: theme.bg, color: theme.text }}
       dir="rtl"
     >
-      <div className="max-w-6xl mx-auto space-y-5">
+      <div className="max-w-7xl mx-auto space-y-4">
         <ProductsHeader
           onAddProduct={() => {
             setEditingProduct(null);
@@ -625,59 +611,6 @@ export default function Products() {
           priceIssuesCount={priceErrorsCount}
           theme={theme}
         />
-
-        {/* SECTION 01: COMPACT CATALOG KPI STRIP */}
-        <section
-          className="border text-right"
-          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
-        >
-          <div
-            className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 divide-x divide-x-reverse"
-            style={{ borderColor: theme.border }}
-          >
-            <div className="p-3.5 space-y-0.5" style={{ borderColor: theme.border }}>
-              <div className="text-[11px] font-bold" style={{ color: theme.textMuted }}>
-                إجمالي المنتجات
-              </div>
-              <div className="text-xl font-black font-mono tabular-nums">
-                {productsSummary.total}
-              </div>
-            </div>
-            <div className="p-3.5 space-y-0.5" style={{ borderColor: theme.border }}>
-              <div className="text-[11px] font-bold" style={{ color: theme.textMuted }}>
-                متوفر بالمخزون
-              </div>
-              <div
-                className="text-xl font-black font-mono tabular-nums"
-                style={{ color: theme.positive }}
-              >
-                {productsSummary.available}
-              </div>
-            </div>
-            <div className="p-3.5 space-y-0.5" style={{ borderColor: theme.border }}>
-              <div className="text-[11px] font-bold" style={{ color: theme.textMuted }}>
-                مخزون منخفض
-              </div>
-              <div
-                className="text-xl font-black font-mono tabular-nums"
-                style={{ color: theme.neutral }}
-              >
-                {productsSummary.low}
-              </div>
-            </div>
-            <div className="p-3.5 space-y-0.5" style={{ borderColor: theme.border }}>
-              <div className="text-[11px] font-bold" style={{ color: theme.textMuted }}>
-                نفد من المخزون
-              </div>
-              <div
-                className="text-xl font-black font-mono tabular-nums"
-                style={{ color: productsSummary.out > 0 ? theme.negative : theme.textMuted }}
-              >
-                {productsSummary.out}
-              </div>
-            </div>
-          </div>
-        </section>
 
         {/* Search & Filters */}
         <ProductsFilters
