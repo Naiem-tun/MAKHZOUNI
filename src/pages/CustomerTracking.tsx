@@ -115,7 +115,7 @@ const CustomerRow = ({
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="border p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-3.5 transition-colors"
+      className="border px-2.5 sm:px-3.5 py-3 flex flex-col sm:flex-row sm:items-center gap-3.5 transition-colors"
       style={{
         backgroundColor: theme.surface,
         borderColor: theme.border,
@@ -189,7 +189,7 @@ const CustomerRow = ({
             onChange={(e) => setNameVal(e.target.value)}
             onBlur={handleNameBlur}
             disabled={isClosed}
-            className="w-full bg-transparent border-none text-base font-black outline-none p-0 focus:ring-0 disabled:opacity-100"
+            className="w-full bg-transparent border-none text-sm sm:text-base font-semibold outline-none p-0 focus:ring-0 disabled:opacity-100"
             style={{ color: theme.text }}
             placeholder="اسم الحريف"
           />
@@ -597,7 +597,7 @@ export default function CustomerTracking() {
   const isLoading = isLoadingCustomers || isLoadingMonth;
 
   return (
-    <div className="space-y-5 pb-24 pt-4 md:pt-6" style={{ color: theme.text }}>
+    <div className="-mx-2.5 sm:mx-0 max-w-7xl mx-auto space-y-4 pb-24 pt-1" style={{ color: theme.text }}>
       {/* Editorial Header */}
       <header
         className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b"
@@ -608,8 +608,8 @@ export default function CustomerTracking() {
             <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
               01
             </span>
-            <span className="tracking-wider uppercase font-mono" style={{ color: theme.textMuted }}>
-              LEDGER · CYCLES
+            <span style={{ color: theme.textMuted }}>
+              الدفتر · الدورات المالية
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight">حساب الحرفاء</h1>

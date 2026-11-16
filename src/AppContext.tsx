@@ -365,10 +365,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             <div 
               key={toast.id}
               className={cn(
-                "p-4 rounded-lg shadow-xl border text-sm font-bold text-center animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-auto",
-                toast.type === 'success' ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20" : 
-                toast.type === 'error' ? "bg-[#B34C36] text-white border-[#B34C36]/50" :
-                "bg-brand-600 text-white border-brand-500"
+                "p-4 rounded-none shadow-xl border text-sm font-bold text-center animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-auto",
+                toast.type === 'success' ? "bg-emerald-700 text-white border-emerald-800" : 
+                toast.type === 'error' ? "bg-[#B34C36] text-white border-[#9B3F2B]" :
+                "bg-brand-600 text-white border-brand-700"
               )}
             >
               {toast.message}

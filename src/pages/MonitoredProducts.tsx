@@ -44,7 +44,7 @@ export default function MonitoredProducts() {
   }, [user]);
 
   return (
-    <div className="space-y-5 pb-24 pt-4 md:pt-6" style={{ color: theme.text }}>
+    <div className="-mx-2.5 sm:mx-0 max-w-7xl mx-auto space-y-4 pb-24 pt-1" style={{ color: theme.text }}>
       {/* Editorial Header */}
       <header
         className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 pb-4 border-b"
@@ -55,8 +55,8 @@ export default function MonitoredProducts() {
             <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
               01
             </span>
-            <span className="tracking-wider uppercase font-mono" style={{ color: theme.textMuted }}>
-              MONITORING · VELOCITY
+            <span style={{ color: theme.textMuted }}>
+              المراقبة · سرعة البيع
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight">المنتجات تحت المراقبة</h1>
@@ -176,11 +176,11 @@ const MonitoredCard: React.FC<{
 
   return (
     <div
-      className="border p-4 flex flex-col gap-4"
+      className="border px-2.5 sm:px-3.5 py-3 flex flex-col gap-4"
       style={{ backgroundColor: theme.surface, borderColor: theme.border }}
     >
       <div className="flex justify-between items-start gap-2 pb-3 border-b" style={{ borderColor: theme.border }}>
-        <h3 className="font-black text-base line-clamp-1">{item.name}</h3>
+        <h3 className="font-semibold text-sm sm:text-base line-clamp-1">{item.name}</h3>
         <div className="flex items-center gap-1.5 shrink-0">
           <span
             className="px-2 py-0.5 border font-mono font-bold text-xs tabular-nums"

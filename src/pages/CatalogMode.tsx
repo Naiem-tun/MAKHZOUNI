@@ -173,16 +173,16 @@ export default function CatalogMode() {
       </header>
 
       {/* Main Catalog Area */}
-      <main className="relative z-10 flex-1 overflow-y-auto p-4 md:p-8">
-        <div className="max-w-6xl mx-auto space-y-6">
+      <main className="relative z-10 flex-1 overflow-y-auto px-1.5 py-4 sm:px-6 sm:py-6">
+        <div className="max-w-7xl mx-auto space-y-4">
           <div className="pb-4 border-b flex items-end justify-between" style={{ borderColor: theme.border }}>
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-xs font-bold">
                 <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
                   01
                 </span>
-                <span className="tracking-wider uppercase font-mono" style={{ color: theme.textMuted }}>
-                  CATALOG · SHOWROOM
+                <span style={{ color: theme.textMuted }}>
+                  الكتالوج · عرض الأسعار
                 </span>
               </div>
               <h1 className="text-2xl font-black tracking-tight">

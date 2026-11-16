@@ -245,7 +245,7 @@ export default function Invoices() {
 
   return (
     <div
-      className="pb-24 pt-4 md:pt-6 animate-fade-in space-y-5"
+      className="-mx-2.5 sm:mx-0 max-w-7xl mx-auto pb-24 pt-1 animate-fade-in space-y-4"
       style={{ color: theme.text }}
     >
       {/* Editorial Header */}
@@ -258,8 +258,8 @@ export default function Invoices() {
             <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
               01
             </span>
-            <span className="tracking-wider uppercase font-mono" style={{ color: theme.textMuted }}>
-              SALES · REPORTS
+            <span style={{ color: theme.textMuted }}>
+              المبيعات · التقارير
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight">

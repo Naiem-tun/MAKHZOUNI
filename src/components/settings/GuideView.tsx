@@ -86,7 +86,7 @@ export const GuideView = ({ onBack }: { onBack: () => void }) => {
         </button>
         <div className="flex-1 text-right">
           <div className="flex items-center gap-2 text-xs font-bold" style={{ color: theme.textMuted }}>
-            <span className="font-mono" style={{ color: theme.accent }}>GUIDE</span>
+            <span style={{ color: theme.accent }}>الدليل</span>
             <span>·</span>
             <span>{t('learn_store_management')}</span>
           </div>

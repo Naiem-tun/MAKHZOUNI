@@ -301,11 +301,11 @@ export default function Debts() {
 
   return (
     <div
-      className="min-h-screen px-2.5 sm:px-5 pt-3 pb-24 transition-colors"
+      className="min-h-screen -mx-2.5 sm:mx-0 pt-1 pb-24 transition-colors"
       style={{ backgroundColor: theme.bg, color: theme.text }}
       dir="rtl"
     >
-      <div className="max-w-6xl mx-auto space-y-5">
+      <div className="max-w-7xl mx-auto space-y-4">
         {/* FOLIO HEADER */}
         <header
           className="border-b pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-3 text-right"
@@ -576,7 +576,7 @@ export default function Debts() {
                       dragConstraints={{ left: -140, right: 0 }}
                       dragElastic={0.1}
                       onClick={() => setActiveDebt(d)}
-                      className="relative z-10 flex cursor-pointer items-center justify-between gap-3 px-3.5 py-3 transition-colors"
+                      className="relative z-10 flex cursor-pointer items-center justify-between gap-2.5 sm:gap-3 px-2.5 sm:px-3.5 py-3 transition-colors"
                       style={{
                         backgroundColor: theme.surface,
                         borderRightWidth: '3px',
@@ -594,7 +594,7 @@ export default function Debts() {
                             {d.type === 'payable' ? <Truck size={15} /> : <BookOpen size={15} />}
                           </span>
                           <h3
-                            className="text-sm sm:text-base font-black truncate"
+                            className="text-sm sm:text-base font-semibold truncate"
                             style={{ color: theme.text }}
                           >
                             {d.customerName}

@@ -277,8 +277,6 @@ export const DataManagement: React.FC<DataManagementProps> = ({ onBack }) => {
         </button>
         <div className="flex-1 text-right">
           <div className="flex items-center gap-2 text-xs font-bold" style={{ color: theme.textMuted }}>
-            <span className="font-mono" style={{ color: theme.accent }}>DATA</span>
-            <span>·</span>
             <span>{t('export_import_data_desc')}</span>
           </div>
           <h1 className="text-2xl font-black tracking-tight" style={{ color: theme.text }}>

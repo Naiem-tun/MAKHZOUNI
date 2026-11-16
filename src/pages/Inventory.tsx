@@ -952,7 +952,7 @@ export default function Inventory() {
 
   return (
     <div
-      className="min-h-screen px-2.5 sm:px-5 pt-3 pb-36 transition-colors relative"
+      className="min-h-screen -mx-2.5 sm:mx-0 pt-1 pb-36 transition-colors relative"
       style={{ backgroundColor: theme.bg, color: theme.text }}
       dir="rtl"
     >
@@ -995,7 +995,7 @@ export default function Inventory() {
         }}
       />
 
-      <div className="max-w-6xl mx-auto space-y-5">
+      <div className="max-w-7xl mx-auto space-y-4">
         {/* FOLIO HEADER */}
         <header
           className="border-b pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-3 text-right"

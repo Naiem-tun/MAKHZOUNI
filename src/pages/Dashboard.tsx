@@ -478,11 +478,11 @@ const Dashboard = memo(() => {
 
   return (
     <div
-      className="min-h-screen px-2.5 sm:px-5 pt-3 pb-24 transition-colors"
+      className="min-h-screen -mx-2.5 sm:mx-0 pt-1 pb-24 transition-colors"
       style={{ backgroundColor: theme.bg, color: theme.text }}
       dir="rtl"
     >
-      <div className="max-w-6xl mx-auto space-y-5">
+      <div className="max-w-7xl mx-auto space-y-4">
         {/* FOLIO EDITORIAL HEADER */}
         <header
           className="border-b pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-3 text-right"
@@ -819,7 +819,7 @@ const Dashboard = memo(() => {
             </div>
           </div>
 
-          <div className="p-3 sm:p-5 space-y-3">
+          <div className="p-2.5 sm:p-4 space-y-3">
             {filteredPurchaseGroups.length === 0 ? (
               <div
                 className="py-10 text-center text-xs font-bold border border-dashed"
@@ -840,7 +840,7 @@ const Dashboard = memo(() => {
                     <button
                       type="button"
                       onClick={() => togglePurchaseGroup(group.key)}
-                      className="w-full px-3.5 py-3 flex items-center justify-between gap-2 text-right cursor-pointer transition-colors"
+                      className="w-full px-2.5 sm:px-3.5 py-3 flex items-center justify-between gap-2 text-right cursor-pointer transition-colors"
                       style={{
                         backgroundColor: isExpanded ? theme.surfaceMuted : theme.surface,
                         color: theme.text,
@@ -849,7 +849,7 @@ const Dashboard = memo(() => {
                       <div className="flex items-center gap-2.5 min-w-0">
                         <Truck size={14} style={{ color: theme.accent }} className="shrink-0" />
                         <div className="min-w-0">
-                          <div className="text-xs sm:text-sm font-black truncate">
+                          <div className="text-sm sm:text-base font-semibold truncate">
                             {group.supplierName || t('unknown_supplier')}
                             {group.invoiceNumber ? ` · #${group.invoiceNumber}` : ''}
                           </div>

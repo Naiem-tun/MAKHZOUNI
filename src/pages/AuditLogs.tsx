@@ -131,15 +131,15 @@ export default function AuditLogs() {
   };
 
   return (
-    <div className="space-y-5 pb-20 pt-4 md:pt-6" style={{ color: theme.text }}>
+    <div className="-mx-2.5 sm:mx-0 max-w-7xl mx-auto space-y-4 pb-24 pt-1" style={{ color: theme.text }}>
       {/* Editorial Header */}
       <header className="pb-4 border-b space-y-1" style={{ borderColor: theme.border }}>
         <div className="flex items-center gap-2 text-xs font-bold">
           <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
             01
           </span>
-          <span className="tracking-wider uppercase font-mono" style={{ color: theme.textMuted }}>
-            SYSTEM · AUDIT LOGS
+          <span style={{ color: theme.textMuted }}>
+            النظام · سجل النشاطات
           </span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
@@ -169,7 +169,7 @@ export default function AuditLogs() {
             {logs.map((log) => (
               <div
                 key={log.id}
-                className="p-3.5 sm:p-4 flex items-center gap-3.5 transition-colors"
+                className="px-2.5 sm:px-3.5 py-3 flex items-center gap-3 transition-colors"
                 style={{ borderColor: theme.border }}
               >
                 <div

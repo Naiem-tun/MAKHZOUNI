@@ -347,7 +347,7 @@ export default function InvoiceCalculator() {
 
   return (
     <div
-      className="max-w-3xl mx-auto space-y-5 pb-24 pt-4 sm:pt-6"
+      className="-mx-2.5 sm:mx-0 max-w-7xl mx-auto space-y-4 pb-24 pt-1"
       style={{ color: theme.text }}
       dir="rtl"
     >
@@ -361,8 +361,8 @@ export default function InvoiceCalculator() {
             <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
               01
             </span>
-            <span className="tracking-wider uppercase font-mono" style={{ color: theme.textMuted }}>
-              CALCULATOR · PURCHASES
+            <span style={{ color: theme.textMuted }}>
+              الحاسبة · المشتريات
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight">{t('invoice_calculator')}</h1>

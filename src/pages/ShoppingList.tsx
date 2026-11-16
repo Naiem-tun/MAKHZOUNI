@@ -127,7 +127,7 @@ export default function ShoppingList() {
 
   return (
     <div
-      className="max-w-lg mx-auto space-y-5 pb-32 pt-4 sm:pt-6"
+      className="-mx-2.5 sm:mx-0 max-w-7xl mx-auto space-y-4 pb-32 pt-1"
       style={{ color: theme.text }}
       dir="rtl"
     >
@@ -137,8 +137,8 @@ export default function ShoppingList() {
           <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
             01
           </span>
-          <span className="tracking-wider uppercase font-mono" style={{ color: theme.textMuted }}>
-            NEEDS · NOTES
+          <span style={{ color: theme.textMuted }}>
+            الاحتياجات · الملاحظات
           </span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-black tracking-tight">{t('shopping_list')}</h1>
@@ -296,7 +296,7 @@ export default function ShoppingList() {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, x: -16 }}
-              className="p-3 flex items-center justify-between gap-3"
+              className="px-2.5 sm:px-3.5 py-3 flex items-center justify-between gap-3"
               style={{ borderColor: theme.border }}
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -310,7 +310,7 @@ export default function ShoppingList() {
                 >
                   {activeTab === 'products' ? <ListTodo size={15} /> : <StickyNote size={15} />}
                 </div>
-                <span className="text-sm font-bold break-words">{item.text}</span>
+                <span className="text-sm sm:text-base font-semibold break-words">{item.text}</span>
               </div>
 
               <button

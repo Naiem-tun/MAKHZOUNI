@@ -114,15 +114,15 @@ export default function DraftProducts() {
   };
 
   return (
-    <div className="space-y-5 pb-20 pt-4 md:pt-6" style={{ color: theme.text }}>
+    <div className="-mx-2.5 sm:mx-0 max-w-7xl mx-auto space-y-4 pb-24 pt-1" style={{ color: theme.text }}>
       {/* Editorial Header */}
       <header className="pb-4 border-b space-y-1" style={{ borderColor: theme.border }}>
         <div className="flex items-center gap-2 text-xs font-bold">
           <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
             01
           </span>
-          <span className="tracking-wider uppercase font-mono" style={{ color: theme.textMuted }}>
-            DRAFTS · IMPORT QUEUE
+          <span style={{ color: theme.textMuted }}>
+            المسودة · قائمة النقل
           </span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
@@ -183,11 +183,11 @@ export default function DraftProducts() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               key={product.id}
-              className="border p-4 flex flex-col justify-between gap-4"
+              className="border px-2.5 sm:px-3.5 py-3 flex flex-col justify-between gap-4"
               style={{ backgroundColor: theme.surface, borderColor: theme.border }}
             >
               <div className="space-y-1.5">
-                <h3 className="font-black text-base line-clamp-1">{product.name}</h3>
+                <h3 className="font-semibold text-sm sm:text-base line-clamp-1">{product.name}</h3>
                 <div className="text-[11px] font-mono" style={{ color: theme.textMuted }}>
                   <span>{product.category || 'عام'}</span>
                   <span className="mx-1.5">·</span>

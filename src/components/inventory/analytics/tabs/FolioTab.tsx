@@ -608,7 +608,7 @@ export const FolioTab: React.FC<FolioTabProps> = ({
       {/* =====================================================================
           MAIN FOLIO CANVAS (DEFAULT: VISUAL 01-10 OR SELECTED SIDE VIEW)
           ===================================================================== */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-8 pt-8 sm:pt-10 pb-4">
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-5 pt-6 sm:pt-8 pb-4">
         {/* Compact Quick Side-Tabs Strip right above Hero for 1-tap switching */}
         <div
           className="pb-6 mb-8 border-b flex items-center gap-1.5 overflow-x-auto no-scrollbar"

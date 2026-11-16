@@ -296,10 +296,10 @@ export default function SettingsPage() {
   return (
     <div
       dir="rtl"
-      className="min-h-screen pb-24 transition-colors"
+      className="min-h-screen -mx-2.5 sm:mx-0 pt-1 pb-24 transition-colors"
       style={{ backgroundColor: theme.bg, color: theme.text }}
     >
-      <div className="max-w-5xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-4">
         {/* FOLIO EDITORIAL HEADER */}
         <header
           className="border-b pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-3 text-right"

@@ -96,7 +96,7 @@ export default function Analytics() {
   }
 
   return (
-    <div className="pb-24">
+    <div className="-mx-2.5 sm:mx-0 max-w-7xl mx-auto pt-1 pb-24">
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}

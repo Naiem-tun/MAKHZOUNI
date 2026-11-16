@@ -87,7 +87,7 @@ export const InventoryItem = React.memo(
 
     return (
       <div
-        className="flex items-center justify-between gap-2.5 py-2.5 px-3 sm:px-4 min-h-[64px] transition-colors"
+        className="flex items-center justify-between gap-2.5 py-3 px-2.5 sm:px-3.5 min-h-[64px] transition-colors"
         style={{
           backgroundColor: hasEnteredQty ? activeTheme.surfaceMuted : activeTheme.surface,
           opacity: isChecked ? 0.52 : 1,
@@ -124,7 +124,7 @@ export const InventoryItem = React.memo(
 
           <div className="min-w-0 flex-1 space-y-0.5">
             <h3
-              className="text-xs sm:text-sm font-bold leading-tight truncate"
+              className="text-sm sm:text-base font-semibold leading-tight truncate"
               style={{ color: activeTheme.text }}
             >
               {product.name || t('product')}

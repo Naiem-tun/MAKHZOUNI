@@ -77,7 +77,7 @@ export const CategoriesManager = ({ onBack }: { onBack: () => void }) => {
         </button>
         <div className="flex-1 text-right">
           <div className="flex items-center gap-2 text-xs font-bold" style={{ color: theme.textMuted }}>
-            <span className="font-mono" style={{ color: theme.accent }}>SETTINGS · 01</span>
+            <span style={{ color: theme.accent }}>الإعدادات · 01</span>
             <span>·</span>
             <span>{t('add_remove_categories')}</span>
           </div>
