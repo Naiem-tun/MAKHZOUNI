@@ -67,9 +67,6 @@ export function AppMobileMenu({
           style={{ backgroundColor: theme.surface, borderColor: theme.border }}
         >
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold" style={{ color: theme.accent }}>
-              FOLIO
-            </span>
             <span className="text-base font-black" style={{ color: theme.text }}>
               {t("menu")}
             </span>

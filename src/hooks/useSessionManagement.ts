@@ -61,49 +61,52 @@ export function useSessionManagement(
           }
 
           const now = new Date();
-          const currentDay = now.getDay();
-          const startOfWeek = new Date(now);
-          startOfWeek.setDate(now.getDate() - currentDay);
-          startOfWeek.setHours(0, 0, 0, 0);
-
-          const trackingStartDate = settings?.lastSuppliersClearDate 
-            ? safeParseDate(settings.lastSuppliersClearDate) 
-            : new Date(0);
+          const todayStart = new Date(now);
+          todayStart.setHours(0, 0, 0, 0);
 
           const txRef = collection(db, `users/${user.uid}/supplierTransactions`);
           const q = query(txRef, where('supplierId', '==', activeSupplier.id));
           const txSnap = await getDocs(q);
           const txList = txSnap.docs.map(d => d.data());
 
+          const trackingStartDate = settings?.lastSuppliersClearDate
+            ? safeParseDate(settings.lastSuppliersClearDate)
+            : (txList.length > 0
+                ? new Date(Math.min(...txList.map(t => safeParseDate(t.date).getTime())))
+                : new Date(now));
+
+          const cursor = new Date(trackingStartDate);
+          cursor.setHours(0, 0, 0, 0);
+
           const missed: MissedVisitDay[] = [];
 
-          visitDays.forEach(day => {
-            if (day < currentDay) {
-              const targetDate = new Date(startOfWeek);
-              targetDate.setDate(targetDate.getDate() + day);
+          while (cursor < todayStart) {
+            const day = cursor.getDay();
+            if (visitDays.includes(day)) {
+              const targetDate = new Date(cursor);
               targetDate.setHours(12, 0, 0, 0);
 
-              if (targetDate.getTime() >= trackingStartDate.getTime()) {
-                const hasTx = txList.some(t => {
-                  const txDate = safeParseDate(t.date);
-                  return txDate.toDateString() === targetDate.toDateString();
-                });
+              const hasTx = txList.some(t => {
+                const txDate = safeParseDate(t.date);
+                return txDate.toDateString() === targetDate.toDateString();
+              });
 
-                if (!hasTx) {
-                  missed.push({
-                    dayIndex: day,
-                    date: targetDate,
-                    dayName: ARABIC_DAYS[day],
-                    formattedDate: `${ARABIC_DAYS[day]} (${targetDate.toLocaleDateString('ar-TN', { day: 'numeric', month: 'numeric' })})`
-                  });
-                }
+              if (!hasTx) {
+                missed.push({
+                  dayIndex: day,
+                  date: targetDate,
+                  dayName: ARABIC_DAYS[day],
+                  formattedDate: `${ARABIC_DAYS[day]} (${targetDate.toLocaleDateString('ar-TN', { day: 'numeric', month: 'numeric' })})`
+                });
               }
             }
-          });
+            cursor.setDate(cursor.getDate() + 1);
+          }
 
-          setMissedVisitDays(missed);
-          if (missed.length > 0) {
-            setSelectedDate(missed[missed.length - 1].date);
+          const recentMissed = missed.slice(-5);
+          setMissedVisitDays(recentMissed);
+          if (recentMissed.length > 0) {
+            setSelectedDate(recentMissed[recentMissed.length - 1].date);
           } else {
             setSelectedDate(new Date());
           }

@@ -310,10 +310,6 @@ export default function SettingsPage() {
               className="flex items-center gap-2 text-xs font-bold"
               style={{ color: theme.textMuted }}
             >
-              <span className="font-mono" style={{ color: theme.accent }}>
-                FOLIO · SETTINGS
-              </span>
-              <span aria-hidden="true">·</span>
               <span>{t('customize_experience')}</span>
             </div>
             <h1

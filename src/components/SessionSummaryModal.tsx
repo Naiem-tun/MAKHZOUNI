@@ -125,7 +125,7 @@ export function SessionSummaryModal() {
                     const isSelected = selectedDate.toDateString() === mv.date.toDateString();
                     return (
                       <button
-                        key={mv.dayIndex}
+                        key={mv.date.toISOString()}
                         type="button"
                         onClick={() => setSelectedDate(mv.date)}
                         className="w-full flex items-center justify-between p-3 border text-right transition-colors cursor-pointer"

@@ -53,7 +53,7 @@ export function AppBottomNav({
         {/* Scrollable Tabs */}
         <div className="flex-1 overflow-x-auto no-scrollbar">
           <div
-            className="flex items-center gap-1 p-1 border w-max"
+            className="flex items-center gap-1 p-1 border h-13 min-w-full w-max"
             style={{
               backgroundColor: theme.surface,
               borderColor: theme.border,
@@ -66,7 +66,7 @@ export function AppBottomNav({
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className="flex shrink-0 items-center justify-center gap-2 px-4 py-2 text-xs sm:text-sm font-bold transition-colors cursor-pointer"
+                  className="flex shrink-0 items-center justify-center gap-2 px-4 h-full text-xs sm:text-sm font-bold transition-colors cursor-pointer"
                   style={
                     active
                       ? {

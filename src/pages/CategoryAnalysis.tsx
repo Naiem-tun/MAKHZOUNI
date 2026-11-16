@@ -334,10 +334,6 @@ export default function CategoryAnalysis() {
         >
           <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2 text-xs font-bold" style={{ color: theme.textMuted }}>
-              <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
-                FOLIO
-              </span>
-              <span aria-hidden="true">·</span>
               <span>مقارنة السلع داخل كل فئة وفق العائد ورأس المال</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight" style={{ color: theme.text }}>

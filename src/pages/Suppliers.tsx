@@ -201,32 +201,8 @@ export default function Suppliers() {
       }
     }
     
-    // Check for missed visit
-    // A visit is considered "missed" if today > visitDay AND no transaction exists for THIS specific week's visitDay
-    // AND targetDate is on or after the trackingStartDate (to avoid marking days before clear date / inventory reset as missed)
-    const isMissed = s.visitDays?.some(day => {
-      if (day >= today) return false; // Not passed yet or is today
-
-      const startOfWeek = new Date();
-      startOfWeek.setDate(startOfWeek.getDate() - today);
-      startOfWeek.setHours(0, 0, 0, 0);
-
-      const targetDate = new Date(startOfWeek);
-      targetDate.setDate(targetDate.getDate() + day);
-
-      // If the scheduled visit day for this week was BEFORE the reset/clear date, don't count it as missed
-      if (targetDate.getTime() < trackingStartDate.getTime()) {
-        return false;
-      }
-
-      const hasTxForDay = activeTransactions.some(t => {
-        if (t.supplierId !== s.id) return false;
-        const txDate = safeParseDate(t.date);
-        return txDate.toDateString() === targetDate.toDateString();
-      });
-
-      return !hasTxForDay;
-    });
+    // Check for missed / unresolved visit in the active cycle (displayed '?' marks)
+    const isMissed = visitHistory.slice(-5).some((v) => v.status === 'unknown');
 
     return { ...s, totalPaid, txCount, isMissed, visitHistory };
   }).sort((a, b) => {
@@ -895,7 +871,7 @@ export default function Suppliers() {
 
   return (
     <div
-      className="min-h-screen px-2.5 sm:px-5 pt-3 pb-24 transition-colors"
+      className="min-h-screen -mx-2.5 sm:mx-0 pt-1 pb-24 transition-colors"
       style={{ backgroundColor: theme.bg, color: theme.text }}
       dir="rtl"
     >
@@ -907,7 +883,7 @@ export default function Suppliers() {
         className="hidden"
       />
 
-      <div className="max-w-6xl mx-auto space-y-5">
+      <div className="max-w-7xl mx-auto space-y-4">
         <SupplierHeader
           setEditingSupplier={setEditingSupplier}
           setSelectedVisitDays={setSelectedVisitDays}

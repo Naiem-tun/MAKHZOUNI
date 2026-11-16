@@ -33,10 +33,6 @@ export const ProductsHeader: React.FC<ProductsHeaderProps> = ({
           className="flex items-center gap-2 text-xs font-bold"
           style={{ color: activeTheme.textMuted }}
         >
-          <span className="font-mono tabular-nums" style={{ color: activeTheme.accent }}>
-            FOLIO
-          </span>
-          <span aria-hidden="true">·</span>
           <span className="truncate">{t('products_list_subtitle')}</span>
         </div>
         <h1

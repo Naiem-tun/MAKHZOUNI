@@ -490,10 +490,6 @@ const Dashboard = memo(() => {
         >
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-xs font-bold" style={{ color: theme.textMuted }}>
-              <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
-                FOLIO
-              </span>
-              <span aria-hidden="true">·</span>
               <span>لوحة المتابعة اليومية</span>
               <span aria-hidden="true">·</span>
               <span>{settings.storeName || 'مخزوني'}</span>

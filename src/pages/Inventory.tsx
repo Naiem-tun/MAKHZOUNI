@@ -1006,10 +1006,6 @@ export default function Inventory() {
               className="flex items-center gap-2 text-xs font-bold"
               style={{ color: theme.textMuted }}
             >
-              <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
-                FOLIO
-              </span>
-              <span aria-hidden="true">·</span>
               <span className="truncate">{t('enter_actual_quantity')}</span>
             </div>
             <h1

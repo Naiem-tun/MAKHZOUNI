@@ -104,7 +104,7 @@ export function SupplierCard({
           setSelectedSupplier(s);
           setIsHistoryModalOpen(true);
         }}
-        className="relative z-10 flex cursor-pointer items-center justify-between gap-2.5 p-3 sm:px-4 transition-colors"
+        className="relative z-10 flex cursor-pointer items-center justify-between gap-2.5 sm:gap-3 px-2.5 sm:px-3.5 py-3 transition-colors"
         style={{
           backgroundColor: activeTheme.surface,
           borderRightWidth: '3px',
@@ -119,7 +119,7 @@ export function SupplierCard({
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 min-w-0">
             <h3
-              className="text-sm sm:text-base font-black truncate"
+              className="text-sm sm:text-base font-semibold leading-tight truncate"
               style={{ color: activeTheme.text }}
             >
               {s.name}
@@ -227,7 +227,7 @@ export function SupplierCard({
           </div>
 
           {isTrackingMode && s.visitHistory && s.visitHistory.length > 0 && (
-            <div className="flex items-center gap-1.5 pt-1 text-[14px] font-bold tracking-widest" dir="ltr">
+            <div className="flex items-center justify-end gap-1.5 pt-1 text-[14px] font-bold tracking-widest" dir="ltr">
               {[...s.visitHistory]
                 .reverse()
                 .slice(0, 5)
