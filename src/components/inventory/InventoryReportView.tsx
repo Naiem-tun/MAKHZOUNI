@@ -7,6 +7,7 @@ import { useAppContext } from '../../AppContext';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import * as xlsx from 'xlsx';
+import { useFolioTheme, resolveFolioTheme } from '../folio/FolioPageChrome';
 
 interface InventoryReportViewProps {
   report: any;
@@ -17,6 +18,8 @@ interface InventoryReportViewProps {
 export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report, products, onClose }) => {
   const { t } = useTranslation();
   const { settings, showToast } = useAppContext();
+  const { theme } = useFolioTheme(Boolean(settings?.darkMode), settings?.folioThemeId);
+  const printTheme = theme.isDark ? resolveFolioTheme(false, 'folio-cobalt') : theme;
   const [showExportMenu, setShowExportMenu] = useState(false);
 
   let displayItems = [...(report.items || [])].sort((a: any, b: any) => (b.salesCalculated || 0) - (a.salesCalculated || 0));
@@ -245,6 +248,15 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
       hiddenHost.style.backgroundColor = '#ffffff';
       document.body.appendChild(hiddenHost);
 
+      const pPaper = '#FFFFFF';
+      const pBg = printTheme.bg;
+      const pMuted = printTheme.surfaceMuted;
+      const pBorder = printTheme.border;
+      const pInk = printTheme.text;
+      const pInkMuted = printTheme.textMuted;
+      const pAccent = printTheme.accent;
+      const pNegative = printTheme.negative;
+
       for (let pageIdx = 0; pageIdx < pageChunks.length; pageIdx++) {
         const chunk = pageChunks[pageIdx];
         const isFirstPage = pageIdx === 0;
@@ -258,35 +270,35 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
             ? item.remainingValue 
             : (((products.find(p => p.name === item.productName)?.purchasePrice || products.find(p => p.name === item.productName)?.costPrice) || 0) * (item.quantityAfter || 0));
 
-          const rowBg = isItemSurplus ? '#fffbeb' : (i % 2 === 1 ? '#f8fafc' : '#ffffff');
+          const rowBg = isItemSurplus ? '#FFFBEB' : (i % 2 === 1 ? pBg : pPaper);
           const profitCell = isItemSurplus 
-            ? `<span style="color: #94a3b8; font-family: monospace; font-size: 11px;">0.000</span>` 
-            : `<span style="font-weight: 600; color: #0f172a;" dir="ltr">${formatCurrency(item.profit || 0, settings.currency, settings.language)}</span>`;
+            ? `<span style="color: ${pInkMuted}; font-family: monospace; font-size: 11px;">0.000</span>` 
+            : `<span style="font-weight: 700; color: ${pInk}; font-variant-numeric: tabular-nums;">${formatCurrency(item.profit || 0, settings.currency, settings.language)}</span>`;
 
           const soldCell = isItemSurplus
-            ? `<span style="display: inline-block; padding: 2px 6px; border-radius: 4px; background-color: #fef3c7; color: #78350f; border: 1px solid #fcd34d; font-weight: bold; font-size: 11px;">+${surplusQty} غير مفسَّر</span>`
-            : `<span style="font-weight: 600; color: #0f172a;">${item.salesCalculated}</span>`;
+            ? `<span style="display: inline-block; padding: 2px 6px; border-radius: 0; background-color: #FEF3C7; color: #78350F; border: 1px solid #F59E0B; font-weight: 800; font-size: 10.5px;">+${surplusQty} غير مفسَّر</span>`
+            : `<span style="font-weight: 700; color: ${pInk}; font-variant-numeric: tabular-nums;">${item.salesCalculated}</span>`;
 
           const surplusNote = isItemSurplus 
-            ? `<div style="font-size: 11px; color: #b45309; font-weight: bold; margin-top: 2px;">زيادة غير مفسَّرة: المسجل (${item.quantityBefore ?? '—'}) ➔ الفعلي (${item.quantityAfter ?? '—'})</div>`
+            ? `<div style="font-size: 10.5px; color: #B45309; font-weight: 700; margin-top: 2px;">زيادة غير مفسَّرة: المسجل (${item.quantityBefore ?? '—'}) ➔ الفعلي (${item.quantityAfter ?? '—'})</div>`
             : '';
 
           rowsHtml += `
-            <tr style="background-color: ${rowBg}; border-bottom: 1px solid #e2e8f0; page-break-inside: avoid; break-inside: avoid;">
-              <td style="padding: 10px 12px; text-align: right; vertical-align: middle;">
-                <div style="font-weight: 600; color: #0f172a; font-size: 13px;">${item.productName || '—'}</div>
+            <tr style="background-color: ${rowBg}; border-bottom: 1px solid ${pBorder}; page-break-inside: avoid; break-inside: avoid;">
+              <td style="padding: 6px 10px; text-align: right; vertical-align: middle;">
+                <div style="font-weight: 700; color: ${pInk}; font-size: 12.5px; line-height: 1.35;">${item.productName || '—'}</div>
                 ${surplusNote}
               </td>
-              <td style="padding: 10px 12px; text-align: center; vertical-align: middle; font-size: 13px;">
+              <td style="padding: 6px 10px; text-align: center; vertical-align: middle; font-size: 12.5px;">
                 ${soldCell}
               </td>
-              <td style="padding: 10px 12px; text-align: left; vertical-align: middle; font-size: 13px;" dir="ltr">
+              <td style="padding: 6px 10px; text-align: left; vertical-align: middle; font-size: 12.5px;">
                 ${profitCell}
               </td>
-              <td style="padding: 10px 12px; text-align: center; vertical-align: middle; font-weight: 600; color: #0f172a; font-size: 13px;">
+              <td style="padding: 6px 10px; text-align: center; vertical-align: middle; font-weight: 700; color: ${pInk}; font-size: 12.5px; font-variant-numeric: tabular-nums;">
                 ${item.quantityAfter ?? '—'}
               </td>
-              <td style="padding: 10px 12px; text-align: left; vertical-align: middle; font-weight: 600; color: #0f172a; font-size: 13px;" dir="ltr">
+              <td style="padding: 6px 10px; text-align: left; vertical-align: middle; font-weight: 700; color: ${pInk}; font-size: 12.5px; font-variant-numeric: tabular-nums;">
                 ${formatCurrency(remainingVal, settings.currency, settings.language)}
               </td>
             </tr>
@@ -294,53 +306,46 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
         });
 
         const surplusCardHtml = surplusCostTotal > 0 ? `
-          <div style="flex: 1; min-width: 200px; padding: 16px; border-radius: 8px; background-color: #d97706; color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-              <span style="font-size: 14px; font-weight: bold;">فائض مخزون غير مبرَّر</span>
-              <span style="font-size: 11px; background-color: rgba(0,0,0,0.2); padding: 2px 8px; border-radius: 9999px; font-weight: bold;">
+          <div style="flex: 1; min-width: 200px; padding: 10px 14px; border-radius: 0; background-color: #FFFBEB; color: #78350F; border: 1px solid #F59E0B; border-right: 4px solid #D97706;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="font-size: 12.5px; font-weight: 800;">فائض مخزون غير مبرَّر</span>
+              <span style="font-size: 10.5px; background-color: #FEF3C7; border: 1px solid #F59E0B; color: #78350F; padding: 1px 6px; border-radius: 0; font-weight: 800; font-variant-numeric: tabular-nums;">
                 ${surplusCount} صنف (+${surplusTotalQty})
               </span>
             </div>
-            <div style="font-size: 22px; font-weight: 900;" dir="ltr">
+            <div style="font-size: 18px; font-weight: 900; color: #92400E; font-variant-numeric: tabular-nums;">
               ${formatCurrency(surplusCostTotal, settings.currency, settings.language)}
             </div>
-            <div style="font-size: 10px; opacity: 0.9; margin-top: 4px;">
+            <div style="font-size: 9.5px; color: #92400E; margin-top: 2px;">
               قيمة تكلفة كميات ظهرت بالعد الفعلي وتزيد عن المسجل بالنظام
             </div>
           </div>
         ` : '';
 
-        const damageCardHtml = (report.totalDamageLoss > 0 && isFirstPage) ? `
-          <div style="flex: 1; min-width: 200px; padding: 16px; border-radius: 8px; background-color: #fee2e2; color: #7f1d1d; border: 1px solid #fca5a5; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            <div style="font-size: 14px; font-weight: bold; margin-bottom: 6px;">إجمالي خسائر التالف</div>
-            <div style="font-size: 22px; font-weight: 900;" dir="ltr">
-              ${formatCurrency(report.totalDamageLoss, settings.currency, settings.language)}
-            </div>
-            <div style="font-size: 10px; opacity: 0.8; margin-top: 4px;">مؤشر مرجعي للخسائر، لم يُخصم مرتين من الأرباح</div>
-          </div>
-        ` : '';
-
         const damageTableHtml = (isLastPage && report.damageItems && report.damageItems.length > 0) ? `
-          <div style="margin-top: 32px; margin-bottom: 24px;">
-            <h3 style="font-size: 16px; font-weight: 800; color: #021024; margin-bottom: 12px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">ملخص التالف والضائع (تفصيلي)</h3>
-            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+          <div style="margin-top: 20px; margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; gap: 8px; border-bottom: 2px solid ${pInk}; padding-bottom: 6px; margin-bottom: 10px;">
+              <span style="font-size: 11px; font-weight: 800; color: ${pNegative}; font-family: monospace;">03</span>
+              <h3 style="font-size: 14px; font-weight: 900; color: ${pInk}; margin: 0;">ملخص التالف والضائع (تفصيلي)</h3>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px; border: 1px solid ${pBorder};">
               <thead>
-                <tr style="background-color: #fef2f2; color: #7f1d1d; border-bottom: 2px solid #fca5a5;">
-                  <th style="padding: 10px; text-align: right; font-weight: 700;">المنتج</th>
-                  <th style="padding: 10px; text-align: right; font-weight: 700;">الكمية التالفة</th>
-                  <th style="padding: 10px; text-align: left; font-weight: 700;">تكلفة الوحدة</th>
-                  <th style="padding: 10px; text-align: left; font-weight: 700;">إجمالي الخسارة</th>
-                  <th style="padding: 10px; text-align: right; font-weight: 700;">السبب</th>
+                <tr style="background-color: #FEF2F2; color: #7F1D1D; border-top: 2px solid ${pNegative}; border-bottom: 1.5px solid ${pNegative};">
+                  <th style="padding: 8px 10px; text-align: right; font-weight: 800;">المنتج</th>
+                  <th style="padding: 8px 10px; text-align: center; font-weight: 800;">الكمية التالفة</th>
+                  <th style="padding: 8px 10px; text-align: left; font-weight: 800;">تكلفة الوحدة</th>
+                  <th style="padding: 8px 10px; text-align: left; font-weight: 800;">إجمالي الخسارة</th>
+                  <th style="padding: 8px 10px; text-align: right; font-weight: 800;">السبب</th>
                 </tr>
               </thead>
               <tbody>
                 ${report.damageItems.map((item: any, idx: number) => `
-                  <tr style="background-color: ${idx % 2 === 1 ? '#f8fafc' : '#ffffff'}; border-bottom: 1px solid #e2e8f0;">
-                    <td style="padding: 10px; text-align: right; font-weight: 600;">${item.productName}</td>
-                    <td style="padding: 10px; text-align: right; color: #dc2626;">${item.quantity}</td>
-                    <td style="padding: 10px; text-align: left; color: #64748b;" dir="ltr">${formatCurrency(item.unitCost || 0, settings.currency, settings.language)}</td>
-                    <td style="padding: 10px; text-align: left; font-weight: 700; color: #b91c1c;" dir="ltr">${formatCurrency(item.totalLoss || 0, settings.currency, settings.language)}</td>
-                    <td style="padding: 10px; text-align: right; color: #64748b;">${item.reason || '—'}</td>
+                  <tr style="background-color: ${idx % 2 === 1 ? pBg : pPaper}; border-bottom: 1px solid ${pBorder};">
+                    <td style="padding: 7px 10px; text-align: right; font-weight: 700; color: ${pInk};">${item.productName}</td>
+                    <td style="padding: 7px 10px; text-align: center; font-weight: 700; color: ${pNegative}; font-variant-numeric: tabular-nums;">${item.quantity}</td>
+                    <td style="padding: 7px 10px; text-align: left; color: ${pInkMuted}; font-variant-numeric: tabular-nums;">${formatCurrency(item.unitCost || 0, settings.currency, settings.language)}</td>
+                    <td style="padding: 7px 10px; text-align: left; font-weight: 800; color: ${pNegative}; font-variant-numeric: tabular-nums;">${formatCurrency(item.totalLoss || 0, settings.currency, settings.language)}</td>
+                    <td style="padding: 7px 10px; text-align: right; color: ${pInkMuted};">${item.reason || '—'}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -349,62 +354,73 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
         ` : '';
 
         const reportHtml = `
-          <div style="padding: 24px 32px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, sans-serif; background-color: #ffffff; color: #0f172a; direction: rtl; width: 794px; min-height: 1123px; box-sizing: border-box;">
+          <div style="padding: 20px 28px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, sans-serif; background-color: ${pPaper}; color: ${pInk}; direction: rtl; width: 794px; min-height: 1123px; box-sizing: border-box;">
             
-            <!-- Header -->
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 24px;">
-              <div style="font-size: 20px; font-weight: 900; color: #021024;">${storeName}</div>
-              <div style="font-size: 22px; font-weight: 800; color: #0f172a; text-align: center;">${t('sales_report')}</div>
-              <div style="font-size: 14px; color: #64748b;" dir="ltr">${formattedDate}</div>
+            <!-- Editorial Masthead -->
+            <div style="border-top: 3px solid ${pAccent}; border-bottom: 2px solid ${pInk}; padding: 10px 0 12px 0; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-size: 10px; font-weight: 800; color: ${pAccent}; margin-bottom: 2px;">${storeName}</div>
+                <div style="font-size: 19px; font-weight: 900; color: ${pInk}; line-height: 1.2;">${t('sales_report')}</div>
+              </div>
+              <div style="text-align: left; background-color: ${pBg}; border: 1px solid ${pBorder}; padding: 6px 12px;">
+                <div style="font-size: 9.5px; font-weight: 700; color: ${pInkMuted}; margin-bottom: 1px;">تاريخ الجرد</div>
+                <div style="font-size: 13px; font-weight: 800; color: ${pInk}; font-variant-numeric: tabular-nums;" dir="ltr">${formattedDate}</div>
+              </div>
             </div>
 
             <!-- Summary Cards (Page 1 Only) -->
             ${isFirstPage ? `
-            <div style="border: 2px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 24px; background-color: #f8fafc;">
-              <h2 style="font-size: 18px; font-weight: 800; color: #0f172a; border-bottom: 1px solid #cbd5e1; padding-bottom: 12px; margin-bottom: 16px;">التقرير المالي الشامل</h2>
+            <div style="border: 1px solid ${pBorder}; border-radius: 0; padding: 12px 14px; margin-bottom: 12px; background-color: ${pBg};">
+              <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid ${pBorder}; padding-bottom: 7px; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 11px; font-weight: 800; color: ${pAccent}; font-family: monospace;">01</span>
+                  <h2 style="font-size: 14px; font-weight: 900; color: ${pInk}; margin: 0;">التقرير المالي الشامل</h2>
+                </div>
+                <span style="font-size: 10px; font-weight: 700; color: ${pInkMuted};">${reportItems.length} صنف</span>
+              </div>
               
-              <div style="display: flex; gap: 24px;">
+              <div style="display: flex; gap: 16px;">
                 <!-- Column 1: Sales & COGS -->
-                <div style="flex: 1; display: flex; flex-direction: column; gap: 12px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px;">
-                    <span style="font-size: 13px; font-weight: 600; color: #475569;">إجمالي إيرادات المبيعات</span>
-                    <span style="font-size: 14px; font-weight: 700; color: #0f172a;" dir="ltr">${totalRevenueStr}</span>
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 7px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid ${pBorder}; padding-bottom: 5px;">
+                    <span style="font-size: 12px; font-weight: 700; color: ${pInkMuted};">إجمالي إيرادات المبيعات</span>
+                    <span style="font-size: 13px; font-weight: 800; color: ${pInk}; font-variant-numeric: tabular-nums;">${totalRevenueStr}</span>
                   </div>
-                  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px;">
-                    <span style="font-size: 13px; font-weight: 600; color: #475569;">تكلفة البضاعة المباعة (COGS)</span>
-                    <span style="font-size: 14px; font-weight: 700; color: #dc2626;" dir="ltr">- ${cogsStr}</span>
+                  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid ${pBorder}; padding-bottom: 5px;">
+                    <span style="font-size: 12px; font-weight: 700; color: ${pInkMuted};">تكلفة البضاعة المباعة (COGS)</span>
+                    <span style="font-size: 13px; font-weight: 800; color: ${pNegative}; font-variant-numeric: tabular-nums;">- ${cogsStr}</span>
                   </div>
-                  <div style="display: flex; justify-content: space-between; align-items: center; background-color: #f1f5f9; padding: 10px 12px; border-radius: 6px;">
-                    <span style="font-size: 14px; font-weight: 800; color: #0f172a;">إجمالي الربح (المجمل)</span>
-                    <span style="font-size: 16px; font-weight: 900; color: #2563eb;" dir="ltr">${totalProfitStr}</span>
+                  <div style="display: flex; justify-content: space-between; align-items: center; background-color: ${pPaper}; border: 1px solid ${pBorder}; border-right: 3px solid ${pInk}; padding: 7px 10px; border-radius: 0;">
+                    <span style="font-size: 12.5px; font-weight: 800; color: ${pInk};">إجمالي الربح (المجمل)</span>
+                    <span style="font-size: 14.5px; font-weight: 900; color: ${pInk}; font-variant-numeric: tabular-nums;">${totalProfitStr}</span>
                   </div>
                 </div>
 
                 <!-- Column 2: Expenses & Net Profit -->
-                <div style="flex: 1; display: flex; flex-direction: column; gap: 12px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px;">
-                    <span style="font-size: 13px; font-weight: 600; color: #475569;">المصاريف التشغيلية النقدية</span>
-                    <span style="font-size: 14px; font-weight: 700; color: #dc2626;" dir="ltr">- ${operatingExpensesStr}</span>
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 7px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid ${pBorder}; padding-bottom: 5px;">
+                    <span style="font-size: 12px; font-weight: 700; color: ${pInkMuted};">المصاريف التشغيلية النقدية</span>
+                    <span style="font-size: 13px; font-weight: 800; color: ${pNegative}; font-variant-numeric: tabular-nums;">- ${operatingExpensesStr}</span>
                   </div>
-                  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px;">
-                    <div style="display: flex; flex-direction: column;">
-                      <span style="font-size: 13px; font-weight: 600; color: #475569;">قيمة التالف والعجز</span>
-                      <span style="font-size: 9px; color: #94a3b8; margin-top: 2px;">(مؤشر مرجعي فقط)</span>
+                  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid ${pBorder}; padding-bottom: 5px;">
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                      <span style="font-size: 12px; font-weight: 700; color: ${pInkMuted};">قيمة التالف والعجز</span>
+                      <span style="font-size: 9px; color: ${pInkMuted};">(مرجعي)</span>
                     </div>
-                    <span style="font-size: 14px; font-weight: 700; color: #d97706;" dir="ltr">${totalDamageLossStr}</span>
+                    <span style="font-size: 13px; font-weight: 800; color: #B45309; font-variant-numeric: tabular-nums;">${totalDamageLossStr}</span>
                   </div>
-                  <div style="display: flex; justify-content: space-between; align-items: center; background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 10px 12px; border-radius: 6px;">
-                    <span style="font-size: 14px; font-weight: 800; color: #1e3a8a;">صافي الربح الفعلي</span>
-                    <span style="font-size: 18px; font-weight: 900; color: #1d4ed8;" dir="ltr">${netProfitStr}</span>
+                  <div style="display: flex; justify-content: space-between; align-items: center; background-color: ${pMuted}; border: 1px solid ${pAccent}; border-right: 4px solid ${pAccent}; padding: 7px 10px; border-radius: 0;">
+                    <span style="font-size: 12.5px; font-weight: 900; color: ${pInk};">صافي الربح الفعلي</span>
+                    <span style="font-size: 16px; font-weight: 900; color: ${pAccent}; font-variant-numeric: tabular-nums;">${netProfitStr}</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div style="display: flex; gap: 16px; margin-bottom: 24px;">
-              <div style="flex: 1; min-width: 200px; padding: 16px; border-radius: 8px; background-color: #0f172a; color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                <div style="font-size: 14px; font-weight: bold; margin-bottom: 6px; opacity: 0.9;">قيمة المخزون المتبقي (بالتكلفة)</div>
-                <div style="font-size: 22px; font-weight: 900;" dir="ltr">
+            <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+              <div style="flex: 1; min-width: 200px; padding: 10px 14px; border-radius: 0; background-color: ${pPaper}; color: ${pInk}; border: 1px solid ${pBorder}; border-right: 4px solid ${pInk};">
+                <div style="font-size: 11.5px; font-weight: 700; color: ${pInkMuted}; margin-bottom: 3px;">قيمة المخزون المتبقي (بالتكلفة)</div>
+                <div style="font-size: 18px; font-weight: 900; color: ${pInk}; font-variant-numeric: tabular-nums;">
                   ${totalRemainingStr}
                 </div>
               </div>
@@ -412,20 +428,26 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
               ${surplusCardHtml}
             </div>
             
-            <div style="font-size: 12px; color: #64748b; margin-bottom: 12px;">
-              * ${t('sorted_by_sales_desc')}
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 10.5px; font-weight: 800; color: ${pAccent}; font-family: monospace;">02</span>
+                <span style="font-size: 12px; font-weight: 800; color: ${pInk};">تفاصيل حركة الأصناف</span>
+              </div>
+              <div style="font-size: 10.5px; color: ${pInkMuted}; font-weight: 600;">
+                * ${t('sorted_by_sales_desc')}
+              </div>
             </div>
             ` : ''}
 
             <!-- Table -->
-            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 12.5px; border: 1px solid ${pBorder};">
               <thead>
-                <tr style="background-color: #e6f0ff; color: #021024; border-bottom: 2px solid #cbd5e1;">
-                  <th style="padding: 10px 12px; text-align: right; font-weight: 700;">${t('product')}</th>
-                  <th style="padding: 10px 12px; text-align: center; font-weight: 700;">${t('sold')}</th>
-                  <th style="padding: 10px 12px; text-align: left; font-weight: 700;">${t('profit')}</th>
-                  <th style="padding: 10px 12px; text-align: center; font-weight: 700;">${t('remaining_qty')}</th>
-                  <th style="padding: 10px 12px; text-align: left; font-weight: 700;">${t('remaining_value')}</th>
+                <tr style="background-color: ${pMuted}; color: ${pInk}; border-top: 2px solid ${pInk}; border-bottom: 1.5px solid ${pInk};">
+                  <th style="padding: 7px 10px; text-align: right; font-weight: 800; font-size: 12px;">${t('product')}</th>
+                  <th style="padding: 7px 10px; text-align: center; font-weight: 800; font-size: 12px;">${t('sold')}</th>
+                  <th style="padding: 7px 10px; text-align: left; font-weight: 800; font-size: 12px;">${t('profit')}</th>
+                  <th style="padding: 7px 10px; text-align: center; font-weight: 800; font-size: 12px;">${t('remaining_qty')}</th>
+                  <th style="padding: 7px 10px; text-align: left; font-weight: 800; font-size: 12px;">${t('remaining_value')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -436,8 +458,9 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
             ${damageTableHtml}
             
             <!-- Footer -->
-            <div style="margin-top: 24px; text-align: left; font-size: 11px; color: #94a3b8; font-weight: bold;">
-              صفحة ${pageIdx + 1} من ${totalPages}
+            <div style="margin-top: 14px; padding-top: 8px; border-top: 1px solid ${pBorder}; display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; color: ${pInkMuted}; font-weight: 700;">
+              <span>${storeName} · ${t('sales_report')}</span>
+              <span style="font-variant-numeric: tabular-nums;">صفحة ${pageIdx + 1} من ${totalPages}</span>
             </div>
           </div>
         `;
@@ -499,14 +522,17 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
       id="pdf-report-content"
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="pb-40 min-h-[100dvh] bg-white" dir="rtl"
+      className="pb-40 min-h-[100dvh]"
+      style={{ backgroundColor: theme.bg, color: theme.text }}
+      dir="rtl"
     >
-      <div className="p-4 sm:p-6 text-black" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, system-ui" }}>
+      <div className="max-w-7xl mx-auto p-3 sm:p-6">
         
-        <div className="print-hidden mb-6 flex items-center justify-between">
+        <div className="print-hidden mb-5 flex items-center justify-between">
           <button 
             onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center bg-zinc-100 border border-zinc-200 rounded-lg text-zinc-600 active:scale-95 transition-transform"
+            className="w-10 h-10 flex items-center justify-center border rounded-none active:scale-95 transition-transform cursor-pointer"
+            style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
           >
             <ArrowRight size={20} />
           </button>
@@ -514,27 +540,32 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
           <div className="relative">
             <button 
               onClick={() => setShowExportMenu(!showExportMenu)}
-              className="h-10 px-4 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 rounded-lg text-zinc-700 active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-sm text-sm font-bold"
+              className="h-10 px-4 border rounded-none active:scale-95 transition-transform flex items-center justify-center gap-2 text-sm font-bold cursor-pointer"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
               title="تقارير"
             >
-              <FileText size={16} />
+              <FileText size={16} style={{ color: theme.accent }} />
               <span className="hidden sm:inline">تقارير</span>
             </button>
             
             {showExportMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowExportMenu(false)} />
-                <div className="absolute left-0 sm:right-0 sm:left-auto mt-2 w-48 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-lg shadow-xl z-50 overflow-hidden py-1">
+                <div
+                  className="absolute left-0 sm:right-0 sm:left-auto mt-2 w-48 border rounded-none shadow-xl z-50 overflow-hidden py-1"
+                  style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+                >
                   <button
                     onClick={() => { setShowExportMenu(false); generatePDF(); }}
-                    className="w-full justify-start px-4 py-3 flex items-center gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-sm font-bold text-zinc-700 dark:text-zinc-300"
+                    className="w-full justify-start px-4 py-3 flex items-center gap-3 transition-colors text-sm font-bold cursor-pointer"
+                    style={{ color: theme.text }}
                   >
-                    <Download size={16} />
+                    <Download size={16} style={{ color: theme.accent }} />
                     <span>{t('download')} PDF</span>
                   </button>
                   <button
                     onClick={() => { setShowExportMenu(false); exportToExcel(); }}
-                    className="w-full justify-start px-4 py-3 flex items-center gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-sm font-bold text-[#107C41]"
+                    className="w-full justify-start px-4 py-3 flex items-center gap-3 transition-colors text-sm font-bold text-[#107C41] cursor-pointer"
                   >
                     <FileSpreadsheet size={16} />
                     <span>تصدير Excel</span>
@@ -545,112 +576,157 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
           </div>
         </div>
 
-        <div className="flex justify-between items-center border-b-2 border-[#e0e0e0] pb-4 mb-6 sm:mb-8">
-          <div className="text-[18px] sm:text-[22px] font-bold text-[#021024]">{settings.storeName || t('makhzouni')}</div>
-          <div className="text-[20px] sm:text-[24px] font-bold text-center flex-grow">{t('sales_report')}</div>
-          <div className="text-[16px] sm:text-[18px] text-[#555555]" dir="ltr">
-            {formatAppDate(safeParseDate(report.date), settings.language, t)}
+        {/* Masthead */}
+        <div
+          className="flex flex-wrap justify-between items-center gap-3 border-t-[3px] border-b-2 py-3.5 mb-5"
+          style={{ borderTopColor: theme.accent, borderBottomColor: theme.text }}
+        >
+          <div>
+            <div className="text-xs font-bold mb-0.5" style={{ color: theme.accent }}>{settings.storeName || t('makhzouni')}</div>
+            <div className="text-xl sm:text-2xl font-black" style={{ color: theme.text }}>{t('sales_report')}</div>
+          </div>
+          <div
+            className="px-3 py-1.5 border text-left"
+            style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+          >
+            <div className="text-[10px] font-bold" style={{ color: theme.textMuted }}>تاريخ الجرد</div>
+            <div className="text-sm sm:text-base font-bold tabular-nums" dir="ltr" style={{ color: theme.text }}>
+              {formatAppDate(safeParseDate(report.date), settings.language, t)}
+            </div>
           </div>
         </div>
 
-        <div className="mb-8 p-5 sm:p-6 bg-white border-2 border-zinc-200 rounded-2xl shadow-sm">
-          <h2 className="text-[18px] sm:text-xl font-bold text-zinc-800 mb-5 sm:mb-6 border-b pb-3">التقرير المالي الشامل</h2>
+        {/* Financial Summary */}
+        <div
+          className="mb-5 p-4 sm:p-5 border rounded-none"
+          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+        >
+          <div
+            className="flex items-center justify-between border-b pb-3 mb-4"
+            style={{ borderColor: theme.border }}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold" style={{ color: theme.accent }}>01</span>
+              <h2 className="text-base sm:text-lg font-black" style={{ color: theme.text }}>التقرير المالي الشامل</h2>
+            </div>
+            <span className="text-xs font-bold tabular-nums" style={{ color: theme.textMuted }}>{displayItems.length} صنف</span>
+          </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
             {/* Revenue and COGS */}
-            <div className="space-y-4">
-              <div className="flex justify-between items-center py-2 border-b border-dashed border-zinc-200">
-                <span className="text-zinc-600 font-semibold text-sm sm:text-base">إجمالي إيرادات المبيعات</span>
-                <span className="font-bold text-base sm:text-lg text-zinc-900" dir="ltr">{formatCurrency(uiTotalRevenueVal, settings.currency, settings.language)}</span>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: theme.border }}>
+                <span className="font-semibold text-sm" style={{ color: theme.textMuted }}>إجمالي إيرادات المبيعات</span>
+                <span className="font-bold text-base tabular-nums" style={{ color: theme.text }}>{formatCurrency(uiTotalRevenueVal, settings.currency, settings.language)}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-dashed border-zinc-200">
-                <span className="text-zinc-600 font-semibold text-sm sm:text-base">تكلفة البضاعة المباعة (COGS)</span>
-                <span className="font-bold text-base sm:text-lg text-red-600" dir="ltr">- {formatCurrency(uiCogsVal > 0 ? uiCogsVal : 0, settings.currency, settings.language)}</span>
+              <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: theme.border }}>
+                <span className="font-semibold text-sm" style={{ color: theme.textMuted }}>تكلفة البضاعة المباعة (COGS)</span>
+                <span className="font-bold text-base tabular-nums" style={{ color: theme.negative }}>- {formatCurrency(uiCogsVal > 0 ? uiCogsVal : 0, settings.currency, settings.language)}</span>
               </div>
-              <div className="flex justify-between items-center py-3 bg-zinc-50 px-3 rounded-lg border border-zinc-100">
-                <span className="text-zinc-900 font-bold text-sm sm:text-base">إجمالي الربح (المجمل)</span>
-                <span className="font-black text-lg sm:text-xl text-blue-600" dir="ltr">{formatCurrency(report.totalProfit || 0, settings.currency, settings.language)}</span>
+              <div
+                className="flex justify-between items-center py-2.5 px-3 border border-r-[3px] rounded-none"
+                style={{ backgroundColor: theme.bg, borderColor: theme.border, borderRightColor: theme.text }}
+              >
+                <span className="font-bold text-sm" style={{ color: theme.text }}>إجمالي الربح (المجمل)</span>
+                <span className="font-black text-lg tabular-nums" style={{ color: theme.text }}>{formatCurrency(report.totalProfit || 0, settings.currency, settings.language)}</span>
               </div>
             </div>
 
             {/* Expenses, Damage, Net Profit */}
-            <div className="space-y-4">
-              <div className="flex justify-between items-center py-2 border-b border-dashed border-zinc-200">
-                <span className="text-zinc-600 font-semibold text-sm sm:text-base">المصاريف التشغيلية النقدية</span>
-                <span className="font-bold text-base sm:text-lg text-red-600" dir="ltr">- {formatCurrency(uiTotalExpenses, settings.currency, settings.language)}</span>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: theme.border }}>
+                <span className="font-semibold text-sm" style={{ color: theme.textMuted }}>المصاريف التشغيلية النقدية</span>
+                <span className="font-bold text-base tabular-nums" style={{ color: theme.negative }}>- {formatCurrency(uiTotalExpenses, settings.currency, settings.language)}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-dashed border-zinc-200">
+              <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: theme.border }}>
                 <div className="flex flex-col">
-                  <span className="text-zinc-600 font-semibold text-sm sm:text-base">قيمة التالف والعجز</span>
-                  <span className="text-[10px] text-zinc-400 mt-0.5">مؤشر مرجعي فقط</span>
+                  <span className="font-semibold text-sm" style={{ color: theme.textMuted }}>قيمة التالف والعجز</span>
+                  <span className="text-[10px]" style={{ color: theme.textMuted }}>مؤشر مرجعي فقط</span>
                 </div>
-                <span className="font-bold text-base sm:text-lg text-amber-600" dir="ltr">{formatCurrency(report.totalDamageLoss || 0, settings.currency, settings.language)}</span>
+                <span className="font-bold text-base text-amber-600 tabular-nums">{formatCurrency(report.totalDamageLoss || 0, settings.currency, settings.language)}</span>
               </div>
-              <div className="flex justify-between items-center py-3 bg-blue-50 px-3 rounded-lg border border-blue-100">
-                <span className="text-blue-900 font-bold text-sm sm:text-base">صافي الربح الفعلي</span>
-                <span className="font-black text-xl sm:text-2xl text-blue-700" dir="ltr">{formatCurrency(uiNetProfit, settings.currency, settings.language)}</span>
+              <div
+                className="flex justify-between items-center py-2.5 px-3 border border-r-4 rounded-none"
+                style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.accent, borderRightColor: theme.accent }}
+              >
+                <span className="font-black text-sm" style={{ color: theme.text }}>صافي الربح الفعلي</span>
+                <span className="font-black text-xl tabular-nums" style={{ color: theme.accent }}>{formatCurrency(uiNetProfit, settings.currency, settings.language)}</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 mb-6 sm:mb-8">
-          <div className="flex-1 p-5 rounded-xl bg-zinc-900 text-white shadow-sm border border-zinc-800">
-            <div className="text-[14px] sm:text-[16px] mb-2 text-zinc-300 font-medium">قيمة المخزون المتبقي (بالتكلفة)</div>
-            <div className="text-[24px] sm:text-[28px] font-black inline-block" dir="ltr">
+        {/* Remaining Stock, Damage & Surplus Strips */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div
+            className="flex-1 p-4 border border-r-4 rounded-none"
+            style={{ backgroundColor: theme.surface, borderColor: theme.border, borderRightColor: theme.text }}
+          >
+            <div className="text-xs sm:text-sm mb-1.5 font-bold" style={{ color: theme.textMuted }}>قيمة المخزون المتبقي (بالتكلفة)</div>
+            <div className="text-2xl font-black tabular-nums inline-block" style={{ color: theme.text }}>
               {formatCurrency(report.totalRemainingValue !== undefined ? report.totalRemainingValue : report.items?.reduce((sum: number, item: any) => sum + (((products.find(p => p.name === item.productName)?.purchasePrice || products.find(p => p.name === item.productName)?.costPrice) || 0) * (item.quantityAfter || 0)), 0) || 0, settings.currency, settings.language)}
             </div>
           </div>
           
           {(report.totalDamageLoss > 0) && (
-            <div className="flex-1 p-5 rounded-xl bg-red-50 text-red-900 shadow-sm border border-red-200">
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="text-[14px] sm:text-[15px] font-bold flex items-center gap-1.5">
-                  <span>إجمالي خسائر التالف والعجز</span>
-                </div>
+            <div
+              className="flex-1 p-4 border border-r-4 rounded-none"
+              style={{ backgroundColor: theme.surface, borderColor: theme.negative, borderRightColor: theme.negative }}
+            >
+              <div className="text-xs sm:text-sm font-bold mb-1.5" style={{ color: theme.negative }}>
+                إجمالي خسائر التالف والعجز
               </div>
-              <div className="text-[22px] sm:text-[26px] font-black inline-block" dir="ltr">
+              <div className="text-2xl font-black tabular-nums inline-block" style={{ color: theme.negative }}>
                 {formatCurrency(report.totalDamageLoss || 0, settings.currency, settings.language)}
               </div>
-              <div className="text-[10.5px] text-red-700/80 mt-1 font-medium leading-tight">
+              <div className="text-[11px] mt-1 font-medium leading-tight" style={{ color: theme.textMuted }}>
                 مؤشر مرجعي للخسائر، لم يُخصم مرتين من الأرباح
               </div>
             </div>
           )}
 
           {surplusCostTotal > 0 && (
-            <div className="flex-1 p-5 rounded-xl bg-amber-600 text-white shadow-sm border border-amber-700">
+            <div className="flex-1 p-4 border border-amber-500 border-r-4 rounded-none bg-amber-50 dark:bg-amber-950/30">
               <div className="flex items-center justify-between mb-1.5">
-                <div className="text-[14px] sm:text-[15px] font-bold flex items-center gap-1.5">
-                  <span>فائض مخزون غير مبرَّر</span>
+                <div className="text-xs sm:text-sm font-extrabold text-amber-900 dark:text-amber-300">
+                  فائض مخزون غير مبرَّر
                 </div>
-                <span className="text-[11px] bg-black/20 px-2 py-0.5 rounded-full font-bold">
+                <span className="text-[11px] bg-amber-100 dark:bg-amber-900/50 border border-amber-400 text-amber-900 dark:text-amber-200 px-2 py-0.5 rounded-none font-bold tabular-nums">
                   {surplusCount} صنف (+{surplusTotalQty})
                 </span>
               </div>
-              <div className="text-[22px] sm:text-[26px] font-black inline-block" dir="ltr">
+              <div className="text-2xl font-black text-amber-800 dark:text-amber-300 tabular-nums inline-block">
                 {formatCurrency(surplusCostTotal, settings.currency, settings.language)}
               </div>
-              <div className="text-[10.5px] text-amber-100 mt-1 font-medium leading-tight">
+              <div className="text-[11px] text-amber-800/80 dark:text-amber-300/80 mt-1 font-medium leading-tight">
                 قيمة تكلفة كميات ظهرت بالعد الفعلي وتزيد عن المسجل بالنظام
               </div>
             </div>
           )}
         </div>
 
-        <div className="text-[14px] text-[#666666] mb-3">
-          * {t('sorted_by_sales_desc')}
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono font-bold" style={{ color: theme.accent }}>02</span>
+            <h3 className="text-sm font-black" style={{ color: theme.text }}>تفاصيل حركة الأصناف</h3>
+          </div>
+          <div className="text-xs font-medium" style={{ color: theme.textMuted }}>
+            * {t('sorted_by_sales_desc')}
+          </div>
         </div>
 
-        <div className="overflow-x-auto mb-8">
-          <table className="w-full border-collapse text-[14px]">
+        <div className="overflow-x-auto mb-8 border" style={{ borderColor: theme.border, backgroundColor: theme.surface }}>
+          <table className="w-full border-collapse text-sm">
             <thead>
-              <tr>
-                <th className="px-3 py-3 text-right border-b border-[#eeeeee] bg-[#e6f0ff] text-[#021024] font-bold text-[16px]">{t('product')}</th>
-                <th className="px-3 py-3 text-right border-b border-[#eeeeee] bg-[#e6f0ff] text-[#021024] font-bold text-[16px]">{t('sold')}</th>
-                <th className="px-3 py-3 text-right border-b border-[#eeeeee] bg-[#e6f0ff] text-[#021024] font-bold text-[16px]">{t('profit')}</th>
-                <th className="px-3 py-3 text-right border-b border-[#eeeeee] bg-[#e6f0ff] text-[#021024] font-bold text-[16px]">{t('remaining_qty')}</th>
-                <th className="px-3 py-3 text-right border-b border-[#eeeeee] bg-[#e6f0ff] text-[#021024] font-bold text-[16px]">{t('remaining_value')}</th>
+              <tr
+                className="border-t-2 border-b-2"
+                style={{ backgroundColor: theme.surfaceMuted, borderTopColor: theme.text, borderBottomColor: theme.text, color: theme.text }}
+              >
+                <th className="px-3 py-2.5 text-right font-extrabold text-xs sm:text-sm">{t('product')}</th>
+                <th className="px-3 py-2.5 text-center font-extrabold text-xs sm:text-sm">{t('sold')}</th>
+                <th className="px-3 py-2.5 text-left font-extrabold text-xs sm:text-sm">{t('profit')}</th>
+                <th className="px-3 py-2.5 text-center font-extrabold text-xs sm:text-sm">{t('remaining_qty')}</th>
+                <th className="px-3 py-2.5 text-left font-extrabold text-xs sm:text-sm">{t('remaining_value')}</th>
               </tr>
             </thead>
             <tbody>
@@ -661,37 +737,41 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
                 return (
                   <tr 
                     key={i} 
-                    className={isItemSurplus ? "bg-[#fffbeb] hover:bg-[#fef3c7]" : "even:bg-[#fafbfc]"} 
-                    style={{ pageBreakInside: 'avoid' }}
+                    className={isItemSurplus ? "bg-amber-50/70 dark:bg-amber-950/20" : undefined}
+                    style={{
+                      pageBreakInside: 'avoid',
+                      borderBottom: `1px solid ${theme.border}`,
+                      backgroundColor: !isItemSurplus && i % 2 === 1 ? theme.bg : undefined
+                    }}
                   >
-                    <td className="px-3 py-3 text-right border-b border-[#eeeeee]">
-                      <div className="font-semibold text-[#0f172a]">{item.productName}</div>
+                    <td className="px-3 py-2.5 text-right">
+                      <div className="font-semibold" style={{ color: theme.text }}>{item.productName}</div>
                       {isItemSurplus && (
-                        <div className="text-[11px] text-[#b45309] font-bold mt-0.5">
+                        <div className="text-[11px] text-amber-700 dark:text-amber-400 font-bold mt-0.5">
                           زيادة غير مفسَّرة: المسجل ({item.quantityBefore ?? '—'}) ➔ الفعلي ({item.quantityAfter ?? '—'})
                         </div>
                       )}
                     </td>
-                    <td className="px-3 py-3 text-right border-b border-[#eeeeee]">
+                    <td className="px-3 py-2.5 text-center">
                       {isItemSurplus ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[#fef3c7] text-[#78350f] border border-[#fcd34d] font-black text-[11px] whitespace-nowrap shadow-xs">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-none bg-amber-100 text-amber-900 border border-amber-400 font-black text-[11px] whitespace-nowrap">
                           +{surplusQty} غير مفسَّر
                         </span>
                       ) : (
-                        <span className="font-medium">{item.salesCalculated}</span>
+                        <span className="font-semibold tabular-nums">{item.salesCalculated}</span>
                       )}
                     </td>
-                    <td className="px-3 py-3 text-right border-b border-[#eeeeee]" dir="ltr">
-                      <div className="inline-block">
+                    <td className="px-3 py-2.5 text-left tabular-nums">
+                      <div className="inline-block font-semibold">
                         {isItemSurplus ? (
-                          <span className="text-[#94a3b8] font-mono text-xs">0.000</span>
+                          <span className="font-mono text-xs" style={{ color: theme.textMuted }}>0.000</span>
                         ) : (
                           formatCurrency(item.profit || 0, settings.currency, settings.language)
                         )}
                       </div>
                     </td>
-                    <td className="px-3 py-3 text-right border-b border-[#eeeeee] font-semibold">{item.quantityAfter ?? '—'}</td>
-                    <td className="px-3 py-3 text-right border-b border-[#eeeeee]" dir="ltr">
+                    <td className="px-3 py-2.5 text-center font-semibold tabular-nums">{item.quantityAfter ?? '—'}</td>
+                    <td className="px-3 py-2.5 text-left tabular-nums">
                       <div className="inline-block font-semibold">
                         {formatCurrency(item.remainingValue !== undefined ? item.remainingValue : ((products.find(p => p.name === item.productName)?.purchasePrice || products.find(p => p.name === item.productName)?.costPrice) || 0) * (item.quantityAfter || 0), settings.currency, settings.language)}
                       </div>
@@ -705,41 +785,54 @@ export const InventoryReportView: React.FC<InventoryReportViewProps> = ({ report
 
         {report.damageItems && report.damageItems.length > 0 && (
           <div className="mt-8">
-            <h3 className="text-xl font-bold text-[#021024] mb-4 border-b-2 border-[#e0e0e0] pb-2">
-              ملخص التالف والضائع (تفصيلي)
-            </h3>
+            <div className="flex items-center gap-2 border-b-2 pb-2 mb-3" style={{ borderColor: theme.text }}>
+              <span className="text-xs font-mono font-bold" style={{ color: theme.negative }}>03</span>
+              <h3 className="text-base sm:text-lg font-black" style={{ color: theme.text }}>
+                ملخص التالف والضائع (تفصيلي)
+              </h3>
+            </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-[14px]">
+            <div className="overflow-x-auto border" style={{ borderColor: theme.border, backgroundColor: theme.surface }}>
+              <table className="w-full border-collapse text-sm">
                 <thead>
-                  <tr>
-                    <th className="px-3 py-3 text-right border-b border-[#eeeeee] bg-red-50 text-red-900 font-bold text-[16px]">المنتج</th>
-                    <th className="px-3 py-3 text-right border-b border-[#eeeeee] bg-red-50 text-red-900 font-bold text-[16px]">الكمية التالفة</th>
-                    <th className="px-3 py-3 text-right border-b border-[#eeeeee] bg-red-50 text-red-900 font-bold text-[16px]">تكلفة الوحدة</th>
-                    <th className="px-3 py-3 text-right border-b border-[#eeeeee] bg-red-50 text-red-900 font-bold text-[16px]">إجمالي الخسارة</th>
-                    <th className="px-3 py-3 text-right border-b border-[#eeeeee] bg-red-50 text-red-900 font-bold text-[16px]">السبب</th>
+                  <tr
+                    className="border-t-2 border-b-2 bg-red-50 dark:bg-red-950/30 text-red-900 dark:text-red-200"
+                    style={{ borderTopColor: theme.negative, borderBottomColor: theme.negative }}
+                  >
+                    <th className="px-3 py-2.5 text-right font-extrabold text-xs sm:text-sm">المنتج</th>
+                    <th className="px-3 py-2.5 text-center font-extrabold text-xs sm:text-sm">الكمية التالفة</th>
+                    <th className="px-3 py-2.5 text-left font-extrabold text-xs sm:text-sm">تكلفة الوحدة</th>
+                    <th className="px-3 py-2.5 text-left font-extrabold text-xs sm:text-sm">إجمالي الخسارة</th>
+                    <th className="px-3 py-2.5 text-right font-extrabold text-xs sm:text-sm">السبب</th>
                   </tr>
                 </thead>
                 <tbody>
                   {report.damageItems.map((item: any, i: number) => (
-                    <tr key={`dmg-${i}`} className="even:bg-[#fafbfc]" style={{ pageBreakInside: 'avoid' }}>
-                      <td className="px-3 py-3 text-right border-b border-[#eeeeee]">
-                        <div className="font-semibold text-[#0f172a]">{item.productName}</div>
+                    <tr
+                      key={`dmg-${i}`}
+                      style={{
+                        pageBreakInside: 'avoid',
+                        borderBottom: `1px solid ${theme.border}`,
+                        backgroundColor: i % 2 === 1 ? theme.bg : undefined
+                      }}
+                    >
+                      <td className="px-3 py-2.5 text-right">
+                        <div className="font-semibold" style={{ color: theme.text }}>{item.productName}</div>
                       </td>
-                      <td className="px-3 py-3 text-right border-b border-[#eeeeee] font-medium text-red-600">
+                      <td className="px-3 py-2.5 text-center font-bold tabular-nums" style={{ color: theme.negative }}>
                         {item.quantity}
                       </td>
-                      <td className="px-3 py-3 text-right border-b border-[#eeeeee]" dir="ltr">
-                        <div className="inline-block text-[#64748b]">
+                      <td className="px-3 py-2.5 text-left tabular-nums" style={{ color: theme.textMuted }}>
+                        <div className="inline-block">
                           {formatCurrency(item.unitCost || 0, settings.currency, settings.language)}
                         </div>
                       </td>
-                      <td className="px-3 py-3 text-right border-b border-[#eeeeee] font-bold text-red-700" dir="ltr">
+                      <td className="px-3 py-2.5 text-left font-bold tabular-nums" style={{ color: theme.negative }}>
                         <div className="inline-block">
                           {formatCurrency(item.totalLoss || 0, settings.currency, settings.language)}
                         </div>
                       </td>
-                      <td className="px-3 py-3 text-right border-b border-[#eeeeee] text-[#64748b]">
+                      <td className="px-3 py-2.5 text-right" style={{ color: theme.textMuted }}>
                         {item.reason || '—'}
                       </td>
                     </tr>

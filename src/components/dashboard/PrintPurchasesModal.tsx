@@ -7,7 +7,7 @@ import { X, ExternalLink, Loader2 } from 'lucide-react';
 import { useAppContext } from '../../AppContext';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { useFolioTheme } from '../folio/FolioPageChrome';
+import { useFolioTheme, resolveFolioTheme } from '../folio/FolioPageChrome';
 
 interface PrintPurchasesModalProps {
   isOpen: boolean;
@@ -109,54 +109,65 @@ export function PrintPurchasesModal({
                        period === 'custom' ? `من ${startDate} إلى ${endDate}` : 'الكل';
       const reportDate = formatAppDate(now, settings.language, t);
 
+      const printTheme = theme.isDark ? resolveFolioTheme(false, 'folio-cobalt') : theme;
+      const pPaper = '#FFFFFF';
+      const pBg = printTheme.bg;
+      const pMuted = printTheme.surfaceMuted;
+      const pBorder = printTheme.border;
+      const pInk = printTheme.text;
+      const pInkMuted = printTheme.textMuted;
+      const pAccent = printTheme.accent;
+
       let tableHtml = "";
       Object.keys(pBySupplier).forEach(supplierName => {
         const supplierPurchases = pBySupplier[supplierName];
         const supplierTotal = supplierPurchases.reduce((sum, p) => sum + (p.amount || 0), 0);
 
         tableHtml += `
-          <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0; page-break-after: avoid;">
-            <td colspan="4" style="padding: 12px 10px; text-align: right; font-size: 14px; font-weight: 800; color: #0f172a;">
+          <tr style="background-color: ${pMuted}; border-top: 1.5px solid ${pInk}; border-bottom: 1px solid ${pBorder}; page-break-after: avoid; break-after: avoid;">
+            <td colspan="4" style="padding: 9px 12px; text-align: right; font-size: 13px; font-weight: 800; color: ${pInk}; border-right: 4px solid ${pAccent};">
               <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span>المورد: <span style="color: #0284c7; margin-right: 8px;">${supplierName}</span></span>
-                <span style="font-size: 13px; color: #334155;">إجمالي المشتريات: <span style="font-weight: 900; color: #0f172a;">${formatCurrency(supplierTotal, settings.currency)}</span></span>
+                <span>المورد: <span style="color: ${pAccent}; margin-right: 6px; font-weight: 900;">${supplierName}</span> <span style="font-size: 11px; color: ${pInkMuted}; font-weight: 700; margin-right: 6px;">(${supplierPurchases.length} صنف)</span></span>
+                <span style="font-size: 12.5px; color: ${pInkMuted};">إجمالي المشتريات: <span style="font-weight: 900; color: ${pInk}; font-variant-numeric: tabular-nums;">${formatCurrency(supplierTotal, settings.currency)}</span></span>
               </div>
             </td>
           </tr>
         `;
 
-        supplierPurchases.forEach((p) => {
+        supplierPurchases.forEach((p, idx) => {
+          const rowBg = idx % 2 === 1 ? pBg : pPaper;
           tableHtml += `
-            <tr style="border-bottom: 1px solid #e5e7eb; page-break-inside: avoid;">
-              <td style="padding: 10px;text-align: right;font-size: 13px; padding-right: 20px;">${p.productName || 'غير معروف'}</td>
-              <td style="padding: 10px;text-align: center;font-size: 13px;">${formatQuantity(p.quantityChange)}</td>
-              <td style="padding: 10px;text-align: center;font-size: 13px;font-weight: 600;">${formatCurrency(p.amount || 0, settings.currency)}</td>
-              <td style="padding: 10px;text-align: left;font-size: 12px;color:#6b7280;" dir="ltr">${formatAppDate(safeParseDate(p.date), settings.language, t)}</td>
+            <tr style="background-color: ${rowBg}; border-bottom: 1px solid ${pBorder}; page-break-inside: avoid; break-inside: avoid;">
+              <td style="padding: 8px 12px; text-align: right; font-size: 12.5px; font-weight: 600; color: ${pInk}; padding-right: 18px;">${p.productName || 'غير معروف'}</td>
+              <td style="padding: 8px 10px; text-align: center; font-size: 12.5px; font-weight: 700; color: ${pInk}; font-variant-numeric: tabular-nums;">${formatQuantity(p.quantityChange)}</td>
+              <td style="padding: 8px 10px; text-align: center; font-size: 12.5px; font-weight: 700; color: ${pInk}; font-variant-numeric: tabular-nums;">${formatCurrency(p.amount || 0, settings.currency)}</td>
+              <td style="padding: 8px 10px; text-align: left; font-size: 11.5px; color: ${pInkMuted}; font-variant-numeric: tabular-nums;" dir="ltr">${formatAppDate(safeParseDate(p.date), settings.language, t)}</td>
             </tr>
           `;
         });
       });
 
       const elementHtml = `
-      <div id="print-purchases-container" style="padding: 40px; font-family: 'Inter', sans-serif; background-color: white; color: #18181b; direction: rtl;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; border-bottom: 2px solid #f4f4f5; padding-bottom: 20px;">
+      <div id="print-purchases-container" style="padding: 18px 22px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, sans-serif; background-color: ${pPaper}; color: ${pInk}; direction: rtl; box-sizing: border-box;">
+        <div style="border-top: 3px solid ${pAccent}; border-bottom: 2px solid ${pInk}; padding: 12px 0 14px 0; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
           <div>
-            <h1 style="font-size: 28px; font-weight: 900; margin: 0 0 8px 0; color: #18181b;">تقرير المشتريات</h1>
-            <p style="font-size: 14px; font-weight: 500; color: #71717a; margin: 0;">الفترة: ${titleStr}</p>
+            <div style="font-size: 10.5px; font-weight: 800; color: ${pAccent}; margin-bottom: 3px;">${storeName} · 01 سجل التوريد</div>
+            <h1 style="font-size: 22px; font-weight: 900; margin: 0 0 4px 0; color: ${pInk}; line-height: 1.2;">تقرير المشتريات</h1>
+            <p style="font-size: 12.5px; font-weight: 700; color: ${pInkMuted}; margin: 0;">الفترة: ${titleStr}${selectedSupplier !== 'all' ? ` · المورد: ${selectedSupplier}` : ''}</p>
           </div>
-          <div style="text-align: left;">
-            <p style="font-size: 20px; font-weight: 800; color: #0284c7; margin: 0 0 4px 0;">${storeName}</p>
-            <p style="font-size: 12px; font-weight: 600; color: #71717a; margin: 0;">تاريخ التقرير: <span dir="ltr">${reportDate}</span></p>
+          <div style="text-align: left; background-color: ${pBg}; border: 1px solid ${pBorder}; padding: 8px 14px;">
+            <p style="font-size: 10px; font-weight: 700; color: ${pInkMuted}; margin: 0 0 2px 0;">تاريخ التقرير</p>
+            <p style="font-size: 13px; font-weight: 800; color: ${pInk}; margin: 0; font-variant-numeric: tabular-nums;" dir="ltr">${reportDate}</p>
           </div>
         </div>
         
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 22px; border: 1px solid ${pBorder};">
           <thead>
-            <tr style="background-color: #f4f4f5; border-radius: 8px;">
-              <th style="padding: 12px 10px;text-align: right;font-size: 13px;font-weight: 700;color: #52525b; padding-right: 20px;">المنتج</th>
-              <th style="padding: 12px 10px;text-align: center;font-size: 13px;font-weight: 700;color: #52525b;">الكمية</th>
-              <th style="padding: 12px 10px;text-align: center;font-size: 13px;font-weight: 700;color: #52525b;">القيمة</th>
-              <th style="padding: 12px 10px;text-align: left;font-size: 13px;font-weight: 700;color: #52525b;">التاريخ</th>
+            <tr style="background-color: ${pMuted}; border-top: 2px solid ${pInk}; border-bottom: 1.5px solid ${pInk}; color: ${pInk};">
+              <th style="padding: 9px 12px; text-align: right; font-size: 12.5px; font-weight: 800; padding-right: 18px;">المنتج</th>
+              <th style="padding: 9px 10px; text-align: center; font-size: 12.5px; font-weight: 800;">الكمية</th>
+              <th style="padding: 9px 10px; text-align: center; font-size: 12.5px; font-weight: 800;">القيمة</th>
+              <th style="padding: 9px 10px; text-align: left; font-size: 12.5px; font-weight: 800;">التاريخ</th>
             </tr>
           </thead>
           <tbody>
@@ -164,10 +175,13 @@ export function PrintPurchasesModal({
           </tbody>
         </table>
         
-        <div style="display: flex; justify-content: flex-end; padding-top: 20px; border-top: 2px solid #f4f4f5;">
-          <div style="background-color: #f0f9ff; padding: 16px 32px; border-radius: 12px; border: 1px solid #e0f2fe; text-align: center;">
-            <p style="font-size: 13px; font-weight: 700; color: #0369a1; margin: 0 0 4px 0;">إجمالي مشتريات الفترة</p>
-            <p style="font-size: 24px; font-weight: 900; color: #0284c7; margin: 0;">${formatCurrency(totalAmount, settings.currency)}</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 14px; border-top: 1.5px solid ${pBorder}; page-break-inside: avoid; break-inside: avoid;">
+          <div style="font-size: 11px; font-weight: 700; color: ${pInkMuted};">
+            إجمالي العمليات المسجلة: <span style="color: ${pInk}; font-weight: 900; font-variant-numeric: tabular-nums;">${filteredPurchases.length}</span>
+          </div>
+          <div style="background-color: ${pMuted}; padding: 12px 24px; border-radius: 0; border: 1px solid ${pAccent}; border-right: 4px solid ${pAccent}; text-align: left;">
+            <p style="font-size: 11.5px; font-weight: 800; color: ${pInkMuted}; margin: 0 0 3px 0;">إجمالي مشتريات الفترة</p>
+            <p style="font-size: 20px; font-weight: 900; color: ${pAccent}; margin: 0; font-variant-numeric: tabular-nums;">${formatCurrency(totalAmount, settings.currency)}</p>
           </div>
         </div>
       </div>
