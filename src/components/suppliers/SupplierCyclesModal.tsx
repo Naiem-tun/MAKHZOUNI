@@ -426,36 +426,6 @@ export function SupplierCyclesModal({
 
                       <button
                         type="button"
-                        onClick={() => handleExportCycleToPDF(cycle)}
-                        className="px-2.5 py-1.5 border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                        style={{
-                          backgroundColor: theme.surfaceMuted,
-                          borderColor: theme.border,
-                          color: theme.text
-                        }}
-                        title="تنزيل PDF"
-                      >
-                        <FileText size={14} style={{ color: theme.accent }} />
-                        <span>PDF</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleExportCycleToExcel(cycle)}
-                        className="px-2.5 py-1.5 border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                        style={{
-                          backgroundColor: theme.surfaceMuted,
-                          borderColor: theme.border,
-                          color: theme.text
-                        }}
-                        title="تنزيل Excel"
-                      >
-                        <FileSpreadsheet size={14} style={{ color: theme.textMuted }} />
-                        <span>Excel</span>
-                      </button>
-
-                      <button
-                        type="button"
                         onClick={() => setDeleteConfirmId(cycle.id || null)}
                         className="p-1.5 border transition-colors cursor-pointer"
                         style={{
