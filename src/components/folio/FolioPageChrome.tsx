@@ -511,7 +511,7 @@ export const FolioSmoothTrendCard: React.FC<FolioSmoothTrendCardProps> = ({
               className="pt-2 border-t flex flex-wrap items-center justify-between gap-2 text-[11px]"
               style={{ borderColor: theme.border, color: theme.textMuted }}
             >
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5" dir="ltr">
                 <button
                   type="button"
                   onClick={() => stepDay(-1)}
@@ -523,7 +523,7 @@ export const FolioSmoothTrendCard: React.FC<FolioSmoothTrendCardProps> = ({
                     color: theme.text,
                   }}
                 >
-                  <ChevronRight size={13} />
+                  <ChevronLeft size={13} />
                   <span>السابق</span>
                 </button>
                 <button
@@ -538,7 +538,7 @@ export const FolioSmoothTrendCard: React.FC<FolioSmoothTrendCardProps> = ({
                   }}
                 >
                   <span>التالي</span>
-                  <ChevronLeft size={13} />
+                  <ChevronRight size={13} />
                 </button>
               </div>
 

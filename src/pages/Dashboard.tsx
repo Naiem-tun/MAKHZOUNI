@@ -85,14 +85,44 @@ const Dashboard = memo(() => {
   const [isVarianceModalOpen, setIsVarianceModalOpen] = useState(false);
   const [isVarianceCardCollapsed, setIsVarianceCardCollapsed] = useState<boolean>(() => {
     try {
-      return localStorage.getItem('variance_card_collapsed') === 'true';
+      return localStorage.getItem('variance_card_collapsed') !== 'false';
     } catch {
-      return false;
+      return true;
     }
+  });
+  const [collapsedSections, setCollapsedSections] = useState<{
+    s01: boolean;
+    s02: boolean;
+    s03: boolean;
+    s05a: boolean;
+    s05b: boolean;
+  }>(() => {
+    try {
+      const saved = localStorage.getItem('dashboard_collapsed_sections_v1');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          s01: parsed.s01 ?? true,
+          s02: parsed.s02 ?? true,
+          s03: parsed.s03 ?? true,
+          s05a: parsed.s05a ?? true,
+          s05b: parsed.s05b ?? true,
+        };
+      }
+    } catch {}
+    return { s01: true, s02: true, s03: true, s05a: true, s05b: true };
   });
   const [expandedPurchaseGroups, setExpandedPurchaseGroups] = useState<Record<string, boolean>>({});
   const [purchaseSearch, setPurchaseSearch] = useState('');
   const { theme } = useFolioTheme(Boolean(settings.darkMode), settings.folioThemeId);
+
+  const toggleDashboardSection = (key: 's01' | 's02' | 's03' | 's05a' | 's05b') => {
+    setCollapsedSections(prev => {
+      const next = { ...prev, [key]: !prev[key] };
+      try { localStorage.setItem('dashboard_collapsed_sections_v1', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
 
   const toggleVarianceCardCollapsed = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -533,6 +563,35 @@ const Dashboard = memo(() => {
         </header>
 
         {/* SECTION 01: MASTER INVENTORY VALUATION HERO (FOLIO BORDERED) */}
+        {collapsedSections.s01 ? (
+          <div
+            onClick={() => toggleDashboardSection('s01')}
+            className="cursor-pointer select-none border px-4 py-3 flex items-center justify-between gap-3 transition-colors"
+            style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="text-xs font-mono font-bold tabular-nums shrink-0" style={{ color: theme.accent }}>
+                01
+              </span>
+              <span className="text-xs sm:text-sm font-black truncate">{t('inventory_value')}</span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span
+                className="font-mono tabular-nums text-[11px] font-bold px-2 py-0.5 border"
+                style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.text }}
+              >
+                {formatPrivateValue(stats.totalValue)}
+              </span>
+              <span
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold border"
+                style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.text }}
+              >
+                <span>إظهار</span>
+                <ChevronDown size={14} />
+              </span>
+            </div>
+          </div>
+        ) : (
         <section
           className="border transition-colors text-right"
           style={{ backgroundColor: theme.surface, borderColor: theme.border }}
@@ -545,12 +604,24 @@ const Dashboard = memo(() => {
                 </span>
                 <span style={{ color: theme.textMuted }}>{t('inventory_value')}</span>
               </div>
-              <span className="text-[11px] font-bold" style={{ color: theme.textMuted }}>
-                بسعر البيع المتوقع:{' '}
-                <strong className="font-mono tabular-nums" style={{ color: theme.text }}>
-                  {formatPrivateValue(stats.totalSalesValue)}
-                </strong>
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold" style={{ color: theme.textMuted }}>
+                  بسعر البيع المتوقع:{' '}
+                  <strong className="font-mono tabular-nums" style={{ color: theme.text }}>
+                    {formatPrivateValue(stats.totalSalesValue)}
+                  </strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => toggleDashboardSection('s01')}
+                  title="طي البطاقة"
+                  aria-label="طي البطاقة"
+                  className="p-1.5 border transition-colors cursor-pointer"
+                  style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.textMuted }}
+                >
+                  <ChevronUp size={15} />
+                </button>
+              </div>
             </div>
 
             <div
@@ -614,8 +685,30 @@ const Dashboard = memo(() => {
             </div>
           </div>
         </section>
+        )}
 
         {/* SECTION 02: FINANCIAL SUMMARY (4-CELL FOLIO MATRIX) */}
+        {collapsedSections.s02 ? (
+          <div
+            onClick={() => toggleDashboardSection('s02')}
+            className="cursor-pointer select-none border px-4 py-3 flex items-center justify-between gap-3 transition-colors"
+            style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.text }}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="text-xs font-mono font-bold tabular-nums shrink-0" style={{ color: theme.accent }}>
+                02
+              </span>
+              <span className="text-xs sm:text-sm font-black truncate">الحسابات والالتزامات المالية</span>
+            </div>
+            <span
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold border shrink-0"
+              style={{ backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.text }}
+            >
+              <span>إظهار</span>
+              <ChevronDown size={14} />
+            </span>
+          </div>
+        ) : (
         <section
           className="border"
           style={{ backgroundColor: theme.surface, borderColor: theme.border }}
@@ -630,9 +723,21 @@ const Dashboard = memo(() => {
               </span>
               <span style={{ color: theme.text }}>الحسابات والالتزامات المالية</span>
             </div>
-            <span className="text-[11px]" style={{ color: theme.textMuted }}>
-              انقر لفتح القسم
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] hidden sm:inline" style={{ color: theme.textMuted }}>
+                انقر لفتح القسم
+              </span>
+              <button
+                type="button"
+                onClick={() => toggleDashboardSection('s02')}
+                title="طي البطاقة"
+                aria-label="طي البطاقة"
+                className="p-1 border transition-colors cursor-pointer"
+                style={{ backgroundColor: theme.surface, borderColor: theme.border, color: theme.textMuted }}
+              >
+                <ChevronUp size={15} />
+              </button>
+            </div>
           </div>
 
           <div
@@ -702,6 +807,7 @@ const Dashboard = memo(() => {
             ))}
           </div>
         </section>
+        )}
 
         {/* SECTION 03: SMOOTH CURVED PURCHASE MOVEMENT CHART */}
         <FolioPurchaseCurveChart
@@ -710,6 +816,8 @@ const Dashboard = memo(() => {
           language={language}
           formatPrivateValue={formatPrivateValue}
           t={t}
+          isCollapsed={collapsedSections.s03}
+          onToggleCollapse={() => toggleDashboardSection('s03')}
         />
 
         {/* SECTION 04: PURCHASE PRICE VARIANCE FOLIO ENTRY PANEL */}
@@ -735,6 +843,10 @@ const Dashboard = memo(() => {
           formatPrivateValue={formatPrivateValue}
           onNavigateTab={setActiveTab}
           t={t}
+          isCategoriesCollapsed={collapsedSections.s05a}
+          onToggleCategoriesCollapse={() => toggleDashboardSection('s05a')}
+          isSuppliersCollapsed={collapsedSections.s05b}
+          onToggleSuppliersCollapse={() => toggleDashboardSection('s05b')}
         />
 
         {/* SECTION 06: RECENT PURCHASES LEDGER (FOLIO ACCORDION + TABLE) */}

@@ -306,7 +306,7 @@ export function SupplierCyclesModal({
                       type="button"
                       onClick={() => handleExportCycleToExcel(selectedCycle)}
                       className="px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 transition-opacity hover:opacity-90 cursor-pointer"
-                      style={{ backgroundColor: theme.positive, color: '#FFFFFF' }}
+                      style={{ backgroundColor: '#107C41', color: '#FFFFFF' }}
                     >
                       <FileSpreadsheet size={14} />
                       <span>تنزيل Excel</span>
@@ -409,11 +409,11 @@ export function SupplierCyclesModal({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
                       <button
                         type="button"
                         onClick={() => setSelectedCycle(cycle)}
-                        className="px-3 py-1.5 border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                        className="px-2.5 py-1.5 border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                         style={{
                           backgroundColor: theme.surfaceMuted,
                           borderColor: theme.border,
@@ -427,29 +427,31 @@ export function SupplierCyclesModal({
                       <button
                         type="button"
                         onClick={() => handleExportCycleToPDF(cycle)}
-                        className="p-1.5 border transition-colors cursor-pointer"
+                        className="px-2.5 py-1.5 border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                         style={{
-                          backgroundColor: `${theme.accent}12`,
-                          borderColor: `${theme.accent}40`,
-                          color: theme.accent
+                          backgroundColor: theme.surfaceMuted,
+                          borderColor: theme.border,
+                          color: theme.text
                         }}
                         title="تنزيل PDF"
                       >
-                        <FileText size={16} />
+                        <FileText size={14} style={{ color: theme.accent }} />
+                        <span>PDF</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleExportCycleToExcel(cycle)}
-                        className="p-1.5 border transition-colors cursor-pointer"
+                        className="px-2.5 py-1.5 border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                         style={{
-                          backgroundColor: `${theme.positive}12`,
-                          borderColor: `${theme.positive}40`,
-                          color: theme.positive
+                          backgroundColor: theme.surfaceMuted,
+                          borderColor: theme.border,
+                          color: theme.text
                         }}
                         title="تنزيل Excel"
                       >
-                        <FileSpreadsheet size={16} />
+                        <FileSpreadsheet size={14} style={{ color: theme.textMuted }} />
+                        <span>Excel</span>
                       </button>
 
                       <button

@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { ArrowUpLeft, ChevronLeft, ChevronRight, Layers, Truck } from 'lucide-react';
+import { ArrowUpLeft, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Layers, Truck } from 'lucide-react';
 import { formatAppDate, safeParseDate } from '../../lib/utils';
 import { Transaction } from '../../types';
 import { FolioTheme } from '../inventory/analytics/folio/folioTypes';
@@ -45,6 +45,8 @@ interface FolioPurchaseCurveChartProps {
   language: string;
   formatPrivateValue: (val: number) => string;
   t: any;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export const FolioPurchaseCurveChart: React.FC<FolioPurchaseCurveChartProps> = ({
@@ -53,7 +55,15 @@ export const FolioPurchaseCurveChart: React.FC<FolioPurchaseCurveChartProps> = (
   language,
   formatPrivateValue,
   t,
+  isCollapsed: controlledCollapsed,
+  onToggleCollapse,
 }) => {
+  const [internalCollapsed, setInternalCollapsed] = useState(true);
+  const isCollapsed = controlledCollapsed !== undefined ? controlledCollapsed : internalCollapsed;
+  const toggleCollapse = () => {
+    if (onToggleCollapse) onToggleCollapse();
+    else setInternalCollapsed((prev) => !prev);
+  };
   const [rangeDays, setRangeDays] = useState<7 | 14 | 30>(14);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -179,6 +189,57 @@ export const FolioPurchaseCurveChart: React.FC<FolioPurchaseCurveChartProps> = (
     });
   };
 
+  if (isCollapsed) {
+    return (
+      <div
+        onClick={toggleCollapse}
+        dir="rtl"
+        className="cursor-pointer select-none border px-4 py-3 flex items-center justify-between gap-3 transition-colors"
+        style={{
+          backgroundColor: theme.surface,
+          borderColor: theme.border,
+          color: theme.text,
+        }}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <span
+            className="text-xs font-mono font-bold tabular-nums shrink-0"
+            style={{ color: theme.accent }}
+          >
+            03
+          </span>
+          <span className="text-xs sm:text-sm font-black truncate">
+            حركة المشتريات اليومية
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <span
+            className="font-mono tabular-nums text-[11px] font-bold px-2 py-0.5 border"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+              color: theme.text,
+            }}
+          >
+            {formatPrivateValue(periodStats.totalSpend)}
+          </span>
+          <span
+            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold border"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+              color: theme.text,
+            }}
+          >
+            <span>إظهار</span>
+            <ChevronDown size={14} />
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <section
       className="border transition-colors text-right"
@@ -193,16 +254,32 @@ export const FolioPurchaseCurveChart: React.FC<FolioPurchaseCurveChartProps> = (
         className="p-4 sm:p-5 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3"
         style={{ borderColor: theme.border }}
       >
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs font-bold">
-            <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
-              03
-            </span>
-            <span style={{ color: theme.textMuted }}>منحنى السيولة والمشتريات</span>
+        <div className="flex items-start justify-between gap-2">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs font-bold">
+              <span className="font-mono tabular-nums" style={{ color: theme.accent }}>
+                03
+              </span>
+              <span style={{ color: theme.textMuted }}>منحنى السيولة والمشتريات</span>
+            </div>
+            <h2 className="text-base sm:text-lg font-black tracking-tight flex items-center gap-2">
+              <span>حركة المشتريات اليومية</span>
+            </h2>
           </div>
-          <h2 className="text-base sm:text-lg font-black tracking-tight flex items-center gap-2">
-            <span>حركة المشتريات اليومية</span>
-          </h2>
+          <button
+            type="button"
+            onClick={toggleCollapse}
+            title="طي البطاقة"
+            aria-label="طي البطاقة"
+            className="sm:hidden p-1.5 border transition-colors cursor-pointer shrink-0"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+              color: theme.textMuted,
+            }}
+          >
+            <ChevronUp size={15} />
+          </button>
         </div>
 
         <div className="flex items-center gap-1.5 self-start sm:self-auto">
@@ -227,6 +304,20 @@ export const FolioPurchaseCurveChart: React.FC<FolioPurchaseCurveChartProps> = (
               </button>
             );
           })}
+          <button
+            type="button"
+            onClick={toggleCollapse}
+            title="طي البطاقة"
+            aria-label="طي البطاقة"
+            className="hidden sm:inline-flex p-1.5 border transition-colors cursor-pointer shrink-0"
+            style={{
+              backgroundColor: theme.surfaceMuted,
+              borderColor: theme.border,
+              color: theme.textMuted,
+            }}
+          >
+            <ChevronUp size={15} />
+          </button>
         </div>
       </div>
 
@@ -426,7 +517,7 @@ export const FolioPurchaseCurveChart: React.FC<FolioPurchaseCurveChartProps> = (
               className="pt-2.5 border-t flex flex-wrap items-center justify-between gap-2 text-[11px]"
               style={{ borderColor: theme.border, color: theme.textMuted }}
             >
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5" dir="ltr">
                 <button
                   type="button"
                   onClick={() => stepDay(-1)}
@@ -438,7 +529,7 @@ export const FolioPurchaseCurveChart: React.FC<FolioPurchaseCurveChartProps> = (
                     color: theme.text,
                   }}
                 >
-                  <ChevronRight size={13} />
+                  <ChevronLeft size={13} />
                   <span>اليوم السابق</span>
                 </button>
                 <button
@@ -453,7 +544,7 @@ export const FolioPurchaseCurveChart: React.FC<FolioPurchaseCurveChartProps> = (
                   }}
                 >
                   <span>اليوم التالي</span>
-                  <ChevronLeft size={13} />
+                  <ChevronRight size={13} />
                 </button>
               </div>
 
@@ -505,6 +596,10 @@ interface FolioCategoriesAndSuppliersProps {
   formatPrivateValue: (val: number) => string;
   onNavigateTab: (tab: any) => void;
   t: any;
+  isCategoriesCollapsed?: boolean;
+  onToggleCategoriesCollapse?: () => void;
+  isSuppliersCollapsed?: boolean;
+  onToggleSuppliersCollapse?: () => void;
 }
 
 export const FolioCategoriesAndSuppliers: React.FC<
@@ -517,15 +612,89 @@ export const FolioCategoriesAndSuppliers: React.FC<
   formatPrivateValue,
   onNavigateTab,
   t,
+  isCategoriesCollapsed: controlledCategoriesCollapsed,
+  onToggleCategoriesCollapse,
+  isSuppliersCollapsed: controlledSuppliersCollapsed,
+  onToggleSuppliersCollapse,
 }) => {
+  const [internalCatCollapsed, setInternalCatCollapsed] = useState(true);
+  const [internalSupCollapsed, setInternalSupCollapsed] = useState(true);
+
+  const isCategoriesCollapsed =
+    controlledCategoriesCollapsed !== undefined
+      ? controlledCategoriesCollapsed
+      : internalCatCollapsed;
+  const isSuppliersCollapsed =
+    controlledSuppliersCollapsed !== undefined
+      ? controlledSuppliersCollapsed
+      : internalSupCollapsed;
+
+  const toggleCategories = () => {
+    if (onToggleCategoriesCollapse) onToggleCategoriesCollapse();
+    else setInternalCatCollapsed((prev) => !prev);
+  };
+
+  const toggleSuppliers = () => {
+    if (onToggleSuppliersCollapse) onToggleSuppliersCollapse();
+    else setInternalSupCollapsed((prev) => !prev);
+  };
+
   const maxSupplierVol = Math.max(
     1,
     ...topSuppliers.map((s) => s.purchaseVolume || 0),
   );
 
   return (
-    <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-right">
+    <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start text-right">
       {/* Top Categories Folio Table */}
+      {isCategoriesCollapsed ? (
+        <div
+          onClick={toggleCategories}
+          className="cursor-pointer select-none border px-4 py-3 flex items-center justify-between gap-3 transition-colors"
+          style={{
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
+            color: theme.text,
+          }}
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <span
+              className="text-xs font-mono font-bold tabular-nums shrink-0"
+              style={{ color: theme.accent }}
+            >
+              05.أ
+            </span>
+            <span className="text-xs sm:text-sm font-black truncate">
+              أعلى الفئات قيمة بالمخزون
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {categoryAnalysis.length > 0 && (
+              <span
+                className="font-mono tabular-nums text-[11px] font-bold px-2 py-0.5 border"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                  color: theme.text,
+                }}
+              >
+                {categoryAnalysis.length} فئات
+              </span>
+            )}
+            <span
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold border"
+              style={{
+                backgroundColor: theme.surfaceMuted,
+                borderColor: theme.border,
+                color: theme.text,
+              }}
+            >
+              <span>إظهار</span>
+              <ChevronDown size={14} />
+            </span>
+          </div>
+        </div>
+      ) : (
       <div
         className="border flex flex-col"
         style={{
@@ -550,19 +719,35 @@ export const FolioCategoriesAndSuppliers: React.FC<
               <span>أعلى الفئات قيمة بالمخزون</span>
             </h3>
           </div>
-          <button
-            type="button"
-            onClick={() => onNavigateTab('category-analysis')}
-            className="text-xs font-bold inline-flex items-center gap-1 px-2.5 py-1 border cursor-pointer whitespace-nowrap shrink-0"
-            style={{
-              backgroundColor: theme.surfaceMuted,
-              borderColor: theme.border,
-              color: theme.text,
-            }}
-          >
-            <span>التفاصيل</span>
-            <ArrowUpLeft size={13} />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => onNavigateTab('category-analysis')}
+              className="text-xs font-bold inline-flex items-center gap-1 px-2.5 py-1 border cursor-pointer whitespace-nowrap shrink-0"
+              style={{
+                backgroundColor: theme.surfaceMuted,
+                borderColor: theme.border,
+                color: theme.text,
+              }}
+            >
+              <span>التفاصيل</span>
+              <ArrowUpLeft size={13} />
+            </button>
+            <button
+              type="button"
+              onClick={toggleCategories}
+              title="طي البطاقة"
+              aria-label="طي البطاقة"
+              className="p-1.5 border transition-colors cursor-pointer"
+              style={{
+                backgroundColor: theme.surfaceMuted,
+                borderColor: theme.border,
+                color: theme.textMuted,
+              }}
+            >
+              <ChevronUp size={15} />
+            </button>
+          </div>
         </div>
 
         {categoryAnalysis.length === 0 ? (
@@ -639,8 +824,57 @@ export const FolioCategoriesAndSuppliers: React.FC<
           </div>
         )}
       </div>
+      )}
 
       {/* Top Suppliers Folio Table */}
+      {isSuppliersCollapsed ? (
+        <div
+          onClick={toggleSuppliers}
+          className="cursor-pointer select-none border px-4 py-3 flex items-center justify-between gap-3 transition-colors"
+          style={{
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
+            color: theme.text,
+          }}
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <span
+              className="text-xs font-mono font-bold tabular-nums shrink-0"
+              style={{ color: theme.accent }}
+            >
+              05.ب
+            </span>
+            <span className="text-xs sm:text-sm font-black truncate">
+              أهم الموردين (الدورة الحالية)
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {topSuppliers.length > 0 && (
+              <span
+                className="font-mono tabular-nums text-[11px] font-bold px-2 py-0.5 border"
+                style={{
+                  backgroundColor: theme.surfaceMuted,
+                  borderColor: theme.border,
+                  color: theme.text,
+                }}
+              >
+                {topSuppliers.length} موردين
+              </span>
+            )}
+            <span
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold border"
+              style={{
+                backgroundColor: theme.surfaceMuted,
+                borderColor: theme.border,
+                color: theme.text,
+              }}
+            >
+              <span>إظهار</span>
+              <ChevronDown size={14} />
+            </span>
+          </div>
+        </div>
+      ) : (
       <div
         className="border flex flex-col"
         style={{
@@ -665,19 +899,35 @@ export const FolioCategoriesAndSuppliers: React.FC<
               <span>أهم الموردين (الدورة الحالية)</span>
             </h3>
           </div>
-          <button
-            type="button"
-            onClick={() => onNavigateTab('suppliers')}
-            className="text-xs font-bold inline-flex items-center gap-1 px-2.5 py-1 border cursor-pointer whitespace-nowrap shrink-0"
-            style={{
-              backgroundColor: theme.surfaceMuted,
-              borderColor: theme.border,
-              color: theme.text,
-            }}
-          >
-            <span>الموردون</span>
-            <ArrowUpLeft size={13} />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => onNavigateTab('suppliers')}
+              className="text-xs font-bold inline-flex items-center gap-1 px-2.5 py-1 border cursor-pointer whitespace-nowrap shrink-0"
+              style={{
+                backgroundColor: theme.surfaceMuted,
+                borderColor: theme.border,
+                color: theme.text,
+              }}
+            >
+              <span>الموردون</span>
+              <ArrowUpLeft size={13} />
+            </button>
+            <button
+              type="button"
+              onClick={toggleSuppliers}
+              title="طي البطاقة"
+              aria-label="طي البطاقة"
+              className="p-1.5 border transition-colors cursor-pointer"
+              style={{
+                backgroundColor: theme.surfaceMuted,
+                borderColor: theme.border,
+                color: theme.textMuted,
+              }}
+            >
+              <ChevronUp size={15} />
+            </button>
+          </div>
         </div>
 
         {topSuppliers.length === 0 ? (
@@ -750,6 +1000,7 @@ export const FolioCategoriesAndSuppliers: React.FC<
           </div>
         )}
       </div>
+      )}
     </section>
   );
 };
