@@ -26,16 +26,38 @@ export function PriceNegotiationModal({ products, isOpen, onClose }: PriceNegoti
       const fetchHistory = async () => {
         setLoading(true);
         try {
+          const seenIds = new Set<string>();
           const allHistory: any[] = [];
+          const pushDoc = (docSnap: any) => {
+            if (!seenIds.has(docSnap.id)) {
+              seenIds.add(docSnap.id);
+              allHistory.push(docSnap.data());
+            }
+          };
+
           for (const p of products) {
+            if (!p.id) continue;
             const q = query(
               collection(db, `users/${user.uid}/purchases`),
               where('productId', '==', p.id),
               limit(20)
             );
             const snap = await getDocs(q);
-            allHistory.push(...snap.docs.map(doc => doc.data()));
+            snap.docs.forEach(pushDoc);
           }
+
+          const mainP = products[0];
+          const hasBarcode = Boolean((mainP.barcode || '').trim() || (mainP.barcode2 || '').trim());
+          if (!hasBarcode && mainP.name?.trim()) {
+            const nameQ = query(
+              collection(db, `users/${user.uid}/purchases`),
+              where('productName', '==', mainP.name.trim()),
+              limit(30)
+            );
+            const nameSnap = await getDocs(nameQ);
+            nameSnap.docs.forEach(pushDoc);
+          }
+
           allHistory.sort((a, b) => safeParseDate(b.date || b.createdAt).getTime() - safeParseDate(a.date || a.createdAt).getTime());
           setHistory(allHistory);
         } catch (err) {

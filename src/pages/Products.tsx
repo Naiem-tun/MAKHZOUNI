@@ -453,10 +453,26 @@ export default function Products() {
     }
 
     if (showBoxInfo) {
-      const barcodeToMatch = product.barcode || product.barcode2;
-      const matching = barcodeToMatch 
-        ? products.filter(p => p.barcode === barcodeToMatch || p.barcode2 === barcodeToMatch || p.id === product.id)
-        : [product];
+      const b1 = (product.barcode || '').trim();
+      const b2 = (product.barcode2 || '').trim();
+      const normalizedName = (product.name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+
+      const matching = products.filter(p => {
+        if (p.id === product.id) return true;
+
+        const pB1 = (p.barcode || '').trim();
+        const pB2 = (p.barcode2 || '').trim();
+
+        if (b1 && (pB1 === b1 || pB2 === b1)) return true;
+        if (b2 && (pB1 === b2 || pB2 === b2)) return true;
+
+        if ((!b1 && !b2) || (!pB1 && !pB2)) {
+          const pName = (p.name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+          if (normalizedName && pName === normalizedName) return true;
+        }
+
+        return false;
+      });
       
       const matchingProducts = [
         product,

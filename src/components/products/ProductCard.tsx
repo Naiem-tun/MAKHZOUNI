@@ -208,7 +208,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               style={{ color: activeTheme.textMuted }}
             >
               {/* Stock Readout */}
-              <span>{showPosStock ? 'الكاشير:' : `${t('stock_label')}:`}</span>
+              <span>{showPosStock ? 'الكاشير:' : t('stock_label')}</span>
               {settings.defaultStockView === 'boxes' &&
               product.piecesPerBox &&
               product.piecesPerBox > 1 ? (
